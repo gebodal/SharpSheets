@@ -1052,6 +1052,7 @@ namespace SharpEditor {
 		static ImageSource BitmapFromUri(Uri source) {
 			BitmapImage bitmap = new BitmapImage();
 			bitmap.BeginInit();
+			bitmap.CreateOptions = BitmapCreateOptions.IgnoreImageCache; // Otherwise updates to image files are ignored
 			bitmap.UriSource = source;
 			bitmap.CacheOption = BitmapCacheOption.OnLoad;
 			bitmap.EndInit();
