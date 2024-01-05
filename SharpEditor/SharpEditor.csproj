@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <StartupObject>SharpEditor.App</StartupObject>
-    <Version>0.1.0.0</Version>
+    <Version>0.1.1.0</Version>
     <Company></Company>
     <Authors>Gebodal</Authors>
     <ApplicationIcon>Images\Icon.ico</ApplicationIcon>
