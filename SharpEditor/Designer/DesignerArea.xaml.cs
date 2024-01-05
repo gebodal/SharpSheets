@@ -356,6 +356,7 @@ namespace SharpEditor {
 
 								if (areas.Inner.Length > 0) {
 									foreach (SharpSheets.Layouts.Rectangle innerRect in areas.Inner) {
+										if(innerRect.Width < 0f || innerRect.Height < 0f) { continue; } // Ignore malformed areas
 										System.Windows.Shapes.Rectangle adjustedHighlight = new System.Windows.Shapes.Rectangle() {
 											Width = innerRect.Width,
 											Height = innerRect.Height,
@@ -368,7 +369,7 @@ namespace SharpEditor {
 									}
 								}
 
-								if (areas.Adjusted is not null && areas.Original != areas.Adjusted) {
+								if (areas.Adjusted is not null && areas.Original != areas.Adjusted && areas.Adjusted.Width >= 0f && areas.Adjusted.Height >= 0f) {
 									System.Windows.Shapes.Rectangle adjustedHighlight = new System.Windows.Shapes.Rectangle() {
 										Width = areas.Adjusted.Width,
 										Height = areas.Adjusted.Height,
@@ -380,15 +381,17 @@ namespace SharpEditor {
 									Canvas.SetTop(adjustedHighlight, currentPageCanvas.CanvasRect.Height - areas.Adjusted.Top);
 								}
 
-								System.Windows.Shapes.Rectangle originalHighlight = new System.Windows.Shapes.Rectangle() {
-									Width = areas.Original.Width,
-									Height = areas.Original.Height,
-									Stroke = new SolidColorBrush(Colors.Lime) { Opacity = 0.75 },
-									StrokeThickness = DesignerHighlightStrokeThickness / DesignerViewer.Scale
-								};
-								currentPage.Highlights.Children.Add(originalHighlight);
-								Canvas.SetLeft(originalHighlight, areas.Original.Left);
-								Canvas.SetTop(originalHighlight, currentPageCanvas.CanvasRect.Height - areas.Original.Top);
+								if (areas.Original.Width >= 0f && areas.Original.Height >= 0f) {
+									System.Windows.Shapes.Rectangle originalHighlight = new System.Windows.Shapes.Rectangle() {
+										Width = areas.Original.Width,
+										Height = areas.Original.Height,
+										Stroke = new SolidColorBrush(Colors.Lime) { Opacity = 0.75 },
+										StrokeThickness = DesignerHighlightStrokeThickness / DesignerViewer.Scale
+									};
+									currentPage.Highlights.Children.Add(originalHighlight);
+									Canvas.SetLeft(originalHighlight, areas.Original.Left);
+									Canvas.SetTop(originalHighlight, currentPageCanvas.CanvasRect.Height - areas.Original.Top);
+								}
 							}
 						}
 
