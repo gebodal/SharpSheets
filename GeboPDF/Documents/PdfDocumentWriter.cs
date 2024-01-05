@@ -1,0 +1,352 @@
+﻿using GeboPdf.IO;
+using GeboPdf.Objects;
+using GeboPdf.Utilities;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Security.Permissions;
+using System.Text;
+
+namespace GeboPdf.Documents {
+
+	public class PdfDocumentWriter {
+
+		private delegate int PdfReferenceEvaluator(PdfObject subject);
+
+		private readonly PdfStreamWriter _stream;
+
+		public bool CompressStreams { get; set; } = true;
+
+		public PdfDocumentWriter(PdfStreamWriter stream) {
+			this._stream = stream;
+		}
+
+		private void WriteString(PdfString value) {
+			if (value.HexString) {
+				_stream.WriteASCII("<");
+			}
+			else {
+				_stream.WriteASCII("(");
+			}
+
+			_stream.Write(value.Value);
+
+			if (value.HexString) {
+				_stream.WriteASCII(">");
+			}
+			else {
+				_stream.WriteASCII(")");
+			}
+		}
+
+		private void WriteArray(AbstractPdfArray values, PdfReferenceEvaluator evaluator) { // Special type?
+			_stream.WriteASCII("[");
+
+			for(int i=0; i<values.Length; i++) {
+				if(i > 0) {
+					_stream.WriteSpace();
+				}
+				WriteObject(values[i], evaluator);
+			}
+
+			_stream.WriteASCII("]");
+		}
+
+		private void WriteDictionaryEntry(KeyValuePair<PdfName, PdfObject> entry, PdfReferenceEvaluator evaluator, bool useEOL) {
+			_stream.WriteName(entry.Key);
+			_stream.WriteSpace();
+			WriteObject(entry.Value, evaluator);
+			if (useEOL) {
+				_stream.WriteEOL();
+			}
+			else {
+				_stream.WriteSpace();
+			}
+		}
+
+		private void WriteDictionary(AbstractPdfDictionary values, PdfReferenceEvaluator evaluator, bool useEOL, params KeyValuePair<PdfName, PdfObject>[] additionalValues) { // Special type?
+			if(additionalValues.Length == 0 && values.Count == 0) {
+				_stream.WriteASCII("<< >>");
+				return;
+			}
+			
+			_stream.WriteASCII("<<");
+			if (useEOL) {
+				_stream.WriteEOL();
+			}
+			else {
+				_stream.WriteSpace();
+			}
+
+			foreach(KeyValuePair<PdfName, PdfObject> entry in values) {
+				WriteDictionaryEntry(entry, evaluator, useEOL);
+			}
+			foreach (KeyValuePair<PdfName, PdfObject> additionalEntry in additionalValues) {
+				WriteDictionaryEntry(additionalEntry, evaluator, useEOL);
+			}
+
+			_stream.WriteASCII(">>");
+		}
+
+		private void WriteIndirectReference(PdfIndirectReference reference, PdfReferenceEvaluator evaluator) {
+			int referenceIndex = evaluator(reference.Subject);
+
+			_stream.WriteASCII($"{referenceIndex} 0 R");
+		}
+
+		private void WriteObject(PdfObject value, PdfReferenceEvaluator evaluator) {
+			if (value is PdfBoolean boolVal) {
+				_stream.WriteBool(boolVal.Value);
+			}
+			else if (value is PdfInt intVal) {
+				_stream.WriteInt(intVal.Value);
+			}
+			else if (value is PdfFloat floatVal) {
+				_stream.WriteFloat(floatVal.Value);
+			}
+			else if (value is PdfString stringVal) {
+				WriteString(stringVal);
+			}
+			else if (value is PdfName nameVal) {
+				_stream.WriteName(nameVal);
+			}
+			else if (value is AbstractPdfArray arrayVal) {
+				WriteArray(arrayVal, evaluator);
+			}
+			else if (value is AbstractPdfStream) {
+				throw new PdfInvalidOperationException("Stream objects must be explictly written as standalone objects.");
+			}
+			else if (value is AbstractPdfDictionary dictVal) {
+				WriteDictionary(dictVal, evaluator, true);
+			}
+			else if (value is PdfNull) {
+				_stream.WriteNull();
+			}
+			else if (value is PdfIndirectReference referenceVal) {
+				WriteIndirectReference(referenceVal, evaluator);
+			}
+			else if (value is PdfProxyObject proxyVal) {
+				WriteObject(proxyVal.Content, evaluator);
+			}
+			else {
+				throw new PdfInvalidOperationException($"Cannot write object of type {value.GetType()}.");
+			}
+		}
+
+		private void WriteStream(AbstractPdfStream stream, PdfReferenceEvaluator evaluator) {
+			//AbstractPdfDictionary streamDictionary = stream.GetDictionary();
+
+			MemoryStream originalStreamData = stream.GetStream();
+			MemoryStream streamData;
+			if (CompressStreams && stream.AllowEncoding) {
+				streamData = Deflate1950.Compress(originalStreamData);
+			}
+			else {
+				streamData = originalStreamData;
+			}
+
+			KeyValuePair<PdfName, PdfObject>[] streamEntries = new KeyValuePair<PdfName, PdfObject>[(CompressStreams && stream.AllowEncoding) ? 2 : 1];
+			streamEntries[0] = new KeyValuePair<PdfName, PdfObject>(PdfNames.Length, new PdfInt(streamData.Length));
+			if (CompressStreams && stream.AllowEncoding) {
+				streamEntries[1] = new KeyValuePair<PdfName, PdfObject>(PdfNames.Filter, PdfNames.FlateDecode);
+			}
+
+			WriteDictionary(stream, evaluator, true, streamEntries);
+			_stream.WriteEOL();
+
+			_stream.WriteASCII("stream");
+			_stream.WriteEOL();
+
+			_stream.Write(streamData);
+
+			_stream.WriteEOL();
+			_stream.WriteASCII("endstream");
+			//WriteEOL();
+		}
+
+		private long WriteIndirectObject(PdfObject indirectObject, PdfReferenceEvaluator evaluator) {
+			long objectPosition = _stream.bytesWritten;
+
+			int objectIndex = evaluator(indirectObject);
+
+			_stream.WriteASCII($"{objectIndex} 0 obj");
+			_stream.WriteEOL();
+
+			if (indirectObject is AbstractPdfStream streamObject) {
+				WriteStream(streamObject, evaluator);
+			}
+			else {
+				WriteObject(indirectObject, evaluator);
+			}
+
+			_stream.WriteEOL();
+			_stream.WriteASCII("endobj");
+			_stream.WriteEOL();
+
+			return objectPosition;
+		}
+
+		private void WriteHeader() {
+			// Write header and intro bytes
+			_stream.WriteASCII("%PDF-1.7"); // "%PDF\u002D1.7"
+			_stream.WriteEOL();
+			_stream.WriteASCII("%");
+			_stream.Write(248);
+			_stream.Write(254); // 240
+			_stream.Write(230);
+			_stream.Write(163);
+			/*
+			_stream.Write(226);
+			_stream.Write(227);
+			_stream.Write(207);
+			_stream.Write(211);
+			*/
+			_stream.WriteEOL();
+			_stream.WriteASCII("% Made using " + GeboData.GetProducerString());
+			_stream.WriteEOL();
+		}
+
+		private long WriteXrefTable(long[] byteOffsets) {
+			long xrefPosition = _stream.bytesWritten;
+
+			_stream.WriteASCII("xref");
+			_stream.WriteEOL();
+
+			_stream.WriteASCII($"0 {byteOffsets.Length + 1}");
+			_stream.WriteEOL();
+
+			_stream.WriteASCII("0000000001 65535 f");
+			//WriteEOL(); // This must be a 2-byte EOL marker
+			_stream.Write(13); // Carriage Return char
+			_stream.Write(10); // Line Feed (newline) char
+
+			for (int i=0; i<byteOffsets.Length; i++) {
+				_stream.WriteASCII($"{byteOffsets[i]:0000000000} 00000 n");
+				//WriteEOL(); // This must be a 2-byte EOL marker
+				_stream.Write(13); // Carriage Return char
+				_stream.Write(10); // Line Feed (newline) char
+			}
+
+			return xrefPosition;
+		}
+
+		private void WriteTrailer(AbstractPdfDictionary root, PdfMetadataDictionary infoDictionary, long[] xrefByteOffsets, PdfReferenceEvaluator evaluator) {
+			long startXref = WriteXrefTable(xrefByteOffsets);
+
+			PdfDictionary trailerDictionary = new PdfDictionary() {
+				{ PdfNames.Size, new PdfInt(xrefByteOffsets.Length + 1) },
+				{ PdfNames.Root, PdfIndirectReference.Create(root) }
+				// TODO Add ID here
+			};
+
+			if(infoDictionary != null) {
+				trailerDictionary.Add(PdfNames.Info, PdfIndirectReference.Create(infoDictionary));
+
+				using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create()) {
+					string idData = (infoDictionary?.CreationDate ?? DateTime.Now).ToString("'D:'yyyyMMddHHmmss") + _stream.bytesWritten.ToString(); // Add contents of infoDictionary here?
+
+					byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(idData);
+					byte[] hashBytes = md5.ComputeHash(inputBytes);
+
+					PdfString hashStr = new PdfRawString(Encoding.ASCII.GetBytes(HexWriter.ToString(hashBytes)), true);
+					PdfArray idArray = new PdfArray(hashStr, hashStr);
+
+					trailerDictionary.Add(PdfNames.ID, idArray);
+				}
+			}
+
+			_stream.WriteASCII("trailer");
+			_stream.WriteEOL();
+			WriteDictionary(trailerDictionary, evaluator, false);
+			_stream.WriteEOL();
+
+			_stream.WriteASCII("startxref");
+			_stream.WriteEOL();
+			_stream.WriteInt(startXref);
+			_stream.WriteEOL();
+
+			_stream.WriteASCII("%%EOF");
+		}
+
+		private class DocumentObjectCollection : IEqualityComparer<PdfObject> {
+
+			private readonly Dictionary<PdfObject, int> collection;
+			public readonly PdfObject[] indirectObjects;
+
+			public bool Equals(PdfObject? x, PdfObject? y) {
+				return RuntimeHelpers.GetHashCode(x) == RuntimeHelpers.GetHashCode(y);
+			}
+			public int GetHashCode(PdfObject obj) {
+				return RuntimeHelpers.GetHashCode(obj);
+			}
+
+			public DocumentObjectCollection(IEnumerable<PdfObject> docObjs) {
+				collection = new Dictionary<PdfObject, int>(this);
+
+				IEqualityComparer<PdfObject> comparer = EqualityComparer<PdfObject>.Default;
+
+				List<PdfObject> indirectObjects = new List<PdfObject>();
+				List<int> hashCodes = new List<int>();
+				foreach (PdfObject obj in docObjs) {
+					if (!collection.ContainsKey(obj)) {
+						int objHashCode = comparer.GetHashCode(obj);
+						int index = -1;
+
+						for (int i = 0; i < indirectObjects.Count; i++) {
+							if (objHashCode == hashCodes[i] && comparer.Equals(indirectObjects[i], obj)) {
+								index = i;
+								break;
+							}
+						}
+
+						if (index < 0) {
+							index = indirectObjects.Count;
+							indirectObjects.Add(obj);
+							hashCodes.Add(objHashCode);
+						}
+						collection.Add(obj, index + 1);
+					}
+				}
+
+				this.indirectObjects = indirectObjects.ToArray();
+			}
+
+			public int ReferenceEvaluator(PdfObject pdfObj) {
+				if (!collection.ContainsKey(pdfObj)) {
+					Console.WriteLine("PROBLEM");
+				}
+				return collection[pdfObj];
+			}
+		}
+
+		private static DocumentObjectCollection CollectDocumentObjects(PdfDocument document) {
+			return new DocumentObjectCollection(document.CollectObjects());
+		}
+
+		public void WriteDocument(PdfDocument document) {
+			if (document.PageCount == 0) {
+				throw new PdfInvalidOperationException("Cannot write a PDF document with zero pages.");
+			}
+
+			//Console.WriteLine("Start collation");
+			DocumentObjectCollection documentObjects = CollectDocumentObjects(document);
+			//Console.WriteLine("End collation");
+
+			WriteHeader();
+
+			List<long> xrefs = new List<long>();
+
+			foreach (PdfObject obj in documentObjects.indirectObjects) {
+				long objOffset = WriteIndirectObject(obj, documentObjects.ReferenceEvaluator);
+				xrefs.Add(objOffset);
+			}
+
+			WriteTrailer(document.catalogueDict, document.metadataDict, xrefs.ToArray(), documentObjects.ReferenceEvaluator);
+		}
+
+	}
+
+}

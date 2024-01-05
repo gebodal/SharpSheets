@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33205.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeboPDF", "GeboPDF\GeboPDF.csproj", "{3020545E-FE99-4268-A650-F4D11D1729BF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6E44CA0D-B63B-427C-B817-36087F88C808}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		GeboPDF\LICENSE = GeboPDF\LICENSE
+		SharpEditor\Images\Logo.png = SharpEditor\Images\Logo.png
+		README.md = README.md
+		TODO.md = TODO.md
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Testing", "Testing\Testing.csproj", "{35D5E875-B97D-43CD-8EC6-E66D80D8D889}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpSheets", "SharpSheets\SharpSheets.csproj", "{E5092C20-9E26-4F02-899D-B46294E8A1E4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpEditor", "SharpEditor\SharpEditor.csproj", "{8FDA9072-45BB-45CE-86E9-B54CADDD04EE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3020545E-FE99-4268-A650-F4D11D1729BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3020545E-FE99-4268-A650-F4D11D1729BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3020545E-FE99-4268-A650-F4D11D1729BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3020545E-FE99-4268-A650-F4D11D1729BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35D5E875-B97D-43CD-8EC6-E66D80D8D889}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35D5E875-B97D-43CD-8EC6-E66D80D8D889}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35D5E875-B97D-43CD-8EC6-E66D80D8D889}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35D5E875-B97D-43CD-8EC6-E66D80D8D889}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5092C20-9E26-4F02-899D-B46294E8A1E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5092C20-9E26-4F02-899D-B46294E8A1E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5092C20-9E26-4F02-899D-B46294E8A1E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5092C20-9E26-4F02-899D-B46294E8A1E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8FDA9072-45BB-45CE-86E9-B54CADDD04EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8FDA9072-45BB-45CE-86E9-B54CADDD04EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8FDA9072-45BB-45CE-86E9-B54CADDD04EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8FDA9072-45BB-45CE-86E9-B54CADDD04EE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6FFDB753-17FB-40AA-9163-BD241AF785E8}
+	EndGlobalSection
+EndGlobal

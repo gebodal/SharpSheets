@@ -1,0 +1,451 @@
+﻿using SharpSheets.Evaluations;
+using SharpSheets.Shapes;
+using SharpSheets.Layouts;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using SharpSheets.Parsing;
+using SharpSheets.Canvas;
+using SharpSheets.Documentation;
+using SharpSheets.Widgets;
+using SharpSheets.Markup.Elements;
+using SharpSheets.Markup.Canvas;
+using SharpSheets.Utilities;
+using SharpSheets.Exceptions;
+
+namespace SharpSheets.Markup.Patterns {
+
+	public abstract class MarkupShapePattern : MarkupPattern {
+
+		protected abstract Type InstanceType { get; }
+
+		public MarkupShapePattern(
+			string? library,
+			string name,
+			string? description,
+			IMarkupArgument[] arguments,
+			MarkupValidation[] validations,
+			Rectangle? exampleSize,
+			Size? exampleCanvas,
+			DivElement rootElement,
+			Utilities.FilePath source
+			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
+
+	}
+
+	public abstract class MarkupShapePattern<T> : MarkupShapePattern where T : IShape {
+
+		public MarkupShapePattern(
+			string? library,
+			string name,
+			string? description,
+			IMarkupArgument[] arguments,
+			MarkupValidation[] validations,
+			Rectangle? exampleSize,
+			Size? exampleCanvas,
+			DivElement rootElement,
+			Utilities.FilePath source
+			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
+
+		public sealed override MarkupConstructorDetails GetConstructorDetails() {
+			return new MarkupConstructorDetails(this, typeof(T), InstanceType, GetArgumentDetails().ToArray(), Description is not null ? new DocumentationString(Description) : null);
+		}
+
+		protected virtual IEnumerable<KeyValuePair<EvaluationName, (object? value, EvaluationType type)>> GetAdditionalArguments(IContext context, string name, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+			return Enumerable.Empty<KeyValuePair<EvaluationName, (object?, EvaluationType)>>();
+		}
+
+		protected static object? MakeArgumentValue(string name, Type type, bool useLocal, bool isOptional, object? defaultValue, IContext context, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+			object? value = SharpFactory.CreateParameter(name, type, useLocal, isOptional, defaultValue, context, source, widgetFactory, shapeFactory, out _); // TODO Should we pass these arguments up the chain somehow?
+			/*
+			if (type.IsEnum) {
+				value = value.ToString();
+			}
+			*/
+			return value;
+		}
+
+		protected abstract T ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines);
+
+		public T MakeShape(IContext? context, string name, float aspect, DirectoryPath source, ShapeFactory? shapeFactory, bool constructionLines, out SharpParsingException[] buildErrors) {
+			WidgetFactory dummyWidgetFactory = new WidgetFactory(MarkupRegistry.Empty, shapeFactory);
+
+			IEnvironment argumentEnvironment = ParseArguments(context ?? Context.Empty, source, null, shapeFactory, context == null, out buildErrors)
+				.AppendEnvironment(GetAdditionalArguments(context ?? Context.Empty, name ?? "NAME", source, dummyWidgetFactory, shapeFactory));
+
+			return ConstructInstance(argumentEnvironment, aspect, shapeFactory, constructionLines);
+		}
+
+		public override object MakeExample(WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool diagnostic, out SharpParsingException[] buildErrors) {
+			return MakeShape(null, Name ?? "NAME", -1f, sourceDirectory, shapeFactory, diagnostic, out buildErrors);
+		}
+
+		protected abstract ArgumentDetails[] GetAdditionalArgumentDetails();
+
+		protected sealed override IEnumerable<ArgumentDetails> GetArgumentDetails() {
+			return GetAdditionalArgumentDetails().Concat(base.GetArgumentDetails());
+		}
+
+	}
+
+	public abstract class MarkupAreaShapePattern<T> : MarkupShapePattern<T> where T : IAreaShape {
+
+		public MarkupAreaShapePattern(
+			string? library,
+			string name,
+			string? description,
+			IMarkupArgument[] arguments,
+			MarkupValidation[] validations,
+			Rectangle? exampleSize,
+			Size? exampleCanvas,
+			DivElement rootElement,
+			Utilities.FilePath source
+			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
+
+		protected override ArgumentDetails[] GetAdditionalArgumentDetails() {
+			return PatternData.AreaShapeVariables;
+		}
+
+	}
+
+	public abstract class MarkupShape : IShape, IMarkupObject {
+
+		public MarkupPattern Pattern { get; }
+		protected readonly ShapeFactory? shapeFactory;
+		protected readonly IEnvironment arguments;
+		protected readonly bool diagnostic;
+
+		public MarkupShape(MarkupPattern pattern, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic) {
+			this.Pattern = pattern;
+			this.shapeFactory = shapeFactory;
+			this.arguments = arguments;
+			this.diagnostic = diagnostic;
+		}
+
+		protected virtual IEnvironment GetDrawableEnvironment() {
+			return arguments;
+		}
+
+		protected DrawableDivElement? GetDrawableRoot(ISharpGraphicsState graphicsState) {
+			return Pattern.rootElement.GetDrawable(graphicsState.GetMarkupData(), GetDrawableEnvironment(), shapeFactory, diagnostic);
+		}
+
+		public virtual void Draw(ISharpCanvas canvas, Rectangle rect) {
+			GetDrawableRoot(canvas)?.Draw(canvas, rect, default);
+		}
+
+	}
+
+	public abstract class MarkupAreaShape : MarkupShape, IAreaShape {
+
+		public float Aspect { get; }
+
+		public MarkupAreaShape(MarkupPattern pattern, ShapeFactory? shapeFactory, IEnvironment arguments, bool constructionLines, float aspect) : base(pattern, shapeFactory, arguments, constructionLines) {
+			this.Aspect = aspect;
+		}
+
+		public Rectangle AspectRect(ISharpGraphicsState graphicsState, Rectangle rect) {
+			return rect.Aspect(Aspect);
+		}
+
+		public sealed override void Draw(ISharpCanvas canvas, Rectangle rect) {
+			base.Draw(canvas, AspectRect(canvas, rect));
+		}
+	}
+
+	#region IBox
+
+	public class MarkupBoxPattern : MarkupAreaShapePattern<IBox> {
+
+		protected override Type InstanceType { get; } = typeof(MarkupBox);
+
+		public MarkupBoxPattern(
+			string? library,
+			string name,
+			string? description,
+			IMarkupArgument[] arguments,
+			MarkupValidation[] validations,
+			//MarkupVariable[] variables,
+			Rectangle? exampleSize,
+			Size? exampleCanvas,
+			DivElement rootElement,
+			Utilities.FilePath source
+			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
+
+		protected override IBox ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
+			return new MarkupBox(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
+		}
+
+	}
+
+	public class MarkupBox : MarkupAreaShape, IBox {
+
+		public MarkupBox(MarkupBoxPattern pattern, ShapeFactory? shapeFactory, IEnvironment arguments, bool constructionLines, float aspect) : base(pattern, shapeFactory, arguments, constructionLines, aspect) { }
+
+		public Rectangle RemainingRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
+			return GetDrawableRoot(graphicsState)?.GetNamedArea("remaining", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"remaining\"");
+		}
+
+		public Rectangle FullRect(ISharpGraphicsState graphicsState, Rectangle rect) {
+			return GetDrawableRoot(graphicsState)?.GetFullFromNamedArea("remaining", graphicsState, rect) ?? throw new MissingAreaException("Could not get area \"remaining\"");
+		}
+
+	}
+
+	#endregion
+
+	#region ILabelledBox
+
+	public class MarkupLabelledBoxPattern : MarkupAreaShapePattern<ILabelledBox> {
+
+		protected override Type InstanceType { get; } = typeof(MarkupLabelledBox);
+
+		public MarkupLabelledBoxPattern(
+			string? library,
+			string name,
+			string? description,
+			IMarkupArgument[] arguments,
+			MarkupValidation[] validations,
+			//MarkupVariable[] variables,
+			Rectangle? exampleSize,
+			Size? exampleCanvas,
+			DivElement rootElement,
+			Utilities.FilePath source
+			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
+
+		protected override ILabelledBox ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
+			return new MarkupLabelledBox(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
+		}
+
+	}
+
+	public class MarkupLabelledBox : MarkupAreaShape, ILabelledBox {
+
+		public MarkupLabelledBox(MarkupLabelledBoxPattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
+
+		public Rectangle LabelRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
+			return GetDrawableRoot(graphicsState)?.GetNamedArea("label", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"label\"");
+		}
+
+		public Rectangle RemainingRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
+			return GetDrawableRoot(graphicsState)?.GetNamedArea("remaining", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"remaining\"");
+		}
+
+		public Rectangle FullRect(ISharpGraphicsState graphicsState, Rectangle rect) {
+			return GetDrawableRoot(graphicsState)?.GetFullFromNamedArea("remaining", graphicsState, rect) ?? throw new MissingAreaException("Could not get area \"remaining\"");
+		}
+
+	}
+
+	#endregion
+
+	#region ITitledBox
+
+	public class MarkupTitledBoxPattern : MarkupShapePattern<ITitledBox> {
+
+		protected override Type InstanceType { get; } = typeof(MarkupTitledBox);
+
+		public MarkupTitledBoxPattern(
+			string? library,
+			string name,
+			string? description,
+			IMarkupArgument[] arguments,
+			MarkupValidation[] validations,
+			//MarkupVariable[] variables,
+			Rectangle? exampleSize,
+			Size? exampleCanvas,
+			DivElement rootElement,
+			Utilities.FilePath source
+			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
+
+		protected override ITitledBox ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
+			return new MarkupTitledBox(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
+		}
+
+		protected override IEnumerable<KeyValuePair<EvaluationName, (object? value, EvaluationType type)>> GetAdditionalArguments(IContext context, string name, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+			IEnumerable<KeyValuePair<EvaluationName, (object?, EvaluationType)>> baseArgs = base.GetAdditionalArguments(context, name, source, widgetFactory, shapeFactory);
+			foreach (KeyValuePair<EvaluationName, (object?, EvaluationType)> baseArg in baseArgs) {
+				yield return baseArg;
+			}
+
+			yield return new KeyValuePair<EvaluationName, (object?, EvaluationType)>("name", (name, EvaluationType.STRING));
+			yield return new KeyValuePair<EvaluationName, (object?, EvaluationType)>("parts", (name.SplitAndTrim('\n'), EvaluationType.FromSystemType(typeof(string[]))));
+
+			foreach (ArgumentDetails arg in PatternData.TitledShapeArgs) {
+				object? value = MakeArgumentValue(arg.Name, arg.Type.DataType, arg.UseLocal, arg.IsOptional, arg.DefaultValue, context, source, widgetFactory, shapeFactory);
+				yield return new KeyValuePair<EvaluationName, (object?, EvaluationType)>(arg.Name, (value, EvaluationType.FromSystemType(arg.Type.DataType)));
+			}
+		}
+
+		protected override ArgumentDetails[] GetAdditionalArgumentDetails() {
+			return PatternData.TitledShapeConstructorArgs;
+		}
+
+	}
+
+	public class MarkupTitledBox : MarkupAreaShape, ITitledBox {
+
+		public MarkupTitledBox(MarkupTitledBoxPattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
+
+		public Rectangle RemainingRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
+			return GetDrawableRoot(graphicsState)?.GetNamedArea("remaining", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"remaining\"");
+		}
+
+		public Rectangle FullRect(ISharpGraphicsState graphicsState, Rectangle rect) {
+			return GetDrawableRoot(graphicsState)?.GetFullFromNamedArea("remaining", graphicsState, rect) ?? throw new MissingAreaException("Could not get area \"remaining\"");
+		}
+
+	}
+
+	#endregion
+
+	#region IBar
+
+	public class MarkupBarPattern : MarkupAreaShapePattern<IBar> {
+
+		protected override Type InstanceType { get; } = typeof(MarkupBar);
+
+		public MarkupBarPattern(
+			string? library,
+			string name,
+			string? description,
+			IMarkupArgument[] arguments,
+			MarkupValidation[] validations,
+			//MarkupVariable[] variables,
+			Rectangle? exampleSize,
+			Size? exampleCanvas,
+			DivElement rootElement,
+			Utilities.FilePath source
+			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
+
+		protected override IBar ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
+			return new MarkupBar(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
+		}
+
+	}
+
+	public class MarkupBar : MarkupAreaShape, IBar {
+
+		public MarkupBar(MarkupBarPattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
+
+		public Rectangle LabelRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
+			return GetDrawableRoot(graphicsState)?.GetNamedArea("label", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"label\"");
+		}
+
+		public Rectangle RemainingRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
+			return GetDrawableRoot(graphicsState)?.GetNamedArea("remaining", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"remaining\"");
+		}
+	}
+
+	#endregion
+
+	#region IUsageBar
+
+	public class MarkupUsageBarPattern : MarkupAreaShapePattern<IUsageBar> {
+
+		protected override Type InstanceType { get; } = typeof(MarkupUsageBar);
+
+		public MarkupUsageBarPattern(
+			string? library,
+			string name,
+			string? description,
+			IMarkupArgument[] arguments,
+			MarkupValidation[] validations,
+			//MarkupVariable[] variables,
+			Rectangle? exampleSize,
+			Size? exampleCanvas,
+			DivElement rootElement,
+			Utilities.FilePath source
+			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
+
+		protected override IUsageBar ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
+			return new MarkupUsageBar(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
+		}
+
+	}
+
+	public class MarkupUsageBar : MarkupAreaShape, IUsageBar {
+
+		public int EntryCount { get; } = 2;
+
+		public MarkupUsageBar(MarkupUsageBarPattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
+
+		public Rectangle EntryRect(ISharpGraphicsState graphicsState, int entryIndex, Rectangle rect) {
+			if (entryIndex == 0) {
+				return FirstEntryRect(graphicsState, rect);
+			}
+			else if (entryIndex == 1) {
+				return SecondEntryRect(graphicsState, rect);
+			}
+			else {
+				throw new ArgumentOutOfRangeException(nameof(entryIndex), "UsageBar shapes only provide two entries.");
+			}
+		}
+
+		public Rectangle FirstEntryRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
+			return GetDrawableRoot(graphicsState)?.GetNamedArea("entry1", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"entry1\"");
+		}
+
+		public Rectangle SecondEntryRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
+			return GetDrawableRoot(graphicsState)?.GetNamedArea("entry2", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"entry2\"");
+		}
+
+		public Rectangle LabelRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
+			return GetDrawableRoot(graphicsState)?.GetNamedArea("label", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"label\"");
+		}
+	}
+
+	#endregion
+
+	#region IDetail
+
+	public class MarkupDetailPattern : MarkupShapePattern<IDetail> {
+
+		protected override Type InstanceType { get; } = typeof(MarkupDetail);
+
+		public MarkupDetailPattern(
+			string? library,
+			string name,
+			string? description,
+			IMarkupArgument[] arguments,
+			MarkupValidation[] validations,
+			//MarkupVariable[] variables,
+			Rectangle? exampleSize,
+			Size? exampleCanvas,
+			DivElement rootElement,
+			Utilities.FilePath source
+			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
+
+		protected override IDetail ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
+			return new MarkupDetail(this, shapeFactory, argumentEnvironment, constructionLines);
+		}
+
+		protected override ArgumentDetails[] GetAdditionalArgumentDetails() {
+			//return PatternData.DetailVariables;
+			return Array.Empty<ArgumentDetails>();
+		}
+
+	}
+
+	public class MarkupDetail : MarkupShape, IDetail {
+
+		public Layout Layout { protected get; set; }
+
+		public MarkupDetail(MarkupDetailPattern pattern, ShapeFactory? shapeFactory, IEnvironment arguments, bool constructionLines) : base(pattern, shapeFactory, arguments, constructionLines) { }
+
+		protected override IEnvironment GetDrawableEnvironment() {
+			return base.GetDrawableEnvironment().AppendEnvironment(new Dictionary<EvaluationName, object>() {
+				{ "layout", Layout }, 
+			});
+		}
+
+	}
+
+	#endregion
+
+	public class MissingAreaException : SharpSheetsException {
+		public MissingAreaException(string message) : base(message) { }
+		public MissingAreaException(string message, Exception innerException) : base(message, innerException) { }
+	}
+
+}

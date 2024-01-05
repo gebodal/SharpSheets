@@ -1,0 +1,42 @@
+# Text
+
+Text in SharpSheets is specified in one of two ways: Strings, or RichStrings.
+
+A discussion of the basic use of strings is discussed in the [Data Types](Tutorial/Data Types) documentation page. All discussion of text on this page assumes the use of the escaped characters and escape sequences mentioned there, and it applies to both Strings and RichStrings.
+
+## Formatting Text
+
+In SharpSheets, all text is drawn using one of a set of "text formats". These formats are: Regular, Bold, Italic, and Bold-Italic (written `BoldItalic`), and are specified using the [TextFormat](enum::TextFormat) enum type.
+
+Each of these text formats has a font assigned to it, and when text is drawn on the page, each character will be drawn in the font corresponding to the text format for that character. When drawing basic strings, all characters have the same format. However, the `RichString` data type allows for different text formats to be used in the same string.
+
+The special characters `\*` and `\_` are used for indicating changes in text format. Text can be emboldened by surrounding it with asterisk characters, `\*`, and italicised by surrounding it with underscore characters, `\_`. These can be combined to produce bold-italic text. Note that if either an underscore or asterisk is desired as a character in the text itself, it must be escaped with `\\_` or `\\*`.
+
+```
+text: This text is *bold*.
+text: This text is in _italics_.
+text: And this text is in _*bold italics*_.
+```
+
+## Fonts
+
+Each text format will have a particular font assigned to it at each point in the configuration or card configuration file (fonts cannot be specified in markup or card subject files). These assigned fonts can be changed for each widget using the `font` property. You can either assign a font family to be used for all formats using `font` directly, assign a list of fonts to `font`, or assign each format individually using `font.regular`, `font.bold`, `font.italic`, and `font.bolditalic`.
+
+```
+font: Times New Roman
+font.bold: Courier Bold
+## or ##
+font: Times New Roman, Courier Bold
+```
+
+When mixing font family and individual format assignment, the family will be used as a fallback, and any specific formats will overwrite the family fonts. It is possible that a font family does not have a font for each possible format, in which case SharpSheets will fall back on the Regular font, if available.
+
+### Font Files
+
+SharpSheets will attempt to read font files from your system, and populate a list of available fonts. The format of each of these fonts will be inferred, and they will be grouped into font families. However, as this process relies on the data provided by the font files themselves, this information cannot always be determined.
+
+Each font file will be read, and each font saved as an individual font (with its family and face name, e.g. as "Times New Roman Regular"), and an attempt will be made to assign the font to a family, which will be saved under the family name (e.g. "Times New Roman"). If you assign a font family to an individual format, the Regular font will be used, if available (otherwise this will produce an error). When in doubt, use the more specific version of a font name. Assigning a single font face as a font family will simply assign the font as the Regular format.
+
+### Specifying Font Files
+
+When specifying fonts in configuration files, they can either be given as font names, font family names, or as paths to font files. As for other paths, it may be an absolute path, or a relative path from the current file.

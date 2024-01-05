@@ -1,0 +1,515 @@
+﻿# Markup
+
+SharpSheets allows you to define your own widget and shape patterns for use in your configuration files. The system for this uses "Markup" files, which use an SVG-inspired syntax, allowing you to describe both layout and graphical properties of your design.
+
+## Basic Syntax
+
+The basic syntax for markup patterns is the same as for XML ("Extensible Markup Language") or HTML ("Hyper Text Markup Language"). The document is comprised of nested "elements". An element has a start and an end, defined by "tags" in the document, and inside that start and end can have either textual data, or a sequence of other elements. The basic structure of an element looks like this:
+
+``` Markup
+<name> ... </name>
+```
+
+Here we have an element of type "name", which begins with the opening tag `<name>`, and ends with closing tag `</name>`. The `...` is where you would place the content of this element.
+
+You can also have "self-closing tags", such as `<name/>`, which act as both start and end tag for an element (and therefore elements declared in this way cannot have children or textual data).
+
+To specify child elements or textual content, simply include them within the element tags, as in:
+
+``` Markup
+<name>
+	<firstChild> This is text for child 1. </firstChild>
+	<secondChild/>
+</name>
+```
+
+Here we have an element of type "name", with two children: the first of type "firstChild", which has some text contents, and the second of type "secondChild". This hierarchy of elements can be arbitrarily deep -- and elements can also have no children (even if they are not declared with a self-closing tag). The "descendants" of an element are all the nodes contained inside it, and all of its children, and their children, and so on. Likewise, the "ancestors" of an element is that elements parent, and the parent's parent, and so on. Elements which share a direct parent are referred to as "sibling" nodes.
+
+In addition to children and text data, elements can have "attributes". An attribute consists of a name and a value, separated by an equals sign (`=`), and must be written in the opening tag of the element (or in a self-closing tag). The value for an attribute must be surrounded with single (`'`) or double (`"`) quote marks.
+
+``` Markup
+<name attr="value" other='another value'/>
+```
+
+If double quote marks are used, then the value may contain single quotes. Likewise if single quotes are used, the value may contain double quotes. Unlike other markup languages, you may use `<` and `>` in attribute values.
+
+Certain attribute values can also be inherited from ancestor nodes.
+
+Element types (otherwise called "tag names") and attribute names must obey the following: always begin with a letter, and otherwise may contain letters, numbers, or the hyphen (`-`), underscore (`_`), and full-stop/period (`.`) characters.
+
+In general, the following characters must be escaped in markup files: `"'<>&`. If you wish to include these characters, the escape sequences are:
+
+``` Unknown
+&quot;   Double quote (")
+&apos;   Single quote (')
+&lt;     Less than (<)
+&gt;     Greater than (>)
+&amp;    Ampersand (&)
+```
+
+The only character that must be escaped under all circumstances is `&`, otherwise, it is dependent on context, as described above.
+
+Comments must be explicitly begun and ended using `<!--` and `-->`. Anything inside will be ignored when processing the document contents.
+
+Every markup file must have a single root element. This means that once the first element in the document has been closed, it must not be followed by any other opening or self-closing tags. This root element can have any arbitrary number of children.
+
+Each SharpSheets markup file contains one or more `<pattern>` elements (described [here](Markup::pattern)). These patterns may describe either a widget or a shape. The root of the document must either be one such `<pattern>` element, or a `<patternLibrary>` element (described [here](Markup::patternLibrary)), which may then contain multiple pattern elements.
+
+
+## Markup Patterns
+
+The basic unit of a markup file is the `<pattern>` element. These elements and their children contain all the information needed to draw a widget or shape in a document, at any size (provided they're designed correctly!).
+
+### Pattern Elements
+
+Each [pattern](Markup::pattern) requires two pieces of information: a name and a type. The `name` must be an alphanumeric string (only letters and numbers), where the first character is a letter. The `type` must be one of the following: `Widget`, `Box`, `LabelledBox`, `TitledBox`, `Bar`, `UsageBar`, or `Detail` (see the [MarkupPatternType enum](enum::MarkupPatternType)).
+
+These two pieces of information dictate how the pattern is used within SharpSheets (including what information is available to the pattern elements), and how the pattern is made available in configuration files (whether it can be used as a widget, or when it is allowed as a shape style).
+
+In addition to this, the `<pattern>` element is also the root `<div>` element (see below) for the pattern, and accepts all the same arguments that a `<div>` accepts. However, it should be noted that the grid layout attributes of the `<pattern>` element do not affect its layout in the document -- they only affect the layout within the pattern itself.
+
+You can also pass an `example-size` and `example-canvas` to a `<pattern>` element, which dictate how it is displayed in the designer while editing the markup file, and how it will be displayed in the SharpSheets documentation window when installed in the template directory. The `example-size` indicates how big the pattern example should be drawn, either as a `width height` size, or as `x y width height` rectangle. The overall size of the page will be inferred. You can also specify the example page size directly using `example-canvas`, and the pattern size within the page will either be inferred, or taken from `example-size` if specified.
+
+### Expressions
+
+Markup patterns are designed to be highly configurable, and must be reactive to changing properties and available space. As such, certain attributes of markup elements can be expressed as mathematical expressions, which can use information such as the data provided as properties to the pattern by the user from a configuration file, or information such as the width and height of the space the pattern is to be drawn in.
+
+Expressions consist of variables (named pieces of data, where the value can change depending on circumstances), constants (such as numbers, e.g. `1`, `3.14`, or strings, `"Hello World"`), operators (such as `+` for addition and `-` for subtraction), and functions (which are more complex operations that take one or more arguments, such as `max(1, 2)` or `sum(width, height)`).
+
+The list of variables available at a given point in the pattern is dependent on the pattern type, and on the arguments and variables declared in the pattern. Hovering over a pattern element in the editor will show a list of the available variables -- some of which are discussed in detail below.
+
+All variable and function names are case insensitive, meaning that `VARIABLE`, `variable`, and `VARiable` are all considered the same variable or function name.
+
+The expressions used in SharpSheets are statically typed, meaning that each variable, and the result of each expression, has a fixed type. This means that the output type of a given expression is known ahead of time, and can be inferred from the expression.
+
+Most expressions can simply be written directly, such as:
+
+``` Markup
+<div x="width / 2" y="height / 2"/>
+```
+
+However, in some cases, notably for element text, expressions must be escaped, using `{}`:
+
+``` Markup
+<text>Hello world, this div is {width}pts wide and {height}pts tall.
+And {width * height} square pts in area.</text>
+```
+
+When variable string values are required for attributes (i.e. string values which can have non-constant values), they will have to be provided as expressions, which means that constant values will have to be provided in quotes __inside__ the attribute quotes:
+
+``` Markup
+<example text='"Example Text"'/>
+```
+
+Note that all string values in markup expressions are enclosed in double quote marks (`"string"`).
+
+Many multi-part data is provided as a list of numerical values, such as margins, rectangles, sizes, and `<path>` [data](Markup::Path). In these cases, each individual component must be separately escaped using `{}`.
+
+``` Markup
+<area name="remaining" margins="{0} {offset} {0} {offset}"/>
+```
+
+Under certain conditions expressions can produce errors, notably in the cases where an argument has not been provided with a value in the configuration file, and no default value has been specified (a "non-optional" property). In such cases, the `try(...)` function can be used to test whether an expression will evaluate or not.
+
+When an enumeration type is used (such as [TextFormat](enum::TextFormat) or [Justification](enum::Justification)), it is written in an expression as a string -- this means it must be contained in double quote marks. It is important to bear in mind that general string equality operations are case sensitive, and hence the use of the `lower()` or `upper()` functions is sometimes advised if enum and string equality is required. If a variable with an enumeration type is compared against a constant string in an expression, the equality will be case insensitive. Note that custom enumeration types (see below) use the case insensitive equality operations.
+
+``` Markup
+<element attribute='enumVar == "MYVALUE"'/> <!-- Case insensitive -->
+<element attribute='stringVar == "MYVALUE"'/> <!-- Case sensitive -->
+<element attribute='"myvalue" == "MYVALUE"'/> <!-- Case sensitive -->
+```
+
+
+### Div Elements
+
+The main structural component of a markup pattern is the `<div>` [element](Markup::div). This element is very similar to the [Div](Widget::Div), and follows the same rules for the grid layout system, as discussed in the configuration file [Tutorial](Tutorial).
+
+`<div>` elements use `size`, `gutter`, `margins`, `layout`, `arrangement`, and `order` in exactly the same way to widgets in configuration files. `position` is specified using the `x`, `y`, `width`, `height`, and `anchor` attributes -- if any of these attributes are present, then the `position` will be used instead of the `size` for determining the `<div>` placement.
+
+You can also specify `aspect-ratio` for the `<div>`, which will be applied after the initial placement is made using the grid layout system.
+
+You can also specify `repeat` and `for-each` attributes for `<div>` elements, which enable components of a pattern to be easily repeated. A `repeat` attribute must be a positive integer expression, and simply repeats the div and its children that many times. A `for-each` attribute is more complex, in that it must follow this pattern:
+
+``` Unknown
+for-each="variable in arrayValue"
+```
+
+Where `variable` is the name of the loop variable (which should not have been used previously) that will be available in this div and its children, and `arrayValue` is an expression which evaluates to an array. The div will then be repeated as many times as there are values in the array, and each div will have one of those array values available using the `variable` name provided in the `for-each` attribute. This is especially useful for using multiple arrays together, where you can iterate over the array indexes using:
+
+``` Markup
+<div for-each="idx in range(len(array))">
+```
+
+Both `repeat` and `for-each` can be used for the same `<div>`. In this case, each `for-each` loop will be repeated as a whole, `repeat` times.
+
+Each div makes `width`, `height`, `left`, `right`, `bottom`, and `top` variable available, corresponding to the coordinates of that particular div, not the overall pattern. In this way, `<div>` elements can be used to do a lot of the heavy lifting for pattern layouts on a grid -- for more elaborate geometries, you'll have to do your own calculations.
+
+
+### Arguments and Variables
+
+Each pattern can accept data from the user in the form of `<arg>` [elements](Markup::arg), representing pattern arguments (these are used as the available properties for the widget or shape in the configuration file). Each `<arg>` element corresponds to one such property.
+
+Each argument must have a `name` and a `type`, and these must be concrete values (no expressions). The name must be an alphanumeric string that begins with a letter, and is used as the property name in the configuration file, and generally as the variable name. The type gives the data type of this argument. The following list of base types are available:
+
+``` Unknown
+float
+ufloat
+int
+uint
+bool
+string
+color
+dimension
+margins
+filepath
+textformat
+textheightstrategy
+justification
+alignment
+checktype
+```
+
+These may be used directly, or as array types by appending `[]`. You can either specify variable length arrays using `[]`, or fixed length tuples using `[n]`, where n is some constant integer value.
+
+``` Markup
+<arg name="arg1" type="int" desc="An integer argument."/>
+<arg name="arg2" type="int[]" desc="A variable length integer array argument."/>
+<arg name="arg3" type="int[3]" desc="A fixed length integer tuple argument (a triplet, in this case)."/>
+
+<arg name="arg4" type="int[][]" desc="An array of arrays."/>
+<arg name="arg4" type="int[][2]" desc="An array of tuples."/>
+```
+
+SharpSheets will ensure that the data parsed from the configuration file matches the type specified in the argument.
+
+You can also use `titledbox`, `box`, `labelledbox`, `bar`, `usagebar`, and `detail` as argument types, which correspond to the [Shape](Shapes) types, and can be used in the appropriate element types (e.g. `<box>` and `<bar>`). It is also possible to specify `widget` as an argument type in Widget patterns, which will be interpreted as a named child of your custom Widget, and can be used with the `<child>` [element](Markup::child). These types should not be given as array or tuple types, unless they belong to a Numbered argument.
+
+In a widget pattern, if you wish for an argument to use the entries from the corresponding entry in the configuration file, then you should specify the `format` attribute of the `<arg>` element as `"ENTRIES"` (see [MarkupArgumentFormat](enum::MarkupArgumentFormat)). Alternatively, if you wish for the argument to use the Numbered format in the configuration file, then specify the `format` attribute as `"NUMBERED"` -- this can be quite useful if multiple shape styles are required. The numbered variable will contain a continuous array of values, up to the maximum index specified in the configuration file. In both cases (entries and numbered), the argument type must be specified as a variable length array.
+
+``` Markup
+<arg name="entryArg" type="string[]" format="ENTRIES"/>
+<arg name="numberedArg" type="string[]" format="NUMBERED"/>
+```
+
+If you want or need the variable name for the argument to be different to the one displayed to the user, that can be done by specifying the `variable` attribute. If not specified, the variable name defaults to the `name` attribute.
+
+You can also use the `default` attribute to specify default values for arguments -- and separately can use `example` to provide a different value to use when displaying the example pattern in the designer and documentation.
+
+The `validate` attribute allows you to specify a condition that must be met by the argument value for it to be considered valid. This is an expression, which must evaluate to a boolean value, and may only use the current argument as a variable. If this expression evaluates to `false`, the content of the `validate-message` attribute will be displayed to the user as an error.
+
+There are also circumstances where you want a value to be one of a specific list of options. This can be achieved using `<option>` child elements to create a custom enumeration type:
+
+``` Markup
+<arg name="direction" type="Direction" default="North">
+	<option name="North" desc="Going upwards."/>
+	<option name="South" desc="Going downwards."/>
+	<option name="East" desc="Going leftwards."/>
+	<option name="West" desc="Going rightwards."/>
+</arg>
+```
+
+These custom enumeration types obey the same rules as the built-in enumerations, and as such they use case-insensitive comparisons when compared with string values.
+
+In any case where the `name` of an `<arg>` element is a alpabetical string (optionally followed by `[]` to indicate an array) that is not a recognised type, it will be assumed that a custom enumeration type is being defined. The value of `name` will be used as the display name for this type, but otherwise serves no purpose. Each `<option>` element must have a `name` attribute, which is the value of that option (i.e. what is written by the user in the configuration file to specify that option). There may also be a `desc` attribute for an optional description to be displayed to the user.
+
+You can also group arguments together, so that they are better organised for yourself and users. This is done using the `<grouparg>` element:
+
+``` Markup
+<grouparg name="grouping">
+	<arg name="arg1" type="float"/>
+	<arg name="arg2" type="string"/>
+</grouparg>
+```
+
+These arguments will be specified in the configuration file as:
+
+```
+grouping.arg1: 3.5
+grouping.arg2: Hello World
+```
+
+And can be accessed as variables using `grouping.arg1` and `grouping.arg2`.
+
+The `<grouparg>` element only accepts `name` and `variable` attributes, which are used much like for an `<arg>` element.
+
+It is also possibe to validate multiple argument values at once using a `<validation>` element, which accepts a `test` and a `message` attribute. The test is a boolean expression using the available argument variables, and the message will be displayed to the user as an error if the test evaluates to `false`.
+
+Finally, you can also specify other values using the `<var>` element, which simply accepts `name` and `value` attributes. The name is the name for the variable for use later in expressions, and the value is any valid expression, using any previously defined argument or variable. The type of the variable will be inferred from the expression. This enables you to reuse complex expressions, and thereby write more complicated mathematics.
+
+Note that the order in which variables are declared in the document is important. A variable can only be used, either in an attribute or text expression, or another variable, after it has been declared.
+
+Note that arguments and validations are parsed before variables.
+
+`<arg>` elements belong to the `<pattern>`, whereas `<var>` elements belong to the `<div>`. This means that each `<div>` can declare its own variables, perhaps using the variables from the `for-each` expressions, if available. In order to better group these elements together in the markup document, the `<args>` element can be used.  These must be direct children of `<pattern>` or `<div>` elements, and should only contain `<arg>`, `<grouparg>`, `<var>`, or `<validation>` elements.
+
+``` Markup
+<args>
+
+	<arg name="arg1" type="int"/>
+	<arg name="arg2" type="float"/>
+
+	<grouparg name="arg3">
+		<arg name="part1" type="float"/>
+		<arg name="part2" type="string" validation="len(arg3.part2) > 3"/>
+	</grouparg>
+
+	<arg name="arg4" type="Testing">
+		<option name="One"/>
+		<option name="Two"/>
+	</arg>
+
+	<var name="var1" value="arg1 + arg2 / arg3.part1"/>
+
+	<validation test="arg1 > arg2"/>
+
+</args>
+```
+
+The above would have the following effect in a configuration file (assuming it is inside a pattern named "pattern"):
+
+```
+pattern: # Error! arg1 is not greater than arg2
+	arg1: 1
+	arg2: 2.0
+
+	arg3.part1: Hello # Error! This is not a floating point number
+	arg3.part2: Aa # Error! This string is not long enough
+
+	arg4: Three # Error! This is not a valid option
+```
+
+
+### Graphics Elements
+
+The graphics elements available in markup patterns match very closely to the SVG graphical elements. `<line>`, `<polygon>`, `<polyline>`, `<path>`, `<circle>`, `<rect>`, `<ellipse>`, `<g>`, `<text>`, `<textPath>`, `<tspan>`, `<symbol>`, and `<use>` all function pretty much identically to their SVG counterparts, with the notable exception that their attributes may be expressions rather than concrete values. A list of the available markup elements, detailing their attributes, can be found [here](Markup/MarkupElements).
+
+Note that style sheets are not available in markup -- all formatting must be done directly on the elements using their graphics state attributes.
+
+Transforms and clipping paths work as expected. The `<defs>` element can be used to group graphical elements which are not intended to be drawn directly to the page. Such elements should have an `id` attribute so that they can be identified by other elements. Elements are referenced using either `#elementID` or `url(#elementID)` (when in `url()` the `#elementID` may be enclosed in single or double quotes).
+
+A notable addition to the set of graphical elements is the `<textRect>` element, which can be used to arrange text inside a rectangular area on the page, using the same text layout algorithm as the rest of SharpSheets. This is a helpful shortcut for arranging text, using the `justification`, `alignment`, and `height-strategy` attributes for controlling the text positioning.
+
+Fonts cannot be directly specified in markup patterns, and instead rely on the graphics state of the document in which the pattern is used. You can specify a `font-style` attribute, which accepts a [TextFormat](enum::TextFormat) enum value, in order to use the corresponding font specified in the configuration file.
+
+
+### Coordinates
+
+Coordinates in a markup pattern are based on the area of the `<div>` element -- either the implicit div of the overall `<pattern>` element, or an explicit `<div>` element specified in the markup. The coordinates have their origin -- (0, 0) in the Cartesian coordinate plane -- at the bottom-left corner of this area. This origin point is consistent, regardless of the location of the element on the ocument page.
+
+There are several variables available that reflect the coordinates of the current `<div>` element, all measured in points: the `width` and `height` of the area, `left` and `right` for the smallest and largest x-axis coordinates, and `bottom` and `top` for the smallest and largest y-axis coordinates. All of these variables are floating point values, expressed in points. `bottom` and `left` will always have a value of `0`, and exist to facilitate readability.
+
+Hence, if you wish to draw a blue circle in the middle of an element, you could do so with the following:
+
+``` Markup
+<div>
+	<circle cx="width / 2" cy="height / 2" r="min(width, height) / 2" stroke="blue" fill="none"/>
+</div>
+```
+
+Or a rectangle which drawn 10pt inside the edge of the element:
+
+``` Markup
+<div>
+	<rect x="left + 10" y="bottom + 10" width="width - 20" height="height - 20" fill="blue" stroke="none"/>
+</div>
+```
+
+
+### Areas
+
+Some pattern types require certain areas to be defined. These make use of the `<area>` [element](Markup::area), which accept a `name` attribute that is used to determine their meaning for the pattern. The areas that a pattern makes use of depends on its type, and not all patterns use all areas.
+
+An area element uses the same coordinate system as the other graphical elements, with a very similar syntax to the `<rect>` [element](Markup::rect). It has an `x`, `y`, `width`, and `height` attribute, along with a `margin` element -- these can be used in conjunction, or separately. If you are creating a pattern whose area is intended to be reversible (e.g. a box whose full area can be inferred from it's content size), then it useful to define any `remaining` areas using only `margins` with variables that do not depend on the element size.
+
+`<area>` elements can also be enabled and disabled. This means that you may wish to use multiple areas with the same name in a given pattern, which will be turned on and off under different circumstances. If multiple areas are enabled, the first one (in document order) will be selected.
+
+
+### Pattern Libraries
+
+You can group patterns together in `<patternLibrary>` elements. These elements are only valid as root elements in a markup document, or as direct children of another `<patternLibrary>` element.
+
+These pattern library elements allow you to specify library names for your patterns, to better group together patterns across different files, and to distinguish patterns from one another. If you are distributing pattern files for use by others, you are strongly advised to use a pattern library name to help SharpSheets distinguish them from other patterns that might be installed.
+
+You can specify a pattern name like so:
+
+``` Markup
+<patternLibrary name="libraryName">
+	<!-- Your patterns go here. -->
+</patternLibrary>
+```
+
+You can also specify multiple levels of pattern names, to provide sub-groupings of your patterns. This can be useful if you have a large number of patterns, so that users can look through them in a more structured way (otherwise they will simply be provided with an alphabetical list). You can do this by separating each part of the library name with a fullstop/period ("`.`"), or by nesting `<patternLibrary>` elements, like so:
+
+``` Markup
+<patternLibrary name="library.grouping">
+	<!-- Your patterns here. -->
+</patternLibrary>
+
+<!-- Or... -->
+
+<patternLibrary name="library">
+	<patternLibrary name="grouping">
+		<-- Your patterns here. -->
+	</patternLibrary>
+</patternLibrary
+```
+
+If you do not specify a library name, or you do not use a `<patternLibrary>` element (meaning there can only be one `<pattern>` element in the markup file), then the filepath of the markup file, relative to the template directory, will be used as the name for the patterns in the file (including the filename and any intermediate directories).
+
+
+### Styled Div Elements
+
+You can also include shape styles in your markup patterns -- either shapes specified in the user configuration file that is using your pattern, or manually specified by you in the markup pattern directly. These are referred to as "styled div elements", and are discussed in detail [here](Markup/Additional Features).
+
+
+### Named Children
+
+You can also specify named children (i.e. named child widgets) for your Widget Markup patterns. These are discussed in detail [here](Markup/Additional Features).
+
+
+### Paints
+
+Most colors in Markup are specified as "Paint" attributes. These may either be specified as color values (names or hex codes), or as references to paint elements. There are three different paint elements available: `<solidPaint>`, `<linearGradient>`, and `<radialGradient>`.
+
+The gradient paints both utilise a `<stop>` element to indicate which colors should be used at given points along the gradient, described by percentage values along the gradient length. The offsets of a set of stops do not have to start and end at 0% and 100% -- the outer colors will be extended to cover the whole area. You can insert as many stops as you like into a gradient element.
+
+``` Markup
+<stop offset="0%" stop-color="black"/>
+<stop offset="100%" stop-color="white"/>
+```
+
+Paints are best placed inside a `<defs>` element, to separate them from drawable elements. Every paint element should have an `id` attribute, otherwise it cannot be referenced by another element.
+
+#### Solid Paint
+
+The simplest paint is a solid paint, which simply paints a single color at the same opacity over the whole area.
+
+``` Markup
+<solidPaint id="myPaint" color="red"/>
+```
+
+A `<solidPaint>` element can be used when the same color is required in numerous places, to avoid duplication and make edits to the color palette of a pattern simpler.
+
+#### Linear Gradient
+
+A linear gradient allows for a paint that shifts in a color along a straight line. It has a start point and an end point, along with a series of color stops that define the colors between those two points.
+
+``` Markup
+<!-- A diagonal gradient, from the bottom left to the top right. -->
+<linearGradient id="myPaint" x1="0" y1="0" x2="width" y2="height">
+	<stop offset="0%" stop-color="black"/>
+	<stop offset="100%" stop-color="white"/>
+</linearGradient>
+```
+
+#### Radial Gradient
+
+A radial gradient allows for a paint that shifts between the outlines of two circles. The `cx`, `cy`, and `r` attributes describe the outer circle, where this gradient ends, and the `fx`, `fy`, and `fr` attributes describe the focal point of the gradient, which the gradient radiates from.
+
+``` Markup
+<!-- A centred radial gradient, radiating from the centre of the area. -->
+<linearGradient id="myPaint" cx="width/2" cy="height/2" r="width/4" fx="width/2" fy="height/2" fr="width/2">
+	<stop offset="0%" stop-color="black"/>
+	<stop offset="100%" stop-color="white"/>
+</linearGradient>
+```
+
+
+
+### Randomness
+
+The markup system is primarily intended to create reproducable results, with no deviation from the pattern, regardless of where on the page the pattern is drawn. However, if you wish there to be some randomness when drawing your pattern, you can do this using the `seed` variable and the `random(seed)` function.
+
+The variable `seed` will contain an integer that is based on the position of the pattern area on the page. As such, if the position or size of the pattern area changes, the seed value will also change -- however, the same position and size will always produce the same seed value. The `random(seed)` function can then be used to produce a random number based on this seed value.
+
+`random()` will produce a pseudo-random number, based on the argument provided to it. This process is deterministic, meaning that a specific seed will always produce the same pseudo-random number. For example, `random(42)` will produce the same output value if called multiple times, as its argument is given as a constant value. In this way, you can reuse random values in different parts of the pattern.
+
+In order to get different random numbers, you can offset the `seed` value, like so:
+
+``` Markup
+<rect
+	x="random(seed + 1) * width"
+	y="random(seed + 2) * height"
+	width="(1 - random(seed + 1)) * width"
+	height="(1 - random(seed + 2)) * height"
+/>
+```
+
+This mechanism allows you to create random patterns while still being able to specify exact random coordinates repeatedly in your pattern.
+
+
+## Pattern Types
+
+Here we have a list of the available pattern types, and any specific information needed when designing each of them.
+
+### Widget
+
+Widget patterns (`widget`) may optionally contain a `<area name="remaining">` element, which will be used for drawing any widget children. If this element is not present, the widget is considered to not allow child widgets.
+
+Widget patterns also make available the following variables: `gutter`, containing the gutter size specified for the widget in the configuration file, expressed as float measured in points; and `layout`, which contains a [Layout](enum::Layout) enum describing the `layout` parameter specified for the widget in the configuration file.
+
+### Box
+
+Box patterns (`box`) must contain a `<area name="remaining">` element, which will be used for determing the box contents area. If the expressions used for determining this area can be trivially reversed (which usually means that the dimensions of the available space are not used, e.g. `width`, but instead the calculation only relies on constant or input argument values) then the pattern will be able to infer the full size of the shape based on a content size -- otherwise, any attempts to do so (i.e. by using auto grid sizing) will produce an error in configuration files.
+
+Box patterns also make available an `aspect` variable, containing a floating point number describing the aspect ratio specified for this shape in the configuration file. Note that this aspect ratio will already have been applied to the pattern area before the pattern is drawn, and to allow more complex formatting, if desired.
+
+### Labelled Box
+
+Labelled Box patterns (`labelledbox`) must contain a `<area name="remaining">` element and a `<area name="label">` element. The remaining area obeys the same rules as for box patterns.
+
+Labelled Box patterns also make available an `aspect` variable, which obeys the same rules as for the box patterns.
+
+### Titled Box
+
+Titled Box patterns (`titledbox`) must contain a `<area name="remaining">` element, which obeys the same rules as for box patterns.
+
+Titled Box patterns also make available the following variables: `aspect`, which obeys the same rules as for the box pattern; `name`, which contains a string with the name specified for this shape in the configuration file (note that this string may contain newline characters); `parts`, which contains a string array, which corresponds to the value stored in `name` split on newline characters, such that each element of this array is an individual line of the full name specified in the configuration file; `format`, which contains a [TextFormat](enum::TextFormat) enum value for the shape, as specified in the configuration file (this is intended to be used as the text format for the shape title); and `fontsize`, which contains a floating point number, expressed in points, for the font size of this shape as specified in the configuration file (this is intended to be used as the font size for the shape title).
+
+### Bar
+
+Bar patterns (`bar`) must contain a `<area name="remaining">` element and a `<area name="label">` element. The remaining area of a bar is not expected to be reversible, and hence this is not considered for bar patterns.
+
+Bar patterns also make available an `aspect` variable, which obeys the same rules as for the box patterns -- note that the aspect ratio here applies to the entire bar area.
+
+### Usage Bar
+
+Usage Bar patterns (`usagebar`) must contain `<area name="label">`, `<area name="entry1">`, and `<area name="entry2">` elements. There is no expectation that these areas be reversible.
+
+Usage Bar patterns also make available an `aspect` variable, which obeys the same rules as for the box patterns -- note that the aspect ratio here applies to the entire bar area.
+
+### Detail
+
+Detail patterns (`detail`) should not contain any `<area>` elements.
+
+Detail patterns also make available a `layout` variable, which contains a [Layout](enum::Layout) enum describing the layout for which this detail is being drawn. Detail patterns will generally require two modes, one for `ROWS` and another for `COLUMNS`, to account for the two different modes they may be drawn in.
+
+
+## Putting It All Together
+
+Putting all of the above together, we might create a very simply box pattern as follows:
+
+``` Markup
+<pattern type="box" name="ExampleBox">
+	
+	<desc> A very simple example box. </desc>
+
+	<args>
+		<arg name="trim" type="float" default="5"
+			desc="The size of the inner border, in points."/>
+	</args>
+
+	<area name="remaining" margin="{trim}"/>
+	
+	<path fill="background"
+		stroke="foreground" stroke-width="linewidth"
+		d="M {left},{bottom}
+		{right},{bottom}
+		{right},{top}
+		{left},{top}
+		Z"/>
+
+</pattern>
+```
+
+Additional example patterns and recipes may be found in the [Markup Cookbook](Markup/Cookbook).

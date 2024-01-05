@@ -1,0 +1,133 @@
+﻿<?xml version="1.0"?>
+<SyntaxDefinition name="CharacterSheet" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+	<Color name="BaseColor" foreground="#d69d6d" fontWeight="normal"/>
+	<Color name="Comment" foreground="#808080" fontWeight="normal" fontStyle="italic"/>
+	<Color name="CommentEmphasis" foreground="#a1a1a1" fontWeight="bold"/>
+	<Color name="Number" foreground="#09abfc" fontWeight="normal"/>
+	<Color name="Dimension" foreground="#09abfc" fontWeight="bold"/>
+	<Color name="Diagnostic" foreground="HotPink" fontWeight="bold"/>
+	<Color name="Rect" foreground="#3ca5fb" fontWeight="normal"/>
+	<Color name="NamedRect" foreground="#6ba3d1" fontWeight="normal"/>
+	<Color name="Style" foreground="#00eaea" fontWeight="normal"/>
+	<Color name="Property" foreground="#dbab04" fontWeight="normal"/>
+	<Color name="RectSetup" foreground="#dbab04" fontStyle="italic" fontWeight="normal"/>
+	<Color name="BracesProperty" foreground="#4ec9b0" fontWeight="normal"/>
+	<Color name="Flag" foreground="#b8d7a3" fontWeight="bold"/>
+	<Color name="NotFlag" foreground="#b8d7a3" fontWeight="bold"/>
+	<Color name="Entry" foreground="White" fontWeight="normal"/> <!-- BlueViolet? -->
+	<Color name="EscapeSequence" foreground="#ffd68f" fontWeight="bold"/>
+	<Color name="Braces" foreground="Wheat" fontWeight="bold"/>
+	<Color name="Punctuation" foreground="#dcdcdc" fontWeight="normal"/>
+	<Color name="Error" foreground="Purple" fontWeight="normal"/>
+
+	<RuleSet name="BasicRules" ignoreCase="false">
+		
+		<Span color="Comment">
+			<Begin>(?&lt;!\\)\#</Begin>
+			<RuleSet ignoreCase="false">
+				<Rule color="CommentEmphasis">
+					\b (TODO | FIX(ME)?) \b
+				</Rule>
+			</RuleSet>
+		</Span>
+
+		<Rule color="EscapeSequence">
+			\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8}|\\.
+		</Rule>
+
+		<Rule color="Dimension">
+			(?i) \b ([0-9]+(\.[0-9]+)? | \.[0-9]+) (pt | cm | in | pc) \b
+		</Rule>
+
+		<!-- This is here just testing the HighlightingReader. Needs removing. -->
+		<!-- enabled="CardDefinition" -->
+		<!--
+		<Rule enabled="CardDefinition" foreground="Red">
+			\b ([\+\-]? [0-9]+(\.[0-9]+)? | \.[0-9]+) \b
+		</Rule>
+		-->
+
+		<Rule color="Number">
+			\b ([\+\-]? [0-9]+(\.[0-9]+)? | \.[0-9]+) \b
+		</Rule>
+
+		<Rule color="Punctuation">
+			[,;:-]
+		</Rule>
+
+		<Rule color="BaseColor">
+			.
+		</Rule>
+	</RuleSet>
+
+	<RuleSet name="PropertyRules" ignoreCase="true">
+		<Span color="Braces">
+			<Begin>(?&lt;=\:)\s*\{</Begin>
+			<End>(?&lt;!\\)\}</End>
+			<RuleSet>
+				<Rule color="BracesProperty">
+					[A-Za-z] [A-Za-z0-9\.]* \s* (?=:)
+				</Rule>
+				<Import ruleSet="BasicRules"/>
+			</RuleSet>
+		</Span>
+
+		<Import ruleSet="BasicRules"/>
+	</RuleSet>
+
+	<!-- This is the main ruleset. -->
+	<RuleSet ignoreCase="true">
+		<Span color="Comment" multiline="true" begin="\#--" end="--\#"/>
+
+		<Span color="Comment">
+			<Begin>(?&lt;!\\)\#</Begin>
+			<RuleSet ignoreCase="false">
+				<Rule color="CommentEmphasis">
+					\b (TODO | FIX(ME)?) \b
+				</Rule>
+			</RuleSet>
+		</Span>
+
+		<!--
+		<Rule color="Error">
+			^ \s* [A-Za-z][A-Za-z0-9]* \s* (?=:?\s*(\#|$))
+		</Rule>
+		-->
+
+		<!--
+		<Rule color="Property">
+			^ \s* \@? [A-Za-z] [A-Za-z0-9\.]* \s* (?=\:)
+		</Rule>
+		-->
+
+		<Span>
+			<Begin>^ \s* -</Begin>
+			<RuleSet>
+				<Import ruleSet="BasicRules"/>
+			</RuleSet>
+		</Span>
+
+		<Span color="Property">
+			<Begin>^ \s* \@? [A-Za-z] [A-Za-z0-9\.]* \s* (?=\:\s*[^\#])</Begin>
+			<RuleSet>
+				<Import ruleSet="PropertyRules"/>
+			</RuleSet>
+		</Span>
+
+		<Rule color="NamedRect">
+			^ \s* [A-Za-z][A-Za-z0-9]* (\.[A-Za-z][A-Za-z0-9]*)* \s* (?=:\s*(\#|$))
+		</Rule>
+
+		<Rule color="Diagnostic">
+			^ \s* diagnostic \s* (?=\#|$)
+		</Rule>
+
+		<Rule color="NotFlag">
+			^ \s* \@? \! [A-Za-z] [A-Za-z0-9\.]* \s* (?=\#|$)
+		</Rule>
+		<Rule color="Flag">
+			^ \s* \@? [A-Za-z] [A-Za-z0-9\.]* \s* (?=\#|$)
+		</Rule>
+		
+	</RuleSet>
+</SyntaxDefinition>

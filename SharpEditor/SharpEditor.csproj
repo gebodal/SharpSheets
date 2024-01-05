@@ -1,0 +1,252 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <StartupObject>SharpEditor.App</StartupObject>
+    <Version>0.1.0.0</Version>
+    <Company></Company>
+    <Authors>Gebodal</Authors>
+    <ApplicationIcon>Images\Icon.ico</ApplicationIcon>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!--<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>-->
+  </PropertyGroup>
+	
+  <PropertyGroup>
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+  </PropertyGroup>
+
+	<!--
+  <ItemGroup>
+    <None Remove="SharpSheets.xml" />
+  </ItemGroup>
+  -->
+
+  <ItemGroup>
+    <None Remove="Documentation\Content\1 Tutorial\1 Data Types.sd" />
+    <None Remove="Documentation\Content\1 Tutorial\2 Graphics State.sd" />
+    <None Remove="Documentation\Content\1 Tutorial\3 Handling Text.sd" />
+    <None Remove="Documentation\Content\1 Tutorial\4 Form Fields.sd" />
+    <None Remove="Documentation\Content\1 Tutorial\5 Using the Editor.sd" />
+    <None Remove="Documentation\Content\1 Tutorial\Main.sd" />
+    <None Remove="Documentation\Content\3 Widgets\Main.sd" />
+    <None Remove="Documentation\Content\4 Shapes\1 Boxes.sd" />
+    <None Remove="Documentation\Content\4 Shapes\2 Labelled Boxes.sd" />
+    <None Remove="Documentation\Content\4 Shapes\3 Titled Boxes.sd" />
+    <None Remove="Documentation\Content\4 Shapes\4 Title Styles.sd" />
+    <None Remove="Documentation\Content\4 Shapes\5 Bars.sd" />
+    <None Remove="Documentation\Content\4 Shapes\6 Usage Bars.sd" />
+    <None Remove="Documentation\Content\4 Shapes\7 Details.sd" />
+    <None Remove="Documentation\Content\4 Shapes\Main.sd" />
+    <None Remove="Documentation\Content\6 Markup\1 Paths.sd" />
+    <None Remove="Documentation\Content\6 Markup\2 Additional Features.sd" />
+    <None Remove="Documentation\Content\6 Markup\8 Cookbook.sd" />
+    <None Remove="Documentation\Content\6 Markup\9 Markup Elements.sd" />
+    <None Remove="Documentation\Content\6 Markup\Main.sd" />
+    <None Remove="Documentation\Content\5 Cards\Main.sd" />
+    <None Remove="Documentation\Content\Main.sd" />
+    <None Remove="Documentation\Content\Usage Notes.sd" />
+    <None Remove="Highlighting\CardDefinitionHighlighting.xshd" />
+    <None Remove="Highlighting\CardSubjectHighlighting.xshd" />
+    <None Remove="Highlighting\CharacterSheetHighlighting.xshd" />
+    <None Remove="Highlighting\SBMLHighlighting.xshd" />
+    <None Remove="Highlighting\SharpConfigHighlighting.xshd" />
+    <None Remove="Icon.ico" />
+    <None Remove="Images\CommentAdd.png" />
+    <None Remove="Images\CommentRemove.png" />
+    <None Remove="Images\Copy.png" />
+    <None Remove="Images\Copy2.png" />
+    <None Remove="Images\Cut.png" />
+    <None Remove="Images\Cut2.png" />
+    <None Remove="Images\Cut3.png" />
+    <None Remove="Images\Delete.png" />
+    <None Remove="Images\Delete2.png" />
+    <None Remove="Images\Delete3.png" />
+    <None Remove="Images\Delete4.png" />
+    <None Remove="Images\Designer.png" />
+    <None Remove="Images\Designer2.png" />
+    <None Remove="Images\Designer3.png" />
+    <None Remove="Images\Designer4.png" />
+    <None Remove="Images\Exclamation.png" />
+    <None Remove="Images\ExclamationWhite.png" />
+    <None Remove="Images\ExternalLink.png" />
+    <None Remove="Images\GeneratePopulate.png" />
+    <None Remove="Images\Home.png" />
+    <None Remove="Images\Icon.ico" />
+    <None Remove="Images\Icon.png" />
+    <None Remove="Images\Icon_old.ico" />
+    <None Remove="Images\Info.png" />
+    <None Remove="Images\Logo.png" />
+    <None Remove="Images\New.png" />
+    <None Remove="Images\New2.png" />
+    <None Remove="Images\NewCardDefinition.png" />
+    <None Remove="Images\NewCardDefinition2.png" />
+    <None Remove="Images\NewCardDefinition3.png" />
+    <None Remove="Images\NewCardSubject.png" />
+    <None Remove="Images\NewCardSubject2.png" />
+    <None Remove="Images\NewCharacterSheet.png" />
+    <None Remove="Images\NewCharacterSheet2.png" />
+    <None Remove="Images\NewMarkup.png" />
+    <None Remove="Images\NewMarkup2.png" />
+    <None Remove="Images\NewMarkup3.png" />
+    <None Remove="Images\Next.png" />
+    <None Remove="Images\Open.png" />
+    <None Remove="Images\Open2.png" />
+    <None Remove="Images\Open3.png" />
+    <None Remove="Images\PageFields.png" />
+    <None Remove="Images\PageHighlight.png" />
+    <None Remove="Images\Paste.png" />
+    <None Remove="Images\Paste2.png" />
+    <None Remove="Images\Previous.png" />
+    <None Remove="Images\Redo.png" />
+    <None Remove="Images\Redo2.png" />
+    <None Remove="Images\Refresh.png" />
+    <None Remove="Images\RightArrow.png" />
+    <None Remove="Images\RightArrow2.png" />
+    <None Remove="Images\Run.png" />
+    <None Remove="Images\Run2.png" />
+    <None Remove="Images\Run3.png" />
+    <None Remove="Images\Save.png" />
+    <None Remove="Images\Save2.png" />
+    <None Remove="Images\SaveAll.png" />
+    <None Remove="Images\Settings.png" />
+    <None Remove="Images\Settings1.png" />
+    <None Remove="Images\Settings2.png" />
+    <None Remove="Images\Settings3.png" />
+    <None Remove="Images\Tick.png" />
+    <None Remove="Images\Undo.png" />
+    <None Remove="Images\Undo2.png" />
+    <None Remove="Images\WholePage.png" />
+    <None Remove="Images\WordWrap.png" />
+    <None Remove="Images\WordWrap2.png" />
+    <None Remove="Images\ZoomIn.png" />
+    <None Remove="Images\ZoomOut.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Documentation\Content\1 Tutorial\1 Data Types.sd" />
+    <EmbeddedResource Include="Documentation\Content\1 Tutorial\2 Graphics State.sd" />
+    <EmbeddedResource Include="Documentation\Content\1 Tutorial\4 Form Fields.sd" />
+    <EmbeddedResource Include="Documentation\Content\1 Tutorial\Main.sd" />
+    <EmbeddedResource Include="Documentation\Content\1 Tutorial\5 Using the Editor.sd" />
+    <EmbeddedResource Include="Documentation\Content\1 Tutorial\3 Handling Text.sd" />
+    <EmbeddedResource Include="Documentation\Content\3 Widgets\Main.sd" />
+    <EmbeddedResource Include="Documentation\Content\4 Shapes\1 Boxes.sd" />
+    <EmbeddedResource Include="Documentation\Content\4 Shapes\2 Labelled Boxes.sd" />
+    <EmbeddedResource Include="Documentation\Content\4 Shapes\3 Titled Boxes.sd" />
+    <EmbeddedResource Include="Documentation\Content\4 Shapes\4 Title Styles.sd" />
+    <EmbeddedResource Include="Documentation\Content\4 Shapes\5 Bars.sd" />
+    <EmbeddedResource Include="Documentation\Content\4 Shapes\6 Usage Bars.sd" />
+    <EmbeddedResource Include="Documentation\Content\4 Shapes\7 Details.sd" />
+    <EmbeddedResource Include="Documentation\Content\4 Shapes\Main.sd" />
+    <EmbeddedResource Include="Documentation\Content\6 Markup\1 Paths.sd" />
+    <EmbeddedResource Include="Documentation\Content\6 Markup\2 Additional Features.sd" />
+    <EmbeddedResource Include="Documentation\Content\6 Markup\8 Cookbook.sd" />
+    <EmbeddedResource Include="Documentation\Content\6 Markup\Main.sd" />
+    <EmbeddedResource Include="Documentation\Content\5 Cards\Main.sd" />
+    <EmbeddedResource Include="Documentation\Content\6 Markup\9 Markup Elements.sd" />
+    <EmbeddedResource Include="Documentation\Content\Main.sd" />
+    <EmbeddedResource Include="Highlighting\CardDefinitionHighlighting.xshd" />
+    <EmbeddedResource Include="Highlighting\CardSubjectHighlighting.xshd" />
+    <EmbeddedResource Include="Highlighting\CharacterSheetHighlighting.xshd" />
+    <EmbeddedResource Include="Highlighting\SBMLHighlighting.xshd" />
+    <EmbeddedResource Include="Highlighting\SharpConfigHighlighting.xshd" />
+    <Resource Include="Icon.ico" />
+    <Resource Include="Images\CommentAdd.png" />
+    <Resource Include="Images\CommentRemove.png" />
+    <Resource Include="Images\Copy.png" />
+    <Resource Include="Images\Copy2.png" />
+    <Resource Include="Images\Cut.png" />
+    <Resource Include="Images\Cut2.png" />
+    <Resource Include="Images\Cut3.png" />
+    <Resource Include="Images\Delete.png" />
+    <Resource Include="Images\Delete2.png" />
+    <Resource Include="Images\Delete3.png" />
+    <Resource Include="Images\Delete4.png" />
+    <Resource Include="Images\Designer.png" />
+    <Resource Include="Images\Designer2.png" />
+    <Resource Include="Images\Designer3.png" />
+    <Resource Include="Images\Designer4.png" />
+    <Resource Include="Images\Exclamation.png" />
+    <Resource Include="Images\ExclamationWhite.png" />
+    <Resource Include="Images\ExternalLink.png" />
+    <Resource Include="Images\GeneratePopulate.png" />
+    <Resource Include="Images\Home.png" />
+    <Resource Include="Images\Icon.ico" />
+    <Resource Include="Images\Icon.png" />
+    <Resource Include="Images\Icon_old.ico" />
+    <Resource Include="Images\Info.png" />
+    <Resource Include="Images\Logo.png" />
+    <Resource Include="Images\New.png" />
+    <Resource Include="Images\New2.png" />
+    <Resource Include="Images\NewCardDefinition.png" />
+    <Resource Include="Images\NewCardDefinition2.png" />
+    <Resource Include="Images\NewCardDefinition3.png" />
+    <Resource Include="Images\NewCardSubject.png" />
+    <Resource Include="Images\NewCardSubject2.png" />
+    <Resource Include="Images\NewCharacterSheet.png" />
+    <Resource Include="Images\NewCharacterSheet2.png" />
+    <Resource Include="Images\NewMarkup.png" />
+    <Resource Include="Images\NewMarkup2.png" />
+    <Resource Include="Images\NewMarkup3.png" />
+    <Resource Include="Images\Next.png" />
+    <Resource Include="Images\Open.png" />
+    <Resource Include="Images\Open2.png" />
+    <Resource Include="Images\Open3.png" />
+    <Resource Include="Images\PageFields.png" />
+    <Resource Include="Images\PageHighlight.png" />
+    <Resource Include="Images\Paste.png" />
+    <Resource Include="Images\Paste2.png" />
+    <Resource Include="Images\Previous.png" />
+    <Resource Include="Images\Redo.png" />
+    <Resource Include="Images\Redo2.png" />
+    <Resource Include="Images\Refresh.png" />
+    <Resource Include="Images\RightArrow.png" />
+    <Resource Include="Images\RightArrow2.png" />
+    <Resource Include="Images\Run.png" />
+    <Resource Include="Images\Run2.png" />
+    <Resource Include="Images\Run3.png" />
+    <Resource Include="Images\Save.png" />
+    <Resource Include="Images\Save2.png" />
+    <Resource Include="Images\SaveAll.png" />
+    <Resource Include="Images\Settings.png" />
+    <Resource Include="Images\Settings1.png" />
+    <Resource Include="Images\Settings2.png" />
+    <Resource Include="Images\Settings3.png" />
+    <Resource Include="Images\Tick.png" />
+    <Resource Include="Images\Undo.png" />
+    <Resource Include="Images\Undo2.png" />
+    <Resource Include="Images\WholePage.png" />
+    <Resource Include="Images\WordWrap.png" />
+    <Resource Include="Images\WordWrap2.png" />
+    <Resource Include="Images\ZoomIn.png" />
+    <Resource Include="Images\ZoomOut.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GeboPDF\GeboPDF.csproj" />
+    <ProjectReference Include="..\SharpSheets\SharpSheets.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+</Project>

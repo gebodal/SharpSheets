@@ -1,0 +1,145 @@
+﻿<?xml version="1.0"?>
+<SyntaxDefinition name="CardSubjects" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+	<Color name="CardTitle" foreground="#3ca5fb" fontWeight="normal"/>
+	<Color name="SectionTitle" foreground="#00eaea" fontWeight="normal"/>
+	<Color name="FeatureTitle" foreground="#09abfc" fontWeight="normal"/>
+	<Color name="BaseColor" foreground="#dcdcdc" fontWeight="normal"/>
+	<Color name="Property" foreground="#dbab04" fontWeight="normal"/>
+	<Color name="TitleDetails" foreground="#4ec9b0" fontWeight="normal"/>
+	<Color name="TitleDetailName" foreground="#199254" fontWeight="normal"/>
+	<Color name="Macro" foreground="#808080" fontWeight="normal"/>
+	<Color name="Variable" foreground="#bb6d8d" fontWeight="normal"/>
+	<Color name="VariableFormatting" foreground="#935970" fontWeight="normal" fontStyle="italic"/>
+	<Color name="Comment" foreground="#808080" fontWeight="normal" fontStyle="italic"/>
+	<Color name="CommentEmphasis" foreground="#a1a1a1" fontWeight="bold"/>
+	
+	<RuleSet name="VariableRules" ignoreCase="true">
+		<Rule color="Variable">
+			\$[a-z][a-z0-9]*
+		</Rule>
+
+		<Span color="Variable">
+			<Begin>((?&lt;!\\)\$)?(?&lt;!\\)\{</Begin>
+			<End>(?&lt;!\\)\}</End>
+			<RuleSet>
+				<Span color="VariableFormatting">
+					<Begin>(?&lt;!\\)\:[a-z0-9\;\'\+\-\%\?\.\,\\]+(?=\})</Begin>
+					<End>(?=\})</End>
+				</Span>
+			</RuleSet>
+		</Span>
+
+		<!--
+		<Rule color="Variable">
+			((?&lt;!\\)\$)?(?&lt;!\\)\{(\\\}|[^\}])+\}
+		</Rule>
+		-->
+	</RuleSet>
+
+	<!-- Expression rules. -->
+	<RuleSet name="ExpressionRules" ignoreCase="true">
+		<Span>
+			<Begin>\(</Begin>
+			<End>\)</End>
+			<RuleSet>
+				<Import ruleSet="VariableRules"/>
+			</RuleSet>
+		</Span>
+		<Span>
+			<Begin>\[</Begin>
+			<End>\]</End>
+			<RuleSet>
+				<Import ruleSet="VariableRules"/>
+			</RuleSet>
+		</Span>
+	</RuleSet>
+
+	<RuleSet name="TitleDetailsRules" ignoreCase="true">
+		<Span color="TitleDetails">
+			<Begin>\[</Begin>
+			<End>\]</End>
+			<RuleSet>
+				<Rule color="TitleDetailName">
+					(?&lt;=^|[\[\,])\s*\!?[a-z][a-z0-9 ]*(?=[\:\,])
+				</Rule>
+				<Import ruleSet="ExpressionRules"/>
+			</RuleSet>
+		</Span>
+	</RuleSet>
+
+	<!-- This is the main ruleset. -->
+	<RuleSet ignoreCase="true">
+
+		<Span color="Comment">
+			<Begin>(?&lt;!\\)\%</Begin>
+			<RuleSet ignoreCase="false">
+				<Rule color="CommentEmphasis">
+					\b (TODO | FIX(ME)?) \b
+				</Rule>
+			</RuleSet>
+		</Span>
+			
+		<Span color="Macro">
+			<Begin>^(\=+|\s+\=\=+)</Begin>
+		</Span>
+
+		<Span color="Macro">
+			<Begin>^\#(\=|\!)</Begin>
+		</Span>
+
+		<Span color="CardTitle">
+			<Begin>^(\#\>|\#(?!\=|\!))</Begin>
+			<RuleSet>
+				<Import ruleSet="TitleDetailsRules"/>
+			</RuleSet>
+		</Span>
+
+		<Span color="SectionTitle">
+			<Begin>^\#\# (?=[^\#]|$)</Begin>
+			<RuleSet>
+				<Import ruleSet="TitleDetailsRules"/>
+			</RuleSet>
+		</Span>
+
+		<Span color="FeatureTitle">
+			<Begin>^\#\#\#+</Begin>
+			<RuleSet>
+				<Import ruleSet="TitleDetailsRules"/>
+			</RuleSet>
+		</Span>
+
+		<!--
+		<Rule color="Property">
+			^ [^:]+ (?=:)
+		</Rule>
+		-->
+
+		<!--
+		<Span color="Property">
+			<Begin>[^\#\=\:]</Begin>
+			<End>:</End>
+			<RuleSet>
+				<Span color="TitleDetails">
+					<Begin>\[</Begin>
+					<End>\]</End>
+				</Span>
+			</RuleSet>
+		</Span>
+		-->
+
+		<Span color="Property">
+			<Begin>^[^\#\=\:](\\\{|[^\:\[\{])*(?=\:|\[)</Begin>
+			<End>\:</End>
+			<RuleSet>
+				<Import ruleSet="TitleDetailsRules"/>
+			</RuleSet>
+		</Span>
+
+		<Import ruleSet="VariableRules"/>
+
+		<Rule color="BaseColor">
+			.
+		</Rule>
+		
+	</RuleSet>
+</SyntaxDefinition>

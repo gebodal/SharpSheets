@@ -1,0 +1,85 @@
+﻿<SyntaxDefinition name="BoxMarkup" extensions=".sbml" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+	<Color name="Comment" foreground="#57a64a" />
+	
+	<Color name="AttributeName" foreground="#92caf4" />
+	<Color name="TagName" foreground="#569cd6" />
+	
+	<Color name="Escape" foreground="#92caf4" />
+	<!--<Color name="BrokenEntity" foreground="Olive" />-->
+
+	<Color name="Punctuation" foreground="#808080" />
+
+	<Color name="BaseColor" foreground="#c8c8c8" />
+
+	<!-- Main Ruleset -->
+	<RuleSet>
+		
+		<Span color="Punctuation" multiline="true">
+			<Begin>&lt;!--</Begin>
+			<End>--&gt;</End>
+			<RuleSet>
+				<Rule color="Comment">.</Rule>
+			</RuleSet>
+		</Span>
+		
+		<Span color="Punctuation" multiline="true" ruleSet="TagContents">
+			<Begin>&lt;\?</Begin>
+			<End>\?&gt;</End>
+		</Span>
+		
+		<Span color="Punctuation" multiline="true" ruleSet="TagContents">
+			<Begin>&lt;</Begin>
+			<End>&gt;</End>
+		</Span>
+		
+		<Import ruleSet="AttributeValueSet"/>
+		
+	</RuleSet>
+
+	<RuleSet name="TagContents">
+		<Span color="Punctuation" multiline="true" ruleSet="AttributeValueSet">
+			<Begin>"</Begin>
+			<End>"</End>
+		</Span>
+
+		<Span color="Punctuation" multiline="true" ruleSet="AttributeValueSet">
+			<Begin>'</Begin>
+			<End>'</End>
+		</Span>
+
+		<Rule color="TagName">
+			(?&lt;=(^|^/))[\w_][\d\w_\-\.]*(?=(&gt;|\s*))
+		</Rule>
+
+		<Rule color="AttributeName">
+			[\d\w_\-\.]+(?=(\s*=))
+		</Rule>
+
+		<Rule color="Punctuation">
+			=
+		</Rule>
+	</RuleSet>
+
+	<RuleSet name="AttributeValueSet">
+		
+		<Rule color="Escape">
+			&amp;
+			[\w\d\#]+
+			;
+		</Rule>
+
+		<!--
+		<Rule color="BrokenEntity">
+			&amp;
+			[\w\d\#]*
+			#missing ;
+		</Rule>
+		-->
+
+		<Rule color="BaseColor">
+			.
+		</Rule>
+		
+	</RuleSet>
+	
+</SyntaxDefinition>
