@@ -97,7 +97,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		public override object? Evaluate(IEnvironment environment) {
-			return environment.GetVariable(key);
+			return environment.GetValue(key);
 		}
 
 		public override EvaluationNode Clone() {

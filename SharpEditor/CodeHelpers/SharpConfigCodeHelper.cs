@@ -874,7 +874,7 @@ namespace SharpEditor.CodeHelpers {
 			DocumentLine currentLine = Document.GetLineByOffset(span.StartOffset);
 			string variableWord = GetVariableNameFromWord(word);
 			if ((span.IsExpression || Document.GetText(span).Contains(variableWord.StartsWith("$") ? variableWord : "$" + variableWord)) && ParsingState != null) {
-				if (ParsingState.GetVariableDefinitionBox(currentLine) is IVariableDefinitionBox variableBox && variableBox.IsVariable(variableWord) && variableBox.GetDefinition(variableWord) is Definition variableWordDefinition) {
+				if (ParsingState.GetVariableDefinitionBox(currentLine) is IVariableDefinitionBox variableBox && variableBox.IsVariable(variableWord) && variableBox.TryGetDefinition(variableWord, out Definition? variableWordDefinition)) {
 					elements.Add(TooltipBuilder.MakeCardDefinitionBlocks(variableWordDefinition, null));
 					return true;
 				}

@@ -53,7 +53,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// Variable state for when only the graphics state is known (linewidth, colours, etc.), including functions for calculating text sizes, dimensions, and colors.
 		/// </summary>
 		public static IVariableBox GraphicsStateVariables { get; } =
-			VariableBoxes.Simple(
+			SimpleVariableBoxes.Create(
 				new Dictionary<EvaluationName, EvaluationType> {
 					// SharpCanvas variables
 					{ "linewidth",  EvaluationType.FLOAT },
@@ -83,7 +83,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// Includes graphics state variables and markup canvas area values ("width"/"height"/etc.).
 		/// </summary>
 		public static IVariableBox InferenceDrawingStateVariables { get; } =
-			VariableBoxes.Simple(
+			SimpleVariableBoxes.Create(
 				new Dictionary<EvaluationName, EvaluationType> {
 					// SharpCanvas variables
 					{ "linewidth",  EvaluationType.FLOAT },
@@ -120,7 +120,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// Variable state for when the full drawing information is available, including the exact dimensions of the drawing area.
 		/// </summary>
 		public static IVariableBox DrawingStateVariables { get; } =
-			VariableBoxes.Simple(
+			SimpleVariableBoxes.Create(
 				new Dictionary<EvaluationName, EvaluationType> {
 					// SharpCanvas variables
 					{ "linewidth",  EvaluationType.FLOAT },
@@ -199,14 +199,14 @@ namespace SharpSheets.Markup.Canvas {
 		}
 
 		public static IEnvironment MakeGraphicsStateEnvironment(MarkupCanvasGraphicsData graphicsData) {
-			return Environments.Simple(
-				new Dictionary<EvaluationName, object> {
+			return SimpleEnvironments.Create(
+				new Dictionary<EvaluationName, (object?, EvaluationType)> {
 					// SharpCanvas variables
-					{ "linewidth", graphicsData.DefaultLineWidth },
-					{ "foreground",  graphicsData.ForegroundColor },
-					{ "background",  graphicsData.BackgroundColor },
-					{ "midtone",  graphicsData.MidtoneColor },
-					{ "textcolor",  graphicsData.TextColor }
+					{ "linewidth", (graphicsData.DefaultLineWidth, EvaluationType.FLOAT) },
+					{ "foreground", (graphicsData.ForegroundColor, EvaluationType.COLOR) },
+					{ "background", (graphicsData.BackgroundColor, EvaluationType.COLOR) },
+					{ "midtone", (graphicsData.MidtoneColor, EvaluationType.COLOR) },
+					{ "textcolor", (graphicsData.TextColor, EvaluationType.COLOR) }
 				},
 				Enumerable.Empty<KeyValuePair<EvaluationName, EvaluationNode>>(),
 				new List<EnvironmentFunctionDefinition> {
@@ -270,24 +270,24 @@ namespace SharpSheets.Markup.Canvas {
 
 		public static IEnvironment MakeDrawingStateEnvironment(MarkupCanvasGraphicsData graphicsData, Layouts.Rectangle drawingRect, Layouts.Size? referenceRect) {
 			return MakeGraphicsStateEnvironment(graphicsData).AppendEnvironment(
-				Environments.Simple(
-					new Dictionary<EvaluationName, object> {
+				SimpleEnvironments.Create(
+					new Dictionary<EvaluationName, (object?, EvaluationType)> {
 						// Canvas area variables
-						{ "width", referenceRect?.Width ?? drawingRect.Width },
-						{ "height", referenceRect?.Height ?? drawingRect.Height },
-						{ "left", referenceRect!=null ? 0f : drawingRect.Left },
-						{ "right", referenceRect !=null ? referenceRect.Width : drawingRect.Right },
-						{ "bottom", referenceRect!=null ? 0f : drawingRect.Bottom },
-						{ "top", referenceRect!=null ? referenceRect.Height : drawingRect.Top },
+						{ "width", (referenceRect?.Width ?? drawingRect.Width, EvaluationType.FLOAT) },
+						{ "height", (referenceRect?.Height ?? drawingRect.Height, EvaluationType.FLOAT) },
+						{ "left", (referenceRect != null ? 0f : drawingRect.Left, EvaluationType.FLOAT) },
+						{ "right", (referenceRect != null ? referenceRect.Width : drawingRect.Right, EvaluationType.FLOAT) },
+						{ "bottom", (referenceRect != null ? 0f : drawingRect.Bottom, EvaluationType.FLOAT) },
+						{ "top", (referenceRect != null ? referenceRect.Height : drawingRect.Top, EvaluationType.FLOAT) },
 						// Drawing rect variables
-						{ "drawwidth", drawingRect.Width },
-						{ "drawheight",  drawingRect.Height },
-						{ "drawleft",  drawingRect.Left },
-						{ "drawright",  drawingRect.Right },
-						{ "drawbottom",  drawingRect.Bottom },
-						{ "drawtop",  drawingRect.Top },
+						{ "drawwidth", (drawingRect.Width, EvaluationType.FLOAT) },
+						{ "drawheight", (drawingRect.Height, EvaluationType.FLOAT) },
+						{ "drawleft", (drawingRect.Left, EvaluationType.FLOAT) },
+						{ "drawright", (drawingRect.Right, EvaluationType.FLOAT) },
+						{ "drawbottom", (drawingRect.Bottom, EvaluationType.FLOAT) },
+						{ "drawtop", (drawingRect.Top, EvaluationType.FLOAT) },
 						// Random seed calculated from area variables
-						{ "seed",  drawingRect.GetHashCode() }
+						{ "seed", (drawingRect.GetHashCode(), EvaluationType.INT) }
 					})
 				);
 		}

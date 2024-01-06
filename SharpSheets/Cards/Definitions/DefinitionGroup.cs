@@ -62,24 +62,22 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		/// <summary>
-		/// Return the <see cref="Definition"/> specified by the provided alias. Return <see langword="null"/> if no such <see cref="Definition"/> exists.
+		/// Return the <see cref="Definition"/> specified by the provided alias. Return <see langword="false"/> if no such <see cref="Definition"/> exists.
 		/// </summary>
 		/// <param name="key">Alias of the definition to find.</param>
+		/// <param name="definition"></param>
 		/// <returns></returns>
-		public Definition? GetDefinition(EvaluationName key) {
-			if(aliasLookup.TryGetValue(key, out Definition? definition)) {
-				return definition;
+		public bool TryGetDefinition(EvaluationName key, [MaybeNullWhen(false)] out Definition definition) {
+			if(aliasLookup.TryGetValue(key, out definition)) {
+				return true;
 			}
 			else if (fallback != null) {
-				return fallback.GetDefinition(key);
+				return fallback.TryGetDefinition(key, out definition);
 			}
 			else {
-				return null; // TODO Should this be more strict, and throw an exception when unrecognised key provided?
+				definition = null;
+				return false;
 			}
-		}
-
-		public bool IsVariable(EvaluationName key) {
-			return aliasLookup.ContainsKey(key) || (fallback != null && fallback.IsVariable(key));
 		}
 
 		private bool Conflicting(EvaluationName alias) {
@@ -108,15 +106,17 @@ namespace SharpSheets.Cards.Definitions {
 			return false;
 		}
 
-		public EvaluationType GetReturnType(EvaluationName key) {
+		public bool TryGetReturnType(EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) {
 			if (returnTypes.TryGetValue(key, out EvaluationType? type)) {
-				return type;
+				returnType = type;
+				return true;
 			}
-			else if (fallback != null) {
-				return fallback.GetReturnType(key);
+			else if (fallback != null && fallback.TryGetReturnType(key, out returnType)) {
+				return true;
 			}
 			else {
-				throw new UndefinedVariableException(key);
+				returnType = null;
+				return false;
 			}
 		}
 
@@ -126,6 +126,7 @@ namespace SharpSheets.Cards.Definitions {
 					node = calculated.Evaluation;
 					return true;
 				}
+				// TODO What to do about fallback definitions?
 				//else if(definition is FallbackDefinition fallback) {
 				//	node = fallback.Evaluation; // TODO Is this right?
 				//	return true;
@@ -141,33 +142,10 @@ namespace SharpSheets.Cards.Definitions {
 
 		public IEnumerable<EvaluationName> GetVariables() => aliasLookup.Keys.ConcatOrNothing(fallback?.GetVariables()).Distinct();
 
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> GetReturnTypes() {
-			return returnTypes.ConcatOrNothing(fallback?.GetReturnTypes()).Distinct();
-		}
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> GetNodes() {
-			foreach (Definition definition in definitions) {
-				if (definition is CalculatedDefinition calculated) {
-					foreach (KeyValuePair<EvaluationName, EvaluationNode> node in calculated.AllNames.ToDictionary(n => n, n => calculated.Evaluation)) {
-						yield return node;
-					}
-				}
-				// TODO What to do about fallback definitions?
-				// else if(definition is FallbackDefinition fallback)
-			}
-			if (fallback != null) {
-				foreach (KeyValuePair<EvaluationName, EvaluationNode> fallbackEntry in fallback.GetNodes()) {
-					yield return fallbackEntry;
-				}
-			}
-		}
-
-		public bool IsFunction(EvaluationName name) {
+		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionInfo functionInfo) {
 			// This will need updating if we end up implementing user defined functions
-			return false || (fallback != null && fallback.IsFunction(name));
-		}
-		public EnvironmentFunctionInfo GetFunctionInfo(EvaluationName name) {
-			// This will need updating if we end up implementing user defined functions
-			throw new UndefinedFunctionException(name);
+			functionInfo = null;
+			return false;
 		}
 		public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
 			// This will need updating if we end up implementing user defined functions

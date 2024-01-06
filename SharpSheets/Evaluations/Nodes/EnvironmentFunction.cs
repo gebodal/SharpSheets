@@ -43,6 +43,7 @@ namespace SharpSheets.Evaluations.Nodes {
 						throw new EvaluationTypeException("Enum types for environment functions must be based on system types.");
 					}
 
+					// TODO Check this works as expected
 					EvaluationType argType = Arguments[i].ReturnType;
 					if (functionInfo.Args[i] != argType && !(functionInfo.Args[i].IsReal() && argType.IsIntegral()) && !(functionInfo.Args[i].IsEnum && argType == EvaluationType.STRING)) {
 						throw new EvaluationTypeException($"Invalid argument type for function {Name}: {argType} (expected {functionInfo.Args[i]})");
@@ -66,7 +67,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		public override object? Evaluate(IEnvironment environment) {
-			EnvironmentFunction func = environment.GetFunction(functionInfo.Name);
+			EnvironmentFunctionDefinition func = environment.GetFunction(functionInfo.Name);
 
 			//object[] args = Arguments.Select(a => a.Evaluate(environment)).ToArray();
 
@@ -81,7 +82,7 @@ namespace SharpSheets.Evaluations.Nodes {
 				args[i] = arg;
 			}
 
-			object? result = func(args);
+			object? result = func.Evaluator(args);
 
 			return result;
 			/*

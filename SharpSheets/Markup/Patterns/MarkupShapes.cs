@@ -12,6 +12,7 @@ using SharpSheets.Markup.Elements;
 using SharpSheets.Markup.Canvas;
 using SharpSheets.Utilities;
 using SharpSheets.Exceptions;
+using SharpSheets.Markup.Parsing;
 
 namespace SharpSheets.Markup.Patterns {
 
@@ -71,7 +72,7 @@ namespace SharpSheets.Markup.Patterns {
 			WidgetFactory dummyWidgetFactory = new WidgetFactory(MarkupRegistry.Empty, shapeFactory);
 
 			IEnvironment argumentEnvironment = ParseArguments(context ?? Context.Empty, source, null, shapeFactory, context == null, out buildErrors)
-				.AppendEnvironment(GetAdditionalArguments(context ?? Context.Empty, name ?? "NAME", source, dummyWidgetFactory, shapeFactory));
+				.AppendEnvironment(SimpleEnvironments.Create(GetAdditionalArguments(context ?? Context.Empty, name ?? "NAME", source, dummyWidgetFactory, shapeFactory)));
 
 			return ConstructInstance(argumentEnvironment, aspect, shapeFactory, constructionLines);
 		}
@@ -434,9 +435,9 @@ namespace SharpSheets.Markup.Patterns {
 		public MarkupDetail(MarkupDetailPattern pattern, ShapeFactory? shapeFactory, IEnvironment arguments, bool constructionLines) : base(pattern, shapeFactory, arguments, constructionLines) { }
 
 		protected override IEnvironment GetDrawableEnvironment() {
-			return base.GetDrawableEnvironment().AppendEnvironment(new Dictionary<EvaluationName, object>() {
-				{ "layout", Layout }, 
-			});
+			return base.GetDrawableEnvironment().AppendEnvironment(SimpleEnvironments.Create(new Dictionary<EvaluationName, (object?, EvaluationType)>() {
+				{ "layout", (Layout, MarkupEvaluationTypes.LAYOUT) } 
+			}));
 		}
 
 	}

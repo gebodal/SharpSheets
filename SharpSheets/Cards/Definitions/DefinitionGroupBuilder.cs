@@ -9,6 +9,7 @@ using System.Linq;
 
 namespace SharpSheets.Cards.Definitions {
 
+	/*
 	public interface IDefinitionGroup : IEnumerable<Definition> {
 		bool IsDefinition(EvaluationName key);
 		Definition? GetDefinition(EvaluationName key);
@@ -84,12 +85,10 @@ namespace SharpSheets.Cards.Definitions {
 					node = calculated.Evaluation;
 					return true;
 				}
-				/*
-				else if(definition is FallbackDefinition fallback) {
-					node = fallback.Evaluation; // TODO Is this right?
-					return true;
-				}
-				*/
+				//else if(definition is FallbackDefinition fallback) {
+				//	node = fallback.Evaluation; // TODO Is this right?
+				//	return true;
+				//}
 			}
 
 			node = null;
@@ -218,12 +217,10 @@ namespace SharpSheets.Cards.Definitions {
 					node = calculated.Evaluation;
 					return true;
 				}
-				/*
-				else if(definition is FallbackDefinition fallback) {
-					node = fallback.Evaluation; // TODO Is this right?
-					return true;
-				}
-				*/
+				//else if(definition is FallbackDefinition fallback) {
+				//	node = fallback.Evaluation; // TODO Is this right?
+				//	return true;
+				//}
 			}
 
 			node = null;
@@ -267,5 +264,5 @@ namespace SharpSheets.Cards.Definitions {
 			return GetEnumerator();
 		}
 	}
-
+	*/
 }

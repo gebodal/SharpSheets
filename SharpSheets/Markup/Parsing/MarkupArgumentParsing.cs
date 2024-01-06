@@ -30,7 +30,7 @@ namespace SharpSheets.Markup.Parsing {
 				throw new SharpFactoryException(errors, $"Errors parsing pattern arguments.");
 			}
 
-			IEnvironment environment = Environments.Simple(arguments, variables);
+			IEnvironment environment = SimpleEnvironments.Create(arguments, variables);
 
 			foreach(MarkupValidation validation in validations) {
 				try {
@@ -71,7 +71,7 @@ namespace SharpSheets.Markup.Parsing {
 
 		private static bool ValidateArgValue(MarkupSingleArgument singleArg, object? value, DocumentSpan? location, IContext context, ref List<SharpParsingException> errors) {
 			if (singleArg.Validation is not null) {
-				if (!singleArg.Validation.Evaluate(Environments.Simple(new Dictionary<EvaluationName, (object?, EvaluationType)> { { singleArg.VariableName, (value, singleArg.Type) } }))) {
+				if (!singleArg.Validation.Evaluate(SimpleEnvironments.Single(singleArg.VariableName, value, singleArg.Type))) {
 					if (!string.IsNullOrWhiteSpace(singleArg.ValidationMessage)) {
 						errors.Add(new SharpParsingException(location ?? context.Location, singleArg.ValidationMessage));
 					}

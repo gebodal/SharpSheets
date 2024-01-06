@@ -36,7 +36,7 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		public static IVariableBox MakeVariableBox(IEnumerable<MarkupVariable> variables) {
-			return VariableBoxes.Simple(variables.ToDictionary(v => v.Name, v => v.Evaluation));
+			return SimpleVariableBoxes.Create(variables.ToDictionary(v => v.Name, v => v.Evaluation));
 		}
 	}
 

@@ -110,8 +110,8 @@ namespace SharpSheets.Evaluations {
 			else if (name == "lerp") { return new LerpNode(); }
 			else if (name == "sqrt") { return new SquareRootNode(); }
 			else if (name == "random") { return new RandomNode(); }
-			else if (variables.IsFunction(name)) {
-				return new EnvironmentFunctionNode(variables.GetFunctionInfo(name));
+			else if (variables.TryGetFunctionInfo(name, out EnvironmentFunctionInfo? functionInfo)) {
+				return new EnvironmentFunctionNode(functionInfo);
 			}
 			else { throw new UndefinedFunctionException($"Unrecognized function: {name}"); }
 		}

@@ -62,7 +62,7 @@ namespace SharpSheets.Markup.Patterns {
 		}
 
 		private static IVariableBox GetVariableBox(ArgumentDetails[] args) {
-			return VariableBoxes.Simple(args.ToDictionary(a => new EvaluationName(a.Name), a => EvaluationType.FromSystemType(a.Type.DataType)));
+			return SimpleVariableBoxes.Create(args.ToDictionary(a => new EvaluationName(a.Name), a => EvaluationType.FromSystemType(a.Type.DataType)));
 		}
 
 		/// <summary></summary>

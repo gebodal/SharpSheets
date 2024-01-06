@@ -286,7 +286,7 @@ namespace SharpSheets.Cards.Definitions {
 	public static class DefinitionUtils {
 
 		public static IEnvironment ToEnvironment(this Dictionary<Definition, object> source) {
-			return Environments.Simple(source.SelectMany(kv => kv.Key.AllNames.Select(n => new KeyValuePair<EvaluationName, object>(n, kv.Value))).ToDictionary());
+			return SimpleEnvironments.Create(source.SelectMany(kv => kv.Key.AllNames.Select(n => new KeyValuePair<EvaluationName, (object?, EvaluationType)>(n, (kv.Value, kv.Key.Type.ReturnType)))).ToDictionary());
 		}
 
 		public static IEnvironment AppendEnvironment(this IEnvironment source, Dictionary<Definition, object> values) {
@@ -294,7 +294,7 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public static IVariableBox ToVariableBox(this Dictionary<Definition, EvaluationNode> source) {
-			return VariableBoxes.Simple(source.SelectMany(kv => kv.Key.AllNames.Select(n => new KeyValuePair<EvaluationName, EvaluationNode>(n, kv.Value))));
+			return SimpleVariableBoxes.Create(source.SelectMany(kv => kv.Key.AllNames.Select(n => new KeyValuePair<EvaluationName, EvaluationNode>(n, kv.Value))));
 		}
 
 		public static IVariableBox AppendVariables(this IVariableBox source, Dictionary<Definition, EvaluationNode> nodes) {
