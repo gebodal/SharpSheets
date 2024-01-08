@@ -32,7 +32,7 @@ namespace SharpSheets.Evaluations {
 	/// </summary>
 	public interface IEnvironment : IVariableBox {
 		bool TryGetValue(EvaluationName key, out object? value);
-		bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionDefinition functionDefinition);
+		bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator);
 	}
 
 	public static class EnvironmentUtils {
@@ -44,7 +44,7 @@ namespace SharpSheets.Evaluations {
 		/// <returns></returns>
 		/// <exception cref="UndefinedVariableException"></exception>
 		public static IEnumerable<KeyValuePair<EvaluationName, object?>> GetValues(this IEnvironment environment) {
-			foreach (EvaluationName key in environment.GetVariables()) {
+			foreach (EvaluationName key in environment.GetVariables().Select(i => i.Name)) {
 				if (environment.TryGetValue(key, out object? value)) {
 					yield return new KeyValuePair<EvaluationName, object?>(key, value);
 				}
@@ -60,10 +60,10 @@ namespace SharpSheets.Evaluations {
 		/// <param name="environment"></param>
 		/// <returns></returns>
 		/// <exception cref="UndefinedFunctionException"></exception>
-		public static IEnumerable<EnvironmentFunctionDefinition> GetFunctions(this IEnvironment environment) {
-			foreach (EnvironmentFunctionInfo functionInfo in environment.GetFunctionInfos()) {
-				if (environment.TryGetFunction(functionInfo.Name, out EnvironmentFunctionDefinition? functionDefinition)) {
-					yield return functionDefinition;
+		public static IEnumerable<IEnvironmentFunctionEvaluator> GetFunctions(this IEnvironment environment) {
+			foreach (IEnvironmentFunctionInfo functionInfo in environment.GetFunctionInfos()) {
+				if (environment.TryGetFunction(functionInfo.Name, out IEnvironmentFunctionEvaluator? functionEvaluator)) {
+					yield return functionEvaluator;
 				}
 				else {
 					throw new UndefinedFunctionException(functionInfo.Name);
@@ -87,9 +87,9 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
-		public static EnvironmentFunctionDefinition GetFunction(this IEnvironment environment, EvaluationName name) {
-			if (environment.TryGetFunction(name, out EnvironmentFunctionDefinition? functionDefinition)) {
-				return functionDefinition;
+		public static IEnvironmentFunctionEvaluator GetFunction(this IEnvironment environment, EvaluationName name) {
+			if (environment.TryGetFunction(name, out IEnvironmentFunctionEvaluator? functionEvaluator)) {
+				return functionEvaluator;
 			}
 
 			// If all else fails
@@ -121,15 +121,15 @@ namespace SharpSheets.Evaluations {
 				return false;
 			}
 
-			public bool TryGetReturnType(EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) {
+			public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
 				for (int i = 0; i < environments.Length; i++) {
-					if (environments[i].TryGetReturnType(key, out EvaluationType? result)) {
-						returnType = result;
+					if (environments[i].TryGetVariableInfo(key, out EnvironmentVariableInfo? result)) {
+						variableInfo = result;
 						return true;
 					}
 				}
 
-				returnType = null;
+				variableInfo = null;
 				return false;
 			}
 
@@ -145,9 +145,9 @@ namespace SharpSheets.Evaluations {
 				return false;
 			}
 
-			public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionInfo functionInfo) {
+			public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
 				for (int i = 0; i < environments.Length; i++) {
-					if (environments[i].TryGetFunctionInfo(name, out EnvironmentFunctionInfo? result)) {
+					if (environments[i].TryGetFunctionInfo(name, out IEnvironmentFunctionInfo? result)) {
 						functionInfo = result;
 						return true;
 					}
@@ -157,23 +157,23 @@ namespace SharpSheets.Evaluations {
 				return false;
 			}
 
-			public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionDefinition functionDefinition) {
+			public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator) {
 				for (int i = 0; i < environments.Length; i++) {
-					if (environments[i].TryGetFunction(name, out EnvironmentFunctionDefinition? result)) {
-						functionDefinition = result;
+					if (environments[i].TryGetFunction(name, out IEnvironmentFunctionEvaluator? result)) {
+						functionEvaluator = result;
 						return true;
 					}
 				}
 
-				functionDefinition = null;
+				functionEvaluator = null;
 				return false;
 			}
 
-			public IEnumerable<EvaluationName> GetVariables() {
+			public IEnumerable<EnvironmentVariableInfo> GetVariables() {
 				return environments.SelectMany(e => e.GetVariables()).Distinct();
 			}
 
-			public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
+			public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
 				return environments.SelectMany(e => e.GetFunctionInfos()).DistinctBy(i => i.Name);
 			}
 
@@ -211,15 +211,15 @@ namespace SharpSheets.Evaluations {
 		public static IEnvironment CreateAndInferType(
 			IEnumerable<KeyValuePair<EvaluationName, object>>? values,
 			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes,
-			IEnumerable<EnvironmentFunctionDefinition>? functions,
+			IEnumerable<IEnvironmentFunction>? functions,
 			IVariableBox? variables) {
 			return new SimpleEnvironment(SimpleEnvironment.MakeValuesDictionary(values), nodes, functions, variables);
 		}
 
 		public static IEnvironment Create(
-			IEnumerable<KeyValuePair<EvaluationName, (object?, EvaluationType)>>? values,
+			IEnumerable<(object?, EnvironmentVariableInfo)>? values,
 			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes,
-			IEnumerable<EnvironmentFunctionDefinition>? functions,
+			IEnumerable<IEnvironmentFunction>? functions,
 			IVariableBox? variables) {
 			return new SimpleEnvironment(values, nodes, functions, variables);
 		}
@@ -228,11 +228,15 @@ namespace SharpSheets.Evaluations {
 			return new SimpleEnvironment(SimpleEnvironment.MakeValuesDictionary(values), null, null, null);
 		}
 
-		public static IEnvironment Create(IEnumerable<KeyValuePair<EvaluationName, (object?, EvaluationType)>> values) {
+		public static IEnvironment Create(IEnumerable<(object?, EnvironmentVariableInfo)> values) {
 			return new SimpleEnvironment(values, null, null, null);
 		}
 
-		public static IEnvironment Create(IEnumerable<KeyValuePair<EvaluationName, (object?, EvaluationType)>> values, IVariableBox variables) {
+		public static IEnvironment Create(IEnumerable<(object?, EnvironmentVariableInfo)> values, IEnumerable<IEnvironmentFunction> functions) {
+			return new SimpleEnvironment(values, null, functions, null);
+		}
+
+		public static IEnvironment Create(IEnumerable<(object?, EnvironmentVariableInfo)> values, IVariableBox variables) {
 			return new SimpleEnvironment(values, null, null, variables);
 		}
 
@@ -240,7 +244,7 @@ namespace SharpSheets.Evaluations {
 			return new SimpleEnvironment(null, nodes, null, null);
 		}
 
-		public static IEnvironment Create(IEnumerable<EnvironmentFunctionDefinition> functions) {
+		public static IEnvironment Create(IEnumerable<IEnvironmentFunction> functions) {
 			return new SimpleEnvironment(null, null, functions, null);
 		}
 
@@ -248,35 +252,32 @@ namespace SharpSheets.Evaluations {
 			return new SimpleEnvironment(null, null, null, variables);
 		}
 
-		public static IEnvironment Single(EvaluationName key, object? value, EvaluationType type) {
-			return new SimpleEnvironment(new KeyValuePair<EvaluationName, (object?, EvaluationType)>(key, (value, type)).Yield(), null, null, null);
+		public static IEnvironment Single(EnvironmentVariableInfo info, object? value) {
+			return new SimpleEnvironment((value, info).Yield(), null, null, null);
 		}
 
 		#endregion
 
 		private class SimpleEnvironment : IEnvironment {
-			private readonly IReadOnlyDictionary<EvaluationName, (object? value, EvaluationType type)> values;
-			private readonly IReadOnlyDictionary<EvaluationName, EnvironmentFunctionDefinition> functions;
+			private readonly IReadOnlyDictionary<EvaluationName, (object? value, EnvironmentVariableInfo info)> values;
+			private readonly IReadOnlyDictionary<EvaluationName, IEnvironmentFunction> functions;
 			private readonly IReadOnlyDictionary<EvaluationName, EvaluationNode> nodes;
 			private readonly IVariableBox variables1;
 
-			public SimpleEnvironment(IEnumerable<KeyValuePair<EvaluationName, (object? value, EvaluationType type)>>? values, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes, IEnumerable<EnvironmentFunctionDefinition>? functions, IVariableBox? variables) {
-				this.values = values?.ToDictionaryAllowRepeats(true) ?? new Dictionary<EvaluationName, (object?, EvaluationType)>();
-				this.functions = functions?.ToDictionaryAllowRepeats(d => d.Name, true) ?? new Dictionary<EvaluationName, EnvironmentFunctionDefinition>();
+			public SimpleEnvironment(IEnumerable<(object? value, EnvironmentVariableInfo info)>? values, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes, IEnumerable<IEnvironmentFunction>? functions, IVariableBox? variables) {
+				this.values = values?.ToDictionaryAllowRepeats(valInfo => valInfo.info.Name, true) ?? new Dictionary<EvaluationName, (object?, EnvironmentVariableInfo)>();
+				this.functions = functions?.ToDictionaryAllowRepeats(d => d.Name, true) ?? new Dictionary<EvaluationName, IEnvironmentFunction>();
 				this.nodes = nodes?.ToDictionaryAllowRepeats(true) ?? new Dictionary<EvaluationName, EvaluationNode>();
 				this.variables1 = variables ?? VariableBoxes.Empty;
 			}
 
-			public static Dictionary<EvaluationName, (object? value, EvaluationType type)>? MakeValuesDictionary(IEnumerable<KeyValuePair<EvaluationName, object>>? values) {
-				if(values is null) { return null; }
-				return values.ToDictionaryAllowRepeats<KeyValuePair<EvaluationName, object>, EvaluationName, (object?, EvaluationType)>(
-					kv => kv.Key,
-					kv => (kv.Value, EvaluationType.FromData(kv.Value)),
-					true);
+			public static IEnumerable<(object? value, EnvironmentVariableInfo type)>? MakeValuesDictionary(IEnumerable<KeyValuePair<EvaluationName, object>>? values) {
+				if (values is null) { return null; }
+				return values.Select(kv => ((object?)kv.Value, new EnvironmentVariableInfo(kv.Key, EvaluationType.FromData(kv.Value), null)));
 			}
 
 			public bool TryGetValue(EvaluationName key, out object? value) {
-				if (values.TryGetValue(key, out (object? value, EvaluationType returnType) entry)) {
+				if (values.TryGetValue(key, out (object? value, EnvironmentVariableInfo _) entry)) {
 					value = entry.value;
 					return true;
 				}
@@ -286,17 +287,17 @@ namespace SharpSheets.Evaluations {
 				}
 			}
 
-			public bool TryGetReturnType(EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) {
-				if (values.TryGetValue(key, out (object? value, EvaluationType returnType) entry)) {
-					returnType = entry.returnType;
+			public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
+				if (values.TryGetValue(key, out (object? value, EnvironmentVariableInfo info) entry)) {
+					variableInfo = entry.info;
 					return true;
 				}
 				else if(nodes.TryGetValue(key, out EvaluationNode? node)) {
-					returnType = node.ReturnType;
+					variableInfo = new EnvironmentVariableInfo(key, node.ReturnType, null);
 					return true;
 				}
 				else {
-					return variables1.TryGetReturnType(key, out returnType);
+					return variables1.TryGetVariableInfo(key, out variableInfo);
 				}
 			}
 
@@ -313,27 +314,27 @@ namespace SharpSheets.Evaluations {
 				}
 			}
 
-			public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionDefinition functionDefinition) {
-				if (functions.TryGetValue(name, out EnvironmentFunctionDefinition? func)) {
-					functionDefinition = func;
+			public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator) {
+				if (functions.TryGetValue(name, out IEnvironmentFunction? func)) {
+					functionEvaluator = func;
 					return true;
 				}
-				else if (variables1.TryGetFunctionInfo(name, out EnvironmentFunctionInfo? varablesFunctionInfo) && varablesFunctionInfo is EnvironmentFunctionDefinition variablesFunctionDefinition) {
-					functionDefinition = variablesFunctionDefinition;
+				else if (variables1.TryGetFunctionInfo(name, out IEnvironmentFunctionInfo? varablesFunctionInfo) && varablesFunctionInfo is IEnvironmentFunctionEvaluator variablesFunctionEvaluator) {
+					functionEvaluator = variablesFunctionEvaluator;
 					return true;
 				}
 				else {
-					functionDefinition = null;
+					functionEvaluator = null;
 					return false;
 				}
 			}
 
-			public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionInfo functionInfo) {
-				if(TryGetFunction(name, out EnvironmentFunctionDefinition? functionDefinition)) {
-					functionInfo = functionDefinition;
+			public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
+				if(functions.TryGetValue(name, out IEnvironmentFunction? func)) {
+					functionInfo = func;
 					return true;
 				}
-				else if(variables1.TryGetFunctionInfo(name, out EnvironmentFunctionInfo? varablesFunctionInfo)) {
+				else if(variables1.TryGetFunctionInfo(name, out IEnvironmentFunctionInfo? varablesFunctionInfo)) {
 					functionInfo = varablesFunctionInfo;
 					return true;
 				}
@@ -343,11 +344,11 @@ namespace SharpSheets.Evaluations {
 				}
 			}
 
-			public IEnumerable<EvaluationName> GetVariables() {
-				return values.Keys.Concat(nodes.Keys).Concat(variables1.GetVariables()).Distinct();
+			public IEnumerable<EnvironmentVariableInfo> GetVariables() {
+				return values.Values.Select(e => e.info).Concat(variables1.GetVariables()).Distinct();
 			}
 
-			public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
+			public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
 				return functions.Values.Concat(variables1.GetFunctionInfos()).DistinctBy(f => f.Name);
 			}
 

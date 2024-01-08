@@ -542,12 +542,12 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.fallback = fallback;
 		}
 
-		public bool TryGetReturnType(EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) {
-			if (baseDefinitions.TryGetReturnType(key, out returnType)) { return true; }
-			else if (definitions.TryGetReturnType(key, out returnType)) { return true; }
-			else if (fallback != null) { return fallback.TryGetReturnType(key, out returnType); }
+		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
+			if (baseDefinitions.TryGetVariableInfo(key, out variableInfo)) { return true; }
+			else if (definitions.TryGetVariableInfo(key, out variableInfo)) { return true; }
+			else if (fallback != null) { return fallback.TryGetVariableInfo(key, out variableInfo); }
 			else {
-				returnType = null;
+				variableInfo = null;
 				return false;
 			}
 		}
@@ -562,7 +562,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			}
 		}
 
-		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionInfo functionInfo) {
+		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
 			if (baseDefinitions.TryGetFunctionInfo(name, out functionInfo)) { return true; }
 			else if (definitions.TryGetFunctionInfo(name, out functionInfo)) { return true; }
 			else if (fallback != null) { return fallback.TryGetFunctionInfo(name, out functionInfo); }
@@ -572,11 +572,11 @@ namespace SharpSheets.Cards.CardConfigs {
 			}
 		}
 
-		public IEnumerable<EvaluationName> GetVariables() {
+		public IEnumerable<EnvironmentVariableInfo> GetVariables() {
 			return baseDefinitions.GetVariables().Concat(definitions.GetVariables()).ConcatOrNothing(fallback?.GetVariables());
 		}
 
-		public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
+		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
 			return baseDefinitions.GetFunctionInfos().Concat(definitions.GetFunctionInfos()).ConcatOrNothing(fallback?.GetFunctionInfos());
 		}
 

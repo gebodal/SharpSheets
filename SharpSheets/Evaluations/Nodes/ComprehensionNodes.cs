@@ -72,7 +72,7 @@ namespace SharpSheets.Evaluations.Nodes {
 				return EvaluationTypes.MakeArray(resultType, result);
 			}
 			else {
-				throw new EvaluationTypeException($"Comprehensions not defined for sources of type {GetDataTypeName(arg2)}.");
+				throw new EvaluationTypeException($"Comprehensions not defined for sources of type {EvaluationUtils.GetDataTypeName(arg2)}.");
 			}
 		}
 
@@ -168,7 +168,7 @@ namespace SharpSheets.Evaluations.Nodes {
 				return EvaluationTypes.MakeArray(resultType, result);
 			}
 			else {
-				throw new EvaluationTypeException($"Comprehensions not defined for sources of type {GetDataTypeName(arg2)}.");
+				throw new EvaluationTypeException($"Comprehensions not defined for sources of type {EvaluationUtils.GetDataTypeName(arg2)}.");
 			}
 		}
 
@@ -196,13 +196,13 @@ namespace SharpSheets.Evaluations.Nodes {
 		private readonly IEnvironment environment;
 
 		private readonly EvaluationName loopIdentifier;
-		private readonly EvaluationType loopVariableType;
+		private readonly EnvironmentVariableInfo loopVariableInfo;
 		private object? currentValue = null;
 		private bool initialized;
 
 		public ComprehensionEnvironment(EvaluationName loopIdentifier, EvaluationType loopVariableType, IEnvironment environment) {
 			this.loopIdentifier = loopIdentifier;
-			this.loopVariableType = loopVariableType;
+			this.loopVariableInfo = new EnvironmentVariableInfo(loopIdentifier, loopVariableType, null);
 			this.environment = environment;
 			initialized = false;
 		}
@@ -223,18 +223,18 @@ namespace SharpSheets.Evaluations.Nodes {
 			}
 		}
 
-		public bool TryGetReturnType(EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) {
+		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
 			if (loopIdentifier == key) {
-				returnType = loopVariableType;
+				variableInfo = loopVariableInfo;
 				return true;
 			}
 			else {
-				return environment.TryGetReturnType(key, out returnType);
+				return environment.TryGetVariableInfo(key, out variableInfo);
 			}
 		}
 
-		public IEnumerable<EvaluationName> GetVariables() {
-			return environment.GetVariables().Append(loopIdentifier).Distinct();
+		public IEnumerable<EnvironmentVariableInfo> GetVariables() {
+			return environment.GetVariables().Append(loopVariableInfo).Distinct();
 		}
 
 		public bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node) {
@@ -247,15 +247,15 @@ namespace SharpSheets.Evaluations.Nodes {
 			}
 		}
 
-		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionInfo functionInfo) {
+		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
 			return environment.TryGetFunctionInfo(name, out functionInfo);
 		}
 
-		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionDefinition functionDefinition) {
-			return environment.TryGetFunction(name, out functionDefinition);
+		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator) {
+			return environment.TryGetFunction(name, out functionEvaluator);
 		}
 
-		public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
+		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
 			return environment.GetFunctionInfos();
 		}
 	}

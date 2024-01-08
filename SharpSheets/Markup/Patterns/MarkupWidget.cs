@@ -39,9 +39,9 @@ namespace SharpSheets.Markup.Patterns {
 
 		protected IEnvironment ParseWidgetArguments(IContext context, WidgetSetup setup, Utilities.DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool useExamples, out SharpParsingException[] buildErrors) {
 			IEnvironment environment = ParseArguments(context ?? Context.Empty, source, widgetFactory, shapeFactory, useExamples, out buildErrors)
-				.AppendEnvironment(SimpleEnvironments.Create(new Dictionary<EvaluationName, (object?, EvaluationType)>() {
-					{ "gutter", (setup.gutter, EvaluationType.FLOAT) },
-					{ "layout", (setup.layout, MarkupEvaluationTypes.LAYOUT) }
+				.AppendEnvironment(SimpleEnvironments.Create(new List<(object?, EnvironmentVariableInfo)>() {
+					(setup.gutter, new EnvironmentVariableInfo("gutter", EvaluationType.FLOAT, null)),
+					(setup.layout, new EnvironmentVariableInfo("layout", MarkupEvaluationTypes.LAYOUT, null))
 				}));
 
 			return environment;

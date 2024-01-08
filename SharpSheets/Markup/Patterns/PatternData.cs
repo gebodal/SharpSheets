@@ -62,7 +62,29 @@ namespace SharpSheets.Markup.Patterns {
 		}
 
 		private static IVariableBox GetVariableBox(ArgumentDetails[] args) {
-			return SimpleVariableBoxes.Create(args.ToDictionary(a => new EvaluationName(a.Name), a => EvaluationType.FromSystemType(a.Type.DataType)));
+			return SimpleVariableBoxes.Create(
+				args.Select(
+					a => new EnvironmentVariableInfo(
+						a.Name,
+						EvaluationType.FromSystemType(a.Type.DataType),
+						GetDocumentationStringAsText(a.Description)
+						)
+					)
+				);
+		}
+
+		public static string? GetDocumentationStringAsText(DocumentationString? documentationString) {
+			return documentationString is not null ? string.Join("", documentationString.Process(DocumentSpanTextVisitor.Instance)) : null;
+		}
+
+		private class DocumentSpanTextVisitor : IDocumentationSpanVisitor<string> {
+			public static readonly DocumentSpanTextVisitor Instance = new DocumentSpanTextVisitor();
+
+			public string Visit(TextSpan span) => span.Text;
+			public string Visit(LineBreakSpan span) => "\n\n";
+			public string Visit(TypeSpan span) => span.Name;
+			public string Visit(ParameterSpan span) => $"\"{span.Parameter}\"";
+			public string Visit(EnumValueSpan span) => $"{span.Type}.{span.Value}";
 		}
 
 		/// <summary></summary>

@@ -43,10 +43,9 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.variables = variables;
 		}
 
-		public bool TryGetReturnType(EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) => variables.TryGetReturnType(key, out returnType);
+		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) => variables.TryGetVariableInfo(key, out variableInfo);
 		public bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node) => variables.TryGetNode(key, out node);
-		public IEnumerable<EvaluationName> GetVariables() => variables.GetVariables();
-		public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() => variables.GetFunctionInfos();
+		public IEnumerable<EnvironmentVariableInfo> GetVariables() => variables.GetVariables();
 
 		public bool TryGetValue(EvaluationName key, out object? value) {
 			if(variables.TryGetReturnType(key, out EvaluationType? returnType)) {
@@ -60,13 +59,14 @@ namespace SharpSheets.Cards.CardSubjects {
 		}
 
 		// TODO These may need updating if we end up implementing user defined functions
-		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionDefinition functionDefinition) {
-			functionDefinition = null;
+		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator) {
+			functionEvaluator = null;
 			return false;
 		}
-		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionInfo functionInfo) {
+		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
 			return variables.TryGetFunctionInfo(name, out functionInfo);
 		}
+		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() => variables.GetFunctionInfos();
 
 	}
 

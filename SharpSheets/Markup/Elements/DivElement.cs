@@ -119,7 +119,7 @@ namespace SharpSheets.Markup.Elements {
 
 		public IVariableBox ForEachVariables() {
 			if (forEach != null) {
-				return SimpleVariableBoxes.Create(new Dictionary<EvaluationName, EvaluationType>() { { forEach.Variable, forEach.ReturnType } });
+				return SimpleVariableBoxes.Create(new EnvironmentVariableInfo[] { forEach.Variable });
 			}
 			else {
 				return VariableBoxes.Empty;
@@ -129,7 +129,7 @@ namespace SharpSheets.Markup.Elements {
 
 	public class ForEachExpression {
 
-		public EvaluationName Variable { get; }
+		public EnvironmentVariableInfo Variable { get; }
 		public EvaluationType ReturnType { get; }
 		readonly EvaluationNode arrayExpr;
 
@@ -140,9 +140,9 @@ namespace SharpSheets.Markup.Elements {
 				throw new EvaluationTypeException("Expression must produce an array or tuple.");
 			}
 
-			this.Variable = variable;
 			this.arrayExpr = arrayExpr;
 			this.ReturnType = this.arrayExpr.ReturnType.ElementType;
+			this.Variable = new EnvironmentVariableInfo(variable, ReturnType, null);
 		}
 
 		/// <summary></summary>
@@ -172,7 +172,7 @@ namespace SharpSheets.Markup.Elements {
 		public IEnumerable<IEnvironment> EvaluateEnvironments(IEnvironment environment, bool includeOriginal) {
 			Array values = (Array)(arrayExpr.Evaluate(environment) ?? throw new EvaluationCalculationException("Could not resolve for-each expression."));
 			foreach (object value in values) {
-				IEnvironment variableEnv = SimpleEnvironments.Single(Variable, value, ReturnType);
+				IEnvironment variableEnv = SimpleEnvironments.Single(Variable, value);
 				if (includeOriginal) {
 					yield return environment.AppendEnvironment(variableEnv);
 				}

@@ -44,7 +44,7 @@ namespace SharpSheets.Evaluations.Nodes {
 				return Calculate(aString, bString);
 			}
 			else {
-				throw new EvaluationTypeException($"Cannot perform binary {Symbol} for operands of type {GetDataTypeName(a)} and {GetDataTypeName(b)}.");
+				throw new EvaluationTypeException($"Cannot perform binary {Symbol} for operands of type {EvaluationUtils.GetDataTypeName(a)} and {EvaluationUtils.GetDataTypeName(b)}.");
 			}
 		}
 	}

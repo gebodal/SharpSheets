@@ -12,38 +12,35 @@ namespace SharpSheets.Evaluations {
 	/// But all variables and functions must have return types and function information available.
 	/// </summary>
 	public interface IVariableBox {
-		bool TryGetReturnType(EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType);
-		bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionInfo functionInfo);
+		bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo);
+		bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo);
 		bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node);
 
-		IEnumerable<EvaluationName> GetVariables();
-		IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos();
+		IEnumerable<EnvironmentVariableInfo> GetVariables();
+		IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos();
 	}
 
 	public static class VariableBoxUtils {
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="variables"></param>
-		/// <returns></returns>
-		/// <exception cref="UndefinedVariableException"></exception>
+		public static bool TryGetReturnType(this IVariableBox variables, EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) {
+			if(variables.TryGetVariableInfo(key, out EnvironmentVariableInfo? variableInfo)) {
+				returnType = variableInfo.EvaluationType;
+				return true;
+			}
+			else {
+				returnType = null;
+				return false;
+			}
+		}
+
 		public static IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> GetReturnTypes(this IVariableBox variables) {
-			foreach (EvaluationName key in variables.GetVariables()) {
-				if (variables.TryGetReturnType(key, out EvaluationType? returnType)) {
-					yield return new KeyValuePair<EvaluationName, EvaluationType>(key, returnType);
-				}
-				else if (variables.TryGetNode(key, out EvaluationNode? node)) {
-					yield return new KeyValuePair<EvaluationName, EvaluationType>(key, node.ReturnType);
-				}
-				else {
-					throw new UndefinedVariableException(key);
-				}
+			foreach (EnvironmentVariableInfo info in variables.GetVariables()) {
+				yield return new KeyValuePair<EvaluationName, EvaluationType>(info.Name, info.EvaluationType);
 			}
 		}
 
 		public static IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> GetNodes(this IVariableBox variables) {
-			foreach (EvaluationName key in variables.GetVariables()) {
+			foreach (EvaluationName key in variables.GetVariables().Select(i => i.Name)) {
 				if (variables.TryGetNode(key, out EvaluationNode? node)) {
 					yield return new KeyValuePair<EvaluationName, EvaluationNode>(key, node);
 				}
@@ -84,15 +81,15 @@ namespace SharpSheets.Evaluations {
 				this.variableBoxes = variableBoxes.ToArray();
 			}
 
-			public bool TryGetReturnType(EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) {
+			public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
 				for (int i = 0; i < variableBoxes.Length; i++) {
-					if (variableBoxes[i].TryGetReturnType(key, out EvaluationType? result)) {
-						returnType = result;
+					if (variableBoxes[i].TryGetVariableInfo(key, out EnvironmentVariableInfo? result)) {
+						variableInfo = result;
 						return true;
 					}
 				}
 
-				returnType = null;
+				variableInfo = null;
 				return false;
 			}
 
@@ -108,9 +105,9 @@ namespace SharpSheets.Evaluations {
 				return false;
 			}
 
-			public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionInfo functionInfo) {
+			public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
 				for (int i = 0; i < variableBoxes.Length; i++) {
-					if (variableBoxes[i].TryGetFunctionInfo(name, out EnvironmentFunctionInfo? result)) {
+					if (variableBoxes[i].TryGetFunctionInfo(name, out IEnvironmentFunctionInfo? result)) {
 						functionInfo = result;
 						return true;
 					}
@@ -120,11 +117,11 @@ namespace SharpSheets.Evaluations {
 				return false;
 			}
 
-			public IEnumerable<EvaluationName> GetVariables() {
-				return variableBoxes.SelectMany(e => e.GetVariables()).Distinct();
+			public IEnumerable<EnvironmentVariableInfo> GetVariables() {
+				return variableBoxes.SelectMany(e => e.GetVariables()).DistinctBy(i => i.Name);
 			}
 
-			public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
+			public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
 				return variableBoxes.SelectMany(e => e.GetFunctionInfos()).DistinctBy(i => i.Name);
 			}
 
@@ -160,69 +157,73 @@ namespace SharpSheets.Evaluations {
 		#region SimpleVariableBox creation methods
 
 		public static IVariableBox Create(
-			IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> returnTypes,
+			IEnumerable<EnvironmentVariableInfo> variables,
 			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes,
-			IEnumerable<EnvironmentFunctionInfo> functions) {
-			return new SimpleVariableBox(returnTypes, nodes, functions);
+			IEnumerable<IEnvironmentFunctionInfo> functions) {
+			return new SimpleVariableBox(variables, nodes, functions);
 		}
 
 		public static IVariableBox Create(
-			IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> returnTypes,
+			IEnumerable<EnvironmentVariableInfo> variables,
 			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes) {
-			return new SimpleVariableBox(returnTypes, nodes, null);
+			return new SimpleVariableBox(variables, nodes, null);
 		}
 
 		public static IVariableBox Create(
-			IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> returnTypes,
-			IEnumerable<EnvironmentFunctionInfo> functions) {
-			return new SimpleVariableBox(returnTypes, null, functions);
+			IEnumerable<EnvironmentVariableInfo> variables,
+			IEnumerable<IEnvironmentFunctionInfo> functions) {
+			return new SimpleVariableBox(variables, null, functions);
 		}
 
 		public static IVariableBox Create(
 			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes,
-			IEnumerable<EnvironmentFunctionInfo> functions) {
+			IEnumerable<IEnvironmentFunctionInfo> functions) {
 			return new SimpleVariableBox(null, nodes, functions);
 		}
 
-		public static IVariableBox Create(IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> returnTypes) {
-			return new SimpleVariableBox(returnTypes, null, null);
+		public static IVariableBox Create(IEnumerable<EnvironmentVariableInfo> variables) {
+			return new SimpleVariableBox(variables, null, null);
 		}
 
 		public static IVariableBox Create(IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes) {
 			return new SimpleVariableBox(null, nodes, null);
 		}
 
-		public static IVariableBox Create(IEnumerable<EnvironmentFunctionInfo> functions) {
+		public static IVariableBox Create(IEnumerable<IEnvironmentFunctionInfo> functions) {
 			return new SimpleVariableBox(null, null, functions);
+		}
+
+		public static IVariableBox Single(EnvironmentVariableInfo info) {
+			return new SimpleVariableBox(info.Yield(), null, null);
 		}
 
 		#endregion
 
 		private class SimpleVariableBox : IVariableBox {
-			private readonly Dictionary<EvaluationName, EvaluationType> returnTypes;
+			private readonly Dictionary<EvaluationName, EnvironmentVariableInfo> variables;
 			private readonly Dictionary<EvaluationName, EvaluationNode> nodes;
-			private readonly Dictionary<EvaluationName, EnvironmentFunctionInfo> functions;
+			private readonly Dictionary<EvaluationName, IEnvironmentFunctionInfo> functions;
 
-			public SimpleVariableBox(IEnumerable<KeyValuePair<EvaluationName, EvaluationType>>? returnTypes, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes, IEnumerable<EnvironmentFunctionInfo>? functions) {
-				this.returnTypes = returnTypes?.ToDictionaryAllowRepeats(true) ?? new Dictionary<EvaluationName, EvaluationType>();
+			public SimpleVariableBox(IEnumerable<EnvironmentVariableInfo>? variables, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes, IEnumerable<IEnvironmentFunctionInfo>? functions) {
+				this.variables = variables?.ToDictionaryAllowRepeats(i => i.Name, true) ?? new Dictionary<EvaluationName, EnvironmentVariableInfo>();
 				this.nodes = nodes?.ToDictionaryAllowRepeats(true) ?? new Dictionary<EvaluationName, EvaluationNode>();
-				this.functions = functions?.ToDictionaryAllowRepeats(i => i.Name, true) ?? new Dictionary<EvaluationName, EnvironmentFunctionInfo>();
+				this.functions = functions?.ToDictionaryAllowRepeats(i => i.Name, true) ?? new Dictionary<EvaluationName, IEnvironmentFunctionInfo>();
 			}
 
-			public bool TryGetReturnType(EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) {
-				if (returnTypes.TryGetValue(key, out EvaluationType? type)) {
-					returnType = type;
+			public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
+				if (variables.TryGetValue(key, out EnvironmentVariableInfo? info)) {
+					variableInfo = info;
 					return true;
 				}
 				else if (nodes.TryGetValue(key, out EvaluationNode? node)) {
 					try {
-						returnType = node.ReturnType;
+						variableInfo = new EnvironmentVariableInfo(key, node.ReturnType, null);
 						return true;
 					}
 					catch (EvaluationTypeException) { } // Should we throw something here? throw new UndefinedVariableException(key);
 				}
 
-				returnType = null;
+				variableInfo = null;
 				return false;
 			}
 
@@ -236,8 +237,8 @@ namespace SharpSheets.Evaluations {
 				}
 			}
 
-			public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionInfo functionInfo) {
-				if(functions.TryGetValue(name, out EnvironmentFunctionInfo? result)) {
+			public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
+				if(functions.TryGetValue(name, out IEnvironmentFunctionInfo? result)) {
 					functionInfo = result;
 					return true;
 				}
@@ -247,11 +248,11 @@ namespace SharpSheets.Evaluations {
 				}
 			}
 
-			public IEnumerable<EvaluationName> GetVariables() {
-				return returnTypes.Keys.Concat(nodes.Keys).Distinct();
+			public IEnumerable<EnvironmentVariableInfo> GetVariables() {
+				return variables.Values;
 			}
 
-			public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
+			public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
 				return functions.Values;
 			}
 

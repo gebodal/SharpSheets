@@ -30,7 +30,7 @@ namespace SharpSheets.Evaluations.Nodes {
 				return Compare(afloat1, bfloat1);
 			}
 			else {
-				throw new EvaluationCalculationException($"Cannot evaluate {Symbol} operator for operands of type {GetDataTypeName(a)} and {GetDataTypeName(b)}.");
+				throw new EvaluationCalculationException($"Cannot evaluate {Symbol} operator for operands of type {EvaluationUtils.GetDataTypeName(a)} and {EvaluationUtils.GetDataTypeName(b)}.");
 			}
 		}
 	}
@@ -121,7 +121,7 @@ namespace SharpSheets.Evaluations.Nodes {
 						return StringComparer.InvariantCultureIgnoreCase.Equals(aString, bEnum.ToString());
 					}
 					else {
-						throw new EvaluationCalculationException($"Invalid types {GetDataTypeName(a)} and {GetDataTypeName(b)} for equality evaluation.");
+						throw new EvaluationCalculationException($"Invalid types {EvaluationUtils.GetDataTypeName(a)} and {EvaluationUtils.GetDataTypeName(b)} for equality evaluation.");
 					}
 				}
 				else if (a is not null && b is not null) {

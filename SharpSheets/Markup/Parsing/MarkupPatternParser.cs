@@ -444,8 +444,8 @@ namespace SharpSheets.Markup.Parsing {
 				}
 
 				List<IMarkupArgument> arguments = new List<IMarkupArgument>();
-				Dictionary<EvaluationName, EvaluationType> argTypes = new Dictionary<EvaluationName, EvaluationType>();
-				Dictionary<EvaluationName, EvaluationType> varTypes = new Dictionary<EvaluationName, EvaluationType>();
+				HashSet<EvaluationName> argNames = new HashSet<EvaluationName>();
+				Dictionary<EvaluationName, EnvironmentVariableInfo> varTypes = new Dictionary<EvaluationName, EnvironmentVariableInfo>();
 				bool entriesUsed = false;
 				foreach (XMLElement argElem in GetVariableElements(patternElement, VariableType.ARGUMENT, true)) {
 					IMarkupArgument? argument = MakeArgument(argElem, out ContextProperty<EvaluationName> argName, out ContextProperty<EvaluationName>? varName);
@@ -453,7 +453,7 @@ namespace SharpSheets.Markup.Parsing {
 						if (patternVariables.IsVariable(argument.VariableName)) {
 							LogError(varName ?? argName, "This variable name is already taken by a pattern argument.");
 						}
-						else if (argTypes.ContainsKey(argument.ArgumentName)) {
+						else if (argNames.Contains(argument.ArgumentName)) {
 							LogError(argName, "An argument with this name already exists.");
 						}
 						else if (varTypes.ContainsKey(argument.VariableName)) {
@@ -464,19 +464,20 @@ namespace SharpSheets.Markup.Parsing {
 						}
 						else {
 							arguments.Add(argument);
-							argTypes.Add(argument.ArgumentName, argument.Type);
-							varTypes.Add(argument.VariableName, argument.Type);
+							argNames.Add(argument.ArgumentName);
+							varTypes.Add(argument.VariableName, new EnvironmentVariableInfo(argument.VariableName, argument.Type, null));
 							entriesUsed |= argument.FromEntries;
 						}
 					}
 					LogVisit(argElem);
 				}
 
-				IVariableBox topLevelPatternVariables = patternVariables.AppendVariables(SimpleVariableBoxes.Create(varTypes));
-
+				IVariableBox topLevelPatternVariables = patternVariables.AppendVariables(SimpleVariableBoxes.Create(varTypes.Values));
+				
+				IVariableBox validationVariables = BasisEnvironment.Instance.AppendVariables(topLevelPatternVariables);
 				List<MarkupValidation> validations = new List<MarkupValidation>();
 				foreach (XMLElement validationElem in GetVariableElements(patternElement, VariableType.VALIDATION, true)) {
-					MarkupValidation? validation = MakeValidation(validationElem, topLevelPatternVariables);
+					MarkupValidation? validation = MakeValidation(validationElem, validationVariables);
 					if (validation != null) {
 						validations.Add(validation);
 					}
@@ -522,7 +523,7 @@ namespace SharpSheets.Markup.Parsing {
 				IVariableBox variables = outerContext;
 				if (forEach != null) {
 					// If for-each provided, add it's variable to the collection used for parsing MarkupVariable entries
-					variables = variables.AppendVariables(SimpleVariableBoxes.Create(new Dictionary<EvaluationName, EvaluationType> { { forEach.Variable, forEach.ReturnType } }));
+					variables = variables.AppendVariables(SimpleVariableBoxes.Create(new EnvironmentVariableInfo[] { forEach.Variable }));
 				}
 
 				// Collect variables from this div (not arguments, as they belong solely to the pattern-level, and are dealt with separately)
@@ -531,7 +532,7 @@ namespace SharpSheets.Markup.Parsing {
 				// Now collect outer-context variables (including canvas drawing variables) and this div's MarkupVariables (and for-each loop variable) into a single VariableBox for parsing the div attributes
 				//IVariableBox setupVariables = variables.AppendVariables(MarkupEnvironments.DrawingStateVariables).AppendVariables(VariableBoxes.Simple(divVariables.ToDictionary(v => v.Name, v => v.Type)));
 				// We don't need to add drawing variables here, as they're added to the VariableBox at a higher level
-				IVariableBox setupVariables = variables.AppendVariables(SimpleVariableBoxes.Create(divVariables.ToDictionary(v => v.Name, v => v.Type)));
+				IVariableBox setupVariables = variables.AppendVariables(SimpleVariableBoxes.Create(divVariables.Select(v => new EnvironmentVariableInfo(v.Name, v.Type, null))));
 
 				// Get setup information for this div, using complete variables (including foreach loop variable)
 				FloatExpression? gutter = GetAttribute(divElem, "gutter", true, s => FloatExpression.Parse(s, setupVariables), null);
@@ -1292,6 +1293,22 @@ namespace SharpSheets.Markup.Parsing {
 				return null;
 			}
 
+			private static IVariableBox MakeValidateVariables(ContextProperty<EvaluationName> name, ContextProperty<EvaluationName>? variableName, EvaluationType type) {
+				return BasisEnvironment.Instance.AppendVariables(
+					SimpleVariableBoxes.Single(
+						new EnvironmentVariableInfo(variableName?.Value ?? name.Value, type, null)
+						)
+					);
+			}
+			private static IEnvironment MakeValidateEnvironment(ContextProperty<EvaluationName> name, ContextProperty<EvaluationName>? variableName, EvaluationType type, object? exampleValue) {
+				return BasisEnvironment.Instance.AppendEnvironment(
+					SimpleEnvironments.Single(
+						new EnvironmentVariableInfo((variableName ?? name).Value.ToString(), type, null),
+						exampleValue
+						)
+					);
+			}
+
 			private MarkupSingleArgument? MakeSingleArgument(XMLElement elem, ContextProperty<EvaluationName> name, ContextProperty<EvaluationName>? variableName, bool allowEntries) {
 
 				List<XMLElement> options = new List<XMLElement>();
@@ -1309,7 +1326,7 @@ namespace SharpSheets.Markup.Parsing {
 					object? defaultValue = GetAttribute(elem, "default", false, s => EvaluateArgDefault(s, type), null);
 					bool isOptional = GetAttribute(elem, "optional", false, s => MarkupValueParsing.ParseConcreteBool(s), false) || elem.HasAttribute("default", false);
 					object? exampleValue = GetAttribute(elem, "example", false, s => EvaluateArgDefault(s, type), null);
-					BoolExpression? validationExpr = GetAttribute(elem, "validate", false, v => BoolExpression.Parse(v, SimpleVariableBoxes.Create(new Dictionary<EvaluationName, EvaluationType> { { variableName?.Value ?? name.Value, type } })), null);
+					BoolExpression? validationExpr = GetAttribute(elem, "validate", false, v => BoolExpression.Parse(v, MakeValidateVariables(name, variableName, type)), null);
 					string? validationMessage = GetAttribute(elem, "validate-message", false, s => s, null);
 					bool useLocal = GetAttribute(elem, "local", false, s => MarkupValueParsing.ParseConcreteBool(s), false);
 					MarkupArgumentFormat format = GetAttribute(elem, "format", false, s => EnumUtils.ParseEnum<MarkupArgumentFormat>(s), MarkupArgumentFormat.DEFAULT);
@@ -1363,7 +1380,7 @@ namespace SharpSheets.Markup.Parsing {
 
 			private bool ArgValidationResult(XMLElement elem, BoolExpression validationExpr, object exampleValue, EvaluationType argType, ContextProperty<EvaluationName> name, ContextProperty<EvaluationName>? varName) {
 				try {
-					IEnvironment validationEnvironment = SimpleEnvironments.Single((varName ?? name).Value.ToString(), exampleValue, argType);
+					IEnvironment validationEnvironment = MakeValidateEnvironment(name, varName, argType, exampleValue);
 					return validationExpr.Evaluate(validationEnvironment);
 				}
 				catch(EvaluationException e) {
@@ -1599,18 +1616,19 @@ namespace SharpSheets.Markup.Parsing {
 					}
 				}
 
-				public IEnumerable<EvaluationName> GetVariables() {
-					return existing.GetVariables().Concat(variableElements.Keys).Distinct();
+				public IEnumerable<EnvironmentVariableInfo> GetVariables() {
+					throw new NotSupportedException();
+					//return existing.GetVariables().Concat(variableElements.Keys).Distinct();
 				}
 
-				public bool TryGetReturnType(EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) {
-					if (existing.TryGetReturnType(key, out returnType)) {
+				public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
+					if (existing.TryGetVariableInfo(key, out variableInfo)) {
 						return true;
 					}
 					else {
 						try {
 							GetVariable(key, out MarkupVariable variable);
-							returnType = variable.Type;
+							variableInfo = new EnvironmentVariableInfo(key, variable.Type, null);
 							return true;
 						}
 						catch (EvaluationProcessingException) {
@@ -1640,10 +1658,10 @@ namespace SharpSheets.Markup.Parsing {
 					}
 				}
 
-				public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionInfo functionInfo) {
+				public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
 					return existing.TryGetFunctionInfo(name, out functionInfo);
 				}
-				public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
+				public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
 					return existing.GetFunctionInfos();
 				}
 			}

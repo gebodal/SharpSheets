@@ -847,9 +847,9 @@ namespace SharpEditor.CodeHelpers {
 							DescriptionElements = new FrameworkElement[] { new TextBlock() { Text = SharpValueHandler.GetTypeName(variableReturn.Value) } },
 						});
 					}
-					foreach (EnvironmentFunctionInfo functionInfo in variables.GetFunctionInfos()) {
+					foreach (IEnvironmentFunctionInfo functionInfo in variables.GetFunctionInfos()) {
 						data.Add(new CompletionEntry(functionInfo.Name.ToString()) {
-							DescriptionElements = new FrameworkElement[] { new TextBlock() { Text = SharpValueHandler.GetTypeName(functionInfo.ReturnType) + " (function)" } },
+							DescriptionElements = new FrameworkElement[] { new TextBlock() { Text = functionInfo.Description ?? "Environment function." } },
 						});
 					}
 				}

@@ -70,7 +70,15 @@ namespace SharpSheets.Evaluations {
 
 		/// <summary></summary>
 		/// <exception cref="UndefinedFunctionException"></exception>
-		private static FunctionNode GetFunction(EvaluationName name, IVariableBox variables) {
+		private static EnvironmentFunctionNode GetFunction(EvaluationName name, IVariableBox variables) {
+			if (variables.TryGetFunctionInfo(name, out IEnvironmentFunctionInfo? functionInfo)) {
+				return new EnvironmentFunctionNode(functionInfo);
+			}
+			else {
+				throw new UndefinedFunctionException(name);
+			}
+
+			/*
 			if (name == "len") { return new LengthNode(); }
 			else if (name == "exists") { return new ExistsNode(); }
 			else if (name == "try") { return new TryNode(); }
@@ -114,6 +122,7 @@ namespace SharpSheets.Evaluations {
 				return new EnvironmentFunctionNode(functionInfo);
 			}
 			else { throw new UndefinedFunctionException($"Unrecognized function: {name}"); }
+			*/
 		}
 
 		/// <summary></summary>
@@ -392,17 +401,12 @@ namespace SharpSheets.Evaluations {
 							throw new EvaluationSyntaxException("Unbalanced brackets.");
 						}
 
-						if (operators.Count > 0 && typeof(FunctionNode).IsAssignableFrom(operators.Peek().GetType())) {
-							FunctionNode func = (FunctionNode)operators.Pop();
+						if (operators.Count > 0 && typeof(EnvironmentFunctionNode).IsAssignableFrom(operators.Peek().GetType())) {
+							EnvironmentFunctionNode func = (EnvironmentFunctionNode)operators.Pop();
 							int a = argCount.Pop();
 							bool w = wereValues.Pop();
 							if (w) { a++; }
-							if (func is VariableArgsFunctionNode variableArgs) {
-								variableArgs.SetArgumentCount(a);
-							}
-							else if (a != func.Operands) {
-								throw new EvaluationSyntaxException($"Incorrect number of arguments to function {func.Name}.");
-							}
+							func.SetArgumentCount(a);
 							output.Add(func);
 							state.Pop();
 						}
@@ -499,7 +503,7 @@ namespace SharpSheets.Evaluations {
 						ternary.First = nodeStack.Pop();
 						nodeStack.Push(ternary);
 					}
-					else if (node is FunctionNode funcNode) {
+					else if (node is EnvironmentFunctionNode funcNode) {
 						for (int arg = funcNode.Operands - 1; arg >= 0; arg--) {
 							funcNode.Arguments[arg] = nodeStack.Pop();
 						}
@@ -556,7 +560,7 @@ namespace SharpSheets.Evaluations {
 							ternary[ternary.CalculationOrder[i]] = ReplaceVariableNodes(ternary[ternary.CalculationOrder[i]], providers);
 						}
 					}
-					else if (node is FunctionNode funcNode) {
+					else if (node is EnvironmentFunctionNode funcNode) {
 						for (int arg = funcNode.Operands - 1; arg >= 0; arg--) {
 							funcNode.Arguments[arg] = ReplaceVariableNodes(funcNode.Arguments[arg], providers);
 						}

@@ -5,22 +5,30 @@ using SharpSheets.Utilities;
 
 namespace SharpSheets.Evaluations.Nodes {
 
-	public class IntCastNode : SingleArgFunctionNode {
-		public override EvaluationType ReturnType {
-			get {
-				EvaluationType argType = Argument.ReturnType;
-				if (argType.IsReal() || argType == EvaluationType.BOOL || argType == EvaluationType.STRING) {
-					return EvaluationType.INT;
-				}
-				else {
-					throw new EvaluationTypeException($"Cannot cast value of type {argType} to integer.");
-				}
+	public class IntCastFunction : AbstractFunction {
+
+		public static readonly IntCastFunction Instance = new IntCastFunction();
+		private IntCastFunction() { }
+
+		public override EvaluationName Name { get; } = "int";
+		public override string? Description { get; } = null;
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
+		);
+
+		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+			EvaluationType argType = args[0].ReturnType;
+			if (argType.IsReal() || argType == EvaluationType.BOOL || argType == EvaluationType.STRING) {
+				return EvaluationType.INT;
+			}
+			else {
+				throw new EvaluationTypeException($"Cannot cast value of type {argType} to integer.");
 			}
 		}
-		public sealed override string Name { get; } = "int";
 
-		public override object Evaluate(IEnvironment environment) {
-			object? a = Argument.Evaluate(environment);
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			object? a = args[0].Evaluate(environment);
 
 			if (EvaluationTypes.TryGetIntegral(a, out int aInt)) {
 				return aInt;
@@ -40,31 +48,35 @@ namespace SharpSheets.Evaluations.Nodes {
 				}
 			}
 			else {
-				throw new EvaluationTypeException($"Cannot cast value of type {GetDataTypeName(a)} to integer.");
+				throw new EvaluationTypeException($"Cannot cast value of type {EvaluationUtils.GetDataTypeName(a)} to integer.");
 			}
-		}
-
-		protected override FunctionNode Empty() {
-			return new IntCastNode();
 		}
 	}
 
-	public class FloatCastNode : SingleArgFunctionNode {
-		public override EvaluationType ReturnType {
-			get {
-				EvaluationType argType = Argument.ReturnType;
-				if (argType.IsReal() || argType == EvaluationType.BOOL || argType == EvaluationType.STRING) {
-					return EvaluationType.FLOAT;
-				}
-				else {
-					throw new EvaluationTypeException($"Cannot cast value of type {argType} to float.");
-				}
+	public class FloatCastFunction : AbstractFunction {
+
+		public static readonly FloatCastFunction Instance = new FloatCastFunction();
+		private FloatCastFunction() { }
+
+		public override EvaluationName Name { get; } = "float";
+		public override string? Description { get; } = null;
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
+		);
+
+		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+			EvaluationType argType = args[0].ReturnType;
+			if (argType.IsReal() || argType == EvaluationType.BOOL || argType == EvaluationType.STRING) {
+				return EvaluationType.FLOAT;
+			}
+			else {
+				throw new EvaluationTypeException($"Cannot cast value of type {argType} to float.");
 			}
 		}
-		public sealed override string Name { get; } = "float";
 
-		public override object Evaluate(IEnvironment environment) {
-			object? a = Argument.Evaluate(environment);
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			object? a = args[0].Evaluate(environment);
 
 			if (EvaluationTypes.TryGetReal(a, out float aFloat)) {
 				return aFloat;
@@ -79,12 +91,8 @@ namespace SharpSheets.Evaluations.Nodes {
 				return Parse(aStr);
 			}
 			else {
-				throw new EvaluationTypeException($"Cannot cast value of type {GetDataTypeName(a)} to float.");
+				throw new EvaluationTypeException($"Cannot cast value of type {EvaluationUtils.GetDataTypeName(a)} to float.");
 			}
-		}
-
-		protected override FunctionNode Empty() {
-			return new FloatCastNode();
 		}
 
 		private static readonly Regex floatRegex = new Regex(@"^\s*[\-\+]?\s*([0-9]+(\.[0-9]*)?|\.[0-9]+)\s*$");
@@ -107,24 +115,43 @@ namespace SharpSheets.Evaluations.Nodes {
 
 			throw new EvaluationCalculationException($"Provided string is not a valid float: \"{str}\"");
 		}
+
+		/// <summary></summary>
+		/// <exception cref="EvaluationCalculationException"></exception>
+		/// <exception cref="EvaluationTypeException"></exception>
+		/// <exception cref="EvaluationProcessingException"></exception>
+		public static EvaluationNode MakeFloatCastNode(EvaluationNode argument) {
+			EnvironmentFunctionNode node = new EnvironmentFunctionNode(Instance);
+			node.SetArgumentCount(1);
+			node.Arguments[0] = argument;
+			return node.Simplify();
+		}
 	}
 
-	public class BoolCastNode : SingleArgFunctionNode {
-		public override EvaluationType ReturnType {
-			get {
-				EvaluationType argType = Argument.ReturnType;
-				if (argType.IsReal() || argType == EvaluationType.BOOL || argType == EvaluationType.STRING) {
-					return EvaluationType.BOOL;
-				}
-				else {
-					throw new EvaluationTypeException($"Cannot cast value of type {argType} to boolean.");
-				}
+	public class BoolCastFunction : AbstractFunction {
+
+		public static readonly BoolCastFunction Instance = new BoolCastFunction();
+		private BoolCastFunction() { }
+
+		public override EvaluationName Name { get; } = "bool";
+		public override string? Description { get; } = null;
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
+		);
+
+		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+			EvaluationType argType = args[0].ReturnType;
+			if (argType.IsReal() || argType == EvaluationType.BOOL || argType == EvaluationType.STRING) {
+				return EvaluationType.BOOL;
+			}
+			else {
+				throw new EvaluationTypeException($"Cannot cast value of type {argType} to boolean.");
 			}
 		}
-		public sealed override string Name { get; } = "bool";
 
-		public override object Evaluate(IEnvironment environment) {
-			object? a = Argument.Evaluate(environment);
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			object? a = args[0].Evaluate(environment);
 
 			if (a is bool aBool) {
 				return aBool;
@@ -144,34 +171,36 @@ namespace SharpSheets.Evaluations.Nodes {
 				}
 			}
 			else {
-				throw new EvaluationTypeException($"Cannot cast value of type {GetDataTypeName(a)} to boolean.");
+				throw new EvaluationTypeException($"Cannot cast value of type {EvaluationUtils.GetDataTypeName(a)} to boolean.");
 			}
-		}
-
-		protected override FunctionNode Empty() {
-			return new BoolCastNode();
 		}
 	}
 
-	public class StringCastNode : SingleArgFunctionNode {
-		//public override EvaluationType ReturnType { get; } = EvaluationType.STRING;
-		public override EvaluationType ReturnType {
-			get {
-				EvaluationType argType = Argument.ReturnType;
-				if (argType.IsReal() || argType == EvaluationType.BOOL || argType == EvaluationType.STRING || argType.IsEnum) {
-					return EvaluationType.STRING;
-				}
-				else {
-					throw new EvaluationTypeException($"Cannot cast value of type {argType} to string.");
-				}
+	public class StringCastFunction : AbstractFunction {
+
+		public static readonly StringCastFunction Instance = new StringCastFunction();
+		private StringCastFunction() { }
+
+		public override EvaluationName Name { get; } = "str";
+		public override string? Description { get; } = null;
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
+		);
+
+		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+			EvaluationType argType = args[0].ReturnType;
+			if (argType.IsReal() || argType == EvaluationType.BOOL || argType == EvaluationType.STRING || argType.IsEnum) {
+				return EvaluationType.STRING;
+			}
+			else {
+				throw new EvaluationTypeException($"Cannot cast value of type {argType} to string.");
 			}
 		}
 
-		public sealed override string Name { get; } = "str";
-
-		public override object Evaluate(IEnvironment environment) {
-			EvaluationType argType = Argument.ReturnType;
-			object? a = Argument.Evaluate(environment);
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationType argType = args[0].ReturnType;
+			object? a = args[0].Evaluate(environment);
 
 			if (argType.IsReal() || argType == EvaluationType.BOOL || argType == EvaluationType.STRING) {
 				return a?.ToString() ?? ""; // Sensible fallback?
@@ -187,55 +216,74 @@ namespace SharpSheets.Evaluations.Nodes {
 			}
 		}
 
-		protected override FunctionNode Empty() {
-			return new StringCastNode();
+		/// <summary></summary>
+		/// <exception cref="EvaluationCalculationException"></exception>
+		/// <exception cref="EvaluationTypeException"></exception>
+		/// <exception cref="EvaluationProcessingException"></exception>
+		public static EvaluationNode MakeStringCastNode(EvaluationNode argument) {
+			EnvironmentFunctionNode node = new EnvironmentFunctionNode(Instance);
+			node.SetArgumentCount(1);
+			node.Arguments[0] = argument;
+			return node.Simplify();
 		}
 	}
 
-	public class ColorCreateNode : VariableArgsFunctionNode {
-		public override string Name { get; } = "color";
+	public class ColorCreateFunction : AbstractFunction {
 
-		public override EvaluationType ReturnType {
-			get {
-				if (Arguments.All(a => a.ReturnType.IsReal())) {
-					int count = Arguments.Length;
-					if (count == 1 || count == 3 || count == 4) {
-						return EvaluationType.COLOR;
-					}
-					else {
-						throw new EvaluationTypeException("Color must take 1, 3, or 4 real-valued arguments.");
-					}
+		public static readonly ColorCreateFunction Instance = new ColorCreateFunction();
+		private ColorCreateFunction() { }
+
+		public override EvaluationName Name { get; } = "color";
+		public override string? Description { get; } = null;
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(
+			"Color must take 1, 3, or 4 real-valued arguments.",
+			new EnvironmentFunctionArgList(
+				new EnvironmentFunctionArg("a", EvaluationType.FLOAT, null),
+				new EnvironmentFunctionArg("r", EvaluationType.FLOAT, null),
+				new EnvironmentFunctionArg("g", EvaluationType.FLOAT, null),
+				new EnvironmentFunctionArg("b", EvaluationType.FLOAT, null)
+				),
+			new EnvironmentFunctionArgList(
+				new EnvironmentFunctionArg("r", EvaluationType.FLOAT, null),
+				new EnvironmentFunctionArg("g", EvaluationType.FLOAT, null),
+				new EnvironmentFunctionArg("b", EvaluationType.FLOAT, null)
+				),
+			new EnvironmentFunctionArgList(
+				new EnvironmentFunctionArg("gray", EvaluationType.FLOAT, null)
+				)
+		);
+
+		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+			if (args.All(a => a.ReturnType.IsReal())) {
+				int count = args.Length;
+				if (count == 1 || count == 3 || count == 4) {
+					return EvaluationType.COLOR;
 				}
 				else {
-					string s = (Arguments.Length > 1) ? "s" : "";
-					throw new EvaluationTypeException($"Cannot create a color from arguments with type{s}: " + string.Join(", ", Arguments.Select(a => a.ReturnType.ToString())));
+					throw new EvaluationTypeException("Color must take 1, 3, or 4 real-valued arguments.");
 				}
 			}
-		}
-
-		public override void SetArgumentCount(int count) {
-			if (count == 1 || count == 3 || count == 4) {
-				base.SetArgumentCount(count);
-			}
 			else {
-				throw new EvaluationSyntaxException("Color must take 1, 3, or 4 real-valued arguments.");
+				string s = (args.Length > 1) ? "s" : "";
+				throw new EvaluationTypeException($"Cannot create a color from arguments with type{s}: " + string.Join(", ", args.Select(a => a.ReturnType.ToString())));
 			}
 		}
 
-		public override object Evaluate(IEnvironment environment) {
-			object[] args = EvaluationTypes.VerifyArray(Arguments.Select(a => a.Evaluate(environment)).ToArray());
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			object[] argVals = EvaluationTypes.VerifyArray(args.Select(a => a.Evaluate(environment)).ToArray());
 
-			if (args.Length != 1 && args.Length != 3 && args.Length != 4) {
+			if (argVals.Length != 1 && argVals.Length != 3 && argVals.Length != 4) {
 				throw new EvaluationCalculationException("Color must take 1, 3, or 4 real-valued arguments.");
 			}
 
 			// TODO Should be able to provide a color name somehow. Should it be in this function, or is that too much overloading?
 
 			bool badTypes = false;
-			float[] values = new float[args.Length];
+			float[] values = new float[argVals.Length];
 
-			for (int i = 0; i < args.Length; i++) {
-				if (EvaluationTypes.TryGetReal(args[i], out float realVal)) {
+			for (int i = 0; i < argVals.Length; i++) {
+				if (EvaluationTypes.TryGetReal(argVals[i], out float realVal)) {
 					values[i] = realVal.Clamp(0f, 1f);
 				}
 				else {
@@ -245,7 +293,7 @@ namespace SharpSheets.Evaluations.Nodes {
 			}
 
 			if (badTypes) {
-				Type[] types = args.Select(a => a.GetType()).Distinct().ToArray();
+				Type[] types = argVals.Select(a => a.GetType()).Distinct().ToArray();
 				string s = (types.Length > 1) ? "s" : "";
 				throw new EvaluationTypeException($"Cannot create a color from arguments with type{s}: " + string.Join(", ", types.Select(t => t.Name)));
 			}
@@ -261,9 +309,6 @@ namespace SharpSheets.Evaluations.Nodes {
 			}
 		}
 
-		protected override VariableArgsFunctionNode MakeEmptyBase() {
-			return new ColorCreateNode();
-		}
 	}
 
 }

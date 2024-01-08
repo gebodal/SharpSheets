@@ -1,130 +1,128 @@
 ﻿using SharpSheets.Utilities;
 using System;
+using System.Collections;
 
 namespace SharpSheets.Evaluations.Nodes {
 
-	public delegate object? EnvironmentFunction(object?[] arguments);
+	/*
+	 * Make the evaluation function types into interfaces:
+	 * IEnvironmentFunctionInfo and IEnvironmentFunction.
+	 * IEnvironmentFunction returns an EvaluationNode.
+	 * A type may implement both FunctionInfo and Function,
+	 * in which case it can provide its own node without
+	 * the need for an environment.
+	 * 
+	 * EnvironmentFunctionNode now gets the IEvaluationFunction,
+	 * requests the EvaluationNode, provides it with the arguments
+	 * (by copying over its own), and then requests the result from
+	 * that node.
+	 * 
+	 * The Args on FunctionInfo should now have multiple possible
+	 * arrangements of args.
+	 * 
+	 */
 
-	public class EnvironmentFunctionInfo {
-
+	public class EnvironmentFunctionArg {
 		public EvaluationName Name { get; }
-		public EvaluationType ReturnType { get; }
-		public EvaluationType[] Args { get; }
-		public int ArgCount { get { return Args.Length; } }
+		/// <summary>
+		/// A value of <see langword="null"/> indicates an "Any" type.
+		/// </summary>
+		public EvaluationType? ArgType { get; }
+		public string? Description { get; }
 
-		public EnvironmentFunctionInfo(EvaluationName name, EvaluationType returnType, EvaluationType[] args) {
+		public EnvironmentFunctionArg(EvaluationName name, EvaluationType? argType, string? description) {
 			this.Name = name;
-			this.ReturnType = returnType;
-			this.Args = args;
+			this.ArgType = argType;
+			this.Description = description;
+		}
+	}
+
+	public class EnvironmentFunctionArgList {
+		public EnvironmentFunctionArg[] Arguments { get; }
+		public bool IsParams { get; }
+
+		public EnvironmentFunctionArgList(EnvironmentFunctionArg[] arguments, bool isParams) {
+			Arguments = arguments;
+			IsParams = isParams;
+		}
+
+		public EnvironmentFunctionArgList(EnvironmentFunctionArg argument, bool isParams = false) {
+			Arguments = new EnvironmentFunctionArg[] { argument };
+			IsParams = isParams;
+		}
+
+		public EnvironmentFunctionArgList(params EnvironmentFunctionArg[] arguments) {
+			Arguments = arguments;
+			IsParams = false;
 		}
 
 	}
 
-	public class EnvironmentFunctionDefinition : EnvironmentFunctionInfo { // TODO Needs better name
+	public class EnvironmentFunctionArguments : IReadOnlyList<EnvironmentFunctionArgList> {
+		public string? Warning { get; }
+		private readonly EnvironmentFunctionArgList[] argumentLists;
 
-		public EnvironmentFunction Evaluator { get; }
-
-		public EnvironmentFunctionDefinition(EvaluationName name, EvaluationType returnType, EvaluationType[] args, EnvironmentFunction evaluator) : base(name, returnType, args) {
-			this.Evaluator = evaluator;
+		public EnvironmentFunctionArguments(string? warning, params EnvironmentFunctionArgList[] argumentLists) {
+			this.Warning = warning;
+			this.argumentLists = argumentLists;
 		}
 
+		public EnvironmentFunctionArgList this[int index] => argumentLists[index];
+		public int Count => argumentLists.Length;
+
+		public IEnumerator<EnvironmentFunctionArgList> GetEnumerator() =>
+			((IEnumerable<EnvironmentFunctionArgList>)argumentLists).GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => argumentLists.GetEnumerator();
 	}
 
-	public class EnvironmentFunctionNode : VariableArgsFunctionNode {
-		private readonly EnvironmentFunctionInfo functionInfo;
-		public override string Name => functionInfo.Name.ToString();
+	public interface IEnvironmentFunctionInfo {
+		EvaluationName Name { get; }
+		EnvironmentFunctionArguments Args { get; }
+		string? Description { get; }
 
-		public override bool IsConstant { get; } = false;
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		/// <exception cref="EvaluationTypeException"></exception>
+		EvaluationType GetReturnType(EvaluationNode[] args);
+	}
+	public interface IEnvironmentFunctionEvaluator {
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="environment"></param>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		/// <exception cref="EvaluationCalculationException"></exception>
+		/// <exception cref="EvaluationTypeException"></exception>
+		object? Evaluate(IEnvironment environment, EvaluationNode[] args);
+	}
 
-		public override EvaluationType ReturnType {
-			get {
-				for (int i = 0; i < functionInfo.Args.Length; i++) {
-					if (functionInfo.Args[i].IsEnum && !(functionInfo.Args[i].DisplayType?.IsEnum ?? false)) {
-						throw new EvaluationTypeException("Enum types for environment functions must be based on system types.");
-					}
+	public interface IEnvironmentFunction : IEnvironmentFunctionInfo, IEnvironmentFunctionEvaluator { }
 
-					// TODO Check this works as expected
-					EvaluationType argType = Arguments[i].ReturnType;
-					if (functionInfo.Args[i] != argType && !(functionInfo.Args[i].IsReal() && argType.IsIntegral()) && !(functionInfo.Args[i].IsEnum && argType == EvaluationType.STRING)) {
-						throw new EvaluationTypeException($"Invalid argument type for function {Name}: {argType} (expected {functionInfo.Args[i]})");
-					}
-				}
-				return functionInfo.ReturnType;
-			}
+	/*
+	public class MyEnvironmentFunction : IEnvironmentFunction {
+
+		public EvaluationName Name { get; } = "func";
+
+		public ICollection<(EnvironmentFunctionArg[] args, bool isParams)> Args { get; } = new List<(EnvironmentFunctionArg[] args, bool isParams)> {
+			(new EnvironmentFunctionArg[] {
+				new EnvironmentFunctionArg("arg1", EvaluationType.FLOAT, "My argument description.")
+			}, false)
+		};
+
+		public string? Description { get; } = "My function description.";
+
+		public EvaluationType GetReturnType(EvaluationNode[] args) {
+			return EvaluationType.INT;
 		}
 
-		public EnvironmentFunctionNode(EnvironmentFunctionInfo functionInfo) {
-			this.functionInfo = functionInfo;
-		}
-
-		public override void SetArgumentCount(int count) {
-			if (count == functionInfo.ArgCount) {
-				base.SetArgumentCount(count);
-			}
-			else {
-				throw new EvaluationProcessingException($"Invalid number of arguments for function {Name}: {count} (expected {functionInfo.ArgCount})");
-			}
-		}
-
-		public override object? Evaluate(IEnvironment environment) {
-			EnvironmentFunctionDefinition func = environment.GetFunction(functionInfo.Name);
-
-			//object[] args = Arguments.Select(a => a.Evaluate(environment)).ToArray();
-
-			object?[] args = new object[Arguments.Length];
-			for(int i=0; i<Arguments.Length; i++) {
-				object? arg = Arguments[i].Evaluate(environment);
-
-				if (functionInfo.Args[i].IsEnum) {
-					arg = ParseEnumArg(functionInfo.Args[i], arg);
-				}
-
-				args[i] = arg;
-			}
-
-			object? result = func.Evaluator(args);
-
-			return result;
-			/*
-			if (result.GetType() == ReturnType.DisplayType) {
-				return result;
-			}
-			else {
-				throw new EvaluationCalculationException($"Invalid return type for evaluation function {Name}: {result.GetType()} (expected {ReturnType})");
-			}
-			*/
-		}
-
-		private static object ParseEnumArg(EvaluationType type, object? arg) {
-			// TODO What to do if the type does not have a SystemType?
-
-			if(arg is null) {
-				throw new EvaluationCalculationException("Cannot parse null value to enum.");
-			}
-			else if (arg.GetType() == type.DisplayType) { // Should this be DataType...?
-				return arg;
-			}
-			else if (arg is string stringVal) {
-				if (type.IsEnumValueDefined(stringVal)) {
-					try {
-						return EnumUtils.ParseEnum(type.DisplayType, stringVal);
-					}
-					catch (FormatException e) {
-						throw new EvaluationCalculationException("Error parsing enum value.", e);
-					}
-				}
-				else {
-					throw new EvaluationCalculationException($"Invalid value for enum argument of type {type}: {stringVal} (must be one of {string.Join(", ", type.EnumNames ?? Enumerable.Empty<string>())})");
-				}
-			}
-			else {
-				throw new EvaluationCalculationException($"Invalid type for enum argument, must be string or {type.Name}, got {arg.GetType().Name}.");
-			}
-		}
-
-		protected override VariableArgsFunctionNode MakeEmptyBase() {
-			return new EnvironmentFunctionNode(functionInfo);
+		public object? Evaluate(EvaluationNode[] args) {
+			return 1;
 		}
 	}
+	*/
 
 }

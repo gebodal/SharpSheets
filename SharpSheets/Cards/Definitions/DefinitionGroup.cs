@@ -17,7 +17,7 @@ namespace SharpSheets.Cards.Definitions {
 
 		private readonly List<Definition> definitions;
 		private readonly Dictionary<EvaluationName, Definition> aliasLookup;
-		private readonly Dictionary<EvaluationName, EvaluationType> returnTypes;
+		private readonly Dictionary<EvaluationName, EnvironmentVariableInfo> variableInfos;
 
 		public int Count { get { return definitions.Count + (fallback?.Count ?? 0); } }
 
@@ -25,7 +25,7 @@ namespace SharpSheets.Cards.Definitions {
 			this.fallback = fallback;
 			definitions = new List<Definition>();
 			aliasLookup = new Dictionary<EvaluationName, Definition>();
-			returnTypes = new Dictionary<EvaluationName, EvaluationType>();
+			variableInfos = new Dictionary<EvaluationName, EnvironmentVariableInfo>();
 		}
 
 		public DefinitionGroup() : this(null) { }
@@ -54,10 +54,10 @@ namespace SharpSheets.Cards.Definitions {
 			definitions.Add(definition);
 
 			aliasLookup.Add(definition.name, definition);
-			returnTypes.Add(definition.name, definition.Type.ReturnType);
+			variableInfos.Add(definition.name, new EnvironmentVariableInfo(definition.name, definition.Type.ReturnType, definition.description));
 			foreach (EvaluationName alias in definition.aliases) {
 				aliasLookup.Add(alias, definition);
-				returnTypes.Add(alias, definition.Type.ReturnType);
+				variableInfos.Add(alias, new EnvironmentVariableInfo(alias, definition.Type.ReturnType, definition.description));
 			}
 		}
 
@@ -106,16 +106,16 @@ namespace SharpSheets.Cards.Definitions {
 			return false;
 		}
 
-		public bool TryGetReturnType(EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) {
-			if (returnTypes.TryGetValue(key, out EvaluationType? type)) {
-				returnType = type;
+		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
+			if (variableInfos.TryGetValue(key, out EnvironmentVariableInfo? info)) {
+				variableInfo = info;
 				return true;
 			}
-			else if (fallback != null && fallback.TryGetReturnType(key, out returnType)) {
+			else if (fallback != null && fallback.TryGetVariableInfo(key, out variableInfo)) {
 				return true;
 			}
 			else {
-				returnType = null;
+				variableInfo = null;
 				return false;
 			}
 		}
@@ -140,16 +140,16 @@ namespace SharpSheets.Cards.Definitions {
 			return false;
 		}
 
-		public IEnumerable<EvaluationName> GetVariables() => aliasLookup.Keys.ConcatOrNothing(fallback?.GetVariables()).Distinct();
+		public IEnumerable<EnvironmentVariableInfo> GetVariables() => variableInfos.Values.ConcatOrNothing(fallback?.GetVariables()).Distinct();
 
-		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionInfo functionInfo) {
+		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
 			// This will need updating if we end up implementing user defined functions
 			functionInfo = null;
 			return false;
 		}
-		public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
+		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
 			// This will need updating if we end up implementing user defined functions
-			return Enumerable.Empty<EnvironmentFunctionInfo>().ConcatOrNothing(fallback?.GetFunctionInfos());
+			return Enumerable.Empty<IEnvironmentFunctionInfo>().ConcatOrNothing(fallback?.GetFunctionInfos());
 		}
 
 		public IEnumerator<Definition> GetEnumerator() {

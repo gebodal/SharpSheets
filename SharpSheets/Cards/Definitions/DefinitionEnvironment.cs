@@ -69,12 +69,12 @@ namespace SharpSheets.Cards.Definitions {
 			return new DefinitionEnvironment(definitions, finalvalues, finalnodes, null, null);
 		}
 
-		public IEnumerable<EvaluationName> GetVariables() {
+		public IEnumerable<EnvironmentVariableInfo> GetVariables() {
 			return definitions.GetVariables();
 		}
 
-		public bool TryGetReturnType(EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) {
-			return definitions.TryGetReturnType(key, out returnType);
+		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
+			return definitions.TryGetVariableInfo(key, out variableInfo);
 		}
 
 		public bool TryGetValue(EvaluationName key, out object? value) {
@@ -118,16 +118,16 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		// These may need updating if we end up implementing user defined functions
-		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionInfo functionInfo) {
+		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
 			functionInfo = null;
 			return false;
 		}
-		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out EnvironmentFunctionDefinition functionDefinition) {
-			functionDefinition = null;
+		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator) {
+			functionEvaluator = null;
 			return false;
 		}
-		public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
-			return Enumerable.Empty<EnvironmentFunctionInfo>();
+		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
+			return Enumerable.Empty<IEnvironmentFunctionInfo>();
 		}
 
 		#region IEnumerable
