@@ -40,19 +40,19 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public static IVariableBox GetVariables(ICardSectionParent parent) {
-			return parent.Variables.AppendVariables(BaseDefinitions); // Do we actually have to append BaseDefinitions these here...?
+			return VariableBoxes.Concat(BasisEnvironment.Instance, parent.Variables, BaseDefinitions); // Do we actually have to append BaseDefinitions these here...?
 		}
 
 		public static IVariableBox GetVariables(CardSetConfig cardSetConfig) {
-			return cardSetConfig.Variables.AppendVariables(BaseDefinitions); // Do we actually have to append BaseDefinitions these here...?
+			return VariableBoxes.Concat(BasisEnvironment.Instance, cardSetConfig.Variables, BaseDefinitions); // Do we actually have to append BaseDefinitions these here...?
 		}
 
 		public static IVariableBox GetVariables(CardConfig cardConfig) {
-			return cardConfig.Variables.AppendVariables(BaseDefinitions); // Do we actually have to append BaseDefinitions these here...?
+			return VariableBoxes.Concat(BasisEnvironment.Instance, cardConfig.Variables, BaseDefinitions); // Do we actually have to append BaseDefinitions these here...?
 		}
 
 		public static IEnvironment GetDryRun(CardConfig cardConfig) {
-			return new DryRunEnvironment(GetVariables(cardConfig));
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(cardConfig)));
 		}
 
 		public static DefinitionEnvironment MakeBaseEnvironment(ContextValue<string> name) {
@@ -84,19 +84,19 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public static IVariableBox GetVariables(CardSetConfig cardSetConfig) {
-			return CardSubjectEnvironments.GetVariables(cardSetConfig).AppendVariables(BaseDefinitions);
+			return VariableBoxes.Concat(BasisEnvironment.Instance, CardSubjectEnvironments.GetVariables(cardSetConfig), BaseDefinitions);
 		}
 
 		public static IVariableBox GetVariables(CardConfig cardConfig) {
-			return CardSubjectEnvironments.GetVariables(cardConfig).AppendVariables(BaseDefinitions);
+			return VariableBoxes.Concat(BasisEnvironment.Instance, CardSubjectEnvironments.GetVariables(cardConfig), BaseDefinitions);
 		}
 
 		public static IEnvironment GetDryRun(CardSetConfig cardSetConfig) {
-			return new DryRunEnvironment(GetVariables(cardSetConfig));
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(cardSetConfig)));
 		}
 
 		public static IEnvironment GetDryRun(CardConfig cardConfig) {
-			return new DryRunEnvironment(GetVariables(cardConfig));
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(cardConfig)));
 		}
 
 		public static DefinitionEnvironment GetEnvironment(int card, int totalCards) {
@@ -123,12 +123,16 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public static IVariableBox GetVariables(AbstractCardSectionConfig sectionConfig) {
-			return CardSubjectEnvironments.GetVariables(sectionConfig.parent)
-				.AppendVariables(sectionConfig.Variables.AppendVariables(BaseDefinitions)); // Do we actually have to append BaseDefinitions these here...?
+			return VariableBoxes.Concat(
+				BasisEnvironment.Instance,
+				CardSubjectEnvironments.GetVariables(sectionConfig.parent),
+				sectionConfig.Variables,
+				BaseDefinitions // Do we actually have to append BaseDefinitions these here...?
+				);
 		}
 
 		public static IEnvironment GetDryRun(AbstractCardSectionConfig sectionConfig) {
-			return new DryRunEnvironment(GetVariables(sectionConfig));
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(sectionConfig)));
 		}
 
 		public static DefinitionEnvironment MakeBaseEnvironment(ContextValue<string> heading, ContextValue<string> note) {
@@ -162,11 +166,11 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public static IVariableBox GetVariables(AbstractCardSectionConfig sectionConfig) {
-			return CardSectionEnvironments.GetVariables(sectionConfig).AppendVariables(BaseDefinitions);
+			return VariableBoxes.Concat(BasisEnvironment.Instance, CardSectionEnvironments.GetVariables(sectionConfig), BaseDefinitions);
 		}
 
 		public static IEnvironment GetDryRun(AbstractCardSectionConfig sectionConfig) {
-			return new DryRunEnvironment(GetVariables(sectionConfig));
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(sectionConfig)));
 		}
 
 		public static DefinitionEnvironment GetEnvironment(int partnum, int totalParts) {
@@ -201,12 +205,16 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public static IVariableBox GetVariables(CardFeatureConfig featureConfig) {
-			return CardSectionEnvironments.GetVariables(featureConfig.cardSectionConfig)
-				.AppendVariables(featureConfig.Variables.AppendVariables(BaseDefinitions)); // Do we actually have to append BaseDefinitions these here...?
+			return VariableBoxes.Concat(
+				BasisEnvironment.Instance,
+				CardSectionEnvironments.GetVariables(featureConfig.cardSectionConfig),
+				featureConfig.Variables,
+				BaseDefinitions // Do we actually have to append BaseDefinitions these here...?
+				);
 		}
 
 		public static IEnvironment GetDryRun(CardFeatureConfig featureConfig) {
-			return new DryRunEnvironment(GetVariables(featureConfig));
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(featureConfig)));
 		}
 
 		public static DefinitionEnvironment MakeBaseEnvironment(ContextValue<string> title, ContextValue<string> note, ContextValue<TextExpression> text, RegexFormats regexFormats, bool isListItem, int index) {

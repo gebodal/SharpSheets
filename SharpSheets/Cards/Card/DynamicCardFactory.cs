@@ -66,7 +66,7 @@ namespace SharpSheets.Cards.Card
 			// Only the card number/total can vary, so just enumerate all possibilities and store them
 			for (int cardCount = 1; cardCount <= subject.CardConfig.MaxCards; cardCount++) {
 				for (int card = 0; card < cardCount; card++) {
-					IEnvironment cardOutlinesEnvironment = subject.Environment.AppendDefinitionEnvironment(CardOutlinesEnvironments.GetEnvironment(card, cardCount)); // DynamicCardEnvironments.CardNumberEnvironment(subject.Environment, card, totalCards);
+					IEnvironment cardOutlinesEnvironment = BasisEnvironment.Instance.AppendEnvironment(subject.Environment.AppendDefinitionEnvironment(CardOutlinesEnvironments.GetEnvironment(card, cardCount))); // DynamicCardEnvironments.CardNumberEnvironment(subject.Environment, card, totalCards);
 
 					if(ProcessCardArrangementOutline(subject, cardConfig.headers, cardConfig.cardSetConfig.headers, cardOutlinesEnvironment, cardSetConfig.Source, widgetFactory, errors, "header", out IWidget? headerRect)) {
 						headerCollection[card, cardCount] = headerRect;
@@ -238,7 +238,8 @@ namespace SharpSheets.Cards.Card
 			foreach (CardFeature feature in section) {
 				CardFeatureConfig? featureConfig = feature.FeatureConfig;
 				if (featureConfig != null) {
-					IWidget featureContent = widgetFactory.MakeWidget(typeof(Div), new InterpolateContext(featureConfig.layout, feature.Environment, true), sectionConfig.parent.Source, out SharpParsingException[] featureErrors);
+					IEnvironment featureEnvironment = BasisEnvironment.Instance.AppendEnvironment(feature.Environment);
+					IWidget featureContent = widgetFactory.MakeWidget(typeof(Div), new InterpolateContext(featureConfig.layout, featureEnvironment, true), sectionConfig.parent.Source, out SharpParsingException[] featureErrors);
 					errors.AddRange(featureErrors.Select(e => e.AtLocation(feature.Location)));
 
 					Div featureDiv = new Div(new WidgetSetup(_size: Dimension.Automatic));
@@ -370,7 +371,8 @@ namespace SharpSheets.Cards.Card
 			}
 
 			if (featureConfig != null) {
-				IWidget featureContent = widgetFactory.MakeWidget(typeof(Div), new InterpolateContext(featureConfig.layout, subject.Environment, true), sectionConfig.parent.Source, out SharpParsingException[] featureErrors);
+				IEnvironment featureEnvironment = BasisEnvironment.Instance.AppendEnvironment(subject.Environment);
+				IWidget featureContent = widgetFactory.MakeWidget(typeof(Div), new InterpolateContext(featureConfig.layout, featureEnvironment, true), sectionConfig.parent.Source, out SharpParsingException[] featureErrors);
 				errors.AddRange(featureErrors.Select(e => e.AtLocation(subject.Location)));
 
 				Div featureDiv = new Div(new WidgetSetup(_size: Dimension.Automatic));
@@ -421,7 +423,10 @@ namespace SharpSheets.Cards.Card
 			// Only the part number/total can vary, so just enumerate all possibilities and store them
 			for (int partsCount = 1; partsCount <= cardConfig.MaxCards; partsCount++) {
 				for (int part = 0; part < partsCount; part++) {
-					IEnvironment sectionOutlinesEnvironment = environment.AppendEnvironment(CardSectionOutlineEnvironments.GetEnvironment(part, partsCount));
+					IEnvironment sectionOutlinesEnvironment = Environments.Concat(
+						BasisEnvironment.Instance,
+						environment,
+						CardSectionOutlineEnvironments.GetEnvironment(part, partsCount));
 
 					IContext? outline;
 					try {

@@ -171,9 +171,11 @@ namespace SharpSheets.Cards.CardConfigs {
 			if (cardSetConfig == null) { return null; }
 			if (origins != null) { origins.Add(cardSetConfig, context); }
 
+			IVariableBox definitionVariables = BasisEnvironment.Instance.AppendVariables(cardSetConfig.Variables);
+
 			foreach (ContextValue<string> definitionValue in context.GetDefinitions(context)) {
 				try {
-					Definition definition = Definition.Parse(definitionValue.Value, cardSetConfig.Variables);
+					Definition definition = Definition.Parse(definitionValue.Value, definitionVariables);
 					cardSetConfig.definitions.Add(definition);
 				}
 				catch (Exception e) { // TODO More specific?
@@ -289,9 +291,11 @@ namespace SharpSheets.Cards.CardConfigs {
 			if (cardConfig == null) { return null; }
 			if (origins != null) { origins.Add(cardConfig, context); }
 
+			IVariableBox definitionVariables = BasisEnvironment.Instance.AppendVariables(cardConfig.Variables);
+
 			foreach (ContextValue<string> definitionValue in context.GetDefinitions(context)) {
 				try {
-					Definition definition = Definition.Parse(definitionValue.Value, cardConfig.Variables);
+					Definition definition = Definition.Parse(definitionValue.Value, definitionVariables);
 					cardConfig.definitions.Add(definition);
 				}
 				catch (Exception e) { // TODO More specific?
@@ -340,15 +344,17 @@ namespace SharpSheets.Cards.CardConfigs {
 			try {
 				List<object> requiredArgs = new List<object>() { parent };
 				if (sectionType == typeof(TextCardSectionConfig) || sectionType == typeof(ParagraphCardSectionConfig)) {
-					TextExpression? content = MakeTextProperty("content", context, CardFeatureEnvironments.BaseDefinitions, errors);
+					IVariableBox featureVariables = BasisEnvironment.Instance.AppendVariables(CardFeatureEnvironments.BaseDefinitions);
+					TextExpression? content = MakeTextProperty("content", context, featureVariables, errors);
 					requiredArgs.Add(content ?? new TextExpression(""));
 				}
 				if(sectionType == typeof(TextCardSectionConfig)) {
-					TextExpression? delimiter = MakeTextProperty("delimiter", context, CardSectionEnvironments.BaseDefinitions, errors);
+					IVariableBox sectionVariables = BasisEnvironment.Instance.AppendVariables(CardSectionEnvironments.BaseDefinitions);
+					TextExpression? delimiter = MakeTextProperty("delimiter", context, sectionVariables, errors);
 					requiredArgs.Add(delimiter ?? new TextExpression(""));
-					TextExpression? prefix = MakeTextProperty("prefix", context, CardSectionEnvironments.BaseDefinitions, errors);
+					TextExpression? prefix = MakeTextProperty("prefix", context, sectionVariables, errors);
 					requiredArgs.Add(prefix ?? new TextExpression(""));
-					TextExpression? tail = MakeTextProperty("tail", context, CardSectionEnvironments.BaseDefinitions, errors);
+					TextExpression? tail = MakeTextProperty("tail", context, sectionVariables, errors);
 					requiredArgs.Add(tail ?? new TextExpression(""));
 				}
 				cardSection = (AbstractCardSectionConfig)SharpFactory.Construct(constructorInfo, context, parent.Source, widgetFactory, shapeFactory, requiredArgs.ToArray(), out SharpParsingException[] cardSectionBuildErrors);
@@ -367,12 +373,14 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			if (origins != null) { origins.Add(cardSection, context); }
 
+			IVariableBox definitionVariables = BasisEnvironment.Instance.AppendVariables(cardSection.Variables);
+
 			// If not dynamic, or is dynamic and not always included
 			// AlwaysInclude sections cannot have their own Definitions specified
 			if (cardSection is not DynamicCardSectionConfig dynamic || !dynamic.AlwaysInclude) { 
 				foreach (ContextValue<string> definitionValue in context.GetDefinitions(context)) {
 					try {
-						Definition definition = Definition.Parse(definitionValue.Value, cardSection.Variables);
+						Definition definition = Definition.Parse(definitionValue.Value, definitionVariables);
 						cardSection.definitions.Add(definition);
 					}
 					catch (Exception e) {
@@ -446,9 +454,11 @@ namespace SharpSheets.Cards.CardConfigs {
 			if (cardFeature == null) { return null; }
 			if (origins != null) { origins.Add(cardFeature, context); }
 
+			IVariableBox definitionVariables = BasisEnvironment.Instance.AppendVariables(cardFeature.Variables);
+
 			foreach (ContextValue<string> definitionValue in context.GetDefinitions(context)) {
 				try {
-					Definition definition = Definition.Parse(definitionValue.Value, cardFeature.Variables);
+					Definition definition = Definition.Parse(definitionValue.Value, definitionVariables);
 					cardFeature.definitions.Add(definition);
 				}
 				catch (Exception e) {
@@ -464,6 +474,8 @@ namespace SharpSheets.Cards.CardConfigs {
 				// TODO Error here?
 				return new Conditional<T>(false, value);
 			}
+
+			variables = BasisEnvironment.Instance.AppendVariables(variables);
 
 			string? conditionStr = context.GetProperty(ConditionArgument.Name, true, context, null, out DocumentSpan? location);
 
