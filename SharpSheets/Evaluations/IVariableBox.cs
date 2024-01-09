@@ -56,8 +56,8 @@ namespace SharpSheets.Evaluations {
 				}
 				catch (EvaluationProcessingException) { }
 			}
-			else if (variables.TryGetReturnType(key, out EvaluationType? returnType)) {
-				return new VariableNode(key, returnType);
+			else if (variables.TryGetVariableInfo(key, out EnvironmentVariableInfo? variableInfo)) {
+				return new VariableNode(variableInfo.Name, variableInfo.EvaluationType);
 			}
 
 			// If all else fails
@@ -65,7 +65,11 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public static bool IsVariable(this IVariableBox variables, EvaluationName key) {
-			return variables.TryGetReturnType(key, out _);
+			return variables.TryGetVariableInfo(key, out _);
+		}
+
+		public static bool IsFunction(this IVariableBox variables, EvaluationName name) {
+			return variables.TryGetFunctionInfo(name, out _);
 		}
 
 	}

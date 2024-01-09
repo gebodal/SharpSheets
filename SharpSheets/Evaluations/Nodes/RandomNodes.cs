@@ -8,7 +8,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private RandomFunction() { }
 
 		public override EvaluationName Name { get; } = "random";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns a pseudo-random number based on the provided seed. The relationship between seed and return value is deterministic (you will always get the same pseudo-random number for a given input).";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("seed", EvaluationType.FLOAT, null))

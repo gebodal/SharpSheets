@@ -13,6 +13,10 @@ namespace SharpSheets.Evaluations {
 		public static readonly BasisEnvironment Instance = new BasisEnvironment();
 		private BasisEnvironment() { }
 
+		private static readonly Dictionary<EvaluationName, (object value, EnvironmentVariableInfo info)> variables = new List<(object val, EnvironmentVariableInfo info)> {
+			((float)Math.PI, new EnvironmentVariableInfo("pi", EvaluationType.FLOAT, "The ratio of the circumference of a circle to its diameter."))
+		}.ToDictionary(i => i.info.Name);
+
 		private static readonly Dictionary<EvaluationName, IEnvironmentFunction> functions = new List<IEnvironmentFunction> {
 			ArrayCreateFunction.Instance,
 			ArrayContainsFunction.Instance,
@@ -38,8 +42,35 @@ namespace SharpSheets.Evaluations {
 			LerpFunction.Instance
 		}.ToDictionary(f => f.Name);
 
+		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
+			if (variables.TryGetValue(key, out (object _, EnvironmentVariableInfo info) entry)) {
+				variableInfo = entry.info;
+				return true;
+			}
+			else {
+				variableInfo = null;
+				return false;
+			}
+		}
+
+		public bool TryGetValue(EvaluationName key, out object? value) {
+			if (variables.TryGetValue(key, out (object val, EnvironmentVariableInfo _) entry)) {
+				value = entry.val;
+				return true;
+			}
+			else {
+				value = null;
+				return false;
+			}
+		}
+
+		public bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node) {
+			node = null;
+			return false;
+		}
+
 		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
-			if(functions.TryGetValue(name, out IEnvironmentFunction? function)) {
+			if (functions.TryGetValue(name, out IEnvironmentFunction? function)) {
 				functionInfo = function;
 				return true;
 			}
@@ -47,21 +78,6 @@ namespace SharpSheets.Evaluations {
 				functionInfo = null;
 				return false;
 			}
-		}
-
-		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
-			variableInfo = null;
-			return false;
-		}
-
-		public bool TryGetValue(EvaluationName key, out object? value) {
-			value = null;
-			return false;
-		}
-
-		public bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node) {
-			node = null;
-			return false;
 		}
 
 		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator) {
@@ -76,7 +92,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public IEnumerable<EnvironmentVariableInfo> GetVariables() {
-			return Enumerable.Empty<EnvironmentVariableInfo>();
+			return variables.Values.Select(v => v.info);
 		}
 
 		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {

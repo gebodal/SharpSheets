@@ -366,6 +366,12 @@ namespace SharpEditor.Documentation {
 				else if(contents.contents == DocumentationSectionContents.MARKUPELEMENTS) {
 					return GetConstructorLinks(MarkupDocumentation.MarkupConstructors, MarkupDocumentation.MarkupConstructors.Get);
 				}
+				else if (contents.contents == DocumentationSectionContents.MARKUPENVIRONMENTVARIABLES) {
+					return DocumentationBuilder.GetMarkupEnvironmentVariablesContents(this);
+				}
+				else if (contents.contents == DocumentationSectionContents.MARKUPENVIRONMENTFUNCTIONS) {
+					return DocumentationBuilder.GetMarkupEnvironmentFunctionsContents(this);
+				}
 				else if(contents.contents == DocumentationSectionContents.CARDCONFIGS) {
 					return GetConstructorLinks(SharpEditorRegistries.CardSetConfigRegistryInstance, s => null); // TODO Can we improve the refreshAction here?
 				}

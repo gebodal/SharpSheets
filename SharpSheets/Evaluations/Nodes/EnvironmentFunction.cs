@@ -64,7 +64,7 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public EnvironmentFunctionArguments(string? warning, params EnvironmentFunctionArgList[] argumentLists) {
 			this.Warning = warning;
-			this.argumentLists = argumentLists;
+			this.argumentLists = argumentLists.Length == 0 ? new EnvironmentFunctionArgList[] { new EnvironmentFunctionArgList(Array.Empty<EnvironmentFunctionArg>(), false) } : argumentLists;
 		}
 
 		public EnvironmentFunctionArgList this[int index] => argumentLists[index];

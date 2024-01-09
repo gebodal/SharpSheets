@@ -51,7 +51,7 @@ namespace SharpEditor.DataManagers {
 			}
 			*/
 			else if (type.IsArray || TupleUtils.IsTupleType(type)) {
-				return GetArrayTypeName(type);
+				return GetArrayTypeName(type, GetTypeName);
 			}
 			else if (Nullable.GetUnderlyingType(type) is Type nulledType) {
 				return GetTypeName(nulledType);
@@ -121,6 +121,23 @@ namespace SharpEditor.DataManagers {
 			}
 		}
 
+		public static string GetEnvironmentTypeName(EvaluationType? type) {
+			return type is null ? "any" : type.Name;
+			//return GetEnvironmentTypeName(type.DisplayType);
+		}
+
+		private static string GetEnvironmentTypeName(Type type) {
+			if (type == typeof(bool)) {
+				return "Bool";
+			}
+			else if (type.IsArray || TupleUtils.IsTupleType(type)) {
+				return GetArrayTypeName(type, GetEnvironmentTypeName);
+			}
+			else {
+				return GetTypeName(type);
+			}
+		}
+
 		public static string GetTypeName(ArgumentType type) {
 			return GetTypeName(type.DisplayType);
 		}
@@ -129,31 +146,31 @@ namespace SharpEditor.DataManagers {
 			return GetTypeName(type.DisplayType); // TODO Is this sufficient?
 		}
 
-		private static string GetArrayTypeName(Type type) {
-			string name = GetArrayTypeName(type, out string postfix);
+		private static string GetArrayTypeName(Type type, Func<Type, string> typeNameGetter) {
+			string name = GetArrayTypeName(type, out string postfix, typeNameGetter);
 			return name + NO_BREAK_CHAR + postfix;
 		}
-		private static string GetArrayTypeName(Type type, out string postfix) {
+		private static string GetArrayTypeName(Type type, out string postfix, Func<Type, string> typeNameGetter) {
 			if (type.IsArray && type.GetElementType() is Type elementType) {
-				string str = GetArrayTypeName(elementType, out string elemPost);
+				string str = GetArrayTypeName(elementType, out string elemPost, typeNameGetter);
 				postfix = "[]" + elemPost;
 				return str;
 			}
 			else if (TupleUtils.IsTupleType(type)) {
 				Type[] typeArgs = type.GetGenericArguments();
 				if (typeArgs.Distinct().Count() == 1) {
-					string str = GetArrayTypeName(typeArgs[0], out string itemPost);
+					string str = GetArrayTypeName(typeArgs[0], out string itemPost, typeNameGetter);
 					postfix = "[" + typeArgs.Length + "]" + itemPost;
 					return str;
 				}
 				else {
 					postfix = "";
-					return "Tuple(" + string.Join(", ", typeArgs.Select(GetArrayTypeName)) + ")";
+					return "Tuple(" + string.Join(", ", typeArgs.Select(t => GetArrayTypeName(t, typeNameGetter))) + ")";
 				}
 			}
 			else {
 				postfix = "";
-				return GetTypeName(type);
+				return typeNameGetter(type);
 			}
 		}
 

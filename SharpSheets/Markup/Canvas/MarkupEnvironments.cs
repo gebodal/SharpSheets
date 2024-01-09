@@ -222,30 +222,30 @@ namespace SharpSheets.Markup.Canvas {
 	public static class MarkupEnvironmentVariables {
 
 		// SharpCanvas variables
-		public static readonly EnvironmentVariableInfo LineWidth = new EnvironmentVariableInfo("linewidth", EvaluationType.FLOAT, null);
-		public static readonly EnvironmentVariableInfo Foreground = new EnvironmentVariableInfo("foreground", EvaluationType.COLOR, null);
-		public static readonly EnvironmentVariableInfo Background = new EnvironmentVariableInfo("background", EvaluationType.COLOR, null);
-		public static readonly EnvironmentVariableInfo Midtone = new EnvironmentVariableInfo("midtone", EvaluationType.COLOR, null);
-		public static readonly EnvironmentVariableInfo TextColor = new EnvironmentVariableInfo("textcolor", EvaluationType.COLOR, null);
+		public static readonly EnvironmentVariableInfo LineWidth = new EnvironmentVariableInfo("linewidth", EvaluationType.FLOAT, "The current default line width.");
+		public static readonly EnvironmentVariableInfo Foreground = new EnvironmentVariableInfo("foreground", EvaluationType.COLOR, "The current foreground color.");
+		public static readonly EnvironmentVariableInfo Background = new EnvironmentVariableInfo("background", EvaluationType.COLOR, "The current background color.");
+		public static readonly EnvironmentVariableInfo Midtone = new EnvironmentVariableInfo("midtone", EvaluationType.COLOR, "The current midtone color.");
+		public static readonly EnvironmentVariableInfo TextColor = new EnvironmentVariableInfo("textcolor", EvaluationType.COLOR, "The current text color.");
 
 		// Canvas area variables
-		public static readonly EnvironmentVariableInfo Width = new EnvironmentVariableInfo("width", EvaluationType.FLOAT, null);
-		public static readonly EnvironmentVariableInfo Height = new EnvironmentVariableInfo("height", EvaluationType.FLOAT, null);
-		public static readonly EnvironmentVariableInfo Left = new EnvironmentVariableInfo("left", EvaluationType.FLOAT, null);
-		public static readonly EnvironmentVariableInfo Right = new EnvironmentVariableInfo("right", EvaluationType.FLOAT, null);
-		public static readonly EnvironmentVariableInfo Bottom = new EnvironmentVariableInfo("bottom", EvaluationType.FLOAT, null);
-		public static readonly EnvironmentVariableInfo Top = new EnvironmentVariableInfo("top", EvaluationType.FLOAT, null);
+		public static readonly EnvironmentVariableInfo Width = new EnvironmentVariableInfo("width", EvaluationType.FLOAT, "The width of the drawing canvas.");
+		public static readonly EnvironmentVariableInfo Height = new EnvironmentVariableInfo("height", EvaluationType.FLOAT, "The height of the drawing canvas.");
+		public static readonly EnvironmentVariableInfo Left = new EnvironmentVariableInfo("left", EvaluationType.FLOAT, "The left-hand side x-coordinate of the drawing canvas.");
+		public static readonly EnvironmentVariableInfo Right = new EnvironmentVariableInfo("right", EvaluationType.FLOAT, "The right-hand side x-coordinate of the drawing canvas.");
+		public static readonly EnvironmentVariableInfo Bottom = new EnvironmentVariableInfo("bottom", EvaluationType.FLOAT, "The top edge y-coordinate of the drawing canvas.");
+		public static readonly EnvironmentVariableInfo Top = new EnvironmentVariableInfo("top", EvaluationType.FLOAT, "The bottom edge y-coordinate of the drawing canvas.");
 
 		// Drawing rect variables
-		public static readonly EnvironmentVariableInfo DrawWidth = new EnvironmentVariableInfo("drawwidth", EvaluationType.FLOAT, null);
-		public static readonly EnvironmentVariableInfo DrawHeight = new EnvironmentVariableInfo("drawheight", EvaluationType.FLOAT, null);
-		public static readonly EnvironmentVariableInfo DrawLeft = new EnvironmentVariableInfo("drawleft", EvaluationType.FLOAT, null);
-		public static readonly EnvironmentVariableInfo DrawRight = new EnvironmentVariableInfo("drawright", EvaluationType.FLOAT, null);
-		public static readonly EnvironmentVariableInfo DrawBottom = new EnvironmentVariableInfo("drawbottom", EvaluationType.FLOAT, null);
-		public static readonly EnvironmentVariableInfo DrawTop = new EnvironmentVariableInfo("drawtop", EvaluationType.FLOAT, null);
+		public static readonly EnvironmentVariableInfo DrawWidth = new EnvironmentVariableInfo("drawwidth", EvaluationType.FLOAT, "The width of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo DrawHeight = new EnvironmentVariableInfo("drawheight", EvaluationType.FLOAT, "The height of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo DrawLeft = new EnvironmentVariableInfo("drawleft", EvaluationType.FLOAT, "The left-hand side x-coordinate of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo DrawRight = new EnvironmentVariableInfo("drawright", EvaluationType.FLOAT, "The right-hand side x-coordinate of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo DrawBottom = new EnvironmentVariableInfo("drawbottom", EvaluationType.FLOAT, "The top edge y-coordinate of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo DrawTop = new EnvironmentVariableInfo("drawtop", EvaluationType.FLOAT, "The bottom edge y-coordinate of the actual drawing area on the document page.");
 
 		// Random seed calculated from area variables
-		public static readonly EnvironmentVariableInfo Seed = new EnvironmentVariableInfo("seed", EvaluationType.INT, null);
+		public static readonly EnvironmentVariableInfo Seed = new EnvironmentVariableInfo("seed", EvaluationType.INT, "A random seed for this drawing area (based on the actual position on the document page).");
 
 	}
 
@@ -256,7 +256,7 @@ namespace SharpSheets.Markup.Canvas {
 			private WidthFunctionInfo() { }
 
 			public EvaluationName Name { get; } = "width";
-			public string? Description { get; } = null;
+			public string? Description { get; } = "Returns the width of the input text, at the given fontsize, for the given font format (which will use the font associated with that format in the current graphics state).";
 
 			public EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(
@@ -295,7 +295,7 @@ namespace SharpSheets.Markup.Canvas {
 			private HeightFunctionInfo() { }
 
 			public EvaluationName Name { get; } = "height";
-			public string? Description { get; } = null;
+			public string? Description { get; } = "Returns the height of the input text (the ascent plus the descent of the text), at the given fontsize, for the given font format (which will use the font associated with that format in the current graphics state).";
 
 			public EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(
@@ -327,7 +327,7 @@ namespace SharpSheets.Markup.Canvas {
 
 					float ascent = FontMetrics.GetAscent(text, graphicsData.Fonts, format, fontsize);
 					float descent = FontMetrics.GetDescent(text, graphicsData.Fonts, format, fontsize);
-					return Math.Abs(ascent) + Math.Abs(descent);
+					return Math.Abs(ascent) + Math.Abs(descent); // TODO This doesn't make sense
 				}
 			}
 		}
@@ -337,7 +337,10 @@ namespace SharpSheets.Markup.Canvas {
 			private AscentFunctionInfo() { }
 
 			public EvaluationName Name { get; } = "ascent";
-			public string? Description { get; } = null;
+			public string? Description { get; } = "Returns the ascent of the input text " +
+				"(the distance of the highest point in that text above the text baseline), " +
+				"at the given fontsize, for the given font format (which will use the font " +
+				"associated with that format in the current graphics state).";
 
 			public EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(
@@ -376,7 +379,7 @@ namespace SharpSheets.Markup.Canvas {
 			private FromRelativeFunction() { }
 
 			public override EvaluationName Name { get; } = "fromrelative";
-			public override string? Description { get; } = null;
+			public override string? Description { get; } = "Returns a relative Dimension value with the argument as the relative size.";
 
 			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("relative", EvaluationType.FLOAT, null))
@@ -397,7 +400,7 @@ namespace SharpSheets.Markup.Canvas {
 			private FromPointsFunction() { }
 
 			public override EvaluationName Name { get; } = "frompoints";
-			public override string? Description { get; } = null;
+			public override string? Description { get; } = "Returns an absolute Dimension value with the argument as the size in points.";
 
 			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("points", EvaluationType.FLOAT, null))
@@ -418,7 +421,7 @@ namespace SharpSheets.Markup.Canvas {
 			private FromPercentFunction() { }
 
 			public override EvaluationName Name { get; } = "frompercent";
-			public override string? Description { get; } = null;
+			public override string? Description { get; } = "Returns a percentage Dimension value with the argument as the percentage size (range from 0 to 100).";
 
 			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("percent", EvaluationType.FLOAT, null))
@@ -439,7 +442,7 @@ namespace SharpSheets.Markup.Canvas {
 			private FromCentimetresFunction() { }
 
 			public override EvaluationName Name { get; } = "fromcentimetres";
-			public override string? Description { get; } = null;
+			public override string? Description { get; } = "Returns an absolute Dimension value with the argument as the size in centimetres.";
 
 			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("centimetres", EvaluationType.FLOAT, null))
@@ -460,7 +463,7 @@ namespace SharpSheets.Markup.Canvas {
 			private FromMillimetresFunction() { }
 
 			public override EvaluationName Name { get; } = "frommillimetres";
-			public override string? Description { get; } = null;
+			public override string? Description { get; } = "Returns an absolute Dimension value with the argument as the size in millimetres.";
 
 			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("millimetres", EvaluationType.FLOAT, null))
@@ -481,7 +484,7 @@ namespace SharpSheets.Markup.Canvas {
 			private FromInchesFunction() { }
 
 			public override EvaluationName Name { get; } = "frominches";
-			public override string? Description { get; } = null;
+			public override string? Description { get; } = "Returns an absolute Dimension value with the argument as the size in inches.";
 
 			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("inches", EvaluationType.FLOAT, null))
@@ -502,7 +505,7 @@ namespace SharpSheets.Markup.Canvas {
 			private FromAutoFunction() { }
 
 			public override EvaluationName Name { get; } = "fromauto";
-			public override string? Description { get; } = null;
+			public override string? Description { get; } = "Returns an automatic Dimension value.";
 
 			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null);
 
@@ -520,7 +523,7 @@ namespace SharpSheets.Markup.Canvas {
 			private SumDimensionsFunction() { }
 
 			public override EvaluationName Name { get; } = "sumdimensions";
-			public override string? Description { get; } = null;
+			public override string? Description { get; } = "Returns the sum of the Dimension arguments, as a single Dimension value.";
 
 			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("dim", DimensionExpression.DimensionType, null), true)
@@ -540,7 +543,7 @@ namespace SharpSheets.Markup.Canvas {
 			private MultiplyDimensionFunction() { }
 
 			public override EvaluationName Name { get; } = "multiplydimension";
-			public override string? Description { get; } = null;
+			public override string? Description { get; } = "Multiplies a Dimension value by a given real-valued multiplier (this multiplies each of the absolute, relative, and percentage values separately).";
 
 			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(
@@ -565,7 +568,7 @@ namespace SharpSheets.Markup.Canvas {
 			private DarkenColorFunction() { }
 
 			public override EvaluationName Name { get; } = "darken";
-			public override string? Description { get; } = null;
+			public override string? Description { get; } = "Darkens a color by the given factor (which will be clamped to the range 0 to 1). This amounts to multiplying the HSV value/lightness by the factor, and keeping the same hue and saturation.";
 
 			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(
@@ -590,7 +593,7 @@ namespace SharpSheets.Markup.Canvas {
 			private LightenColorFunction() { }
 
 			public override EvaluationName Name { get; } = "lighten";
-			public override string? Description { get; } = null;
+			public override string? Description { get; } = "Lightens a color by the given factor (which will be clamped to the range 0 to 1). This amounts to changing the HSV value/lightness (L) with the factor (f) to 1-((1-L)*f), and keeping the same hue and saturation.";
 
 			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList(

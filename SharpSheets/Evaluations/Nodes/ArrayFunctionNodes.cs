@@ -11,7 +11,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private ArrayCreateFunction() { }
 
 		public override EvaluationName Name { get; } = "array";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Created an array from the arguments. The arguments must be of compatible types.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null), true)
@@ -93,12 +93,16 @@ namespace SharpSheets.Evaluations.Nodes {
 		private ArrayContainsFunction() { }
 
 		public override EvaluationName Name { get; } = "contains";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns true of the array (or tuple) returns the value, otherwise false. Alternatively, if two strings are provided, returns true of the first string contains the second.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(
 				new EnvironmentFunctionArg("arrayOrTuple", null, null),
 				new EnvironmentFunctionArg("value", null, null)
+				),
+			new EnvironmentFunctionArgList(
+				new EnvironmentFunctionArg("text", EvaluationType.STRING, null),
+				new EnvironmentFunctionArg("substring", EvaluationType.STRING, null)
 				)
 		);
 
@@ -143,10 +147,10 @@ namespace SharpSheets.Evaluations.Nodes {
 		private ArrayAllFunction() { }
 
 		public override EvaluationName Name { get; } = "all";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns true if every entry of the array is true, otherwise false.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("arrayOrTuple", null, null))
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("arrayOrTuple", EvaluationType.BOOL.MakeArray(), null))
 		);
 
 		public sealed override EvaluationType GetReturnType(EvaluationNode[] args) {
@@ -186,10 +190,10 @@ namespace SharpSheets.Evaluations.Nodes {
 		private ArrayAnyFunction() { }
 
 		public override EvaluationName Name { get; } = "any";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns true is any entry of the array is true, otherwise false.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("arrayOrTuple", null, null))
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("arrayOrTuple", EvaluationType.BOOL.MakeArray(), null))
 		);
 
 		public sealed override EvaluationType GetReturnType(EvaluationNode[] args) {
@@ -229,7 +233,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private ArraySortFunction() { }
 
 		public override EvaluationName Name { get; } = "sort";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns a sorted copy of the array (or tuple). If a keys array is provided, it must be the same length as the array to be sorted, and the sorting will use the sorted ordering of the keys array.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(
@@ -298,7 +302,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private ArrayReverseFunction() { }
 
 		public override EvaluationName Name { get; } = "reverse";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns a reversed copy of the array (no sorting is performed).";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("arrayOrTuple", null, null))

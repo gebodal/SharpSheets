@@ -11,7 +11,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private LowerFunction() { }
 
 		public override EvaluationName Name { get; } = "lower";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Convert the string argument to all lowercase.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("text", EvaluationType.STRING, null))
@@ -40,7 +40,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private UpperFunction() { }
 
 		public override EvaluationName Name { get; } = "upper";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Convert the string argument to all uppercase.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("text", EvaluationType.STRING, null))
@@ -69,7 +69,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private TitleCaseFunction() { }
 
 		public override EvaluationName Name { get; } = "titlecase";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Convert the string argument to titlecase (lowercase except for first letter of each whitespace-separated word, which are uppercase).";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("text", EvaluationType.STRING, null))
@@ -98,11 +98,11 @@ namespace SharpSheets.Evaluations.Nodes {
 		private StringJoinFunction() { }
 
 		public override EvaluationName Name { get; } = "join";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Join an array of values (converting to strings first if necessary), with the provided separator between each value. The values array must contain real numbers, booleans, or strings.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(
-				new EnvironmentFunctionArg("text", EvaluationType.STRING, null),
+				new EnvironmentFunctionArg("separator", EvaluationType.STRING, null),
 				new EnvironmentFunctionArg("arrayOrTuple", null, null)
 				)
 		);
@@ -142,12 +142,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		private StringSplitFunction() { }
 
 		public override EvaluationName Name { get; } = "split";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Split the text argument on each occurrence of the separator (the separator will not be included in the resulting strings), returning an array of string values.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(
 				new EnvironmentFunctionArg("text", EvaluationType.STRING, null),
-				new EnvironmentFunctionArg("delimiter", EvaluationType.STRING, null)
+				new EnvironmentFunctionArg("separator", EvaluationType.STRING, null)
 				)
 		);
 
@@ -181,7 +181,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private StringFormatFunction() { }
 
 		public override EvaluationName Name { get; } = "format";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns a copy of the format string where each reference has been replaced with the corresponding content value.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(
 			"Format must have a string format argument and at least one content argument.",

@@ -117,7 +117,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private MinVarFunction() { }
 
 		public sealed override EvaluationName Name { get; } = "min";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the minimum of the arguments, which must all be numeric values. The return type will be the common type between the arguments.";
 
 		protected override double BaseValue { get { return double.MaxValue; } }
 		protected override bool IsPreferred(double val, double runningBest) {
@@ -130,7 +130,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private MaxVarFunction() { }
 
 		public sealed override EvaluationName Name { get; } = "max";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the maximum of the arguments, which must all be numeric values. The return type will be the common type between the arguments.";
 
 		protected override double BaseValue { get { return double.MinValue; } }
 		protected override bool IsPreferred(double val, double runningBest) {
@@ -144,7 +144,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private SumFunction() { }
 
 		public override EvaluationName Name { get; } = "sum";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the sum of the arguments, which must all be numeric values. The return type will be the common type between the arguments.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null), true)
@@ -242,7 +242,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private FloorFunction() { }
 
 		public override EvaluationName Name { get; } = "floor";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the integer floor of the argument.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.FLOAT, null))
@@ -274,7 +274,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private CeilingFunction() { }
 
 		public override EvaluationName Name { get; } = "ceil";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the integer ceiling of the argument.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.FLOAT, null))
@@ -330,7 +330,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private SquareRootFunction() { }
 
 		public override EvaluationName Name { get; } = "sqrt";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the square root of the argument.";
 
 		protected override double Calculate(float argument) => Math.Sqrt(argument);
 	}
@@ -340,7 +340,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private SinFunction() { }
 
 		public override EvaluationName Name { get; } = "sin";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the sine of the argument.";
 
 		protected override double Calculate(float argument) => Math.Sin(argument);
 	}
@@ -349,7 +349,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private CosFunction() { }
 
 		public override EvaluationName Name { get; } = "cos";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the cosine of the argument.";
 
 		protected override double Calculate(float argument) => Math.Cos(argument);
 	}
@@ -358,7 +358,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private TanFunction() { }
 
 		public override EvaluationName Name { get; } = "tan";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the tangent of the argument.";
 
 		protected override double Calculate(float argument) => Math.Tan(argument);
 	}
@@ -368,7 +368,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private AsinFunction() { }
 
 		public override EvaluationName Name { get; } = "asin";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the arcsine of the argument.";
 
 		protected override double Calculate(float argument) => Math.Asin(argument);
 	}
@@ -377,7 +377,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private AcosFunction() { }
 
 		public override EvaluationName Name { get; } = "acos";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the arccosine of the argument.";
 
 		protected override double Calculate(float argument) => Math.Acos(argument);
 	}
@@ -386,7 +386,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private AtanFunction() { }
 
 		public override EvaluationName Name { get; } = "atan";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the arctangent of the argument.";
 
 		protected override double Calculate(float argument) => Math.Atan(argument);
 	}
@@ -397,7 +397,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private Atan2Function() { }
 
 		public override EvaluationName Name { get; } = "atan2";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "The two-argument arctangent function.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(
@@ -430,7 +430,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private SinhFunction() { }
 
 		public override EvaluationName Name { get; } = "sinh";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the hyperbolic sine of the argument.";
 
 		protected override double Calculate(float argument) => Math.Sinh(argument);
 	}
@@ -439,7 +439,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private CoshFunction() { }
 
 		public override EvaluationName Name { get; } = "cosh";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the hyperbolic cosine of the argument.";
 
 		protected override double Calculate(float argument) => Math.Cosh(argument);
 	}
@@ -448,7 +448,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private TanhFunction() { }
 
 		public override EvaluationName Name { get; } = "tanh";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the hyperbolic tangent of the argument.";
 
 		protected override double Calculate(float argument) => Math.Tanh(argument);
 	}
@@ -459,7 +459,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private LerpFunction() { }
 
 		public override EvaluationName Name { get; } = "lerp";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the linear interpolation of the values a and b at \"time\" t.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(

@@ -11,10 +11,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		private IntCastFunction() { }
 
 		public override EvaluationName Name { get; } = "int";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Converts the argument into an integer. Strings will be parsed, floats will be rounded down, bools cast, and integers unchanged.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.STRING, null)),
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.FLOAT, null)),
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.BOOL, null))
 		);
 
 		public override EvaluationType GetReturnType(EvaluationNode[] args) {
@@ -59,10 +61,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		private FloatCastFunction() { }
 
 		public override EvaluationName Name { get; } = "float";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Converts the argument into a floating point number. Strings will be parsed, bools and integers will be cast, and floating point numbers will be unchanged.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.STRING, null)),
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.FLOAT, null)),
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.BOOL, null))
 		);
 
 		public override EvaluationType GetReturnType(EvaluationNode[] args) {
@@ -134,10 +138,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		private BoolCastFunction() { }
 
 		public override EvaluationName Name { get; } = "bool";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Converts the argument into a boolean value. Strings will be parsed, floats and integers will be compared to zero, and bools will be unchanged.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.STRING, null)),
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.FLOAT, null)),
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.BOOL, null))
 		);
 
 		public override EvaluationType GetReturnType(EvaluationNode[] args) {
@@ -182,10 +188,14 @@ namespace SharpSheets.Evaluations.Nodes {
 		private StringCastFunction() { }
 
 		public override EvaluationName Name { get; } = "str";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Converts the argument into a string value. Real values will be serialised as decimal numbers, bools as true/false, enums as the value name, and strings will be unchanged.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.FLOAT, null)),
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.INT, null)),
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.BOOL, null)),
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.STRING, null)),
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("enumVal", null, null))
 		);
 
 		public override EvaluationType GetReturnType(EvaluationNode[] args) {
@@ -234,7 +244,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private ColorCreateFunction() { }
 
 		public override EvaluationName Name { get; } = "color";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Creates a color from the arguments, either from a single greyscale value, 3 RGB values, or 4 ARGB values. All arguments will be clamped between 0 and 1.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(
 			"Color must take 1, 3, or 4 real-valued arguments.",

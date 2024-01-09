@@ -9,7 +9,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private LengthFunction() { }
 
 		public override EvaluationName Name { get; } = "len";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns the integer length of the argument. For arrays this is the number of entries, for strings the number of characters, real values return the floor, and bools return 1 for true and 0 for false.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
@@ -52,7 +52,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private ExistsFunction() { }
 
 		public override EvaluationName Name { get; } = "exists";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns true if the argument evaluates to a non-null value (i.e. the variables are defined, and have valid values), otherwise false.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
@@ -84,7 +84,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private TryFunction() { }
 
 		public override EvaluationName Name { get; } = "try";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns true if the argument evaluates and produces a non-null value (i.e. all variables exist and the result is a valid value), otherwise false.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
@@ -116,7 +116,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private RangeFunction() { }
 
 		public override EvaluationName Name { get; } = "range";
-		public override string? Description { get; } = null;
+		public override string? Description { get; } = "Returns an array of integers that runs from start (or 0, if start is not provided) to end (exclusive, meaning the final value will be end-1). If (end-start) or end are less than 0, an empty array will be returned.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null, // "Invalid number of arguments provided to range function. May accept 1 or 2 arguments, {count} provided."
 			new EnvironmentFunctionArgList(

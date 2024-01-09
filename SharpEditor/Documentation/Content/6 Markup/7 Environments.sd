@@ -1,0 +1,15 @@
+# Markup Environments
+
+This page contains a complete list of the variables and functions available in the built-in Markup environment.
+
+## Variables
+
+Note that not all variables are available for all attributes. The canvas area and drawing area variables are only available to attributes which are calculated when such areas are known (there will be error messages in the event you attempt to access a variable you should not).
+
+[[MarkupEnvironmentVariables]]
+
+## Functions
+
+In the below functions, a type of "any" means that the function accepts a variety of value types for this argument -- the function documentation may still list some restrictions on the input values, however.
+
+[[MarkupEnvironmentFunctions]]
