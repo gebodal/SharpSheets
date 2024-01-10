@@ -344,12 +344,12 @@ namespace SharpSheets.Cards.CardConfigs {
 			try {
 				List<object> requiredArgs = new List<object>() { parent };
 				if (sectionType == typeof(TextCardSectionConfig) || sectionType == typeof(ParagraphCardSectionConfig)) {
-					IVariableBox featureVariables = BasisEnvironment.Instance.AppendVariables(CardFeatureEnvironments.BaseDefinitions);
+					IVariableBox featureVariables = CardFeatureEnvironments.GetVariables(parent); // BasisEnvironment.Instance.AppendVariables(CardFeatureEnvironments.BaseDefinitions); // TODO CardFeatureEnvironments.GetTextVariables(parent);?
 					TextExpression? content = MakeTextProperty("content", context, featureVariables, errors);
 					requiredArgs.Add(content ?? new TextExpression(""));
 				}
 				if(sectionType == typeof(TextCardSectionConfig)) {
-					IVariableBox sectionVariables = BasisEnvironment.Instance.AppendVariables(CardSectionEnvironments.BaseDefinitions);
+					IVariableBox sectionVariables = CardSectionEnvironments.GetVariables(parent); // BasisEnvironment.Instance.AppendVariables(CardSectionEnvironments.BaseDefinitions);
 					TextExpression? delimiter = MakeTextProperty("delimiter", context, sectionVariables, errors);
 					requiredArgs.Add(delimiter ?? new TextExpression(""));
 					TextExpression? prefix = MakeTextProperty("prefix", context, sectionVariables, errors);

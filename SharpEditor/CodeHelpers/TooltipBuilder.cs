@@ -148,7 +148,7 @@ namespace SharpEditor.CodeHelpers {
 			return EnumContentBuilder.MakeEnumOptionsBlock(enumDoc, indented ? IndentedMargin : TextBlockMargin);
 		}
 
-		public static FrameworkElement MakeCardDefinitionBlocks(Definition definition, DefinitionEnvironment? environment) {
+		public static FrameworkElement MakeCardDefinitionBlocks(Definition definition, IEnvironment? environment) {
 			return DefinitionContentBuilder.MakeDefinitionElement(definition, environment, TextBlockMargin, IndentedMargin);
 		}
 

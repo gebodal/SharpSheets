@@ -88,7 +88,9 @@ namespace SharpSheets.Cards.CardSubjects {
 	}
 
 	public interface ICardDocumentEntity : IDocumentEntity {
-		DefinitionEnvironment Environment { get; }
+		DefinitionGroup Definitions { get; }
+		DefinitionEnvironment Properties { get; }
+		IEnvironment Environment { get; }
 	}
 
 	[System.Diagnostics.DebuggerDisplay("# {Name} (@{Location.Line})")]
@@ -113,11 +115,11 @@ namespace SharpSheets.Cards.CardSubjects {
 
 		private readonly List<CardSection> sections;
 
-		private readonly DefinitionEnvironment baseEnvironment;
-
+		public DefinitionGroup SubjectDefinitions { get; }
 		public DefinitionEnvironment Properties { get; }
-		public DefinitionEnvironment SubjectEnvironment => Environment;
-		public DefinitionEnvironment Environment { get; }
+		public IEnvironment Environment { get; }
+
+		DefinitionGroup ICardDocumentEntity.Definitions => SubjectDefinitions;
 
 		/// <summary></summary>
 		/// <exception cref="ArgumentException"></exception>
@@ -132,10 +134,11 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.CardConfig = cardConfig;
 
 			this.sections = new List<CardSection>();
+
 			this.Properties = subjectProperties;
-			this.baseEnvironment = CardSubjectEnvironments.MakeBaseEnvironment(this.Name);
-			//this.Environment = this.Properties != null ? this.baseEnvironment.AppendDefinitionEnvironment(this.Properties) : this.baseEnvironment;
-			this.Environment = this.baseEnvironment.AppendDefinitionEnvironment(this.Properties);
+
+			this.SubjectDefinitions = new DefinitionGroup(CardSubjectEnvironments.BaseDefinitions, this.Properties);
+			this.Environment = CardSubjectEnvironments.MakeBaseEnvironment(this.Name).AppendEnvironment(this.Properties);
 		}
 
 		public void AddSection(CardSection section) {
@@ -223,11 +226,12 @@ namespace SharpSheets.Cards.CardSubjects {
 
 		private readonly List<CardFeature> features;
 
-		private readonly DefinitionEnvironment baseEnvironment;
-
+		public DefinitionGroup SectionDefinitions { get; }
 		public DefinitionEnvironment Details { get; }
-		public DefinitionEnvironment SectionEnvironment { get; }
-		public DefinitionEnvironment Environment { get; }
+		public IEnvironment Environment { get; }
+
+		DefinitionGroup ICardDocumentEntity.Definitions => SectionDefinitions;
+		DefinitionEnvironment ICardDocumentEntity.Properties => Details;
 
 		public CardSection(DocumentSpan location, AbstractCardSectionConfig sectionConfig, CardSubject subject, ContextValue<string> heading, ContextValue<string> note, DefinitionEnvironment details) {
 			this.Location = location;
@@ -237,11 +241,15 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.Note = new ContextValue<string>(note.Location, note.Value ?? "");
 
 			this.features = new List<CardFeature>();
+
 			this.Details = details;
-			this.baseEnvironment = CardSectionEnvironments.MakeBaseEnvironment(this.Heading, this.Note); // TODO Better note location?
-			//this.SectionEnvironment = this.Details != null ? this.baseEnvironment.AppendDefinitionEnvironment(this.Details) : this.baseEnvironment;
-			this.SectionEnvironment = this.baseEnvironment.AppendDefinitionEnvironment(this.Details);
-			this.Environment = subject.Environment.AppendDefinitionEnvironment(this.SectionEnvironment);
+
+			this.SectionDefinitions = new DefinitionGroup(CardSectionEnvironments.BaseDefinitions, this.Details);
+			this.Environment = Environments.Concat(
+				subject.Environment,
+				CardSectionEnvironments.MakeBaseEnvironment(this),
+				this.Details
+				);
 		}
 
 		public void AddFeature(CardFeature feature) {
@@ -346,12 +354,16 @@ namespace SharpSheets.Cards.CardSubjects {
 		public bool IsListItem { get; }
 		public int Index { get; }
 
-		private readonly DefinitionEnvironment baseEnvironment;
+		public RegexFormats RegexFormats => FeatureConfig?.RegexFormats ?? Section.SectionConfig.regexFormats;
 
-		public DefinitionEnvironment Details { get; }
-		public DefinitionEnvironment FeatureEnvironment { get; }
 		public DefinitionEnvironment TextEnvironment { get; }
-		public DefinitionEnvironment Environment { get; }
+
+		public DefinitionGroup FeatureDefinitions { get; }
+		public DefinitionEnvironment Details { get; }
+		public IEnvironment Environment { get; }
+
+		DefinitionGroup ICardDocumentEntity.Definitions => FeatureDefinitions;
+		DefinitionEnvironment ICardDocumentEntity.Properties => Details;
 
 		public CardFeature(DocumentSpan location, CardFeatureConfig? featureConfig, CardSection section, ContextValue<string> title, ContextValue<string> note, ContextValue<TextExpression> text, DefinitionEnvironment details, bool isMultiLine, bool isListItem, int index) {
 			this.Location = location;
@@ -365,31 +377,15 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.Index = index;
 
 			this.Details = details;
-			this.baseEnvironment = CardFeatureEnvironments.MakeBaseEnvironment(
-				this.Title,
-				this.Note,
-				this.Text,
-				FeatureConfig?.RegexFormats ?? section.SectionConfig.regexFormats,
-				this.IsListItem,
-				index
+
+			this.FeatureDefinitions = new DefinitionGroup(CardFeatureEnvironments.BaseDefinitions, this.Details);
+			this.Environment = Environments.Concat(
+				section.Environment,
+				CardFeatureEnvironments.MakeBaseEnvironment(this),
+				this.Details
 				);
-			//this.FeatureEnvironment = this.Details != null ? this.baseEnvironment.AppendDefinitionEnvironment(this.Details) : this.baseEnvironment;
-			this.FeatureEnvironment = this.baseEnvironment.AppendDefinitionEnvironment(this.Details);
-			DefinitionEnvironment baseTextEnvironment = CardFeatureEnvironments.GetTextEnvironment(
-				this.Title,
-				this.Note);
-			//this.TextEnvironment = this.Details != null ? baseTextEnvironment.AppendDefinitionEnvironment(this.Details) : baseTextEnvironment;
-			this.TextEnvironment = baseTextEnvironment.AppendDefinitionEnvironment(this.Details);
-			this.Environment = section.Environment.AppendDefinitionEnvironment(this.FeatureEnvironment);
-			/*
-			this.Environment = section.Environment.AppendEnvironment(
-				details.AppendEnvironment(
-					new Dictionary<EvaluationName, object> { { "title", this.Title }, { "note", this.Note }, { "listitem", this.IsListItem } },
-					new Dictionary<EvaluationName, EvaluationNode> { { "text", new FormattedFeatureTextNode(Text, FeatureConfig?.regexFormats ?? section.SectionDefinition.regexFormats) } },
-					null,
-					null)
-				);
-			*/
+
+			this.TextEnvironment = CardFeatureEnvironments.GetTextEnvironment(this);
 		}
 
 		public CardFeature WithOrigin(DocumentSpan location, CardSection newSection) {

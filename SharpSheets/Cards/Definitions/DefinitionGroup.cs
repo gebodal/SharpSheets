@@ -32,8 +32,8 @@ namespace SharpSheets.Cards.Definitions {
 
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException">Duplicate name or alias encountered in <paramref name="definitions"/>.</exception>
-		public DefinitionGroup(IEnumerable<Definition> definitions) : this(null) {
-			foreach (Definition definition in definitions) {
+		public DefinitionGroup(IEnumerable<Definition> definitions, params IEnumerable<Definition>[] other) : this(null) {
+			foreach (Definition definition in definitions.Concat(other.SelectMany(ds => ds))) {
 				Add(definition);
 			}
 		}

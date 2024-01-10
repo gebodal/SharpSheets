@@ -66,7 +66,7 @@ namespace SharpSheets.Cards.Card
 			// Only the card number/total can vary, so just enumerate all possibilities and store them
 			for (int cardCount = 1; cardCount <= subject.CardConfig.MaxCards; cardCount++) {
 				for (int card = 0; card < cardCount; card++) {
-					IEnvironment cardOutlinesEnvironment = BasisEnvironment.Instance.AppendEnvironment(subject.Environment.AppendDefinitionEnvironment(CardOutlinesEnvironments.GetEnvironment(card, cardCount))); // DynamicCardEnvironments.CardNumberEnvironment(subject.Environment, card, totalCards);
+					IEnvironment cardOutlinesEnvironment = BasisEnvironment.Instance.AppendEnvironment(subject.Environment.AppendEnvironment(CardOutlinesEnvironments.GetEnvironment(card, cardCount))); // DynamicCardEnvironments.CardNumberEnvironment(subject.Environment, card, totalCards);
 
 					if(ProcessCardArrangementOutline(subject, cardConfig.headers, cardConfig.cardSetConfig.headers, cardOutlinesEnvironment, cardSetConfig.Source, widgetFactory, errors, "header", out IWidget? headerRect)) {
 						headerCollection[card, cardCount] = headerRect;
@@ -232,8 +232,6 @@ namespace SharpSheets.Cards.Card
 
 		private static DynamicSectionRect CreateDynamicRect(CardSection section, DynamicCardSectionConfig sectionConfig, CardConfig cardConfig, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, WidgetFactory widgetFactory) {
 
-			ArrangementCollection<IWidget> sectionOutlines = GetOutlines(section.Environment, section.Location, sectionConfig, cardConfig, errors, widgetFactory);
-
 			List<WidgetCardRect> entries = new List<WidgetCardRect>();
 			foreach (CardFeature feature in section) {
 				CardFeatureConfig? featureConfig = feature.FeatureConfig;
@@ -257,6 +255,8 @@ namespace SharpSheets.Cards.Card
 				}
 			}
 
+			ArrangementCollection<IWidget> sectionOutlines = GetOutlines(section.Environment, section.Location, sectionConfig, cardConfig, errors, widgetFactory);
+
 			DynamicSectionRect rect = new DynamicSectionRect(sectionConfig, sectionOutlines, entries.ToArray(), sectionConfig.gutter, sectionConfig.splittable, sectionConfig.acceptRemaining, sectionConfig.equalSizeFeatures, sectionConfig.spaceFeatures);
 
 			if (origins != null) { origins.Add(rect, section); }
@@ -267,8 +267,6 @@ namespace SharpSheets.Cards.Card
 		/// <exception cref="SharpParsingException"></exception>
 		private static CardTextSectionRect CreateTextRect(CardSection section, TextCardSectionConfig sectionConfig, CardConfig cardConfig, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, WidgetFactory widgetFactory) {
 
-			ArrangementCollection<IWidget> sectionOutlines = GetOutlines(section.Environment, section.Location, sectionConfig, cardConfig, errors, widgetFactory);
-
 			RichString delimiter = EvaluateText(sectionConfig.delimiter, section.Environment, section.Location, sectionConfig.regexFormats);
 			RichString prefix = EvaluateText(sectionConfig.prefix, section.Environment, section.Location, sectionConfig.regexFormats);
 			RichString tail = EvaluateText(sectionConfig.tail, section.Environment, section.Location, sectionConfig.regexFormats);
@@ -276,6 +274,9 @@ namespace SharpSheets.Cards.Card
 			RichString allText = prefix + RichString.Join(delimiter, featureTexts) + tail;
 
 			RichParagraphs sectionText = new RichParagraphs(allText.Split('\n'));
+
+			ArrangementCollection<IWidget> sectionOutlines = GetOutlines(section.Environment, section.Location, sectionConfig, cardConfig, errors, widgetFactory);
+
 			CardTextSectionRect rect = new CardTextSectionRect(sectionConfig, sectionOutlines, sectionText, sectionConfig.splittable);
 
 			if (origins != null) { origins.Add(rect, section); }
@@ -285,17 +286,17 @@ namespace SharpSheets.Cards.Card
 		/// <summary></summary>
 		/// <exception cref="SharpParsingException"></exception>
 		private static CardParagraphSectionRect CreateParagraphRect(CardSection section, ParagraphCardSectionConfig sectionConfig, CardConfig cardConfig, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, WidgetFactory widgetFactory) {
-			ArrangementCollection<IWidget> sectionOutlines = GetOutlines(section.Environment, section.Location, sectionConfig, cardConfig, errors, widgetFactory);
-
 			//RichString[] featureTexts = section.Select(f => EvaluateText(sectionConfig.content, f.Environment, f.Location, sectionConfig.regexFormats)).ToArray();
 			//RichParagraphs sectionText = new RichParagraphs(featureTexts); // TODO What happens if a feature text contains a newline character?
 
-			CardFeatureText[] featuresTexts = section.Select(f => GetCardFeatureText(sectionConfig, f)).ToArray();
+			CardFeatureText[] featuresTexts = section.Select(f => GetCardFeatureText(section, sectionConfig, f)).ToArray();
 			if (origins != null) {
 				foreach(CardFeatureText featureText in featuresTexts) {
 					origins.Add(featureText.Feature, featureText.Feature);
 				}
 			}
+
+			ArrangementCollection<IWidget> sectionOutlines = GetOutlines(section.Environment, section.Location, sectionConfig, cardConfig, errors, widgetFactory);
 
 			CardParagraphSectionRect rect = new CardParagraphSectionRect(sectionConfig, sectionOutlines, featuresTexts, sectionConfig.splittable);
 
@@ -306,9 +307,6 @@ namespace SharpSheets.Cards.Card
 		/// <summary></summary>
 		/// <exception cref="SharpParsingException"></exception>
 		private static IFixedCardSectionRect CreateTableRect(CardSection section, TableCardSectionConfig sectionConfig, CardConfig cardConfig, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, WidgetFactory widgetFactory) {
-
-			ArrangementCollection<IWidget> sectionOutlines = GetOutlines(section.Environment, section.Location, sectionConfig, cardConfig, errors, widgetFactory);
-
 			IFixedCardSectionRect rect;
 
 			// TODO This logic needs correcting. Won't work properly with string escaping.
@@ -321,6 +319,9 @@ namespace SharpSheets.Cards.Card
 			RichString[,] tableEntriesMatrix = GetTableEntries(tableEntries);
 
 			RichString? tableTitle = !string.IsNullOrWhiteSpace(section.Heading.Value) ? new RichString(section.Heading.Value) : null;
+
+			ArrangementCollection<IWidget> sectionOutlines = GetOutlines(section.Environment, section.Location, sectionConfig, cardConfig, errors, widgetFactory);
+
 			rect = new SimpleCardTableSectionRect(sectionConfig, sectionOutlines, tableTitle, tableEntriesMatrix, sectionConfig.tableSpacing, sectionConfig.edgeOffset, sectionConfig.tableColors, sectionConfig.splittable, sectionConfig.acceptRemaining);
 
 			if (origins != null) { origins.Add(rect, section); }
@@ -357,8 +358,6 @@ namespace SharpSheets.Cards.Card
 		/// <returns></returns>
 		private static IFixedCardSectionRect CreateDefaultRect(DynamicCardSectionConfig sectionConfig, CardConfig cardConfig, CardSubject subject, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, WidgetFactory widgetFactory) {
 
-			ArrangementCollection<IWidget> sectionOutlines = GetOutlines(subject.Environment, subject.Location, sectionConfig, cardConfig, errors, widgetFactory);
-
 			List<WidgetCardRect> entries = new List<WidgetCardRect>();
 
 			CardFeatureConfig? featureConfig;
@@ -383,6 +382,8 @@ namespace SharpSheets.Cards.Card
 				if (origins != null) { origins.Add(featureRect, subject); }
 			}
 
+			ArrangementCollection<IWidget> sectionOutlines = GetOutlines(subject.Environment, subject.Location, sectionConfig, cardConfig, errors, widgetFactory);
+
 			DynamicSectionRect rect = new DynamicSectionRect(sectionConfig, sectionOutlines, entries.ToArray(), sectionConfig.gutter, sectionConfig.splittable, sectionConfig.acceptRemaining, sectionConfig.equalSizeFeatures, sectionConfig.spaceFeatures);
 			if (origins != null) { origins.Add(rect, subject); }
 			return rect;
@@ -390,8 +391,9 @@ namespace SharpSheets.Cards.Card
 
 		/// <summary></summary>
 		/// <exception cref="SharpParsingException"></exception>
-		private static CardFeatureText GetCardFeatureText(ParagraphCardSectionConfig sectionConfig, CardFeature feature) {
-			RichString text = EvaluateText(sectionConfig.content, feature.Environment, feature.Location, sectionConfig.regexFormats);
+		private static CardFeatureText GetCardFeatureText(CardSection section, ParagraphCardSectionConfig sectionConfig, CardFeature feature) {
+			IEnvironment textEnvironment = Environments.Concat(section.Environment, feature.Environment);
+			RichString text = EvaluateText(sectionConfig.content, textEnvironment, feature.Location, sectionConfig.regexFormats);
 			RichParagraph paragraph = new RichParagraph(text);
 			return new CardFeatureText(feature, paragraph);
 		}

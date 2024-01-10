@@ -6,6 +6,7 @@ using SharpSheets.Parsing;
 using SharpSheets.Canvas.Text;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace SharpSheets.Cards.Definitions {
 
@@ -64,12 +65,6 @@ namespace SharpSheets.Cards.Definitions {
 			});
 		}
 
-		public static DefinitionEnvironment GetBuildEnvironment(ContextValue<string> name) {
-			return DefinitionEnvironment.Create(new Dictionary<Definition, ContextValue<object>> {
-				{ nameDefinition, new ContextValue<object>(name.Location, name.Value ?? "") }
-			});
-		}
-
 	}
 
 	public static class CardOutlinesEnvironments {
@@ -124,17 +119,23 @@ namespace SharpSheets.Cards.Definitions {
 			"The section heading text, without note or details.",
 			EvaluationType.STRING);
 		static readonly Definition noteDefinition = new FallbackDefinition(
-			"note", Array.Empty<EvaluationName>(),
-			"The section note text (which may be empty).",
+			"subheading", Array.Empty<EvaluationName>(),
+			"The section subheading text (which may be empty).",
 			EvaluationType.STRING,
 			new ConstantNode(""));
+
+		static readonly Definition featureCountDefinition = new ConstantDefinition(
+			"featurecount", new EvaluationName[] { "totalfeatures" },
+			"The total number of features in the current card section.",
+			EvaluationType.INT);
 
 		public static readonly DefinitionGroup BaseDefinitions;
 
 		static CardSectionEnvironments() {
 			BaseDefinitions = new DefinitionGroup() {
 				headingDefinition,
-				noteDefinition
+				noteDefinition,
+				featureCountDefinition
 			};
 		}
 
@@ -147,22 +148,70 @@ namespace SharpSheets.Cards.Definitions {
 				);
 		}
 
+		public static IVariableBox GetVariables(ICardSectionParent parent) {
+			return VariableBoxes.Concat(
+				BasisEnvironment.Instance,
+				CardSubjectEnvironments.GetVariables(parent),
+				BaseDefinitions // Do we actually have to append BaseDefinitions these here...?
+				);
+		}
+
 		public static IEnvironment GetDryRun(AbstractCardSectionConfig sectionConfig) {
 			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(sectionConfig)));
 		}
 
-		public static DefinitionEnvironment MakeBaseEnvironment(ContextValue<string> heading, ContextValue<string> note) {
+		/*
+		public static DefinitionEnvironment MakeBaseEnvironment(ContextValue<string> heading, ContextValue<string> note, int numFeatures) {
 			return DefinitionEnvironment.Create(new Dictionary<Definition, ContextValue<object>> {
 				{ headingDefinition, new ContextValue<object>(heading.Location, heading.Value) },
-				{ noteDefinition, new ContextValue<object>(note.Location, note.Value) }
+				{ noteDefinition, new ContextValue<object>(note.Location, note.Value) },
+				{ featureCountDefinition, new ContextValue<object>(DocumentSpan.Imaginary, numFeatures) }
 			});
 		}
 
-		public static DefinitionEnvironment GetBuildEnvironment(ContextValue<string> heading, ContextValue<string> note) {
+		public static DefinitionEnvironment GetBuildEnvironment(ContextValue<string> heading, ContextValue<string> note, int numFeatures) {
 			return DefinitionEnvironment.Create(new Dictionary<Definition, ContextValue<object>> {
 				{ headingDefinition, new ContextValue<object>(heading.Location, heading.Value ?? "") },
-				{ noteDefinition, new ContextValue<object>(note.Location, note.Value ?? "") }
+				{ noteDefinition, new ContextValue<object>(note.Location, note.Value ?? "") },
+				{ featureCountDefinition, new ContextValue<object>(DocumentSpan.Imaginary, numFeatures) }
 			});
+		}
+		*/
+
+		public static IEnvironment MakeBaseEnvironment(CardSection section) {
+			return new CardSectionEnvironment(section);
+		}
+
+		private class CardSectionEnvironment : AbstractDataEnvironment {
+			private readonly CardSection section;
+
+			public CardSectionEnvironment(CardSection section) {
+				this.section = section;
+			}
+
+			public override bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
+				return BaseDefinitions.TryGetVariableInfo(key, out variableInfo);
+			}
+
+			public override bool TryGetValue(EvaluationName key, out object? value) {
+				if (BaseDefinitions.TryGetDefinition(key, out Definition? definition)) {
+					value = definition.name.ToString() switch {
+						"heading" => section.Heading.Value,
+						"subheading" => section.Note.Value,
+						"featurecount" => section.Count,
+						_ => throw new InvalidOperationException("Unknown card section definition.")
+					};
+					return true;
+				}
+				else {
+					value = null;
+					return false;
+				}
+			}
+
+			public override IEnumerable<EnvironmentVariableInfo> GetVariables() {
+				return BaseDefinitions.GetVariables();
+			}
 		}
 
 	}
@@ -210,8 +259,8 @@ namespace SharpSheets.Cards.Definitions {
 			"The feature title text (without note or details).",
 			EvaluationType.STRING);
 		static readonly Definition noteDefinition = new FallbackDefinition(
-			"note", Array.Empty<EvaluationName>(),
-			"The feature note text (which may be empty).",
+			"subtitle", Array.Empty<EvaluationName>(),
+			"The feature subtitle text (which may be empty).",
 			EvaluationType.STRING,
 			new ConstantNode(""));
 		static readonly Definition textDefinition = new ConstantDefinition(
@@ -229,6 +278,7 @@ namespace SharpSheets.Cards.Definitions {
 			EvaluationType.INT);
 
 		public static readonly DefinitionGroup BaseDefinitions;
+		public static readonly DefinitionGroup BaseTextDefinitions;
 
 		public static readonly StringExpression TextExpression = new StringExpression(new VariableNode(new EvaluationName("text"), EvaluationType.STRING));
 
@@ -239,6 +289,11 @@ namespace SharpSheets.Cards.Definitions {
 				textDefinition,
 				listItemDefinition,
 				featureNumDefinition
+			};
+
+			BaseTextDefinitions = new DefinitionGroup() {
+				titleDefinition,
+				noteDefinition
 			};
 		}
 
@@ -251,44 +306,63 @@ namespace SharpSheets.Cards.Definitions {
 				);
 		}
 
+		public static IVariableBox GetVariables(ICardSectionParent parent) {
+			return VariableBoxes.Concat(
+				BasisEnvironment.Instance,
+				CardSectionEnvironments.GetVariables(parent),
+				BaseDefinitions // Do we actually have to append BaseDefinitions these here...?
+				);
+		}
+
 		public static IEnvironment GetDryRun(CardFeatureConfig featureConfig) {
 			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(featureConfig)));
 		}
 
-		public static DefinitionEnvironment MakeBaseEnvironment(ContextValue<string> title, ContextValue<string> note, ContextValue<TextExpression> text, RegexFormats regexFormats, bool isListItem, int index) {
+		public static DefinitionEnvironment MakeBaseEnvironment(CardFeature feature) {
 			return DefinitionEnvironment.Create(
 					new Dictionary<Definition, ContextValue<object>> {
-						{ titleDefinition, new ContextValue<object>(title.Location, title.Value) },
-						{ noteDefinition, new ContextValue<object>(note.Location, note.Value) },
-						{ listItemDefinition, new ContextValue<object>(DocumentSpan.Imaginary, isListItem) },
-						{ featureNumDefinition, new ContextValue<object>(DocumentSpan.Imaginary, index) }
+						{ titleDefinition, new ContextValue<object>(feature.Title.Location, feature.Title.Value) },
+						{ noteDefinition, new ContextValue<object>(feature.Note.Location, feature.Note.Value) },
+						{ listItemDefinition, new ContextValue<object>(DocumentSpan.Imaginary, feature.IsListItem) },
+						{ featureNumDefinition, new ContextValue<object>(DocumentSpan.Imaginary, feature.Index) }
 					},
 					new Dictionary<Definition, ContextValue<EvaluationNode>> {
-						{ textDefinition, new ContextValue<EvaluationNode>(text.Location, new FormattedFeatureTextNode(text.Value, regexFormats)) }
+						{ textDefinition, new ContextValue<EvaluationNode>(feature.Text.Location, new FormattedFeatureTextNode(feature.Text.Value, feature.RegexFormats)) }
 					}
 				);
 		}
 
-		public static DefinitionEnvironment GetTextEnvironment(ContextValue<string> title, ContextValue<string> note) { // bool isListItem
+		public static IVariableBox GetTextVariables(CardFeatureConfig featureConfig) {
+			return VariableBoxes.Concat(
+				BasisEnvironment.Instance,
+				CardSectionEnvironments.GetVariables(featureConfig.cardSectionConfig),
+				featureConfig.Variables,
+				BaseTextDefinitions // Do we actually have to append BaseDefinitions these here...?
+				);
+		}
+
+		public static IVariableBox GetTextVariables(CardSection section) {
+			return VariableBoxes.Concat(
+				BasisEnvironment.Instance,
+				section.Environment,
+				BaseTextDefinitions // Do we actually have to append BaseDefinitions these here...?
+				);
+		}
+
+		public static IVariableBox GetTextVariables(ICardSectionParent parent) {
+			return VariableBoxes.Concat(
+				BasisEnvironment.Instance,
+				parent.Variables,
+				BaseTextDefinitions // Do we actually have to append BaseDefinitions these here...?
+				);
+		}
+
+		public static DefinitionEnvironment GetTextEnvironment(CardFeature feature) { // bool isListItem
 			return DefinitionEnvironment.Create(
 					new Dictionary<Definition, ContextValue<object>> {
-						{ titleDefinition, new ContextValue<object>(title.Location, title.Value ?? "") }, // { titleDefinition, new ContextValue<object>(new DocumentSpan(-1), title ?? "") },
-						{ noteDefinition, new ContextValue<object>(note.Location, note.Value ?? "") } // { noteDefinition, new ContextValue<object>(new DocumentSpan(-1), note ?? "") }
+						{ titleDefinition, new ContextValue<object>(feature.Title.Location, feature.Title.Value ?? "") }, // { titleDefinition, new ContextValue<object>(new DocumentSpan(-1), title ?? "") },
+						{ noteDefinition, new ContextValue<object>(feature.Note.Location, feature.Note.Value ?? "") } // { noteDefinition, new ContextValue<object>(new DocumentSpan(-1), note ?? "") }
 						// { listItemDefinition, new ContextValue<object>(new DocumentSpan(-1), isListItem) }
-					}
-				);
-		}
-
-		public static DefinitionEnvironment GetBuildEnvironment(ContextValue<string> title, ContextValue<string> note, ContextValue<TextExpression> text, RegexFormats regexFormats, bool isListItem, int index) {
-			return DefinitionEnvironment.Create(
-					new Dictionary<Definition, ContextValue<object>> {
-						{ titleDefinition, new ContextValue<object>(title.Location, title.Value ?? "") },
-						{ noteDefinition, new ContextValue<object>(note.Location, note.Value ?? "") },
-						{ listItemDefinition, new ContextValue<object>(DocumentSpan.Imaginary, isListItem) },
-						{ featureNumDefinition, new ContextValue<object>(DocumentSpan.Imaginary, index) }
-					},
-					new Dictionary<Definition, ContextValue<EvaluationNode>> {
-						{ textDefinition, new ContextValue<EvaluationNode>(text.Location, new FormattedFeatureTextNode(text.Value, regexFormats)) }
 					}
 				);
 		}
@@ -335,6 +409,21 @@ namespace SharpSheets.Cards.Definitions {
 
 			protected override string GetRepresentation() { throw new NotSupportedException(); }
 
+		}
+
+	}
+
+	public static class CardEnvironmentUtils {
+
+		public static EnvironmentVariableInfo GetVariableInfo(this Definition definition) {
+			return new EnvironmentVariableInfo(definition.name, definition.Type.ReturnType, definition.description);
+		}
+
+		public static IEnumerable<EnvironmentVariableInfo> GetVariableInfos(this Definition definition) {
+			yield return new EnvironmentVariableInfo(definition.name, definition.Type.ReturnType, definition.description);
+			foreach (EvaluationName alias in definition.aliases) {
+				yield return new EnvironmentVariableInfo(alias, definition.Type.ReturnType, definition.description);
+			}
 		}
 
 	}
