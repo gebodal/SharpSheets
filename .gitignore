@@ -3,6 +3,12 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# SharpSheets Project Specific Files
+## Scratch Testing project
+/Testing
+## XML documentation build artefact
+/SharpSheets/SharpSheets.xml
+
 # User-specific files
 *.rsuser
 *.suo
@@ -452,4 +458,3 @@ $RECYCLE.BIN/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-/Testing
