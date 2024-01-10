@@ -33,7 +33,7 @@ namespace SharpEditor.ContentBuilders {
 			}
 		}
 
-		public static FrameworkElement MakeDefinitionElement(Definition definition, DefinitionEnvironment? environment, Thickness textMargin, Thickness indentedMargin) {
+		public static FrameworkElement MakeDefinitionElement(Definition definition, IEnvironment? environment, Thickness textMargin, Thickness indentedMargin) {
 			StackPanel definitionPanel = new StackPanel() { Orientation = Orientation.Vertical };
 
 			TextBlock definitionBlock = BaseContentBuilder.GetContentTextBlock(textMargin);
@@ -57,7 +57,7 @@ namespace SharpEditor.ContentBuilders {
 			return definitionPanel;
 		}
 
-		public static IEnumerable<Inline> GetDefinitionHeaderInlines(Definition definition, DefinitionEnvironment? environment) {
+		public static IEnumerable<Inline> GetDefinitionHeaderInlines(Definition definition, IEnvironment? environment) {
 			foreach (Inline nameInline in GetDefinitionNameInlines(definition)) {
 				yield return nameInline;
 			}

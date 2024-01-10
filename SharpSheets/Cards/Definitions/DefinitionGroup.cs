@@ -17,7 +17,7 @@ namespace SharpSheets.Cards.Definitions {
 
 		private readonly List<Definition> definitions;
 		private readonly Dictionary<EvaluationName, Definition> aliasLookup;
-		private readonly Dictionary<EvaluationName, EvaluationType> returnTypes;
+		private readonly Dictionary<EvaluationName, EnvironmentVariableInfo> variableInfos;
 
 		public int Count { get { return definitions.Count + (fallback?.Count ?? 0); } }
 
@@ -25,15 +25,15 @@ namespace SharpSheets.Cards.Definitions {
 			this.fallback = fallback;
 			definitions = new List<Definition>();
 			aliasLookup = new Dictionary<EvaluationName, Definition>();
-			returnTypes = new Dictionary<EvaluationName, EvaluationType>();
+			variableInfos = new Dictionary<EvaluationName, EnvironmentVariableInfo>();
 		}
 
 		public DefinitionGroup() : this(null) { }
 
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException">Duplicate name or alias encountered in <paramref name="definitions"/>.</exception>
-		public DefinitionGroup(IEnumerable<Definition> definitions) : this(null) {
-			foreach (Definition definition in definitions) {
+		public DefinitionGroup(IEnumerable<Definition> definitions, params IEnumerable<Definition>[] other) : this(null) {
+			foreach (Definition definition in definitions.Concat(other.SelectMany(ds => ds))) {
 				Add(definition);
 			}
 		}
@@ -54,32 +54,30 @@ namespace SharpSheets.Cards.Definitions {
 			definitions.Add(definition);
 
 			aliasLookup.Add(definition.name, definition);
-			returnTypes.Add(definition.name, definition.Type.ReturnType);
+			variableInfos.Add(definition.name, new EnvironmentVariableInfo(definition.name, definition.Type.ReturnType, definition.description));
 			foreach (EvaluationName alias in definition.aliases) {
 				aliasLookup.Add(alias, definition);
-				returnTypes.Add(alias, definition.Type.ReturnType);
+				variableInfos.Add(alias, new EnvironmentVariableInfo(alias, definition.Type.ReturnType, definition.description));
 			}
 		}
 
 		/// <summary>
-		/// Return the <see cref="Definition"/> specified by the provided alias. Return <see langword="null"/> if no such <see cref="Definition"/> exists.
+		/// Return the <see cref="Definition"/> specified by the provided alias. Return <see langword="false"/> if no such <see cref="Definition"/> exists.
 		/// </summary>
 		/// <param name="key">Alias of the definition to find.</param>
+		/// <param name="definition"></param>
 		/// <returns></returns>
-		public Definition? GetDefinition(EvaluationName key) {
-			if(aliasLookup.TryGetValue(key, out Definition? definition)) {
-				return definition;
+		public bool TryGetDefinition(EvaluationName key, [MaybeNullWhen(false)] out Definition definition) {
+			if(aliasLookup.TryGetValue(key, out definition)) {
+				return true;
 			}
 			else if (fallback != null) {
-				return fallback.GetDefinition(key);
+				return fallback.TryGetDefinition(key, out definition);
 			}
 			else {
-				return null; // TODO Should this be more strict, and throw an exception when unrecognised key provided?
+				definition = null;
+				return false;
 			}
-		}
-
-		public bool IsVariable(EvaluationName key) {
-			return aliasLookup.ContainsKey(key) || (fallback != null && fallback.IsVariable(key));
 		}
 
 		private bool Conflicting(EvaluationName alias) {
@@ -108,15 +106,17 @@ namespace SharpSheets.Cards.Definitions {
 			return false;
 		}
 
-		public EvaluationType GetReturnType(EvaluationName key) {
-			if (returnTypes.TryGetValue(key, out EvaluationType? type)) {
-				return type;
+		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
+			if (variableInfos.TryGetValue(key, out EnvironmentVariableInfo? info)) {
+				variableInfo = info;
+				return true;
 			}
-			else if (fallback != null) {
-				return fallback.GetReturnType(key);
+			else if (fallback != null && fallback.TryGetVariableInfo(key, out variableInfo)) {
+				return true;
 			}
 			else {
-				throw new UndefinedVariableException(key);
+				variableInfo = null;
+				return false;
 			}
 		}
 
@@ -126,6 +126,7 @@ namespace SharpSheets.Cards.Definitions {
 					node = calculated.Evaluation;
 					return true;
 				}
+				// TODO What to do about fallback definitions?
 				//else if(definition is FallbackDefinition fallback) {
 				//	node = fallback.Evaluation; // TODO Is this right?
 				//	return true;
@@ -139,39 +140,16 @@ namespace SharpSheets.Cards.Definitions {
 			return false;
 		}
 
-		public IEnumerable<EvaluationName> GetVariables() => aliasLookup.Keys.ConcatOrNothing(fallback?.GetVariables()).Distinct();
+		public IEnumerable<EnvironmentVariableInfo> GetVariables() => variableInfos.Values.ConcatOrNothing(fallback?.GetVariables()).Distinct();
 
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> GetReturnTypes() {
-			return returnTypes.ConcatOrNothing(fallback?.GetReturnTypes()).Distinct();
-		}
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> GetNodes() {
-			foreach (Definition definition in definitions) {
-				if (definition is CalculatedDefinition calculated) {
-					foreach (KeyValuePair<EvaluationName, EvaluationNode> node in calculated.AllNames.ToDictionary(n => n, n => calculated.Evaluation)) {
-						yield return node;
-					}
-				}
-				// TODO What to do about fallback definitions?
-				// else if(definition is FallbackDefinition fallback)
-			}
-			if (fallback != null) {
-				foreach (KeyValuePair<EvaluationName, EvaluationNode> fallbackEntry in fallback.GetNodes()) {
-					yield return fallbackEntry;
-				}
-			}
-		}
-
-		public bool IsFunction(EvaluationName name) {
+		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
 			// This will need updating if we end up implementing user defined functions
-			return false || (fallback != null && fallback.IsFunction(name));
+			functionInfo = null;
+			return false;
 		}
-		public EnvironmentFunctionInfo GetFunctionInfo(EvaluationName name) {
+		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
 			// This will need updating if we end up implementing user defined functions
-			throw new UndefinedFunctionException(name);
-		}
-		public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
-			// This will need updating if we end up implementing user defined functions
-			return Enumerable.Empty<EnvironmentFunctionInfo>().ConcatOrNothing(fallback?.GetFunctionInfos());
+			return Enumerable.Empty<IEnvironmentFunctionInfo>().ConcatOrNothing(fallback?.GetFunctionInfos());
 		}
 
 		public IEnumerator<Definition> GetEnumerator() {

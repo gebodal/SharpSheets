@@ -17,12 +17,12 @@ namespace SharpSheets.Markup.Parsing {
 	public static class MarkupArgumentParsing {
 
 		public static IEnvironment ParseArguments(IMarkupArgument[] markupArguments, MarkupValidation[] validations, IVariableBox variables, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool useExamples, out List<SharpParsingException> argumentErrors) { // TODO out SharpParsingException[] errors?
-			Dictionary<EvaluationName, (object?, EvaluationType)> arguments = new Dictionary<EvaluationName, (object?, EvaluationType)>();
+			List<(object?, EnvironmentVariableInfo)> arguments = new List<(object?, EnvironmentVariableInfo)>();
 			List<SharpParsingException> errors = new List<SharpParsingException>();
 
 			foreach (IMarkupArgument arg in markupArguments) {
 				if(ParseArgument(arg, out object? argValue, out DocumentSpan? argLocation, context, source, widgetFactory, shapeFactory, useExamples, ref errors)) {
-					arguments.Add(arg.VariableName, (argValue, arg.Type));
+					arguments.Add((argValue, new EnvironmentVariableInfo(arg.VariableName, arg.Type, arg.Description)));
 				}
 			}
 
@@ -30,7 +30,7 @@ namespace SharpSheets.Markup.Parsing {
 				throw new SharpFactoryException(errors, $"Errors parsing pattern arguments.");
 			}
 
-			IEnvironment environment = Environments.Simple(arguments, variables);
+			IEnvironment environment = SimpleEnvironments.Create(arguments, variables);
 
 			foreach(MarkupValidation validation in validations) {
 				try {
@@ -71,7 +71,7 @@ namespace SharpSheets.Markup.Parsing {
 
 		private static bool ValidateArgValue(MarkupSingleArgument singleArg, object? value, DocumentSpan? location, IContext context, ref List<SharpParsingException> errors) {
 			if (singleArg.Validation is not null) {
-				if (!singleArg.Validation.Evaluate(Environments.Simple(new Dictionary<EvaluationName, (object?, EvaluationType)> { { singleArg.VariableName, (value, singleArg.Type) } }))) {
+				if (!singleArg.Validation.Evaluate(SimpleEnvironments.Single(new EnvironmentVariableInfo(singleArg.VariableName, singleArg.Type, singleArg.Description), value))) {
 					if (!string.IsNullOrWhiteSpace(singleArg.ValidationMessage)) {
 						errors.Add(new SharpParsingException(location ?? context.Location, singleArg.ValidationMessage));
 					}

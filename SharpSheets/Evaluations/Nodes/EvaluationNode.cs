@@ -127,9 +127,6 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		protected abstract string GetRepresentation();
 
-		protected static string GetDataTypeName(object? data) {
-			return data?.GetType().Name ?? "null";
-		}
 	}
 
 }

@@ -192,7 +192,7 @@ namespace SharpSheets.Cards.Definitions {
 					return result;
 				}
 				else {
-					throw new EvaluationTypeException($"Value must be a string, or array of strings, not {GetDataTypeName(result)}.");
+					throw new EvaluationTypeException($"Value must be a string, or array of strings, not {EvaluationUtils.GetDataTypeName(result)}.");
 				}
 			}
 

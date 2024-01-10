@@ -37,7 +37,6 @@ namespace SharpSheets.Cards.CardSubjects {
 		}
 
 		private CardSubject? BuildBase(CardSubjectSet subjectSet, List<SharpParsingException> errors) {
-			IEnvironment subjectEnvironment = CardSubjectEnvironments.GetBuildEnvironment(Name);
 
 			List<(BoolExpression condition, SharpParsingException[] propertyErrors)> missingDefinitions = new List<(BoolExpression, SharpParsingException[])>();
 
@@ -47,13 +46,17 @@ namespace SharpSheets.Cards.CardSubjects {
 					return new CardSubject(subjectSet, Name, cardConfig.Value, DefinitionEnvironment.Empty);
 				}
 				else {
-					DefinitionEnvironment? subjectProperties = SubjectValueParsing.ParseValues(this.Name.Location, setupProperties ?? Array.Empty<ContextProperty<string>>(), subjectEnvironment, cardConfig.Value.definitions, out List<SharpParsingException> propertyErrors);
+					IVariableBox subjectVariables = VariableBoxes.Concat(
+						BasisEnvironment.Instance,
+						CardSubjectEnvironments.GetVariables(cardConfig.Value));
+
+					DefinitionEnvironment? subjectProperties = SubjectValueParsing.ParseValues(this.Name.Location, setupProperties ?? Array.Empty<ContextProperty<string>>(), subjectVariables, cardConfig.Value.definitions, out List<SharpParsingException> propertyErrors);
 					if (subjectProperties != null) {
 						try {
-							IEnvironment fullSubjectEnvironment = subjectEnvironment.AppendEnvironment(subjectProperties);
-							if (cardConfig.Evaluate(fullSubjectEnvironment)) {
+							CardSubject builtSubject = new CardSubject(subjectSet, Name, cardConfig.Value, subjectProperties);
+							if (cardConfig.Evaluate(builtSubject.Environment)) {
 								errors.AddRange(propertyErrors);
-								return new CardSubject(subjectSet, Name, cardConfig.Value, subjectProperties);
+								return builtSubject;
 							}
 						}
 						catch (Exception) { // TODO Just EvaluationException?
@@ -155,20 +158,20 @@ namespace SharpSheets.Cards.CardSubjects {
 		*/
 
 		private CardSection? BuildBase(CardSubject subject, List<SharpParsingException> errors) {
-			IEnvironment sectionEnvironment = subject.Environment.AppendEnvironment(CardSectionEnvironments.GetBuildEnvironment(Heading, Note)); // GetBuildEnvironment(subject, Title, Note);
-
 			foreach (Conditional<AbstractCardSectionConfig> section in subject.CardConfig.cardSections.Concat(subject.CardConfig.cardSetConfig.cardSections).Where(s => s.Value != null && (s.Value is not DynamicCardSectionConfig dynamic || !dynamic.AlwaysInclude))) {
 				if (section.Value.definitions.Count == 0 && section.Condition.IsTrue) {
 					return new CardSection(Location, section.Value, subject, Heading, Note, DefinitionEnvironment.Empty);
 				}
 				else {
-					DefinitionEnvironment? sectionDetails = SubjectValueParsing.ParseValues(details, sectionEnvironment, section.Value.definitions, out List<SharpParsingException> sectionErrors);
+					IVariableBox sectionVariables = CardSectionEnvironments.GetVariables(section.Value);
+
+					DefinitionEnvironment? sectionDetails = SubjectValueParsing.ParseValues(details, sectionVariables, section.Value.definitions, out List<SharpParsingException> sectionErrors);
 					if (sectionDetails != null) {
 						try {
-							IEnvironment fullSectionEnvironment = sectionEnvironment.AppendEnvironment(sectionDetails);
-							if (section.Evaluate(fullSectionEnvironment)) {
+							CardSection builtSection = new CardSection(Location, section.Value, subject, Heading, Note, sectionDetails);
+							if (section.Evaluate(builtSection.Environment)) {
 								errors.AddRange(sectionErrors);
-								return new CardSection(Location, section.Value, subject, Heading, Note, sectionDetails);
+								return builtSection;
 							}
 						}
 						catch (Exception) { // TODO Just EvaluationException?
@@ -306,23 +309,24 @@ namespace SharpSheets.Cards.CardSubjects {
 
 			foreach (Conditional<CardFeatureConfig> feature in sectionConfig.cardFeatures) {
 				if (feature.Value.definitions.Count == 0 && feature.Condition.IsTrue) {
-					IVariableBox textParseVariables = section.Environment.AppendVariables(CardFeatureEnvironments.GetTextEnvironment(Title, Note));
+					IVariableBox textParseVariables = CardFeatureEnvironments.GetTextVariables(feature.Value);
 					ContextValue<TextExpression> textExpr = ParseText(textParseVariables, out List<SharpParsingException> textErrors);
 					errors.AddRange(textErrors);
 					return new CardFeature(Location, feature.Value, section, Title, Note, textExpr, DefinitionEnvironment.Empty, IsMultiLine, IsListItem, Index);
 				}
 				else {
-					IVariableBox featureEnvironment1 = section.Environment.AppendVariables(CardFeatureEnvironments.BaseDefinitions);
+					IVariableBox featureEnvironment1 = CardFeatureEnvironments.GetVariables(feature.Value);
 					DefinitionEnvironment? featureDetails = SubjectValueParsing.ParseValues(details, featureEnvironment1, feature.Value.definitions, out List<SharpParsingException> featureErrors);
 					if (featureDetails != null) {
 						try {
-							IVariableBox textParseVariables = section.Environment.AppendVariables(CardFeatureEnvironments.GetTextEnvironment(Title, Note)).AppendVariables(featureDetails);
+							IVariableBox textParseVariables = CardFeatureEnvironments.GetTextVariables(feature.Value);
 							ContextValue<TextExpression> textExpr = ParseText(textParseVariables, out List<SharpParsingException> textErrors);
-							IEnvironment fullFeatureEnvironment = section.Environment.AppendEnvironment(CardFeatureEnvironments.GetBuildEnvironment(Title, Note, textExpr, feature.Value.RegexFormats, IsListItem, Index)).AppendEnvironment(featureDetails);
-							if (feature.Evaluate(fullFeatureEnvironment)) {
+
+							CardFeature builtFeature = new CardFeature(Location, feature.Value, section, Title, Note, textExpr, featureDetails, IsMultiLine, IsListItem, Index);
+							if (feature.Evaluate(builtFeature.Environment)) {
 								errors.AddRange(featureErrors);
 								errors.AddRange(textErrors);
-								return new CardFeature(Location, feature.Value, section, Title, Note, textExpr, featureDetails, IsMultiLine, IsListItem, Index);
+								return builtFeature;
 							}
 						}
 						catch (Exception) {
@@ -347,7 +351,7 @@ namespace SharpSheets.Cards.CardSubjects {
 			errors = new List<SharpParsingException>();
 
 			// This is the case for Text and Table sections
-			IVariableBox textParseVariables = section.Environment.AppendVariables(CardFeatureEnvironments.GetTextEnvironment(Title, Note));
+			IVariableBox textParseVariables = CardFeatureEnvironments.GetTextVariables(section);
 			ContextValue<TextExpression> textExpr = ParseText(textParseVariables, out List<SharpParsingException> textErrors);
 			errors.AddRange(textErrors);
 

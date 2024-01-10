@@ -28,7 +28,7 @@
 				return Compare(aBool, bBool);
 			}
 			else {
-				throw new EvaluationTypeException($"Cannot evaluate logical {OperatorName} for operands of type {GetDataTypeName(a)} and {GetDataTypeName(b)}.");
+				throw new EvaluationTypeException($"Cannot evaluate logical {OperatorName} for operands of type {EvaluationUtils.GetDataTypeName(a)} and {EvaluationUtils.GetDataTypeName(b)}.");
 			}
 		}
 	}

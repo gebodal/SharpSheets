@@ -847,9 +847,9 @@ namespace SharpEditor.CodeHelpers {
 							DescriptionElements = new FrameworkElement[] { new TextBlock() { Text = SharpValueHandler.GetTypeName(variableReturn.Value) } },
 						});
 					}
-					foreach (EnvironmentFunctionInfo functionInfo in variables.GetFunctionInfos()) {
+					foreach (IEnvironmentFunctionInfo functionInfo in variables.GetFunctionInfos()) {
 						data.Add(new CompletionEntry(functionInfo.Name.ToString()) {
-							DescriptionElements = new FrameworkElement[] { new TextBlock() { Text = SharpValueHandler.GetTypeName(functionInfo.ReturnType) + " (function)" } },
+							DescriptionElements = new FrameworkElement[] { new TextBlock() { Text = functionInfo.Description ?? "Environment function." } },
 						});
 					}
 				}
@@ -874,7 +874,7 @@ namespace SharpEditor.CodeHelpers {
 			DocumentLine currentLine = Document.GetLineByOffset(span.StartOffset);
 			string variableWord = GetVariableNameFromWord(word);
 			if ((span.IsExpression || Document.GetText(span).Contains(variableWord.StartsWith("$") ? variableWord : "$" + variableWord)) && ParsingState != null) {
-				if (ParsingState.GetVariableDefinitionBox(currentLine) is IVariableDefinitionBox variableBox && variableBox.IsVariable(variableWord) && variableBox.GetDefinition(variableWord) is Definition variableWordDefinition) {
+				if (ParsingState.GetVariableDefinitionBox(currentLine) is IVariableDefinitionBox variableBox && variableBox.IsVariable(variableWord) && variableBox.TryGetDefinition(variableWord, out Definition? variableWordDefinition)) {
 					elements.Add(TooltipBuilder.MakeCardDefinitionBlocks(variableWordDefinition, null));
 					return true;
 				}

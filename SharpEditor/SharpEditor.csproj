@@ -40,8 +40,10 @@
     <None Remove="Documentation\Content\4 Shapes\6 Usage Bars.sd" />
     <None Remove="Documentation\Content\4 Shapes\7 Details.sd" />
     <None Remove="Documentation\Content\4 Shapes\Main.sd" />
+    <None Remove="Documentation\Content\5 Cards\Environments.sd" />
     <None Remove="Documentation\Content\6 Markup\1 Paths.sd" />
     <None Remove="Documentation\Content\6 Markup\2 Additional Features.sd" />
+    <None Remove="Documentation\Content\6 Markup\7 Environments.sd" />
     <None Remove="Documentation\Content\6 Markup\8 Cookbook.sd" />
     <None Remove="Documentation\Content\6 Markup\9 Markup Elements.sd" />
     <None Remove="Documentation\Content\6 Markup\Main.sd" />
@@ -141,8 +143,10 @@
     <EmbeddedResource Include="Documentation\Content\4 Shapes\6 Usage Bars.sd" />
     <EmbeddedResource Include="Documentation\Content\4 Shapes\7 Details.sd" />
     <EmbeddedResource Include="Documentation\Content\4 Shapes\Main.sd" />
+    <EmbeddedResource Include="Documentation\Content\5 Cards\Environments.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\1 Paths.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\2 Additional Features.sd" />
+    <EmbeddedResource Include="Documentation\Content\6 Markup\7 Environments.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\8 Cookbook.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\5 Cards\Main.sd" />

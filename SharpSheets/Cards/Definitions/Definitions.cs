@@ -50,7 +50,7 @@ namespace SharpSheets.Cards.Definitions {
 				}
 				else {
 					EvaluationNode[] nodes = splitValues.Select(v => MakeBaseNode(v.Value, elementType, variables)).ToArray();
-					return ArrayCreateNode.MakeArrayCreateNode(nodes);
+					return ArrayCreateFunction.MakeArrayCreateNode(nodes);
 				}
 			}
 			else if (returnType == EvaluationType.STRING) {
@@ -63,7 +63,7 @@ namespace SharpSheets.Cards.Definitions {
 					return eval;
 				}
 				else if (returnType == EvaluationType.FLOAT && evalType == EvaluationType.INT) {
-					return new FloatCastNode() { Argument = eval };
+					return FloatCastFunction.MakeFloatCastNode(eval);
 				}
 				else {
 					throw new EvaluationTypeException("Invalid expression type.");
@@ -286,7 +286,7 @@ namespace SharpSheets.Cards.Definitions {
 	public static class DefinitionUtils {
 
 		public static IEnvironment ToEnvironment(this Dictionary<Definition, object> source) {
-			return Environments.Simple(source.SelectMany(kv => kv.Key.AllNames.Select(n => new KeyValuePair<EvaluationName, object>(n, kv.Value))).ToDictionary());
+			return SimpleEnvironments.Create(source.SelectMany(kv => kv.Key.AllNames.Select(n => ((object?)kv.Value, new EnvironmentVariableInfo(n, kv.Key.Type.ReturnType, kv.Key.description)))));
 		}
 
 		public static IEnvironment AppendEnvironment(this IEnvironment source, Dictionary<Definition, object> values) {
@@ -294,7 +294,7 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public static IVariableBox ToVariableBox(this Dictionary<Definition, EvaluationNode> source) {
-			return VariableBoxes.Simple(source.SelectMany(kv => kv.Key.AllNames.Select(n => new KeyValuePair<EvaluationName, EvaluationNode>(n, kv.Value))));
+			return SimpleVariableBoxes.Create(source.SelectMany(kv => kv.Key.AllNames.Select(n => new KeyValuePair<EvaluationName, EvaluationNode>(n, kv.Value))));
 		}
 
 		public static IVariableBox AppendVariables(this IVariableBox source, Dictionary<Definition, EvaluationNode> nodes) {

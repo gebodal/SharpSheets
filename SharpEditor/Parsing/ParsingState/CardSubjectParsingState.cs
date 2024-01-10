@@ -15,6 +15,7 @@ using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Exceptions;
 using SharpEditor.DataManagers;
 using System.Diagnostics.CodeAnalysis;
+using SharpSheets.Evaluations;
 
 namespace SharpEditor {
 
@@ -352,20 +353,8 @@ namespace SharpEditor {
 			return GetOwner(Document.GetLineByOffset(offset))?.Entity;
 		}
 
-		public DefinitionEnvironment? GetEnvironment(int offset) {
-			IDocumentEntity? entity = GetEntity(Document.GetLineByOffset(offset));
-			if (entity != null) {
-				if (entity is CardSubject subject) {
-					return subject.Environment;
-				}
-				else if (entity is CardSection section) {
-					return section.Environment;
-				}
-				else if (entity is CardFeature feature) {
-					return feature.Environment;
-				}
-			}
-			return null;
+		public ICardDocumentEntity? GetCardEntity(int offset) {
+			return GetEntity(Document.GetLineByOffset(offset)) as ICardDocumentEntity;
 		}
 
 		public CardSetConfig? GetCurrentCardSetDefinition(int offset) {
@@ -497,7 +486,7 @@ namespace SharpEditor {
 		public IDocumentEntity? Entity { get; set; }
 		public Definition? Definition { get; set; }
 
-		public DefinitionEnvironment? Environment {
+		public IEnvironment? Environment {
 			get {
 				if (Entity != null) {
 					if (Entity is CardSubject subject) {

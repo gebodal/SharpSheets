@@ -19,11 +19,12 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	public interface IVariableDefinitionBox : IVariableBox {
 		/// <summary>
-		/// Return the <see cref="Definition"/> specified by the provided alias. Return <see langword="null"/> if no such <see cref="Definition"/> exists.
+		/// Return the <see cref="Definition"/> specified by the provided alias. Return <see langword="false"/> if no such <see cref="Definition"/> exists.
 		/// </summary>
 		/// <param name="key">Alias of the definition to find.</param>
+		/// <param name="definition"></param>
 		/// <returns></returns>
-		Definition? GetDefinition(EvaluationName key);
+		bool TryGetDefinition(EvaluationName key, [MaybeNullWhen(false)] out Definition definition);
 	}
 
 	public interface IHasVariableDefinitionBox {
@@ -541,19 +542,14 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.fallback = fallback;
 		}
 
-		public bool IsVariable(EvaluationName key) {
-			return baseDefinitions.IsVariable(key) || definitions.IsVariable(key) || (fallback?.IsVariable(key) ?? false);
-		}
-
-		public EvaluationType GetReturnType(EvaluationName key) {
-			if (baseDefinitions.IsVariable(key)) { return baseDefinitions.GetReturnType(key); }
-			else if (definitions.IsVariable(key)) { return definitions.GetReturnType(key); }
-			else if (fallback != null) { return fallback.GetReturnType(key); }
-			else { throw new UndefinedVariableException(key); }
-		}
-
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> GetReturnTypes() {
-			return baseDefinitions.GetReturnTypes().Concat(definitions.GetReturnTypes()).ConcatOrNothing(fallback?.GetReturnTypes());
+		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
+			if (baseDefinitions.TryGetVariableInfo(key, out variableInfo)) { return true; }
+			else if (definitions.TryGetVariableInfo(key, out variableInfo)) { return true; }
+			else if (fallback != null) { return fallback.TryGetVariableInfo(key, out variableInfo); }
+			else {
+				variableInfo = null;
+				return false;
+			}
 		}
 
 		public bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node) {
@@ -566,51 +562,40 @@ namespace SharpSheets.Cards.CardConfigs {
 			}
 		}
 
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> GetNodes() {
-			return baseDefinitions.GetNodes().Concat(definitions.GetNodes()).ConcatOrNothing(fallback?.GetNodes());
-		}
-
-		public bool IsFunction(EvaluationName name) {
-			return baseDefinitions.IsFunction(name) || definitions.IsFunction(name) || (fallback?.IsFunction(name) ?? false);
-		}
-
-		public EnvironmentFunctionInfo GetFunctionInfo(EvaluationName name) {
-			if (baseDefinitions.IsFunction(name)) {
-				return baseDefinitions.GetFunctionInfo(name);
-			}
-			else if (definitions.IsFunction(name)) {
-				return definitions.GetFunctionInfo(name);
-			}
-			else if (fallback != null) {
-				return fallback.GetFunctionInfo(name);
-			}
+		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
+			if (baseDefinitions.TryGetFunctionInfo(name, out functionInfo)) { return true; }
+			else if (definitions.TryGetFunctionInfo(name, out functionInfo)) { return true; }
+			else if (fallback != null) { return fallback.TryGetFunctionInfo(name, out functionInfo); }
 			else {
-				throw new UndefinedFunctionException(name);
+				functionInfo = null;
+				return false;
 			}
 		}
 
-		public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
+		public IEnumerable<EnvironmentVariableInfo> GetVariables() {
+			return baseDefinitions.GetVariables().Concat(definitions.GetVariables()).ConcatOrNothing(fallback?.GetVariables());
+		}
+
+		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
 			return baseDefinitions.GetFunctionInfos().Concat(definitions.GetFunctionInfos()).ConcatOrNothing(fallback?.GetFunctionInfos());
 		}
 
-		public Definition? GetDefinition(EvaluationName key) {
-			if (baseDefinitions.IsVariable(key)) {
-				return baseDefinitions.GetDefinition(key);
+		public bool TryGetDefinition(EvaluationName key, [MaybeNullWhen(false)] out Definition definition) {
+			if (baseDefinitions.TryGetDefinition(key, out definition)) {
+				return true;
 			}
-			else if (definitions.IsVariable(key)) {
-				return definitions.GetDefinition(key);
+			else if (definitions.TryGetDefinition(key, out definition)) {
+				return true;
 			}
 			else if (fallback != null) {
-				return fallback.GetDefinition(key);
+				return fallback.TryGetDefinition(key, out definition);
 			}
 			else {
-				return null;
+				definition = null;
+				return false;
 			}
 		}
 
-		public IEnumerable<EvaluationName> GetVariables() {
-			return baseDefinitions.GetVariables().Concat(definitions.GetVariables()).ConcatOrNothing(fallback?.GetVariables());
-		}
 	}
 
 }

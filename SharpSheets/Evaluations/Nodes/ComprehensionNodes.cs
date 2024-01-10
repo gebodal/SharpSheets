@@ -72,7 +72,7 @@ namespace SharpSheets.Evaluations.Nodes {
 				return EvaluationTypes.MakeArray(resultType, result);
 			}
 			else {
-				throw new EvaluationTypeException($"Comprehensions not defined for sources of type {GetDataTypeName(arg2)}.");
+				throw new EvaluationTypeException($"Comprehensions not defined for sources of type {EvaluationUtils.GetDataTypeName(arg2)}.");
 			}
 		}
 
@@ -168,7 +168,7 @@ namespace SharpSheets.Evaluations.Nodes {
 				return EvaluationTypes.MakeArray(resultType, result);
 			}
 			else {
-				throw new EvaluationTypeException($"Comprehensions not defined for sources of type {GetDataTypeName(arg2)}.");
+				throw new EvaluationTypeException($"Comprehensions not defined for sources of type {EvaluationUtils.GetDataTypeName(arg2)}.");
 			}
 		}
 
@@ -196,13 +196,13 @@ namespace SharpSheets.Evaluations.Nodes {
 		private readonly IEnvironment environment;
 
 		private readonly EvaluationName loopIdentifier;
-		private readonly EvaluationType loopVariableType;
+		private readonly EnvironmentVariableInfo loopVariableInfo;
 		private object? currentValue = null;
 		private bool initialized;
 
 		public ComprehensionEnvironment(EvaluationName loopIdentifier, EvaluationType loopVariableType, IEnvironment environment) {
 			this.loopIdentifier = loopIdentifier;
-			this.loopVariableType = loopVariableType;
+			this.loopVariableInfo = new EnvironmentVariableInfo(loopIdentifier, loopVariableType, null);
 			this.environment = environment;
 			initialized = false;
 		}
@@ -211,20 +211,6 @@ namespace SharpSheets.Evaluations.Nodes {
 			currentValue = value;
 			initialized = true;
 		}
-
-		/*
-		public object this[string key] {
-			get {
-				if (!initialized) { throw new EvaluationProcessingException("Loop value not set."); }
-				if (IsLoopVar(key)) {
-					return currentValue;
-				}
-				else {
-					return environment[key];
-				}
-			}
-		}
-		*/
 
 		public bool TryGetValue(EvaluationName key, out object? value) {
 			if (!initialized) { throw new EvaluationProcessingException("Loop value not set."); }
@@ -237,21 +223,18 @@ namespace SharpSheets.Evaluations.Nodes {
 			}
 		}
 
-		public EvaluationType GetReturnType(EvaluationName key) {
+		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
 			if (loopIdentifier == key) {
-				return loopVariableType;
+				variableInfo = loopVariableInfo;
+				return true;
 			}
 			else {
-				return environment.GetReturnType(key);
+				return environment.TryGetVariableInfo(key, out variableInfo);
 			}
 		}
 
-		public IEnumerable<EvaluationName> GetVariables() {
-			return environment.GetVariables().Append(loopIdentifier).Distinct();
-		}
-
-		public bool IsVariable(EvaluationName key) {
-			return loopIdentifier == key || environment.IsVariable(key);
+		public IEnumerable<EnvironmentVariableInfo> GetVariables() {
+			return environment.GetVariables().Append(loopVariableInfo).Distinct();
 		}
 
 		public bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node) {
@@ -264,33 +247,16 @@ namespace SharpSheets.Evaluations.Nodes {
 			}
 		}
 
-		public bool IsFunction(EvaluationName name) {
-			return environment.IsFunction(name);
+		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
+			return environment.TryGetFunctionInfo(name, out functionInfo);
 		}
 
-		public EnvironmentFunctionInfo GetFunctionInfo(EvaluationName name) {
-			return environment.GetFunctionInfo(name);
+		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator) {
+			return environment.TryGetFunction(name, out functionEvaluator);
 		}
 
-		public EnvironmentFunction GetFunction(EvaluationName name) {
-			return environment.GetFunction(name);
-		}
-
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> GetReturnTypes() {
-			return GetVariables().ToDictionary(v => v, v => GetReturnType(v));
-		}
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> GetNodes() {
-			return environment.GetNodes();
-		}
-		public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
+		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
 			return environment.GetFunctionInfos();
-		}
-
-		public IEnumerable<KeyValuePair<EvaluationName, object?>> GetValues() {
-			return environment.GetValues().Append(new KeyValuePair<EvaluationName, object?>(loopIdentifier, currentValue));
-		}
-		public IEnumerable<EnvironmentFunctionDefinition> GetFunctions() {
-			return environment.GetFunctions();
 		}
 	}
 

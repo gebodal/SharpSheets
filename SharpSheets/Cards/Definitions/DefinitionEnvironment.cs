@@ -69,121 +69,65 @@ namespace SharpSheets.Cards.Definitions {
 			return new DefinitionEnvironment(definitions, finalvalues, finalnodes, null, null);
 		}
 
-		public bool IsVariable(EvaluationName key) {
-			return definitions.IsVariable(key);
-		}
-
-		public IEnumerable<EvaluationName> GetVariables() {
+		public IEnumerable<EnvironmentVariableInfo> GetVariables() {
 			return definitions.GetVariables();
 		}
 
-		public EvaluationType GetReturnType(EvaluationName key) {
-			return definitions.GetReturnType(key);
+		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
+			return definitions.TryGetVariableInfo(key, out variableInfo);
 		}
 
 		public bool TryGetValue(EvaluationName key, out object? value) {
-			Definition? definition = definitions.GetDefinition(key);
-			if (definition != null && contextValues.TryGetValue(definition, out ContextValue<object> context)) {
-				value = context.Value;
-				return true;
+			if (definitions.TryGetDefinition(key, out Definition? definition)) {
+				if (contextValues.TryGetValue(definition, out ContextValue<object> context)) {
+					value = context.Value;
+					return true;
+				}
+				else if (propertyValues.TryGetValue(definition, out ContextProperty<object> property)) {
+					value = property.Value;
+					return true;
+				}
 			}
-			else if (definition != null && propertyValues.TryGetValue(definition, out ContextProperty<object> property)) {
-				value = property.Value;
-				return true;
-			}
-			else {
-				value = null;
-				return false;
-			}
+
+			value = null;
+			return false;
 		}
 
 		public bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node) {
-			Definition? definition = definitions.GetDefinition(key);
-			if (definition is CalculatedDefinition calculated) {
-				node = calculated.Evaluation;
-				return true;
-			}
-			else if (definition != null && contextNodes.TryGetValue(definition, out ContextValue<EvaluationNode> context)) {
-				node = context.Value;
-				return true;
-			}
-			else if (definition != null && propertyNodes.TryGetValue(definition, out ContextProperty<EvaluationNode> property)) {
-				node = property.Value;
-				return true;
-			}
-			else if (definition is FallbackDefinition fallback && !contextValues.ContainsKey(fallback) && !propertyValues.ContainsKey(fallback)) {
-				node = fallback.Evaluation;
-				return true;
-			}
-			else {
-				node = null;
-				return false;
-			}
-		}
-
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> GetReturnTypes() {
-			return definitions.GetReturnTypes();
-		}
-
-		public IEnumerable<KeyValuePair<EvaluationName, object?>> GetValues() {
-			foreach (KeyValuePair<Definition, ContextValue<object>> entry in contextValues) {
-				foreach (EvaluationName alias in entry.Key.AllNames) {
-					yield return new KeyValuePair<EvaluationName, object?>(alias, entry.Value.Value);
+			if (definitions.TryGetDefinition(key, out Definition? definition)) {
+				if (definition is CalculatedDefinition calculated) {
+					node = calculated.Evaluation;
+					return true;
+				}
+				else if (contextNodes.TryGetValue(definition, out ContextValue<EvaluationNode> context)) {
+					node = context.Value;
+					return true;
+				}
+				else if (propertyNodes.TryGetValue(definition, out ContextProperty<EvaluationNode> property)) {
+					node = property.Value;
+					return true;
+				}
+				else if (definition is FallbackDefinition fallback && !contextValues.ContainsKey(fallback) && !propertyValues.ContainsKey(fallback)) {
+					node = fallback.Evaluation;
+					return true;
 				}
 			}
-			foreach (KeyValuePair<Definition, ContextProperty<object>> entry in propertyValues) {
-				foreach (EvaluationName alias in entry.Key.AllNames) {
-					yield return new KeyValuePair<EvaluationName, object?>(alias, entry.Value.Value);
-				}
-			}
-		}
 
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> GetNodes() {
-			foreach (Definition definition in definitions) {
-				if (!contextValues.ContainsKey(definition) && !propertyValues.ContainsKey(definition)) {
-					EvaluationNode? node = null;
-					if (contextNodes.TryGetValue(definition, out ContextValue<EvaluationNode> context)) {
-						node = context.Value;
-					}
-					else if (propertyNodes.TryGetValue(definition, out ContextProperty<EvaluationNode> property)) {
-						node = property.Value;
-					}
-					else if (definition is CalculatedDefinition calculated) {
-						node = calculated.Evaluation;
-					}
-					else if (definition is FallbackDefinition fallback) { //  && !contextValues.ContainsKey(fallback) && !propertyValues.ContainsKey(fallback)
-						node = fallback.Evaluation;
-					}
-
-					/*
-					if (node is null) {
-						throw new UndefinedVariableException(definition.name);
-					}
-					*/
-					if (node is not null) {
-						foreach (EvaluationName alias in definition.AllNames) {
-							yield return new KeyValuePair<EvaluationName, EvaluationNode>(alias, node);
-						}
-					}
-				}
-			}
+			node = null;
+			return false;
 		}
 
 		// These may need updating if we end up implementing user defined functions
-		public EnvironmentFunctionInfo GetFunctionInfo(EvaluationName name) {
-			throw new UndefinedFunctionException(name);
-		}
-		public EnvironmentFunction GetFunction(EvaluationName name) {
-			throw new UndefinedFunctionException(name);
-		}
-		public IEnumerable<EnvironmentFunctionDefinition> GetFunctions() {
-			return Enumerable.Empty<EnvironmentFunctionDefinition>();
-		}
-		public bool IsFunction(EvaluationName name) {
+		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
+			functionInfo = null;
 			return false;
 		}
-		public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() {
-			return Enumerable.Empty<EnvironmentFunctionInfo>();
+		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator) {
+			functionEvaluator = null;
+			return false;
+		}
+		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
+			return Enumerable.Empty<IEnvironmentFunctionInfo>();
 		}
 
 		#region IEnumerable

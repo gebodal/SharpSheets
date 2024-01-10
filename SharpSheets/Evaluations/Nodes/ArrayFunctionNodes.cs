@@ -5,55 +5,62 @@ using System.Linq;
 
 namespace SharpSheets.Evaluations.Nodes {
 
-	public class ArrayCreateNode : VariableArgsFunctionNode {
-		public override string Name { get; } = "array";
+	public class ArrayCreateFunction : AbstractFunction {
 
-		public override EvaluationType ReturnType {
-			get {
-				
-				EvaluationType[] returnTypes = Arguments.Select(a => a.ReturnType).Distinct().ToArray();
+		public static readonly ArrayCreateFunction Instance = new ArrayCreateFunction();
+		private ArrayCreateFunction() { }
 
-				if (returnTypes.Length == 0) {
-					throw new EvaluationTypeException("Unknown return type for array create node (contains no elements).");
-				}
+		public override EvaluationName Name { get; } = "array";
+		public override string? Description { get; } = "Created an array from the arguments. The arguments must be of compatible types.";
 
-				EvaluationType arrayType = returnTypes[0];
-				bool badTypes = false;
-				for (int i=1; i<returnTypes.Length; i++) {
-					if (arrayType != returnTypes[i]) {
-						if(arrayType.IsIntegral() && returnTypes[i].IsIntegral()) {
-							arrayType = EvaluationType.INT;
-						}
-						else if(arrayType.IsReal() && returnTypes[i].IsReal()) {
-							arrayType = EvaluationType.FLOAT;
-						}
-						else {
-							badTypes = true;
-							break;
-						}
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null), true)
+		);
+
+		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+			EvaluationType[] returnTypes = args.Select(a => a.ReturnType).Distinct().ToArray();
+
+			if (returnTypes.Length == 0) {
+				throw new EvaluationTypeException("Unknown return type for array create node (contains no elements).");
+			}
+
+			EvaluationType arrayType = returnTypes[0];
+			bool badTypes = false;
+			for (int i = 1; i < returnTypes.Length; i++) {
+				if (arrayType != returnTypes[i]) {
+					if (arrayType.IsIntegral() && returnTypes[i].IsIntegral()) {
+						arrayType = EvaluationType.INT;
+					}
+					else if (arrayType.IsReal() && returnTypes[i].IsReal()) {
+						arrayType = EvaluationType.FLOAT;
+					}
+					else {
+						badTypes = true;
+						break;
 					}
 				}
-
-				if (badTypes) {
-					string s = (returnTypes.Length > 1) ? "s" : "";
-					throw new EvaluationTypeException($"Cannot create an array from arguments with type{s}: " + string.Join(", ", returnTypes.Select(t => t.ToString())));
-				}
-
-				if (arrayType.DataType == null) {
-					throw new EvaluationTypeException($"Cannot create array of dynamic type {arrayType}.");
-				}
-
-				return arrayType.MakeArray(); // EvaluationType.Array(arrayType);
 			}
+
+			if (badTypes) {
+				string s = (returnTypes.Length > 1) ? "s" : "";
+				throw new EvaluationTypeException($"Cannot create an array from arguments with type{s}: " + string.Join(", ", returnTypes.Select(t => t.ToString())));
+			}
+
+			if (arrayType.DataType == null) {
+				throw new EvaluationTypeException($"Cannot create array of dynamic type {arrayType}.");
+			}
+
+			return arrayType.MakeArray(); // EvaluationType.Array(arrayType);
 		}
 
-		public override object? Evaluate(IEnvironment environment) {
-			Type? elementType = (ReturnType.ElementType?.DataType) ?? throw new EvaluationCalculationException($"Cannot construct array of type {ReturnType.ElementType}.");
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationType returnType = GetReturnType(args);
+			Type? elementType = (returnType.ElementType?.DataType) ?? throw new EvaluationCalculationException($"Cannot construct array of type {returnType.ElementType}.");
 			
 			List<object?> results = new List<object?>();
 
-			for (int i = 0; i < Arguments.Length; i++) {
-				object? arg = Arguments[i].Evaluate(environment);
+			for (int i = 0; i < args.Length; i++) {
+				object? arg = args[i].Evaluate(environment);
 				if (elementType == typeof(int) && arg is not int && EvaluationTypes.TryGetIntegral(arg, out int intVal)) {
 					arg = intVal;
 				}
@@ -66,47 +73,56 @@ namespace SharpSheets.Evaluations.Nodes {
 			return EvaluationTypes.MakeArray(elementType, results);
 		}
 
-		protected override VariableArgsFunctionNode MakeEmptyBase() {
-			return new ArrayCreateNode();
-		}
-
 		/// <summary></summary>
-		/// <exception cref="EvaluationSyntaxException"></exception>
+		/// <exception cref="EvaluationCalculationException"></exception>
+		/// <exception cref="EvaluationTypeException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
-		public static ArrayCreateNode MakeArrayCreateNode(params EvaluationNode[] nodes) {
-			ArrayCreateNode node = new ArrayCreateNode();
-			node.SetArgumentCount(nodes.Length);
-			for (int i = 0; i < nodes.Length; i++) {
-				node.Arguments[i] = nodes[i];
+		public static EvaluationNode MakeArrayCreateNode(params EvaluationNode[] arguments) {
+			EnvironmentFunctionNode node = new EnvironmentFunctionNode(Instance);
+			node.SetArgumentCount(arguments.Length);
+			for (int i = 0; i < arguments.Length; i++) {
+				node.Arguments[i] = arguments[i];
 			}
-			return node;
+			return node.Simplify();
 		}
 	}
 
-	public class ArrayContainsNode : FunctionNode {
-		public override string Name { get; } = "contains";
-		public override EvaluationNode[] Arguments { get; } = new EvaluationNode[2];
-		public override bool IsConstant { get { return Arguments[0].IsConstant && Arguments[1].IsConstant; } }
+	public class ArrayContainsFunction : AbstractFunction {
 
-		public sealed override EvaluationType ReturnType {
-			get {
-				EvaluationType arg1Type = Arguments[0].ReturnType;
-				EvaluationType arg2Type = Arguments[1].ReturnType;
-				if ((arg1Type.IsArray || arg1Type.IsTuple) && arg1Type.ElementType == arg2Type) {
-					return EvaluationType.BOOL;
-				}
-				else if(arg1Type == EvaluationType.STRING && arg2Type == EvaluationType.STRING) {
-					return EvaluationType.BOOL;
-				}
-				else {
-					throw new EvaluationTypeException($"Contains not defined for operands of type {arg1Type} and {arg2Type}.");
-				}
+		public static readonly ArrayContainsFunction Instance = new ArrayContainsFunction();
+		private ArrayContainsFunction() { }
+
+		public override EvaluationName Name { get; } = "contains";
+		public override string? Description { get; } = "Returns true of the array (or tuple) returns the value, otherwise false. Alternatively, if two strings are provided, returns true of the first string contains the second.";
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(
+				new EnvironmentFunctionArg("arrayOrTuple", null, null),
+				new EnvironmentFunctionArg("value", null, null)
+				),
+			new EnvironmentFunctionArgList(
+				new EnvironmentFunctionArg("text", EvaluationType.STRING, null),
+				new EnvironmentFunctionArg("substring", EvaluationType.STRING, null)
+				)
+		);
+
+		public sealed override EvaluationType GetReturnType(EvaluationNode[] args) {
+			EvaluationType arg1Type = args[0].ReturnType;
+			EvaluationType arg2Type = args[1].ReturnType;
+			if ((arg1Type.IsArray || arg1Type.IsTuple) && arg1Type.ElementType == arg2Type) {
+				return EvaluationType.BOOL;
+			}
+			else if (arg1Type == EvaluationType.STRING && arg2Type == EvaluationType.STRING) {
+				return EvaluationType.BOOL;
+			}
+			else {
+				throw new EvaluationTypeException($"Contains not defined for operands of type {arg1Type} and {arg2Type}.");
 			}
 		}
 
-		public override object Evaluate(IEnvironment environment) {
-			object? a = Arguments[0].Evaluate(environment);
-			object? b = Arguments[1].Evaluate(environment);
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			object? a = args[0].Evaluate(environment);
+			object? b = args[1].Evaluate(environment);
 
 			if (a is not null && EvaluationTypes.TryGetArray(a, out Array? values)) {
 				try {
@@ -120,34 +136,35 @@ namespace SharpSheets.Evaluations.Nodes {
 				return text.Contains(searchTerm);
 			}
 			else {
-				throw new EvaluationTypeException($"Contains not defined for operands of type {GetDataTypeName(a)} and {GetDataTypeName(b)}.");
+				throw new EvaluationTypeException($"Contains not defined for operands of type {EvaluationUtils.GetDataTypeName(a)} and {EvaluationUtils.GetDataTypeName(b)}.");
 			}
-		}
-
-		protected override FunctionNode Empty() {
-			return new ArrayContainsNode();
 		}
 	}
 
-	public class ArrayAllNode : FunctionNode {
-		public override string Name { get; } = "all";
-		public override EvaluationNode[] Arguments { get; } = new EvaluationNode[1];
-		public override bool IsConstant { get { return Arguments[0].IsConstant; } }
+	public class ArrayAllFunction : AbstractFunction {
 
-		public sealed override EvaluationType ReturnType {
-			get {
-				EvaluationType argType = Arguments[0].ReturnType;
-				if ((argType.IsArray || argType.IsTuple) && argType.ElementType == EvaluationType.BOOL) {
-					return EvaluationType.BOOL;
-				}
-				else {
-					throw new EvaluationTypeException($"All not defined for operands of type {argType}.");
-				}
+		public static readonly ArrayAllFunction Instance = new ArrayAllFunction();
+		private ArrayAllFunction() { }
+
+		public override EvaluationName Name { get; } = "all";
+		public override string? Description { get; } = "Returns true if every entry of the array is true, otherwise false.";
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("arrayOrTuple", EvaluationType.BOOL.MakeArray(), null))
+		);
+
+		public sealed override EvaluationType GetReturnType(EvaluationNode[] args) {
+			EvaluationType argType = args[0].ReturnType;
+			if ((argType.IsArray || argType.IsTuple) && argType.ElementType == EvaluationType.BOOL) {
+				return EvaluationType.BOOL;
+			}
+			else {
+				throw new EvaluationTypeException($"All not defined for operands of type {argType}.");
 			}
 		}
 
-		public override object Evaluate(IEnvironment environment) {
-			object? a = Arguments[0].Evaluate(environment);
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			object? a = args[0].Evaluate(environment);
 
 			if (a is not null && EvaluationTypes.TryGetArray(a, out Array? values)) {
 				foreach(object i in values) {
@@ -162,34 +179,35 @@ namespace SharpSheets.Evaluations.Nodes {
 				return true;
 			}
 			else {
-				throw new EvaluationTypeException($"All not defined for operands of type {GetDataTypeName(a)}.");
+				throw new EvaluationTypeException($"All not defined for operands of type {EvaluationUtils.GetDataTypeName(a)}.");
 			}
-		}
-
-		protected override FunctionNode Empty() {
-			return new ArrayAllNode();
 		}
 	}
 
-	public class ArrayAnyNode : FunctionNode {
-		public override string Name { get; } = "any";
-		public override EvaluationNode[] Arguments { get; } = new EvaluationNode[1];
-		public override bool IsConstant { get { return Arguments[0].IsConstant; } }
+	public class ArrayAnyFunction : AbstractFunction {
 
-		public sealed override EvaluationType ReturnType {
-			get {
-				EvaluationType argType = Arguments[0].ReturnType;
-				if ((argType.IsArray || argType.IsTuple) && argType.ElementType == EvaluationType.BOOL) {
-					return EvaluationType.BOOL;
-				}
-				else {
-					throw new EvaluationTypeException($"Any not defined for operands of type {argType}.");
-				}
+		public static readonly ArrayAnyFunction Instance = new ArrayAnyFunction();
+		private ArrayAnyFunction() { }
+
+		public override EvaluationName Name { get; } = "any";
+		public override string? Description { get; } = "Returns true is any entry of the array is true, otherwise false.";
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("arrayOrTuple", EvaluationType.BOOL.MakeArray(), null))
+		);
+
+		public sealed override EvaluationType GetReturnType(EvaluationNode[] args) {
+			EvaluationType argType = args[0].ReturnType;
+			if ((argType.IsArray || argType.IsTuple) && argType.ElementType == EvaluationType.BOOL) {
+				return EvaluationType.BOOL;
+			}
+			else {
+				throw new EvaluationTypeException($"Any not defined for operands of type {argType}.");
 			}
 		}
 
-		public override object Evaluate(IEnvironment environment) {
-			object? a = Arguments[0].Evaluate(environment);
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			object? a = args[0].Evaluate(environment);
 
 			if (a is not null && EvaluationTypes.TryGetArray(a, out Array? values)) {
 				foreach (object i in values) {
@@ -204,41 +222,50 @@ namespace SharpSheets.Evaluations.Nodes {
 				return false;
 			}
 			else {
-				throw new EvaluationTypeException($"\"{Name}\" not defined for operands of type {GetDataTypeName(a)}.");
+				throw new EvaluationTypeException($"\"{Name}\" not defined for operands of type {EvaluationUtils.GetDataTypeName(a)}.");
 			}
-		}
-
-		protected override FunctionNode Empty() {
-			return new ArrayAnyNode();
 		}
 	}
 
-	public class ArraySortNode : VariableArgsFunctionNode {
-		public override string Name { get; } = "sort";
+	public class ArraySortFunction : AbstractFunction {
 
-		public override EvaluationType ReturnType {
-			get {
-				if (!(Arguments.Length == 1 || Arguments.Length == 2)) {
-					throw new EvaluationTypeException($"Sort must take one or two array/tuple arguments (values [, keys ])."); // Better exception type?
-				}
-				if (!Arguments.All(a => a.ReturnType.IsArray || a.ReturnType.IsTuple)) {
-					throw new EvaluationTypeException($"Sort arguments must be arrays or tuples, not {string.Join(", ", Arguments.Select(a => a.ReturnType.ToString()))}.");
-				}
-				EvaluationType argType = Arguments[0].ReturnType;
-				if (argType.IsTuple) {
-					argType = argType.ElementType.MakeArray();
-				}
-				return argType;
+		public static readonly ArraySortFunction Instance = new ArraySortFunction();
+		private ArraySortFunction() { }
+
+		public override EvaluationName Name { get; } = "sort";
+		public override string? Description { get; } = "Returns a sorted copy of the array (or tuple). If a keys array is provided, it must be the same length as the array to be sorted, and the sorting will use the sorted ordering of the keys array.";
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(
+				new EnvironmentFunctionArg("arrayOrTuple", null, null),
+				new EnvironmentFunctionArg("keys", null, null)
+				),
+			new EnvironmentFunctionArgList(
+				new EnvironmentFunctionArg("arrayOrTuple", null, null)
+				)
+		);
+
+		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+			if (!(args.Length == 1 || args.Length == 2)) {
+				throw new EvaluationTypeException($"Sort must take one or two array/tuple arguments (values [, keys ])."); // Better exception type?
 			}
+			if (!args.All(a => a.ReturnType.IsArray || a.ReturnType.IsTuple)) {
+				throw new EvaluationTypeException($"Sort arguments must be arrays or tuples, not {string.Join(", ", args.Select(a => a.ReturnType.ToString()))}.");
+			}
+			EvaluationType argType = args[0].ReturnType;
+			if (argType.IsTuple) {
+				argType = argType.ElementType.MakeArray();
+			}
+			return argType;
 		}
 
-		public override object Evaluate(IEnvironment environment) {
-			object? arg1 = Arguments[0].Evaluate(environment);
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			object? arg1 = args[0].Evaluate(environment);
 
 			if(arg1 is not null && EvaluationTypes.TryGetArray(arg1, out  Array? array)) {
 				try {
-					if (Arguments.Length > 1) {
-						object? arg2 = Arguments[1].Evaluate(environment);
+					if (args.Length > 1) {
+						object? arg2 = args[1].Evaluate(environment);
 						if (arg2 is not null && EvaluationTypes.TryGetArray(arg2, out Array? keys)) {
 							if(keys.Length != array.Length) {
 								throw new EvaluationCalculationException($"Length of values ({array.Length}) does not match length of keys ({keys.Length}).");
@@ -256,7 +283,7 @@ namespace SharpSheets.Evaluations.Nodes {
 					return array;
 				}
 				catch(InvalidOperationException e) {
-					EvaluationType? elemType = Arguments[0].ReturnType.ElementType;
+					EvaluationType? elemType = args[0].ReturnType.ElementType;
 					throw new EvaluationCalculationException($"Could not sort values (sorting not implemented for {elemType?.ToString() ?? "unknown type"}).", e);
 				}
 				catch(RankException e) {
@@ -267,31 +294,35 @@ namespace SharpSheets.Evaluations.Nodes {
 				throw new EvaluationTypeException($"Invalid values argument of type {arg1?.GetType()?.Name ?? "null"} to sort.");
 			}
 		}
-
-		protected override VariableArgsFunctionNode MakeEmptyBase() {
-			return new ArraySortNode();
-		}
 	}
 
-	public class ArrayReverseNode : SingleArgFunctionNode {
-		public override string Name { get; } = "reverse";
+	public class ArrayReverseFunction : AbstractFunction {
 
-		public override EvaluationType ReturnType {
-			get {
-				if (Argument.ReturnType.IsTuple) {
-					return Argument.ReturnType.ElementType.MakeArray();
-				}
-				else if (!Argument.ReturnType.IsArray) {
-					throw new EvaluationTypeException($"Arguments for reverse must be an array or tuple, not {Argument.ReturnType.ToString()}.");
-				}
-				else {
-					return Argument.ReturnType;
-				}
+		public static readonly ArrayReverseFunction Instance = new ArrayReverseFunction();
+		private ArrayReverseFunction() { }
+
+		public override EvaluationName Name { get; } = "reverse";
+		public override string? Description { get; } = "Returns a reversed copy of the array (no sorting is performed).";
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("arrayOrTuple", null, null))
+		);
+
+		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+			EvaluationType argType = args[0].ReturnType;
+			if (argType.IsTuple) {
+				return argType.ElementType.MakeArray();
+			}
+			else if (!argType.IsArray) {
+				throw new EvaluationTypeException($"Arguments for reverse must be an array or tuple, not {argType}.");
+			}
+			else {
+				return argType;
 			}
 		}
 
-		public override object Evaluate(IEnvironment environment) {
-			object? arg = Argument.Evaluate(environment);
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			object? arg = args[0].Evaluate(environment);
 
 			if (arg is not null && EvaluationTypes.TryGetArray(arg, out Array? array)) {
 				List<object?> results = new List<object?>();
@@ -300,20 +331,13 @@ namespace SharpSheets.Evaluations.Nodes {
 					results.Add(array.GetValue(i));
 				}
 
-				Type? arrayType = Argument.ReturnType.ElementType?.DataType;
-				if(arrayType is null) {
-					throw new EvaluationTypeException("Cannot resolve array system type.");
-				}
-
+				Type arrayType = (args[0].ReturnType.ElementType?.DataType) ?? throw new EvaluationTypeException("Cannot resolve array system type.");
+				
 				return EvaluationTypes.MakeArray(arrayType, results);
 			}
 			else {
 				throw new EvaluationTypeException($"Invalid values argument of type {arg?.GetType()?.Name ?? "null"} to {Name}.");
 			}
-		}
-
-		protected override FunctionNode Empty() {
-			return new ArrayReverseNode();
 		}
 
 	}

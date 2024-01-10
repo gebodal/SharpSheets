@@ -43,25 +43,13 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.variables = variables;
 		}
 
-		public bool IsVariable(EvaluationName key) => variables.IsVariable(key);
-		public bool IsFunction(EvaluationName name) => variables.IsFunction(name);
-		public EvaluationType GetReturnType(EvaluationName key) => variables.GetReturnType(key);
+		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) => variables.TryGetVariableInfo(key, out variableInfo);
 		public bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node) => variables.TryGetNode(key, out node);
-		public EnvironmentFunctionInfo GetFunctionInfo(EvaluationName name) => variables.GetFunctionInfo(name);
-		public IEnumerable<EvaluationName> GetVariables() => variables.GetVariables();
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> GetReturnTypes() => variables.GetReturnTypes();
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> GetNodes() => variables.GetNodes();
-		public IEnumerable<EnvironmentFunctionInfo> GetFunctionInfos() => variables.GetFunctionInfos();
-
-		/// <summary></summary>
-		/// <exception cref="NotSupportedException"></exception>
-		private object? GetValue(EvaluationName key) {
-			return DryRunConstants.Get(variables.GetReturnType(key));
-		}
+		public IEnumerable<EnvironmentVariableInfo> GetVariables() => variables.GetVariables();
 
 		public bool TryGetValue(EvaluationName key, out object? value) {
-			if (variables.IsVariable(key)) {
-				value = GetValue(key);
+			if(variables.TryGetReturnType(key, out EvaluationType? returnType)) {
+				value = DryRunConstants.Get(returnType);
 				return true;
 			}
 			else {
@@ -70,18 +58,15 @@ namespace SharpSheets.Cards.CardSubjects {
 			}
 		}
 
-		public IEnumerable<KeyValuePair<EvaluationName, object?>> GetValues() {
-			return GetVariables().ToDictionary(v => v, v => GetValue(v));
+		// TODO These may need updating if we end up implementing user defined functions
+		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator) {
+			functionEvaluator = null;
+			return false;
 		}
-
-		public EnvironmentFunction GetFunction(EvaluationName name) {
-			// TODO This may need updating if we end up implementing user defined functions
-			throw new UndefinedFunctionException(name);
+		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
+			return variables.TryGetFunctionInfo(name, out functionInfo);
 		}
-
-		public IEnumerable<EnvironmentFunctionDefinition> GetFunctions() {
-			return Enumerable.Empty<EnvironmentFunctionDefinition>();
-		}
+		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() => variables.GetFunctionInfos();
 
 	}
 

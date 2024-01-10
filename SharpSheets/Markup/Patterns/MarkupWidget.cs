@@ -13,6 +13,7 @@ using SharpSheets.Markup.Elements;
 using SharpSheets.Exceptions;
 using SharpSheets.Utilities;
 using System.Text.RegularExpressions;
+using SharpSheets.Markup.Parsing;
 
 namespace SharpSheets.Markup.Patterns {
 
@@ -38,10 +39,10 @@ namespace SharpSheets.Markup.Patterns {
 
 		protected IEnvironment ParseWidgetArguments(IContext context, WidgetSetup setup, Utilities.DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool useExamples, out SharpParsingException[] buildErrors) {
 			IEnvironment environment = ParseArguments(context ?? Context.Empty, source, widgetFactory, shapeFactory, useExamples, out buildErrors)
-				.AppendEnvironment(new Dictionary<EvaluationName, object>() {
-					{ "gutter", setup.gutter },
-					{ "layout", setup.layout }
-				});
+				.AppendEnvironment(SimpleEnvironments.Create(new List<(object?, EnvironmentVariableInfo)>() {
+					(setup.gutter, PatternData.WidgetGutterVariable),
+					(setup.layout, PatternData.WidgetLayoutVariable)
+				}));
 
 			return environment;
 		}

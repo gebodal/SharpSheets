@@ -180,7 +180,7 @@ namespace SharpSheets.Evaluations {
 					return new FormattedStringNode(content, format);
 				}
 				else {
-					return new StringCastNode() { Argument = content }.Simplify();
+					return StringCastFunction.MakeStringCastNode(content);
 				}
 			}
 		}

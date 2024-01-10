@@ -27,6 +27,7 @@ namespace SharpSheets.Markup.Parsing {
 		public static readonly EvaluationType TEXT_HEIGHT_STRATEGY = EvaluationType.FromSystemType(typeof(TextHeightStrategy));
 		public static readonly EvaluationType JUSTIFICATION = EvaluationType.FromSystemType(typeof(Justification));
 		public static readonly EvaluationType ALIGNMENT = EvaluationType.FromSystemType(typeof(Alignment));
+		public static readonly EvaluationType LAYOUT = EvaluationType.FromSystemType(typeof(Layout));
 		public static readonly EvaluationType CHECK_TYPE = EvaluationType.FromSystemType(typeof(CheckType));
 
 		// TODO Is this right?

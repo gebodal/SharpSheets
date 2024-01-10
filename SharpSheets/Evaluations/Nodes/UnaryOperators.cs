@@ -32,7 +32,7 @@ namespace SharpSheets.Evaluations.Nodes {
 				return aufloat;
 			}
 			else {
-				throw new EvaluationTypeException($"Cannot take positive value of type {GetDataTypeName(a)}.");
+				throw new EvaluationTypeException($"Cannot take positive value of type {EvaluationUtils.GetDataTypeName(a)}.");
 			}
 		}
 
@@ -68,7 +68,7 @@ namespace SharpSheets.Evaluations.Nodes {
 				return -afloat;
 			}
 			else {
-				throw new EvaluationTypeException($"Cannot take negative value of type {GetDataTypeName(a)}.");
+				throw new EvaluationTypeException($"Cannot take negative value of type {EvaluationUtils.GetDataTypeName(a)}.");
 			}
 		}
 
@@ -101,7 +101,7 @@ namespace SharpSheets.Evaluations.Nodes {
 				return !aBool;
 			}
 			else {
-				throw new EvaluationTypeException($"Cannot negate value of type {GetDataTypeName(a)}.");
+				throw new EvaluationTypeException($"Cannot negate value of type {EvaluationUtils.GetDataTypeName(a)}.");
 			}
 		}
 

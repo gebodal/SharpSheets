@@ -14,6 +14,7 @@ using SharpSheets.Utilities;
 using SharpSheets.Cards.CardSubjects;
 using SharpSheets.Cards.CardConfigs;
 using SharpEditor.DataManagers;
+using SharpSheets.Evaluations;
 
 namespace SharpEditor.CodeHelpers {
 
@@ -90,11 +91,11 @@ namespace SharpEditor.CodeHelpers {
 					data.Add(new CompletionEntry(definitionName));
 				}
 			}
-			else if (parsingState?.GetEnvironment(textEditor.CaretOffset) is DefinitionEnvironment environment) {
+			else if (parsingState?.GetCardEntity(textEditor.CaretOffset) is ICardDocumentEntity cardEntity) {
 				bool escaped = textEditor.CaretOffset > 0 && textEditor.Document.Text[textEditor.CaretOffset - 1] == '$';
-				foreach (Definition definition in environment) {
+				foreach (Definition definition in cardEntity.Definitions) {
 					string escapedName = (escaped ? "" : "$") + definition.name.ToString();
-					data.Add(new CompletionEntry(escapedName) { DescriptionElements = TooltipBuilder.MakeDefinitionEntries(definition, environment).MakeArray() });
+					data.Add(new CompletionEntry(escapedName) { DescriptionElements = TooltipBuilder.MakeDefinitionEntries(definition, cardEntity.Environment).MakeArray() });
 				}
 			}
 
@@ -131,24 +132,24 @@ namespace SharpEditor.CodeHelpers {
 				contents.AddRange(MakeCardEntityEntries(cardEntity));
 			}
 			else if (parsingState.GetSpansAtOffset(offset).FirstOrDefault(s => s.Type == CardSubjectSpanType.PROPERTY) is CardSubjectSpan property && property.Definition is not null) {
-				DefinitionEnvironment? environment = parsingState.GetEnvironment(property.StartOffset);
+				IEnvironment? environment = parsingState.GetCardEntity(property.StartOffset)?.Environment;
 				contents.Add(TooltipBuilder.MakeCardDefinitionBlocks(property.Definition, environment));
 			}
 			return contents;
 		}
 
 		public static IEnumerable<TextBlock> MakeCardEntityEntries(ICardDocumentEntity cardEntity) {
-			DefinitionEnvironment evaluationEnvironment = cardEntity.Environment;
-			DefinitionEnvironment? displayEnvironment = null;
+			IEnvironment evaluationEnvironment = cardEntity.Environment;
+			DefinitionGroup? displayEnvironment = null;
 			if (cardEntity is CardSubject subject) {
 				yield return TooltipBuilder.GetToolTipTextBlock($"Subject: {subject.Name.Value}");
 
-				displayEnvironment = subject.SubjectEnvironment;
+				displayEnvironment = subject.SubjectDefinitions;
 			}
 			else if (cardEntity is CardSection section) {
 				yield return TooltipBuilder.GetToolTipTextBlock($"Section: {section.Heading.Value}");
 
-				displayEnvironment = section.SectionEnvironment;
+				displayEnvironment = section.SectionDefinitions;
 			}
 			else if (cardEntity is CardFeature feature) {
 				string featureText = feature.Text.Value.ToString();
@@ -156,7 +157,7 @@ namespace SharpEditor.CodeHelpers {
 
 				yield return TooltipBuilder.GetToolTipTextBlock("Feature: " + exampleText);
 
-				displayEnvironment = feature.TextEnvironment;
+				displayEnvironment = feature.FeatureDefinitions; // feature.TextEnvironment;
 			}
 
 			if (displayEnvironment != null && evaluationEnvironment != null) {

@@ -44,6 +44,9 @@ namespace SharpEditor.DataManagers {
 		public static Brush DefinitionNameBrush { get; private set; }
 		public static Brush DefinitionTypeBrush { get; private set; }
 
+		public static Brush EnvironmentNameBrush => DefinitionNameBrush;
+		public static Brush EnvironmentTypeBrush => DefinitionTypeBrush;
+
 		public static Brush MarkupElementBrush { get; private set; }
 		public static Brush MarkupAttributeBrush { get; private set; }
 		public static Brush MarkupPunctuationBrush { get; private set; }

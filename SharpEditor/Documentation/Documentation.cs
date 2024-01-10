@@ -572,7 +572,24 @@ namespace SharpEditor.Documentation {
 
 	}
 
-	public enum DocumentationSectionContents { WIDGETS, SHAPES, BOXES, LABELLEDBOXES, TITLEDBOXES, TITLESTYLES, BARS, USAGEBARS, DETAILS, MARKUPELEMENTS, CARDCONFIGS, CARDSTRUCTURES }
+	public enum DocumentationSectionContents {
+		Widgets,
+		Shapes,
+		Boxes, LabelledBoxes, TitledBoxes,
+		TitleStyles,
+		Bars, UsageBars,
+		Details,
+		MarkupElements,
+		BasisEnvironmentVariables, BasisEnvironmentFunctions,
+		MarkupEnvironmentVariables, MarkupEnvironmentFunctions,
+		CardSubjectEnvironmentVariables,
+		CardOutlineEnvironmentVariables,
+		CardSectionEnvironmentVariables,
+		CardSectionOutlineEnvironmentVariables,
+		CardFeatureEnvironmentVariables,
+		CardConfigs, CardStructures
+	}
+	
 	public class DocumentationContents : IDocumentationSegment {
 
 		public readonly DocumentationSectionContents contents;

@@ -450,8 +450,8 @@ namespace SharpSheets.Markup.Canvas {
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public static TransformExpression Rotate(FloatExpression theta) {
-			FloatExpression cos = new FloatExpression(new CosNode() { Argument = theta.Evaluation.Clone() });
-			FloatExpression sin = new FloatExpression(new SinNode() { Argument = theta.Evaluation.Clone() });
+			FloatExpression cos = new FloatExpression(CosFunction.Instance.MakeNode(theta.Evaluation.Clone()));
+			FloatExpression sin = new FloatExpression(SinFunction.Instance.MakeNode(theta.Evaluation.Clone()));
 			return new TransformExpression(cos, sin, -sin, cos, 0, 0);
 		}
 
@@ -460,8 +460,8 @@ namespace SharpSheets.Markup.Canvas {
 		public static TransformExpression Rotate(FloatExpression theta, FloatExpression x, FloatExpression y) {
 			// For rotating about an arbitrary point
 			// TODO Verify this is correct
-			FloatExpression cos = new FloatExpression(new CosNode() { Argument = theta.Evaluation.Clone() });
-			FloatExpression sin = new FloatExpression(new SinNode() { Argument = theta.Evaluation.Clone() });
+			FloatExpression cos = new FloatExpression(CosFunction.Instance.MakeNode(theta.Evaluation.Clone()));
+			FloatExpression sin = new FloatExpression(SinFunction.Instance.MakeNode(theta.Evaluation.Clone()));
 			FloatExpression e = x - x * cos + y * sin;
 			FloatExpression f = y - x * sin - y * cos;
 			return new TransformExpression(cos, sin, -sin, cos, e, f);
@@ -470,21 +470,21 @@ namespace SharpSheets.Markup.Canvas {
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public static TransformExpression Skew(FloatExpression x, FloatExpression y) {
-			FloatExpression tanX = new FloatExpression(new TanNode() { Argument = x.Evaluation.Clone() });
-			FloatExpression tanY = new FloatExpression(new TanNode() { Argument = y.Evaluation.Clone() });
+			FloatExpression tanX = new FloatExpression(TanFunction.Instance.MakeNode(x.Evaluation.Clone()));
+			FloatExpression tanY = new FloatExpression(TanFunction.Instance.MakeNode(y.Evaluation.Clone()));
 			return new TransformExpression(1, tanY, tanX, 1, 0, 0);
 		}
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public static TransformExpression SkewX(FloatExpression theta) {
-			FloatExpression tan = new FloatExpression(new TanNode() { Argument = theta.Evaluation.Clone() });
+			FloatExpression tan = new FloatExpression(TanFunction.Instance.MakeNode(theta.Evaluation.Clone()));
 			return new TransformExpression(1, 0, tan, 1, 0, 0);
 		}
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public static TransformExpression SkewY(FloatExpression theta) {
-			FloatExpression tan = new FloatExpression(new TanNode() { Argument = theta.Evaluation.Clone() });
+			FloatExpression tan = new FloatExpression(TanFunction.Instance.MakeNode(theta.Evaluation.Clone()));
 			return new TransformExpression(1, tan, 0, 1, 0, 0);
 		}
 

@@ -102,7 +102,7 @@ namespace SharpEditor {
 
 		protected override Definition? GetDefinition(string name, IContext context) {
 			if (CardSetConfig != null) {
-				if (GetVariableDefinitionBox(context)?.GetDefinition(name) is Definition definition) {
+				if (GetVariableDefinitionBox(context)?.TryGetDefinition(name, out Definition? definition) ?? false) {
 					return definition;
 				}
 			}
