@@ -336,48 +336,35 @@ namespace SharpEditor.Documentation {
 				return MakeDocumentationParagraph(paragraph);
 			}
 			else if(documentationSegment is DocumentationContents contents) {
-				if (contents.contents == DocumentationSectionContents.WIDGETS) {
-					return GetConstructorLinks(SharpEditorRegistries.WidgetFactoryInstance, SharpEditorRegistries.WidgetFactoryInstance.Get);
-				}
-				else if (contents.contents == DocumentationSectionContents.SHAPES) {
-					return GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance, SharpEditorRegistries.ShapeFactoryInstance.Get);
-				}
-				else if (contents.contents == DocumentationSectionContents.BOXES) {
-					return GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get);
-				}
-				else if (contents.contents == DocumentationSectionContents.LABELLEDBOXES) {
-					return GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<ILabelledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get);
-				}
-				else if (contents.contents == DocumentationSectionContents.TITLEDBOXES) {
-					return GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<ITitledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get);
-				}
-				else if (contents.contents == DocumentationSectionContents.TITLESTYLES) {
-					return GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<ITitleStyledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get);
-				}
-				else if (contents.contents == DocumentationSectionContents.BARS) {
-					return GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IBar>(), SharpEditorRegistries.ShapeFactoryInstance.Get);
-				}
-				else if (contents.contents == DocumentationSectionContents.USAGEBARS) {
-					return GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IUsageBar>(), SharpEditorRegistries.ShapeFactoryInstance.Get);
-				}
-				else if (contents.contents == DocumentationSectionContents.DETAILS) {
-					return GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IDetail>(), SharpEditorRegistries.ShapeFactoryInstance.Get);
-				}
-				else if(contents.contents == DocumentationSectionContents.MARKUPELEMENTS) {
-					return GetConstructorLinks(MarkupDocumentation.MarkupConstructors, MarkupDocumentation.MarkupConstructors.Get);
-				}
-				else if (contents.contents == DocumentationSectionContents.MARKUPENVIRONMENTVARIABLES) {
-					return DocumentationBuilder.GetMarkupEnvironmentVariablesContents(this);
-				}
-				else if (contents.contents == DocumentationSectionContents.MARKUPENVIRONMENTFUNCTIONS) {
-					return DocumentationBuilder.GetMarkupEnvironmentFunctionsContents(this);
-				}
-				else if(contents.contents == DocumentationSectionContents.CARDCONFIGS) {
-					return GetConstructorLinks(SharpEditorRegistries.CardSetConfigRegistryInstance, s => null); // TODO Can we improve the refreshAction here?
-				}
-				else if(contents.contents == DocumentationSectionContents.CARDSTRUCTURES) {
-					return GetConstructorLinks(CardSetConfigFactory.ConfigConstructors, CardSetConfigFactory.ConfigConstructors.Get);
-				}
+				return contents.contents switch {
+					// Widgets
+					DocumentationSectionContents.Widgets => GetConstructorLinks(SharpEditorRegistries.WidgetFactoryInstance, SharpEditorRegistries.WidgetFactoryInstance.Get),
+					// Shapes
+					DocumentationSectionContents.Shapes => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance, SharpEditorRegistries.ShapeFactoryInstance.Get),
+					DocumentationSectionContents.Boxes => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get),
+					DocumentationSectionContents.LabelledBoxes => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<ILabelledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get),
+					DocumentationSectionContents.TitledBoxes => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<ITitledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get),
+					DocumentationSectionContents.TitleStyles => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<ITitleStyledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get),
+					DocumentationSectionContents.Bars => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IBar>(), SharpEditorRegistries.ShapeFactoryInstance.Get),
+					DocumentationSectionContents.UsageBars => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IUsageBar>(), SharpEditorRegistries.ShapeFactoryInstance.Get),
+					DocumentationSectionContents.Details => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IDetail>(), SharpEditorRegistries.ShapeFactoryInstance.Get),
+					// Markup Elements
+					DocumentationSectionContents.MarkupElements => GetConstructorLinks(MarkupDocumentation.MarkupConstructors, MarkupDocumentation.MarkupConstructors.Get),
+					// Card configurations
+					DocumentationSectionContents.CardConfigs => GetConstructorLinks(SharpEditorRegistries.CardSetConfigRegistryInstance, s => null), // TODO Can we improve the refreshAction here?
+					DocumentationSectionContents.CardStructures => GetConstructorLinks(CardSetConfigFactory.ConfigConstructors, CardSetConfigFactory.ConfigConstructors.Get),
+					// Environments
+					DocumentationSectionContents.BasisEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Evaluations.BasisEnvironment.Instance, this),
+					DocumentationSectionContents.BasisEnvironmentFunctions => DocumentationBuilder.GetEnvironmentFunctionsContents(SharpSheets.Evaluations.BasisEnvironment.Instance, this),
+					DocumentationSectionContents.MarkupEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Markup.Canvas.MarkupEnvironments.DrawingStateVariables, this),
+					DocumentationSectionContents.MarkupEnvironmentFunctions => DocumentationBuilder.GetEnvironmentFunctionsContents(SharpSheets.Markup.Canvas.MarkupEnvironments.DrawingStateVariables, this),
+					DocumentationSectionContents.CardSubjectEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardSubjectEnvironments.BaseDefinitions, this),
+					DocumentationSectionContents.CardOutlineEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardOutlinesEnvironments.BaseDefinitions, this),
+					DocumentationSectionContents.CardSectionEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardSectionEnvironments.BaseDefinitions, this),
+					DocumentationSectionContents.CardSectionOutlineEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardSectionOutlineEnvironments.BaseDefinitions, this),
+					DocumentationSectionContents.CardFeatureEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardFeatureEnvironments.BaseDefinitions, this),
+					_ => throw new InvalidOperationException("Unknown DocumentationSectionContents value.")
+				};
 			}
 			else if(documentationSegment is DocumentationCode code) {
 				return MakeDocumentationCodeBlock(code);

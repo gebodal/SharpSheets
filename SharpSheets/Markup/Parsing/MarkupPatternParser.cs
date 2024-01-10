@@ -465,7 +465,7 @@ namespace SharpSheets.Markup.Parsing {
 						else {
 							arguments.Add(argument);
 							argNames.Add(argument.ArgumentName);
-							varTypes.Add(argument.VariableName, new EnvironmentVariableInfo(argument.VariableName, argument.Type, null));
+							varTypes.Add(argument.VariableName, new EnvironmentVariableInfo(argument.VariableName, argument.Type, argument.Description));
 							entriesUsed |= argument.FromEntries;
 						}
 					}
@@ -1441,6 +1441,8 @@ namespace SharpSheets.Markup.Parsing {
 
 			private MarkupGroupArgument? MakeGroupArgument(XMLElement elem, ContextProperty<EvaluationName> groupname, ContextProperty<EvaluationName>? variableName) {
 
+				string? description = GetAttribute(elem, "desc", false, s => s, null);
+
 				List<IMarkupArgument> args = new List<IMarkupArgument>();
 				HashSet<EvaluationName> argNames = new HashSet<EvaluationName>();
 				HashSet<EvaluationName> varNames = new HashSet<EvaluationName>();
@@ -1479,7 +1481,7 @@ namespace SharpSheets.Markup.Parsing {
 					return null;
 				}
 
-				return new MarkupGroupArgument(groupname.Value, variableName?.Value, args);
+				return new MarkupGroupArgument(groupname.Value, variableName?.Value, description, args);
 			}
 
 			private object? EvaluateArgDefault(string text, EvaluationType argType) {

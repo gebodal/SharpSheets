@@ -29,7 +29,10 @@ namespace SharpSheets.Cards.Definitions {
 
 	public static class CardSubjectEnvironments {
 
-		static readonly Definition nameDefinition = new ConstantDefinition("name", Array.Empty<EvaluationName>(), "Card name description", EvaluationType.STRING);
+		static readonly Definition nameDefinition = new ConstantDefinition(
+			"name", Array.Empty<EvaluationName>(),
+			"The subject name text.",
+			EvaluationType.STRING);
 
 		public static readonly DefinitionGroup BaseDefinitions;
 
@@ -71,8 +74,14 @@ namespace SharpSheets.Cards.Definitions {
 
 	public static class CardOutlinesEnvironments {
 
-		static readonly Definition cardnumDefinition = new ConstantDefinition("card", new EvaluationName[] { "cardnum" }, "Card index description", EvaluationType.INT);
-		static readonly Definition cardcountDefinition = new ConstantDefinition("cardcount", new EvaluationName[] { "totalcards" }, "Total cardcount description", EvaluationType.INT);
+		static readonly Definition cardnumDefinition = new ConstantDefinition(
+			"card", new EvaluationName[] { "cardnum" },
+			"The index of the current card being drawn in the current layout. This is zero-indexed, meaning that the first card has an index of 0.",
+			EvaluationType.INT);
+		static readonly Definition cardcountDefinition = new ConstantDefinition(
+			"cardcount", new EvaluationName[] { "totalcards" },
+			"The total number of cards in the current card layout.",
+			EvaluationType.INT);
 
 		public static readonly DefinitionGroup BaseDefinitions;
 
@@ -110,8 +119,15 @@ namespace SharpSheets.Cards.Definitions {
 
 	public static class CardSectionEnvironments {
 
-		static readonly Definition headingDefinition = new ConstantDefinition("heading", Array.Empty<EvaluationName>(), "Section heading description", EvaluationType.STRING);
-		static readonly Definition noteDefinition = new FallbackDefinition("note", Array.Empty<EvaluationName>(), "Section note description", EvaluationType.STRING, new ConstantNode(""));
+		static readonly Definition headingDefinition = new ConstantDefinition(
+			"heading", Array.Empty<EvaluationName>(),
+			"The section heading text, without note or details.",
+			EvaluationType.STRING);
+		static readonly Definition noteDefinition = new FallbackDefinition(
+			"note", Array.Empty<EvaluationName>(),
+			"The section note text (which may be empty).",
+			EvaluationType.STRING,
+			new ConstantNode(""));
 
 		public static readonly DefinitionGroup BaseDefinitions;
 
@@ -153,8 +169,14 @@ namespace SharpSheets.Cards.Definitions {
 
 	public static class CardSectionOutlineEnvironments {
 
-		static readonly Definition partnumDefinition = new ConstantDefinition("partnum", Array.Empty<EvaluationName>(), "Section part index description", EvaluationType.INT);
-		static readonly Definition partcountDefinition = new ConstantDefinition("partcount", new EvaluationName[] { "totalparts" }, "Total partcount description", EvaluationType.INT);
+		static readonly Definition partnumDefinition = new ConstantDefinition(
+			"partnum", Array.Empty<EvaluationName>(),
+			"The index of the current section part/segment being drawn in the current card section. This is zero-indexed, meaning that the first part has an index of 0.",
+			EvaluationType.INT);
+		static readonly Definition partcountDefinition = new ConstantDefinition(
+			"partcount", new EvaluationName[] { "totalparts" },
+			"The total number of section parts/segments in the current section for the current card layout.",
+			EvaluationType.INT);
 
 		public static readonly DefinitionGroup BaseDefinitions;
 
@@ -183,12 +205,28 @@ namespace SharpSheets.Cards.Definitions {
 
 	public static class CardFeatureEnvironments {
 
-		static readonly Definition titleDefinition = new ConstantDefinition("title", Array.Empty<EvaluationName>(), "Feature title description", EvaluationType.STRING);
-		static readonly Definition noteDefinition = new FallbackDefinition("note", Array.Empty<EvaluationName>(), "Feature note description", EvaluationType.STRING, new ConstantNode(""));
-		static readonly Definition textDefinition = new ConstantDefinition("text", Array.Empty<EvaluationName>(), "Feature text description", EvaluationType.STRING);
-		static readonly Definition listItemDefinition = new ConstantDefinition("listitem", Array.Empty<EvaluationName>(), "Feature list item description", EvaluationType.BOOL);
+		static readonly Definition titleDefinition = new ConstantDefinition(
+			"title", Array.Empty<EvaluationName>(),
+			"The feature title text (without note or details).",
+			EvaluationType.STRING);
+		static readonly Definition noteDefinition = new FallbackDefinition(
+			"note", Array.Empty<EvaluationName>(),
+			"The feature note text (which may be empty).",
+			EvaluationType.STRING,
+			new ConstantNode(""));
+		static readonly Definition textDefinition = new ConstantDefinition(
+			"text", Array.Empty<EvaluationName>(),
+			"The feature text content.",
+			EvaluationType.STRING);
+		static readonly Definition listItemDefinition = new ConstantDefinition(
+			"listitem", Array.Empty<EvaluationName>(),
+			"A flag indicating if the current feature is an item in a list.",
+			EvaluationType.BOOL);
 		
-		static readonly Definition featureNumDefinition = new ConstantDefinition("featureNum", Array.Empty<EvaluationName>(), "Feature number description", EvaluationType.INT);
+		static readonly Definition featureNumDefinition = new ConstantDefinition(
+			"featureNum", Array.Empty<EvaluationName>(),
+			"The index of the current feature being drawn in the current card section. This is zero-indexed, meaning that the first feature has an index of 0.",
+			EvaluationType.INT);
 
 		public static readonly DefinitionGroup BaseDefinitions;
 

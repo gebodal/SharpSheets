@@ -52,7 +52,7 @@ namespace SharpSheets.Markup.Patterns {
 			return new MarkupConstructorDetails(this, typeof(T), InstanceType, GetArgumentDetails().ToArray(), Description is not null ? new DocumentationString(Description) : null);
 		}
 
-		protected virtual IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, string name, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+		protected virtual IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, string name, float aspect, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
 			return Enumerable.Empty<(object? value, EnvironmentVariableInfo info)>();
 		}
 
@@ -72,7 +72,7 @@ namespace SharpSheets.Markup.Patterns {
 			WidgetFactory dummyWidgetFactory = new WidgetFactory(MarkupRegistry.Empty, shapeFactory);
 
 			IEnvironment argumentEnvironment = ParseArguments(context ?? Context.Empty, source, null, shapeFactory, context == null, out buildErrors)
-				.AppendEnvironment(SimpleEnvironments.Create(GetAdditionalArguments(context ?? Context.Empty, name ?? "NAME", source, dummyWidgetFactory, shapeFactory)));
+				.AppendEnvironment(SimpleEnvironments.Create(GetAdditionalArguments(context ?? Context.Empty, name ?? "NAME", aspect, source, dummyWidgetFactory, shapeFactory)));
 
 			return ConstructInstance(argumentEnvironment, aspect, shapeFactory, constructionLines);
 		}
@@ -102,6 +102,11 @@ namespace SharpSheets.Markup.Patterns {
 			DivElement rootElement,
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
+
+		protected override IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, string name, float aspect, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+			return base.GetAdditionalArguments(context, name, aspect, source, widgetFactory, shapeFactory)
+				.Append((aspect, PatternData.AreaShapeAspectVariable));
+		}
 
 		protected override ArgumentDetails[] GetAdditionalArgumentDetails() {
 			return PatternData.AreaShapeVariables;
@@ -242,7 +247,7 @@ namespace SharpSheets.Markup.Patterns {
 
 	#region ITitledBox
 
-	public class MarkupTitledBoxPattern : MarkupShapePattern<ITitledBox> {
+	public class MarkupTitledBoxPattern : MarkupAreaShapePattern<ITitledBox> {
 
 		protected override Type InstanceType { get; } = typeof(MarkupTitledBox);
 
@@ -263,18 +268,18 @@ namespace SharpSheets.Markup.Patterns {
 			return new MarkupTitledBox(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
 		}
 
-		protected override IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, string name, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
-			IEnumerable<(object? value, EnvironmentVariableInfo info)> baseArgs = base.GetAdditionalArguments(context, name, source, widgetFactory, shapeFactory);
+		protected override IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, string name, float aspect, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+			IEnumerable<(object? value, EnvironmentVariableInfo info)> baseArgs = base.GetAdditionalArguments(context, name, aspect, source, widgetFactory, shapeFactory);
 			foreach ((object? value, EnvironmentVariableInfo info) baseArg in baseArgs) {
 				yield return baseArg;
 			}
 
-			yield return (name, new EnvironmentVariableInfo("name", EvaluationType.STRING, null));
-			yield return (name.SplitAndTrim('\n'), new EnvironmentVariableInfo("parts", EvaluationType.FromSystemType(typeof(string[])), null));
+			yield return (name, PatternData.ShapeNameVariable);
+			yield return (name.SplitAndTrim('\n'), PatternData.ShapePartsVariable);
 
-			foreach (ArgumentDetails arg in PatternData.TitledShapeArgs) {
+			foreach ((ArgumentDetails arg, EnvironmentVariableInfo info) in PatternData.TitledShapeArgs) {
 				object? value = MakeArgumentValue(arg.Name, arg.Type.DataType, arg.UseLocal, arg.IsOptional, arg.DefaultValue, context, source, widgetFactory, shapeFactory);
-				yield return (value, new EnvironmentVariableInfo(arg.Name, EvaluationType.FromSystemType(arg.Type.DataType), PatternData.GetDocumentationStringAsText(arg.Description)));
+				yield return (value, info);
 			}
 		}
 
@@ -436,7 +441,7 @@ namespace SharpSheets.Markup.Patterns {
 
 		protected override IEnvironment GetDrawableEnvironment() {
 			return base.GetDrawableEnvironment().AppendEnvironment(SimpleEnvironments.Create(new List<(object?, EnvironmentVariableInfo)>() {
-				(Layout, new EnvironmentVariableInfo("layout", MarkupEvaluationTypes.LAYOUT, null))
+				(Layout, PatternData.DetailLayoutVariable)
 			}));
 		}
 

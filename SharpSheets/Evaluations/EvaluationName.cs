@@ -2,7 +2,7 @@
 using System.Text.RegularExpressions;
 
 namespace SharpSheets.Evaluations {
-	public readonly struct EvaluationName : IEquatable<EvaluationName> {
+	public readonly struct EvaluationName : IEquatable<EvaluationName>, IComparable<EvaluationName> {
 
 		private readonly string name;
 		public bool Valid { get { return IsValid(name); } }
@@ -26,6 +26,10 @@ namespace SharpSheets.Evaluations {
 		}
 
 		private static readonly StringComparer NameComparer = StringComparer.InvariantCultureIgnoreCase; // TODO This needs to be available to other classes somehow (methods?)
+
+		public int CompareTo(EvaluationName other) {
+			return NameComparer.Compare(this.name, other.name);
+		}
 
 		public static bool Equals(EvaluationName a, EvaluationName b) {
 			return NameComparer.Equals(a.name, b.name);
@@ -74,5 +78,6 @@ namespace SharpSheets.Evaluations {
 		public override string ToString() {
 			return (name ?? "").ToLowerInvariant();
 		}
+
 	}
 }

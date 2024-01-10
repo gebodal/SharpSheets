@@ -356,4 +356,29 @@ namespace SharpSheets.Evaluations {
 
 	}
 
+	public abstract class AbstractDataEnvironment : IEnvironment {
+
+		public AbstractDataEnvironment() { }
+
+		public abstract bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo);
+		public abstract bool TryGetValue(EvaluationName key, out object? value);
+		public abstract IEnumerable<EnvironmentVariableInfo> GetVariables();
+
+		public bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node) {
+			node = null;
+			return false;
+		}
+
+		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
+			functionInfo = null;
+			return false;
+		}
+		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator) {
+			functionEvaluator = null;
+			return false;
+		}
+		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() => Enumerable.Empty<IEnvironmentFunctionInfo>();
+
+	}
+
 }

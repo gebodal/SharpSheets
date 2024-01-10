@@ -11,6 +11,8 @@ namespace SharpSheets.Markup.Patterns {
 		EvaluationType Type { get; }
 
 		bool FromEntries { get; }
+
+		string? Description { get; }
 	}
 
 	/// <summary>
@@ -121,6 +123,8 @@ namespace SharpSheets.Markup.Patterns {
 
 		public bool FromEntries { get; } = false;
 
+		public string? Description { get; }
+
 		/// <summary>
 		/// Constructor for MarkupGroupArgument.
 		/// </summary>
@@ -130,11 +134,14 @@ namespace SharpSheets.Markup.Patterns {
 		/// <param name="_variable">An optional variable name, which (if provided) will be used
 		/// in place of the <paramref name="_name"/> as the variable handle for this argument group
 		/// in the Markup.</param>
+		/// <param name="_desc">A description for this argument, which will be presented to
+		/// the user.</param>
 		/// <param name="args">The arguments inside this grouping.</param>
-		public MarkupGroupArgument(EvaluationName _name, EvaluationName? _variable, IEnumerable<IMarkupArgument> args) {
+		public MarkupGroupArgument(EvaluationName _name, EvaluationName? _variable = null, string? _desc = null, IEnumerable<IMarkupArgument>? args = null) {
 			ArgumentName = _name;
 			variableName = _variable;
-			Args = args.ToArray();
+			Description = _desc;
+			Args = (args ?? Enumerable.Empty<IMarkupArgument>()).ToArray(); ;
 			Type = MakeGroupType(VariableName.ToString(), Args);
 		}
 

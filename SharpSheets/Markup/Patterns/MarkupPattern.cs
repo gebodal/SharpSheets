@@ -62,7 +62,7 @@ namespace SharpSheets.Markup.Patterns {
 
 			// TODO Should rootElement also be providing variables here?
 			//this.Variables = VariableBoxes.Simple(patternArguments.ToDictionary(a => a.Name, a => a.Type), patternVariables.ToDictionary(v => v.Name, v => v.Evaluation));
-			this.Variables = SimpleVariableBoxes.Create(patternArguments.Select(a => new EnvironmentVariableInfo(a.VariableName, a.Type, null)));
+			this.Variables = SimpleVariableBoxes.Create(patternArguments.Select(a => new EnvironmentVariableInfo(a.VariableName, a.Type, a.Description)));
 
 			this.exampleRect = exampleSize;
 			this.exampleCanvas = exampleCanvas;

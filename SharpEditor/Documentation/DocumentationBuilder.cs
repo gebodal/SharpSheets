@@ -249,26 +249,31 @@ namespace SharpEditor.Documentation {
 			return stack;
 		}
 
-		public static FrameworkElement GetMarkupEnvironmentVariablesContents(DocumentationWindow window) {
+		public static FrameworkElement GetEnvironmentVariablesContents(IVariableBox variables, DocumentationWindow window) {
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
-			IVariableBox markupVariables = MarkupEnvironments.DrawingStateVariables;
-
-			foreach (EnvironmentVariableInfo varInfo in markupVariables.GetVariables().OrderBy(v => v.Name.ToString(), StringComparer.OrdinalIgnoreCase)) {
-				FrameworkElement varElem = MakeEnvironmentVariableBlock(varInfo, window);
-				varElem.AddMargin(ParagraphSpacingMargin);
-				stack.Children.Add(varElem);
+			if (variables is DefinitionGroup definitionGroup) {
+				foreach (Definition definition in definitionGroup.OrderBy(d => d.name)) {
+					FrameworkElement varElem = MakeEnvironmentDefinitionBlock(definition, window);
+					varElem.AddMargin(ParagraphSpacingMargin);
+					stack.Children.Add(varElem);
+				}
+			}
+			else {
+				foreach (EnvironmentVariableInfo varInfo in variables.GetVariables().OrderBy(v => v.Name)) {
+					FrameworkElement varElem = MakeEnvironmentVariableBlock(varInfo, window);
+					varElem.AddMargin(ParagraphSpacingMargin);
+					stack.Children.Add(varElem);
+				}
 			}
 
 			return stack;
 		}
 
-		public static FrameworkElement GetMarkupEnvironmentFunctionsContents(DocumentationWindow window) {
+		public static FrameworkElement GetEnvironmentFunctionsContents(IVariableBox variables, DocumentationWindow window) {
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
-			IVariableBox markupVariables = MarkupEnvironments.DrawingStateVariables;
-
-			foreach (IEnvironmentFunctionInfo funcInfo in markupVariables.GetFunctionInfos().OrderBy(f => f.Name.ToString(), StringComparer.OrdinalIgnoreCase)) {
+			foreach (IEnvironmentFunctionInfo funcInfo in variables.GetFunctionInfos().OrderBy(f => f.Name.ToString(), StringComparer.OrdinalIgnoreCase)) {
 				FrameworkElement funcElem = MakeEnvironmentFunctionBlock(funcInfo, window);
 				funcElem.AddMargin(ParagraphSpacingMargin);
 				stack.Children.Add(funcElem);
@@ -684,6 +689,30 @@ namespace SharpEditor.Documentation {
 			argPanel.Children.Add(titleBlock);
 
 			if (variableInfo.Description is not null && MakeDescriptionTextBlock(new DocumentationString(variableInfo.Description), window) is TextBlock descriptionBlock) {
+				argPanel.Children.Add(descriptionBlock);
+			}
+
+			return argPanel;
+		}
+
+		private static FrameworkElement MakeEnvironmentDefinitionBlock(Definition definition, DocumentationWindow window) {
+			StackPanel argPanel = new StackPanel() { Orientation = Orientation.Vertical };
+
+			string typeName = SharpValueHandler.GetEnvironmentTypeName(definition.Type);
+
+			TextBlock titleBlock = BaseContentBuilder.GetContentTextBlock(TextBlockMargin);
+			titleBlock.Inlines.Add(new Run(definition.name.ToString()) { Foreground = SharpEditorPalette.EnvironmentNameBrush });
+			foreach(EvaluationName alias in definition.aliases) {
+				titleBlock.Inlines.Add(new Run(" | "));
+				titleBlock.Inlines.Add(new Run(alias.ToString()) { Foreground = SharpEditorPalette.EnvironmentNameBrush });
+			}
+			//titleBlock.Inlines.Add(new Run(":" + SharpValueHandler.NO_BREAK_SPACE.ToString()));
+			titleBlock.Inlines.Add(new Run(": "));
+			titleBlock.Inlines.Add(new Run(typeName) { Foreground = SharpEditorPalette.EnvironmentTypeBrush });
+
+			argPanel.Children.Add(titleBlock);
+
+			if (definition.description is not null && MakeDescriptionTextBlock(new DocumentationString(definition.description), window) is TextBlock descriptionBlock) {
 				argPanel.Children.Add(descriptionBlock);
 			}
 

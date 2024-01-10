@@ -22,7 +22,7 @@ namespace SharpSheets.Markup.Parsing {
 
 			foreach (IMarkupArgument arg in markupArguments) {
 				if(ParseArgument(arg, out object? argValue, out DocumentSpan? argLocation, context, source, widgetFactory, shapeFactory, useExamples, ref errors)) {
-					arguments.Add((argValue, new EnvironmentVariableInfo(arg.VariableName, arg.Type, null)));
+					arguments.Add((argValue, new EnvironmentVariableInfo(arg.VariableName, arg.Type, arg.Description)));
 				}
 			}
 
@@ -71,7 +71,7 @@ namespace SharpSheets.Markup.Parsing {
 
 		private static bool ValidateArgValue(MarkupSingleArgument singleArg, object? value, DocumentSpan? location, IContext context, ref List<SharpParsingException> errors) {
 			if (singleArg.Validation is not null) {
-				if (!singleArg.Validation.Evaluate(SimpleEnvironments.Single(new EnvironmentVariableInfo(singleArg.VariableName, singleArg.Type, null), value))) {
+				if (!singleArg.Validation.Evaluate(SimpleEnvironments.Single(new EnvironmentVariableInfo(singleArg.VariableName, singleArg.Type, singleArg.Description), value))) {
 					if (!string.IsNullOrWhiteSpace(singleArg.ValidationMessage)) {
 						errors.Add(new SharpParsingException(location ?? context.Location, singleArg.ValidationMessage));
 					}

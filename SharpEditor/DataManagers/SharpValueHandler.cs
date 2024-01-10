@@ -1,5 +1,6 @@
 ﻿using SharpSheets.Canvas;
 using SharpSheets.Cards.CardConfigs;
+using SharpSheets.Cards.Definitions;
 using SharpSheets.Documentation;
 using SharpSheets.Evaluations;
 using SharpSheets.Layouts;
@@ -124,6 +125,10 @@ namespace SharpEditor.DataManagers {
 		public static string GetEnvironmentTypeName(EvaluationType? type) {
 			return type is null ? "any" : type.Name;
 			//return GetEnvironmentTypeName(type.DisplayType);
+		}
+
+		public static string GetEnvironmentTypeName(DefinitionType type) {
+			return GetEnvironmentTypeName(type.ReturnType);
 		}
 
 		private static string GetEnvironmentTypeName(Type type) {
