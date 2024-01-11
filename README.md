@@ -39,3 +39,8 @@ SharpSheets makes use of some other free software from the .NET community, and w
 * [`SixLabors/ImageSharp`](https://github.com/SixLabors/ImageSharp) (used here under the Apache License 2.0)
 
 And of course the dotnet team for their work on C# itself.
+
+We have also made use of the following open source projects, and would like to thank those creators for their work:
+
+* [`feathericons/feather`](https://github.com/feathericons/feather) (MIT license)
+* [`Remix-Design/RemixIcon`](https://github.com/Remix-Design/RemixIcon) (Apache License 2.0)
