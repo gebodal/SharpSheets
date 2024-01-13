@@ -9,13 +9,13 @@ using SharpSheets.Canvas.Text;
 using SharpSheets.Cards.Layouts;
 using SharpSheets.Cards.CardConfigs;
 
-namespace SharpSheets.Cards.Card.SectionRects {
+namespace SharpSheets.Cards.Card.SegmentRects {
 
-    public class DynamicSectionRect : IFixedCardSectionRect {
+    public class DynamicSegmentRect : IFixedCardSegmentRect {
 
-        AbstractCardSectionConfig IFixedCardSectionRect.Config => Config;
-        public DynamicCardSectionConfig Config { get; }
-        public IFixedCardSectionRect? Original { get; set; }
+        AbstractCardSegmentConfig IFixedCardSegmentRect.Config => Config;
+        public DynamicCardSegmentConfig Config { get; }
+        public IFixedCardSegmentRect? Original { get; set; }
 
         public readonly ArrangementCollection<IWidget> outlines;
         public readonly WidgetCardRect[] entries;
@@ -29,7 +29,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
         private int partIndex { get; set; } = 0;
         private int partsCount { get; set; } = 1;
 
-        public DynamicSectionRect(DynamicCardSectionConfig config, ArrangementCollection<IWidget> outlines, WidgetCardRect[] entries, float gutter, bool splittable, bool acceptRemaining, bool equalSizeFeatures, bool spaceFeatures) {
+        public DynamicSegmentRect(DynamicCardSegmentConfig config, ArrangementCollection<IWidget> outlines, WidgetCardRect[] entries, float gutter, bool splittable, bool acceptRemaining, bool equalSizeFeatures, bool spaceFeatures) {
             Config = config;
             this.outlines = outlines;
             this.entries = entries;
@@ -49,10 +49,10 @@ namespace SharpSheets.Cards.Card.SectionRects {
             Rectangle? tempRect = GetOutline().RemainingRect(graphicsState, new Rectangle(width, tempRectHeight));
 
             if (tempRect == null) {
-                throw new CardLayoutException("Could not get section area rect.");
+                throw new CardLayoutException("Could not get segment area rect.");
             }
 
-            //Console.WriteLine($"DynamicSectionRect.CalculateMinimumHeight: total {width}, remaining {tempRect.Width}, gutter {gutter}");
+            //Console.WriteLine($"DynamicSegmentRect.CalculateMinimumHeight: total {width}, remaining {tempRect.Width}, gutter {gutter}");
 
             float entriesHeight;
             if (equalSizeFeatures) {
@@ -76,7 +76,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
             Rectangle remainingRect = outline.RemainingRect(canvas, rect) ?? rect;
             canvas.RestoreState();
 
-            //Console.WriteLine($"DynamicSectionRect.Draw: total {rect.Width}, remaining {remainingRect.Width}, gutter {gutter}");
+            //Console.WriteLine($"DynamicSegmentRect.Draw: total {rect.Width}, remaining {remainingRect.Width}, gutter {gutter}");
 
             canvas.RegisterAreas(Original ?? this, rect, null, Array.Empty<Rectangle>());
             //canvas.RegisterArea(Original ?? this, remainingRect);
@@ -115,18 +115,18 @@ namespace SharpSheets.Cards.Card.SectionRects {
             }
         }
 
-        public IPartialCardSectionRects Split(int parts) {
+        public IPartialCardSegmentRects Split(int parts) {
             if (Splittable) {
-                return new DynamicSectionRectPieces(this, parts);
+                return new DynamicSegmentRectPieces(this, parts);
             }
             else {
-                throw new InvalidOperationException("Cannot split a DynamicSectionRect with Splittable==false.");
+                throw new InvalidOperationException($"Cannot split a {nameof(DynamicSegmentRect)} with Splittable==false.");
             }
         }
 
-        public class DynamicSectionRectPieces : IPartialCardSectionRects {
-            public IFixedCardSectionRect Parent { get { return original; } }
-            private readonly DynamicSectionRect original;
+        public class DynamicSegmentRectPieces : IPartialCardSegmentRects {
+            public IFixedCardSegmentRect Parent { get { return original; } }
+            private readonly DynamicSegmentRect original;
             public int Boxes { get; set; }
 
             public bool PenaliseSplit { get; } = true;
@@ -134,7 +134,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
             private WidgetCardRect[]? remainingEntries;
             private int boxCount;
 
-            public DynamicSectionRectPieces(DynamicSectionRect original, int boxes) {
+            public DynamicSegmentRectPieces(DynamicSegmentRect original, int boxes) {
                 this.original = original;
                 Boxes = boxes;
             }
@@ -153,12 +153,12 @@ namespace SharpSheets.Cards.Card.SectionRects {
                 }
             }
 
-            public IFixedCardSectionRect? FromAvailableHeight(ISharpGraphicsState graphicsState, float availableHeight, float width, float fontSize, ParagraphSpecification paragraphSpec, CardQueryCache cache, out float resultingHeight) {
+            public IFixedCardSegmentRect? FromAvailableHeight(ISharpGraphicsState graphicsState, float availableHeight, float width, float fontSize, ParagraphSpecification paragraphSpec, CardQueryCache cache, out float resultingHeight) {
 
                 boxCount++;
 
                 if (boxCount > Boxes) {
-                    throw new CardLayoutException($"Too many requests for boxes for DynamicSectionRectPieces ({boxCount} > {Boxes})");
+                    throw new CardLayoutException($"Too many requests for boxes for {nameof(DynamicSegmentRectPieces)} ({boxCount} > {Boxes})");
                 }
 
                 WidgetCardRect[]? boxEntries;
@@ -212,7 +212,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
                 }
 
                 if (boxEntries is not null && boxEntries.Length > 0) {
-                    DynamicSectionRect fixedBox = new DynamicSectionRect(
+                    DynamicSegmentRect fixedBox = new DynamicSegmentRect(
                         original.Config,
                         original.outlines,
                         boxEntries,
@@ -230,16 +230,16 @@ namespace SharpSheets.Cards.Card.SectionRects {
                 }
             }
 
-            public IPartialCardSectionRects Clone() {
-                return new DynamicSectionRectPieces(original, Boxes);
+            public IPartialCardSegmentRects Clone() {
+                return new DynamicSegmentRectPieces(original, Boxes);
             }
         }
     }
 
-    public class WidgetCardRect : IFixedCardSectionRect {
+    public class WidgetCardRect : IFixedCardSegmentRect {
 
-        public AbstractCardSectionConfig? Config { get; } = null;
-        public IFixedCardSectionRect Original { get { return this; } }
+        public AbstractCardSegmentConfig? Config { get; } = null;
+        public IFixedCardSegmentRect Original { get { return this; } }
 
         public readonly IWidget content;
         public bool Splittable { get { return false; } }
@@ -281,7 +281,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
             //canvas.RestoreState();
         }
 
-        public IPartialCardSectionRects Split(int parts) {
+        public IPartialCardSegmentRects Split(int parts) {
             throw new NotSupportedException("Cannot split SimpleCardRect.");
         }
     }

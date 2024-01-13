@@ -10,26 +10,26 @@ using System.Text;
 namespace SharpSheets.Cards.CardSubjects {
 	public class UnknownFeatureConfigException : SharpParsingException {
 
-		private readonly DynamicCardSectionConfig sectionConfig;
+		private readonly DynamicCardSegmentConfig segmentConfig;
 
 		public override string Message => GetMessage();
 
-		public UnknownFeatureConfigException(DocumentSpan? location, DynamicCardSectionConfig sectionConfig)
+		public UnknownFeatureConfigException(DocumentSpan? location, DynamicCardSegmentConfig segmentConfig)
 			: base(location, "No matching feature configuration.") {
-			this.sectionConfig = sectionConfig;
+			this.segmentConfig = segmentConfig;
 		}
 
 		public override object Clone() {
-			return new UnknownFeatureConfigException(Location, sectionConfig);
+			return new UnknownFeatureConfigException(Location, segmentConfig);
 		}
 
 		private string GetMessage() {
-			if(sectionConfig.cardFeatures.Count == 0) {
-				return "This section does not provide any feature configurations.";
+			if(segmentConfig.cardFeatures.Count == 0) {
+				return "This segment does not provide any feature configurations.";
 			}
 			/*
-			else if(sectionConfig.cardFeatures.Count == 1) {
-				CardFeatureConfig featureConfig = sectionConfig.cardFeatures.First().Value;
+			else if(segmentConfig.cardFeatures.Count == 1) {
+				CardFeatureConfig featureConfig = segmentConfig.cardFeatures.First().Value;
 
 				ConstantDefinition[] requiredDefinitions = featureConfig.definitions.OfType<ConstantDefinition>().ToArray();
 				if (requiredDefinitions.Length > 0) {
@@ -43,9 +43,9 @@ namespace SharpSheets.Cards.CardSubjects {
 			*/
 			else {
 				StringBuilder message = new StringBuilder();
-				message.Append("No matching configuration found for feature. Must match " + (sectionConfig.cardFeatures.Count > 1 ? "one of " : "") + "the following:");
+				message.Append("No matching configuration found for feature. Must match " + (segmentConfig.cardFeatures.Count > 1 ? "one of " : "") + "the following:");
 
-				foreach(Conditional<CardFeatureConfig> feature in sectionConfig.cardFeatures) {
+				foreach(Conditional<CardFeatureConfig> feature in segmentConfig.cardFeatures) {
 					message.Append("\n- ");
 
 					List<string> parts = new List<string>();

@@ -102,7 +102,7 @@ namespace SharpEditor.DataManagers {
 			else if (type == typeof(IWidget) || type == typeof(SharpWidget)) {
 				return "Widget";
 			}
-			else if (typeof(AbstractCardSectionConfig).IsAssignableFrom(type)) {
+			else if (typeof(AbstractCardSegmentConfig).IsAssignableFrom(type)) {
 				return "CardSectionConfig";
 			}
 			else if (type == typeof(IExpression<string>)) {

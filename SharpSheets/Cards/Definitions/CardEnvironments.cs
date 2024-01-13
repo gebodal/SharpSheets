@@ -43,7 +43,7 @@ namespace SharpSheets.Cards.Definitions {
 			};
 		}
 
-		public static IVariableBox GetVariables(ICardSectionParent parent) {
+		public static IVariableBox GetVariables(ICardSegmentParent parent) {
 			return VariableBoxes.Concat(BasisEnvironment.Instance, parent.Variables, BaseDefinitions); // Do we actually have to append BaseDefinitions these here...?
 		}
 
@@ -112,26 +112,26 @@ namespace SharpSheets.Cards.Definitions {
 
 	}
 
-	public static class CardSectionEnvironments {
+	public static class CardSegmentEnvironments {
 
 		static readonly Definition headingDefinition = new ConstantDefinition(
 			"heading", Array.Empty<EvaluationName>(),
-			"The section heading text, without note or details.",
+			"The segment heading text, without note or details.",
 			EvaluationType.STRING);
 		static readonly Definition noteDefinition = new FallbackDefinition(
 			"subheading", Array.Empty<EvaluationName>(),
-			"The section subheading text (which may be empty).",
+			"The segment subheading text (which may be empty).",
 			EvaluationType.STRING,
 			new ConstantNode(""));
 
 		static readonly Definition featureCountDefinition = new ConstantDefinition(
 			"featurecount", new EvaluationName[] { "totalfeatures" },
-			"The total number of features in the current card section.",
+			"The total number of features in the current card segment.",
 			EvaluationType.INT);
 
 		public static readonly DefinitionGroup BaseDefinitions;
 
-		static CardSectionEnvironments() {
+		static CardSegmentEnvironments() {
 			BaseDefinitions = new DefinitionGroup() {
 				headingDefinition,
 				noteDefinition,
@@ -139,16 +139,16 @@ namespace SharpSheets.Cards.Definitions {
 			};
 		}
 
-		public static IVariableBox GetVariables(AbstractCardSectionConfig sectionConfig) {
+		public static IVariableBox GetVariables(AbstractCardSegmentConfig segmentConfig) {
 			return VariableBoxes.Concat(
 				BasisEnvironment.Instance,
-				CardSubjectEnvironments.GetVariables(sectionConfig.parent),
-				sectionConfig.Variables,
+				CardSubjectEnvironments.GetVariables(segmentConfig.parent),
+				segmentConfig.Variables,
 				BaseDefinitions // Do we actually have to append BaseDefinitions these here...?
 				);
 		}
 
-		public static IVariableBox GetVariables(ICardSectionParent parent) {
+		public static IVariableBox GetVariables(ICardSegmentParent parent) {
 			return VariableBoxes.Concat(
 				BasisEnvironment.Instance,
 				CardSubjectEnvironments.GetVariables(parent),
@@ -156,8 +156,8 @@ namespace SharpSheets.Cards.Definitions {
 				);
 		}
 
-		public static IEnvironment GetDryRun(AbstractCardSectionConfig sectionConfig) {
-			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(sectionConfig)));
+		public static IEnvironment GetDryRun(AbstractCardSegmentConfig segmentConfig) {
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(segmentConfig)));
 		}
 
 		/*
@@ -178,15 +178,15 @@ namespace SharpSheets.Cards.Definitions {
 		}
 		*/
 
-		public static IEnvironment MakeBaseEnvironment(CardSection section) {
-			return new CardSectionEnvironment(section);
+		public static IEnvironment MakeBaseEnvironment(CardSegment segment) {
+			return new CardSegmentEnvironment(segment);
 		}
 
-		private class CardSectionEnvironment : AbstractDataEnvironment {
-			private readonly CardSection section;
+		private class CardSegmentEnvironment : AbstractDataEnvironment {
+			private readonly CardSegment segment;
 
-			public CardSectionEnvironment(CardSection section) {
-				this.section = section;
+			public CardSegmentEnvironment(CardSegment segment) {
+				this.segment = segment;
 			}
 
 			public override bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
@@ -196,10 +196,10 @@ namespace SharpSheets.Cards.Definitions {
 			public override bool TryGetValue(EvaluationName key, out object? value) {
 				if (BaseDefinitions.TryGetDefinition(key, out Definition? definition)) {
 					value = definition.name.ToString() switch {
-						"heading" => section.Heading.Value,
-						"subheading" => section.Note.Value,
-						"featurecount" => section.Count,
-						_ => throw new InvalidOperationException("Unknown card section definition.")
+						"heading" => segment.Heading.Value,
+						"subheading" => segment.Note.Value,
+						"featurecount" => segment.Count,
+						_ => throw new InvalidOperationException("Unknown card segment definition.")
 					};
 					return true;
 				}
@@ -216,32 +216,32 @@ namespace SharpSheets.Cards.Definitions {
 
 	}
 
-	public static class CardSectionOutlineEnvironments {
+	public static class CardSegmentOutlineEnvironments {
 
 		static readonly Definition partnumDefinition = new ConstantDefinition(
 			"partnum", Array.Empty<EvaluationName>(),
-			"The index of the current section part/segment being drawn in the current card section. This is zero-indexed, meaning that the first part has an index of 0.",
+			"The index of the current segment part/segment being drawn in the current card segment. This is zero-indexed, meaning that the first part has an index of 0.",
 			EvaluationType.INT);
 		static readonly Definition partcountDefinition = new ConstantDefinition(
 			"partcount", new EvaluationName[] { "totalparts" },
-			"The total number of section parts/segments in the current section for the current card layout.",
+			"The total number of segment parts/segments in the current segment for the current card layout.",
 			EvaluationType.INT);
 
 		public static readonly DefinitionGroup BaseDefinitions;
 
-		static CardSectionOutlineEnvironments() {
+		static CardSegmentOutlineEnvironments() {
 			BaseDefinitions = new DefinitionGroup() {
 				partnumDefinition,
 				partcountDefinition
 			};
 		}
 
-		public static IVariableBox GetVariables(AbstractCardSectionConfig sectionConfig) {
-			return VariableBoxes.Concat(BasisEnvironment.Instance, CardSectionEnvironments.GetVariables(sectionConfig), BaseDefinitions);
+		public static IVariableBox GetVariables(AbstractCardSegmentConfig segmentConfig) {
+			return VariableBoxes.Concat(BasisEnvironment.Instance, CardSegmentEnvironments.GetVariables(segmentConfig), BaseDefinitions);
 		}
 
-		public static IEnvironment GetDryRun(AbstractCardSectionConfig sectionConfig) {
-			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(sectionConfig)));
+		public static IEnvironment GetDryRun(AbstractCardSegmentConfig segmentConfig) {
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(segmentConfig)));
 		}
 
 		public static DefinitionEnvironment GetEnvironment(int partnum, int totalParts) {
@@ -274,7 +274,7 @@ namespace SharpSheets.Cards.Definitions {
 		
 		static readonly Definition featureNumDefinition = new ConstantDefinition(
 			"featureNum", Array.Empty<EvaluationName>(),
-			"The index of the current feature being drawn in the current card section. This is zero-indexed, meaning that the first feature has an index of 0.",
+			"The index of the current feature being drawn in the current card segment. This is zero-indexed, meaning that the first feature has an index of 0.",
 			EvaluationType.INT);
 
 		public static readonly DefinitionGroup BaseDefinitions;
@@ -300,16 +300,16 @@ namespace SharpSheets.Cards.Definitions {
 		public static IVariableBox GetVariables(CardFeatureConfig featureConfig) {
 			return VariableBoxes.Concat(
 				BasisEnvironment.Instance,
-				CardSectionEnvironments.GetVariables(featureConfig.cardSectionConfig),
+				CardSegmentEnvironments.GetVariables(featureConfig.cardSegmentConfig),
 				featureConfig.Variables,
 				BaseDefinitions // Do we actually have to append BaseDefinitions these here...?
 				);
 		}
 
-		public static IVariableBox GetVariables(ICardSectionParent parent) {
+		public static IVariableBox GetVariables(ICardSegmentParent parent) {
 			return VariableBoxes.Concat(
 				BasisEnvironment.Instance,
-				CardSectionEnvironments.GetVariables(parent),
+				CardSegmentEnvironments.GetVariables(parent),
 				BaseDefinitions // Do we actually have to append BaseDefinitions these here...?
 				);
 		}
@@ -335,21 +335,21 @@ namespace SharpSheets.Cards.Definitions {
 		public static IVariableBox GetTextVariables(CardFeatureConfig featureConfig) {
 			return VariableBoxes.Concat(
 				BasisEnvironment.Instance,
-				CardSectionEnvironments.GetVariables(featureConfig.cardSectionConfig),
+				CardSegmentEnvironments.GetVariables(featureConfig.cardSegmentConfig),
 				featureConfig.Variables,
 				BaseTextDefinitions // Do we actually have to append BaseDefinitions these here...?
 				);
 		}
 
-		public static IVariableBox GetTextVariables(CardSection section) {
+		public static IVariableBox GetTextVariables(CardSegment segment) {
 			return VariableBoxes.Concat(
 				BasisEnvironment.Instance,
-				section.Environment,
+				segment.Environment,
 				BaseTextDefinitions // Do we actually have to append BaseDefinitions these here...?
 				);
 		}
 
-		public static IVariableBox GetTextVariables(ICardSectionParent parent) {
+		public static IVariableBox GetTextVariables(ICardSegmentParent parent) {
 			return VariableBoxes.Concat(
 				BasisEnvironment.Instance,
 				parent.Variables,

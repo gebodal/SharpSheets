@@ -17,7 +17,7 @@ namespace SharpSheets.Cards.CardSubjects {
 		public ContextValue<string> Name { get; }
 		public CardSetConfig CardSetConfig { get; }
 
-		public readonly List<CardSectionBuilder> sections;
+		public readonly List<CardSegmentBuilder> segments;
 
 		private ContextProperty<string>[]? setupProperties;
 
@@ -31,7 +31,7 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.Name = name;
 			this.CardSetConfig = cardSetConfig;
 
-			sections = new List<CardSectionBuilder>();
+			segments = new List<CardSegmentBuilder>();
 
 			setupProperties = null;
 		}
@@ -99,12 +99,12 @@ namespace SharpSheets.Cards.CardSubjects {
 				return null;
 			}
 
-			foreach (CardSectionBuilder sectionBuilder in sections) {
-				CardSection? section = sectionBuilder.Build(subject, out List<SharpParsingException> sectionErrors);
-				errors.AddRange(sectionErrors);
+			foreach (CardSegmentBuilder segmentBuilder in segments) {
+				CardSegment? segment = segmentBuilder.Build(subject, out List<SharpParsingException> segmentErrors);
+				errors.AddRange(segmentErrors);
 
-				if (section != null) {
-					subject.AddSection(section);
+				if (segment != null) {
+					subject.AddSegment(segment);
 				}
 			}
 
@@ -121,7 +121,7 @@ namespace SharpSheets.Cards.CardSubjects {
 	}
 
 	[System.Diagnostics.DebuggerDisplay("## {Title} ({Note}) (@{TitleLocation.Line})")]
-	public class CardSectionBuilder {
+	public class CardSegmentBuilder {
 
 		public DocumentSpan Location { get; }
 
@@ -133,7 +133,7 @@ namespace SharpSheets.Cards.CardSubjects {
 
 		private readonly ContextValue<string>? details;
 
-		private CardSectionBuilder(DocumentSpan location, CardSubjectBuilder subject, ContextValue<string>? heading, ContextValue<string>? note, ContextValue<string>? details) {
+		private CardSegmentBuilder(DocumentSpan location, CardSubjectBuilder subject, ContextValue<string>? heading, ContextValue<string>? note, ContextValue<string>? details) {
 			this.Location = location;
 			this.Subject = subject;
 			this.Heading = heading.HasValue ? new ContextValue<string>(heading.Value.Location, heading.Value.Value ?? "") : new ContextValue<string>(new DocumentSpan(location.Offset, location.Line, location.Column, 0), "");
@@ -143,11 +143,11 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.Features = new List<CardFeatureBuilder>();
 		}
 
-		public static CardSectionBuilder Create(DocumentSpan location, CardSubjectBuilder subject, ContextValue<string>? heading, ContextValue<string>? note, ContextValue<string>? details) {
-			return new CardSectionBuilder(location, subject, heading, note, details);
+		public static CardSegmentBuilder Create(DocumentSpan location, CardSubjectBuilder subject, ContextValue<string>? heading, ContextValue<string>? note, ContextValue<string>? details) {
+			return new CardSegmentBuilder(location, subject, heading, note, details);
 		}
 
-		public static CardSectionBuilder Reopen(CardSection section) {
+		public static CardSegmentBuilder Reopen(CardSegment segment) {
 			throw new NotImplementedException(); // TODO Implement
 		}
 
@@ -157,61 +157,61 @@ namespace SharpSheets.Cards.CardSubjects {
 		}
 		*/
 
-		private CardSection? BuildBase(CardSubject subject, List<SharpParsingException> errors) {
-			foreach (Conditional<AbstractCardSectionConfig> section in subject.CardConfig.cardSections.Concat(subject.CardConfig.cardSetConfig.cardSections).Where(s => s.Value != null && (s.Value is not DynamicCardSectionConfig dynamic || !dynamic.AlwaysInclude))) {
-				if (section.Value.definitions.Count == 0 && section.Condition.IsTrue) {
-					return new CardSection(Location, section.Value, subject, Heading, Note, DefinitionEnvironment.Empty);
+		private CardSegment? BuildBase(CardSubject subject, List<SharpParsingException> errors) {
+			foreach (Conditional<AbstractCardSegmentConfig> segment in subject.CardConfig.cardSegments.Concat(subject.CardConfig.cardSetConfig.cardSegments).Where(s => s.Value != null && (s.Value is not DynamicCardSegmentConfig dynamic || !dynamic.AlwaysInclude))) {
+				if (segment.Value.definitions.Count == 0 && segment.Condition.IsTrue) {
+					return new CardSegment(Location, segment.Value, subject, Heading, Note, DefinitionEnvironment.Empty);
 				}
 				else {
-					IVariableBox sectionVariables = CardSectionEnvironments.GetVariables(section.Value);
+					IVariableBox segmentVariables = CardSegmentEnvironments.GetVariables(segment.Value);
 
-					DefinitionEnvironment? sectionDetails = SubjectValueParsing.ParseValues(details, sectionVariables, section.Value.definitions, out List<SharpParsingException> sectionErrors);
-					if (sectionDetails != null) {
+					DefinitionEnvironment? segmentDetails = SubjectValueParsing.ParseValues(details, segmentVariables, segment.Value.definitions, out List<SharpParsingException> segmentErrors);
+					if (segmentDetails != null) {
 						try {
-							CardSection builtSection = new CardSection(Location, section.Value, subject, Heading, Note, sectionDetails);
-							if (section.Evaluate(builtSection.Environment)) {
-								errors.AddRange(sectionErrors);
-								return builtSection;
+							CardSegment builtSegment = new CardSegment(Location, segment.Value, subject, Heading, Note, segmentDetails);
+							if (segment.Evaluate(builtSegment.Environment)) {
+								errors.AddRange(segmentErrors);
+								return builtSegment;
 							}
 						}
 						catch (Exception) { // TODO Just EvaluationException?
-							errors.AddRange(sectionErrors); // Something went wrong trying to build section. This should be reported.
+							errors.AddRange(segmentErrors); // Something went wrong trying to build segment. This should be reported.
 						}
 					}
 				}
 			}
 
-			errors.Add(new SharpParsingException(Location, "No matching section configuration found."));
+			errors.Add(new SharpParsingException(Location, "No matching segment configuration found."));
 			return null;
 		}
 
-		public CardSection? Build(CardSubject subject, out List<SharpParsingException> errors) {
+		public CardSegment? Build(CardSubject subject, out List<SharpParsingException> errors) {
 			errors = new List<SharpParsingException>();
 
-			CardSection? section = null;
+			CardSegment? segment = null;
 			try {
-				section = BuildBase(subject, errors);
+				segment = BuildBase(subject, errors);
 			}
 			catch(EvaluationException e) {
 				errors.Add(new SharpParsingException(Location, e.Message, e));
 			}
 
-			if(section == null) {
+			if(segment == null) {
 				return null;
 			}
 
 			foreach (CardFeatureBuilder featureBuilder in Features) {
 				CardFeature? feature;
 				List<SharpParsingException> featureErrors;
-				if (section.SectionConfig is DynamicCardSectionConfig dynamicSectionConfig) {
-					feature = featureBuilder.BuildDynamic(section, dynamicSectionConfig, out featureErrors);
+				if (segment.SegmentConfig is DynamicCardSegmentConfig dynamicSegmentConfig) {
+					feature = featureBuilder.BuildDynamic(segment, dynamicSegmentConfig, out featureErrors);
 				}
 				else {
-					feature = featureBuilder.BuildSimple(section, out featureErrors);
+					feature = featureBuilder.BuildSimple(segment, out featureErrors);
 				}
 
 				if (feature != null) {
-					section.AddFeature(feature);
+					segment.AddFeature(feature);
 				}
 				else if (featureErrors.Count == 0) {
 					errors.Add(new SharpParsingException(featureBuilder.Location, "Could not build feature."));
@@ -220,7 +220,7 @@ namespace SharpSheets.Cards.CardSubjects {
 				errors.AddRange(featureErrors);
 			}
 
-			return section;
+			return segment;
 		}
 
 		public CardFeatureBuilder Add(DocumentSpan titleLocation, ContextValue<string>? title, ContextValue<string>? note, ContextValue<string>? details, ContextValue<string>? text, bool isListItem) {
@@ -260,7 +260,7 @@ namespace SharpSheets.Cards.CardSubjects {
 
 		public DocumentSpan Location { get; }
 
-		public CardSectionBuilder Section { get; }
+		public CardSegmentBuilder Segment { get; }
 		public ContextValue<string> Title { get; }
 		public ContextValue<string> Note { get; }
 
@@ -272,9 +272,9 @@ namespace SharpSheets.Cards.CardSubjects {
 
 		private readonly ContextValue<string> details;
 
-		private CardFeatureBuilder(DocumentSpan location, CardSectionBuilder section, ContextValue<string>? title, ContextValue<string>? note, ContextValue<string>? details, ContextValue<string>? text, bool isListItem, int index) {
+		private CardFeatureBuilder(DocumentSpan location, CardSegmentBuilder segment, ContextValue<string>? title, ContextValue<string>? note, ContextValue<string>? details, ContextValue<string>? text, bool isListItem, int index) {
 			this.Location = location;
-			this.Section = section;
+			this.Segment = segment;
 			this.Title = title.HasValue ? new ContextValue<string>(title.Value.Location, title.Value.Value ?? "") : new ContextValue<string>(new DocumentSpan(location.Offset, location.Line, location.Column, 0), "");
 			this.Note = note.HasValue ? new ContextValue<string>(note.Value.Location, note.Value.Value ?? "") : new ContextValue<string>(new DocumentSpan(location.Offset, location.Line, location.Column, 0), "");
 
@@ -286,8 +286,8 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.Index = index;
 		}
 
-		public static CardFeatureBuilder Create(DocumentSpan location, CardSectionBuilder section, ContextValue<string>? title, ContextValue<string>? note, ContextValue<string>? details, ContextValue<string>? text, bool isListItem, int index) {
-			return new CardFeatureBuilder(location, section, title, note, details, text, isListItem, index);
+		public static CardFeatureBuilder Create(DocumentSpan location, CardSegmentBuilder segment, ContextValue<string>? title, ContextValue<string>? note, ContextValue<string>? details, ContextValue<string>? text, bool isListItem, int index) {
+			return new CardFeatureBuilder(location, segment, title, note, details, text, isListItem, index);
 		}
 
 		public static CardFeatureBuilder Reopen(CardFeature feature) {
@@ -295,24 +295,24 @@ namespace SharpSheets.Cards.CardSubjects {
 		}
 
 		/*
-		private static IEnvironment GetBuildEnvironment(CardSection section, string title, string note, string text, bool isListItem) {
-			return section.Environment.AppendEnvironment(new Dictionary<EvaluationName, object> { { "title", title ?? "" }, { "note", note ?? "" }, { "text", text ?? "" }, { "listitem", isListItem } });
+		private static IEnvironment GetBuildEnvironment(CardSegment segment, string title, string note, string text, bool isListItem) {
+			return segment.Environment.AppendEnvironment(new Dictionary<EvaluationName, object> { { "title", title ?? "" }, { "note", note ?? "" }, { "text", text ?? "" }, { "listitem", isListItem } });
 		}
 		*/
 
-		public CardFeature? BuildDynamic(CardSection section, DynamicCardSectionConfig sectionConfig, out List<SharpParsingException> errors) {
+		public CardFeature? BuildDynamic(CardSegment segment, DynamicCardSegmentConfig segmentConfig, out List<SharpParsingException> errors) {
 			// Need to use RegexFormats to properly format text at some point
 			// return formatting.Apply(new RichString(textStr)).Formatted;
-			//new CardFeatureConcrete(Line, FeatureConfig, section, Title, Note, )
+			//new CardFeatureConcrete(Line, FeatureConfig, segment, Title, Note, )
 
 			errors = new List<SharpParsingException>();
 
-			foreach (Conditional<CardFeatureConfig> feature in sectionConfig.cardFeatures) {
+			foreach (Conditional<CardFeatureConfig> feature in segmentConfig.cardFeatures) {
 				if (feature.Value.definitions.Count == 0 && feature.Condition.IsTrue) {
 					IVariableBox textParseVariables = CardFeatureEnvironments.GetTextVariables(feature.Value);
 					ContextValue<TextExpression> textExpr = ParseText(textParseVariables, out List<SharpParsingException> textErrors);
 					errors.AddRange(textErrors);
-					return new CardFeature(Location, feature.Value, section, Title, Note, textExpr, DefinitionEnvironment.Empty, IsMultiLine, IsListItem, Index);
+					return new CardFeature(Location, feature.Value, segment, Title, Note, textExpr, DefinitionEnvironment.Empty, IsMultiLine, IsListItem, Index);
 				}
 				else {
 					IVariableBox featureEnvironment1 = CardFeatureEnvironments.GetVariables(feature.Value);
@@ -322,7 +322,7 @@ namespace SharpSheets.Cards.CardSubjects {
 							IVariableBox textParseVariables = CardFeatureEnvironments.GetTextVariables(feature.Value);
 							ContextValue<TextExpression> textExpr = ParseText(textParseVariables, out List<SharpParsingException> textErrors);
 
-							CardFeature builtFeature = new CardFeature(Location, feature.Value, section, Title, Note, textExpr, featureDetails, IsMultiLine, IsListItem, Index);
+							CardFeature builtFeature = new CardFeature(Location, feature.Value, segment, Title, Note, textExpr, featureDetails, IsMultiLine, IsListItem, Index);
 							if (feature.Evaluate(builtFeature.Environment)) {
 								errors.AddRange(featureErrors);
 								errors.AddRange(textErrors);
@@ -338,24 +338,24 @@ namespace SharpSheets.Cards.CardSubjects {
 			}
 
 			//errors.Add(new SharpParsingException(Location, "Could not find matching feature configuration."));
-			errors.Add(new UnknownFeatureConfigException(Location, sectionConfig));
+			errors.Add(new UnknownFeatureConfigException(Location, segmentConfig));
 
 			return null;
 		}
 
-		public CardFeature BuildSimple(CardSection section, out List<SharpParsingException> errors) {
+		public CardFeature BuildSimple(CardSegment segment, out List<SharpParsingException> errors) {
 			// Need to use RegexFormats to properly format text at some point
 			// return formatting.Apply(new RichString(textStr)).Formatted;
-			//new CardFeatureConcrete(Line, FeatureConfig, section, Title, Note, )
+			//new CardFeatureConcrete(Line, FeatureConfig, segment, Title, Note, )
 
 			errors = new List<SharpParsingException>();
 
-			// This is the case for Text and Table sections
-			IVariableBox textParseVariables = CardFeatureEnvironments.GetTextVariables(section);
+			// This is the case for Text and Table segments
+			IVariableBox textParseVariables = CardFeatureEnvironments.GetTextVariables(segment);
 			ContextValue<TextExpression> textExpr = ParseText(textParseVariables, out List<SharpParsingException> textErrors);
 			errors.AddRange(textErrors);
 
-			return new CardFeature(Location, null, section, Title, Note, textExpr, DefinitionEnvironment.Empty, IsMultiLine, IsListItem, Index);
+			return new CardFeature(Location, null, segment, Title, Note, textExpr, DefinitionEnvironment.Empty, IsMultiLine, IsListItem, Index);
 		}
 
 		private ContextValue<TextExpression> ParseText(IVariableBox variables, out List<SharpParsingException> errors) {

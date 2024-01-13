@@ -11,7 +11,7 @@ using SharpSheets.Fonts;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Cards.CardSubjects;
 using SharpSheets.Parsing;
-using SharpSheets.Cards.Card.SectionRects;
+using SharpSheets.Cards.Card.SegmentRects;
 
 namespace SharpSheets.Cards.Card
 {
@@ -27,18 +27,18 @@ namespace SharpSheets.Cards.Card
 
 		public override bool CropOnFinalCard { get; }
 
-		public DynamicCard(CardSubject subject, float gutter, bool joinSplitCards, bool cropOnFinalCard, ArrangementCollection<IWidget> outlines, IDetail? gutterStyle, ArrangementCollection<IWidget> headers, IFixedCardSectionRect[] sections) {
+		public DynamicCard(CardSubject subject, float gutter, bool joinSplitCards, bool cropOnFinalCard, ArrangementCollection<IWidget> outlines, IDetail? gutterStyle, ArrangementCollection<IWidget> headers, IFixedCardSegmentRect[] segments) {
 			this.subject = subject;
 			this.Gutter = gutter;
 			this.joinSplitCards = joinSplitCards;
 			this.outlines = outlines;
 			this.gutterStyle = gutterStyle;
 			this.headers = headers;
-			this.Sections = sections;
+			this.Segments = segments;
 			this.CropOnFinalCard = cropOnFinalCard;
 		}
 
-		public override IFixedCardSectionRect[] Sections { get; }
+		public override IFixedCardSegmentRect[] Segments { get; }
 
 		public override float Gutter { get; }
 

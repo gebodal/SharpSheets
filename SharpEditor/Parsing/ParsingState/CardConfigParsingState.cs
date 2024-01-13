@@ -118,8 +118,8 @@ namespace SharpEditor {
 			else if (variableDefinitionBox is CardConfig cardConfig) {
 				return cardConfig.definitions;
 			}
-			else if (variableDefinitionBox is AbstractCardSectionConfig sectionConfig) {
-				return sectionConfig.definitions;
+			else if (variableDefinitionBox is AbstractCardSegmentConfig segmentConfig) {
+				return segmentConfig.definitions;
 			}
 			else if (variableDefinitionBox is CardFeatureConfig featureConfig) {
 				return featureConfig.definitions;
@@ -183,8 +183,8 @@ namespace SharpEditor {
 							if (entry.Value is CardSubject subject) {
 								configObject = subject.CardConfig;
 							}
-							else if (entry.Value is CardSection section) {
-								configObject = section.SectionConfig;
+							else if (entry.Value is CardSegment section) {
+								configObject = section.SegmentConfig;
 							}
 							else if (entry.Value is CardFeature feature) {
 								configObject = feature.FeatureConfig;

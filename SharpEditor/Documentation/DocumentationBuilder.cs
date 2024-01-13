@@ -234,13 +234,13 @@ namespace SharpEditor.Documentation {
 				}
 			}
 
-			if (cardSetConfig.cardSections.Count > 0) {
+			if (cardSetConfig.cardSegments.Count > 0) {
 				TextBlock attributesHeaderBlock = BaseContentBuilder.GetContentTextBlock("Card Sections", TitleMargin);
 				BaseContentBuilder.MakeFontSizeRelative(attributesHeaderBlock, 1.6);
 				stack.Children.Add(attributesHeaderBlock);
 
-				foreach (Conditional<AbstractCardSectionConfig> section in cardSetConfig.cardSections) {
-					if (!(section.Value is DynamicCardSectionConfig dynamic && dynamic.AlwaysInclude)) {
+				foreach (Conditional<AbstractCardSegmentConfig> section in cardSetConfig.cardSegments) {
+					if (!(section.Value is DynamicCardSegmentConfig dynamic && dynamic.AlwaysInclude)) {
 						stack.Children.Add(MakeCardSectionElement(section, window).SetMargin(ParagraphMargin));
 					}
 				}
@@ -877,7 +877,7 @@ namespace SharpEditor.Documentation {
 			yield return new Run(cardSetConfig.name) { Foreground = SharpEditorPalette.RectBrush };
 		}
 
-		public static FrameworkElement MakeCardSectionElement(Conditional<AbstractCardSectionConfig> section, DocumentationWindow window) {
+		public static FrameworkElement MakeCardSectionElement(Conditional<AbstractCardSegmentConfig> section, DocumentationWindow window) {
 			StackPanel sectionPanel = new StackPanel() { Orientation = Orientation.Vertical };
 
 			TextBlock sectionHeaderBlock = BaseContentBuilder.GetContentTextBlock("Section", TitleMargin);
@@ -901,7 +901,7 @@ namespace SharpEditor.Documentation {
 				}
 			}
 
-			if(section.Value is DynamicCardSectionConfig dynamicSection) {
+			if(section.Value is DynamicCardSegmentConfig dynamicSection) {
 				if (dynamicSection.cardFeatures.Count > 0) {
 					TextBlock featuresHeaderBlock = BaseContentBuilder.GetContentTextBlock("Section Features", TitleMargin);
 					BaseContentBuilder.MakeFontSizeRelative(featuresHeaderBlock, 1.2);

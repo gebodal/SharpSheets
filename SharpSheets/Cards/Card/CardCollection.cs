@@ -8,7 +8,7 @@ using System.Threading;
 using SharpSheets.Colors;
 using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Exceptions;
-using SharpSheets.Cards.Card.SectionRects;
+using SharpSheets.Cards.Card.SegmentRects;
 
 namespace SharpSheets.Cards.Card
 {
@@ -122,7 +122,7 @@ namespace SharpSheets.Cards.Card
 
 		protected readonly string message;
 
-		public override IFixedCardSectionRect[] Sections { get; } = Array.Empty<IFixedCardSectionRect>();
+		public override IFixedCardSegmentRect[] Segments { get; } = Array.Empty<IFixedCardSegmentRect>();
 
 		public override bool CropOnFinalCard => true;
 

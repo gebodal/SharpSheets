@@ -6,13 +6,13 @@ using SharpSheets.Canvas.Text;
 using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Cards.Layouts;
 
-namespace SharpSheets.Cards.Card.SectionRects {
+namespace SharpSheets.Cards.Card.SegmentRects {
 
-    public class CardTextSectionRect : IFixedCardSectionRect {
+    public class CardTextSegmentRect : IFixedCardSegmentRect {
 
-        AbstractCardSectionConfig IFixedCardSectionRect.Config => Config;
-        public TextCardSectionConfig Config { get; }
-        public IFixedCardSectionRect? Original { get; set; }
+        AbstractCardSegmentConfig IFixedCardSegmentRect.Config => Config;
+        public TextCardSegmentConfig Config { get; }
+        public IFixedCardSegmentRect? Original { get; set; }
 
         public readonly ArrangementCollection<IWidget> outlines;
         public RichParagraphs Text { get; protected set; }
@@ -31,7 +31,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
         private int partIndex { get; set; } = 0;
         private int partsCount { get; set; } = 1;
 
-        public CardTextSectionRect(TextCardSectionConfig config, ArrangementCollection<IWidget> outlines, RichParagraphs text, bool splittable) {
+        public CardTextSegmentRect(TextCardSegmentConfig config, ArrangementCollection<IWidget> outlines, RichParagraphs text, bool splittable) {
             Config = config;
             this.outlines = outlines;
             Text = text;
@@ -92,9 +92,9 @@ namespace SharpSheets.Cards.Card.SectionRects {
             canvas.RestoreState();
         }
 
-        public IPartialCardSectionRects Split(int parts) {
+        public IPartialCardSegmentRects Split(int parts) {
             if (Splittable) {
-                return new CardTextSectionRectPieces(this, parts);
+                return new CardTextSegmentRectPieces(this, parts);
             }
             else {
                 throw new InvalidOperationException($"Cannot split a {GetType().Name} with Splittable==false.");
@@ -103,9 +103,9 @@ namespace SharpSheets.Cards.Card.SectionRects {
 
         #region Card Text Pieces
 
-        public class CardTextSectionRectPieces : IPartialCardSectionRects {
-            public IFixedCardSectionRect Parent { get { return original; } }
-            readonly CardTextSectionRect original;
+        public class CardTextSegmentRectPieces : IPartialCardSegmentRects {
+            public IFixedCardSegmentRect Parent { get { return original; } }
+            readonly CardTextSegmentRect original;
             public int Boxes { get; set; }
 
             public bool PenaliseSplit { get; } = false;
@@ -114,7 +114,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
             bool remainingIsParagraphStart;
             int boxCount;
 
-            public CardTextSectionRectPieces(CardTextSectionRect original, int boxes) {
+            public CardTextSegmentRectPieces(CardTextSegmentRect original, int boxes) {
                 this.original = original;
                 Boxes = boxes;
             }
@@ -131,7 +131,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
 			}
 			*/
 
-            public IFixedCardSectionRect? FromAvailableHeight(ISharpGraphicsState graphicsState, float availableHeight, float width, float fontSize, ParagraphSpecification paragraphSpec, CardQueryCache cache, out float resultingHeight) {
+            public IFixedCardSegmentRect? FromAvailableHeight(ISharpGraphicsState graphicsState, float availableHeight, float width, float fontSize, ParagraphSpecification paragraphSpec, CardQueryCache cache, out float resultingHeight) {
 
                 boxCount++;
 
@@ -166,9 +166,9 @@ namespace SharpSheets.Cards.Card.SectionRects {
                     splitInParagraph = false;
                 }
 
-                CardTextSectionRect? nextBox;
+                CardTextSegmentRect? nextBox;
                 if (boxText != null) {
-                    nextBox = new CardTextSectionRect(original.Config, original.outlines, boxText, false) {
+                    nextBox = new CardTextSegmentRect(original.Config, original.outlines, boxText, false) {
                         Original = original,
                         IsParagraphStart = remainingIsParagraphStart,
                         partIndex = boxCount - 1,
@@ -186,8 +186,8 @@ namespace SharpSheets.Cards.Card.SectionRects {
                 return nextBox;
             }
 
-            public IPartialCardSectionRects Clone() {
-                return new CardTextSectionRectPieces(original, Boxes);
+            public IPartialCardSegmentRects Clone() {
+                return new CardTextSegmentRectPieces(original, Boxes);
             }
         }
 

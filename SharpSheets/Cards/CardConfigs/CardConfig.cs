@@ -31,13 +31,13 @@ namespace SharpSheets.Cards.CardConfigs {
 		IVariableDefinitionBox Variables { get; }
 	}
 
-	public interface ICardSectionParent : IHasVariableDefinitionBox {
+	public interface ICardSegmentParent : IHasVariableDefinitionBox {
 		DirectoryPath Source { get; }
 	}
 
 	public enum LayoutStrategy { CARD, SCROLL }
 
-	public class CardSetConfig : ICardSectionParent {
+	public class CardSetConfig : ICardSegmentParent {
 		
 		public readonly string name;
 		public readonly FilePath origin;
@@ -62,7 +62,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		public readonly ConditionalCollection<IContext> outlines;
 		public readonly ConditionalCollection<IContext> headers;
-		public readonly ConditionalCollection<AbstractCardSectionConfig> cardSections;
+		public readonly ConditionalCollection<AbstractCardSegmentConfig> cardSegments;
 
 		public readonly List<FilePath> archivePaths;
 		private readonly Dictionary<string, CardSubject> archive;
@@ -122,7 +122,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			this.outlines = new ConditionalCollection<IContext>();
 			this.headers = new ConditionalCollection<IContext>();
-			this.cardSections = new ConditionalCollection<AbstractCardSectionConfig>();
+			this.cardSegments = new ConditionalCollection<AbstractCardSegmentConfig>();
 
 			this.archivePaths = new List<FilePath>();
 			this.archive = new Dictionary<string, CardSubject>(StringComparer.InvariantCultureIgnoreCase); // TODO This is not the right StringComparer
@@ -150,7 +150,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	public class CardConfig : ICardSectionParent {
+	public class CardConfig : ICardSegmentParent {
 
 		public readonly CardSetConfig cardSetConfig;
 		public DirectoryPath Source => cardSetConfig.Source;
@@ -167,7 +167,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly DefinitionGroup definitions;
 		public readonly ConditionalCollection<IContext> outlines;
 		public readonly ConditionalCollection<IContext> headers;
-		public readonly ConditionalCollection<AbstractCardSectionConfig> cardSections;
+		public readonly ConditionalCollection<AbstractCardSegmentConfig> cardSegments;
 
 		private readonly bool singles;
 		private readonly int? _maxCards;
@@ -224,17 +224,17 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.definitions = new DefinitionGroup(cardSetConfig.definitions); // Combined with card set definitions here
 			this.outlines = new ConditionalCollection<IContext>();
 			this.headers = new ConditionalCollection<IContext>();
-			this.cardSections = new ConditionalCollection<AbstractCardSectionConfig>();
+			this.cardSegments = new ConditionalCollection<AbstractCardSegmentConfig>();
 
 			this.variableBox = new VariableDefinitionBox(CardConfigEnvironments.BaseDefinitions, this.definitions, cardSetConfig.Variables);
 		}
 
 	}
 
-	public abstract class AbstractCardSectionConfig : IHasVariableDefinitionBox {
+	public abstract class AbstractCardSegmentConfig : IHasVariableDefinitionBox {
 
 		//public readonly CardConfig cardConfig;
-		public readonly ICardSectionParent parent;
+		public readonly ICardSegmentParent parent;
 
 		public readonly bool splittable;
 		public readonly bool acceptRemaining;
@@ -255,9 +255,9 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="_acceptRemaining"></param>
 		/// <param name="_atPosition"></param>
 		/// <param name="format"></param>
-		public AbstractCardSectionConfig(
+		public AbstractCardSegmentConfig(
 			//CardConfig cardConfig,
-			ICardSectionParent parent,
+			ICardSegmentParent parent,
 			bool _splittable = false,
 			bool _acceptRemaining = false,
 			int[]? _atPosition = null,
@@ -274,12 +274,12 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.definitions = new DefinitionGroup();
 			this.outlines = new ConditionalCollection<IContext>();
 
-			this.variableBox = new VariableDefinitionBox(CardSectionEnvironments.BaseDefinitions, this.definitions, parent.Variables);
+			this.variableBox = new VariableDefinitionBox(CardSegmentEnvironments.BaseDefinitions, this.definitions, parent.Variables);
 		}
 
 	}
 
-	public class DynamicCardSectionConfig : AbstractCardSectionConfig {
+	public class DynamicCardSegmentConfig : AbstractCardSegmentConfig {
 
 		public readonly bool equalSizeFeatures;
 		public readonly bool spaceFeatures;
@@ -301,9 +301,9 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="_alwaysInclude"></param>
 		/// <param name="_atPosition"></param>
 		/// <param name="format"></param>
-		public DynamicCardSectionConfig(
+		public DynamicCardSegmentConfig(
 			//CardConfig cardConfig,
-			ICardSectionParent parent,
+			ICardSegmentParent parent,
 			bool _splittable = false,
 			bool _acceptRemaining = false,
 			bool _equalSizeFeatures = false,
@@ -325,7 +325,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	public class TextCardSectionConfig : AbstractCardSectionConfig {
+	public class TextCardSegmentConfig : AbstractCardSegmentConfig {
 
 		public readonly IExpression<string> content;
 		public readonly IExpression<string> delimiter;
@@ -354,9 +354,9 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="heightStrategy"></param>
 		/// <param name="_atPosition"></param>
 		/// <param name="format"></param>
-		public TextCardSectionConfig(
+		public TextCardSegmentConfig(
 			//CardConfig cardConfig,
-			ICardSectionParent parent,
+			ICardSegmentParent parent,
 			IExpression<string> _content,
 			IExpression<string> _delimiter,
 			IExpression<string> _prefix,
@@ -385,7 +385,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	public class ParagraphCardSectionConfig : AbstractCardSectionConfig {
+	public class ParagraphCardSegmentConfig : AbstractCardSegmentConfig {
 
 		public readonly IExpression<string> content;
 
@@ -417,9 +417,9 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="bulletOffset"></param>
 		/// <param name="_atPosition"></param>
 		/// <param name="format"></param>
-		public ParagraphCardSectionConfig(
+		public ParagraphCardSegmentConfig(
 			//CardConfig cardConfig,
-			ICardSectionParent parent,
+			ICardSegmentParent parent,
 			IExpression<string> _content,
 			bool _splittable = false,
 			bool _acceptRemaining = false,
@@ -452,7 +452,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	public class TableCardSectionConfig : AbstractCardSectionConfig {
+	public class TableCardSegmentConfig : AbstractCardSegmentConfig {
 
 		public readonly bool equalSizeFeatures;
 		public readonly bool spaceFeatures;
@@ -474,9 +474,9 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="tableColors"></param>
 		/// <param name="_atPosition"></param>
 		/// <param name="format"></param>
-		public TableCardSectionConfig(
+		public TableCardSegmentConfig(
 			//CardConfig cardConfig,
-			ICardSectionParent parent,
+			ICardSegmentParent parent,
 			bool _splittable = false,
 			bool _acceptRemaining = false,
 			bool _equalSizeFeatures = false,
@@ -500,13 +500,13 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	public class CardFeatureConfig : IHasVariableDefinitionBox {
 
-		public readonly AbstractCardSectionConfig cardSectionConfig;
+		public readonly AbstractCardSegmentConfig cardSegmentConfig;
 
 		public readonly DefinitionGroup definitions;
 		public readonly IContext layout;
 		private readonly RegexFormats? regexFormats;
 
-		public RegexFormats RegexFormats { get { return regexFormats ?? cardSectionConfig.regexFormats; } }
+		public RegexFormats RegexFormats { get { return regexFormats ?? cardSegmentConfig.regexFormats; } }
 
 		private readonly VariableDefinitionBox variableBox;
 		public IVariableDefinitionBox Variables => variableBox;
@@ -514,17 +514,17 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <summary>
 		/// 
 		/// </summary>
-		/// <param name="cardSection" exclude="true"></param>
+		/// <param name="cardSegment" exclude="true"></param>
 		/// <param name="layout" exclude="true"></param>
 		/// <param name="format"></param>
-		public CardFeatureConfig(AbstractCardSectionConfig cardSection, IContext layout, RegexFormats? format = null) {
-			this.cardSectionConfig = cardSection;
+		public CardFeatureConfig(AbstractCardSegmentConfig cardSegment, IContext layout, RegexFormats? format = null) {
+			this.cardSegmentConfig = cardSegment;
 			this.layout = layout;
 			this.regexFormats = format;
 
 			this.definitions = new DefinitionGroup();
 
-			this.variableBox = new VariableDefinitionBox(CardFeatureEnvironments.BaseDefinitions, this.definitions, cardSectionConfig.Variables);
+			this.variableBox = new VariableDefinitionBox(CardFeatureEnvironments.BaseDefinitions, this.definitions, cardSegmentConfig.Variables);
 		}
 
 	}

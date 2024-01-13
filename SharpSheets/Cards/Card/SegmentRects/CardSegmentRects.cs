@@ -9,15 +9,15 @@ using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Cards.Layouts;
 using SharpSheets.Utilities;
 
-namespace SharpSheets.Cards.Card.SectionRects {
+namespace SharpSheets.Cards.Card.SegmentRects {
 
-    public interface ICardSectionRect { }
+    public interface ICardSegmentRect { }
 
-    public interface IFixedCardSectionRect : ICardSectionRect {
+    public interface IFixedCardSegmentRect : ICardSegmentRect {
 
-        AbstractCardSectionConfig? Config { get; }
+        AbstractCardSegmentConfig? Config { get; }
 
-        IFixedCardSectionRect? Original { get; }
+        IFixedCardSegmentRect? Original { get; }
 
         //int PartIndex { get; }
         //int PartsCount { get; }
@@ -46,7 +46,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
         /// <returns></returns>
         /// <exception cref="NotSupportedException"></exception>
         /// <exception cref="InvalidOperationException"></exception>
-        IPartialCardSectionRects Split(int parts);
+        IPartialCardSegmentRects Split(int parts);
 
         // TODO Does ParagraphSpecification need to be an argument here? (It should be immutable now, and could be a property of the object)
         /// <summary>
@@ -62,7 +62,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
         void Draw(ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec);
     }
 
-    public interface IPartialCardSectionRects : ICardSectionRect {
+    public interface IPartialCardSegmentRects : ICardSegmentRect {
         /// <summary>
         /// 
         /// </summary>
@@ -77,16 +77,16 @@ namespace SharpSheets.Cards.Card.SectionRects {
         /// <exception cref="CardLayoutException"></exception>
         /// <exception cref="InvalidRectangleException"></exception>
         /// <exception cref="InvalidOperationException"></exception>
-        IFixedCardSectionRect? FromAvailableHeight(ISharpGraphicsState graphicsState, float availableHeight, float width, float fontSize, ParagraphSpecification paragraphSpec, CardQueryCache cache, out float resultingHeight);
+        IFixedCardSegmentRect? FromAvailableHeight(ISharpGraphicsState graphicsState, float availableHeight, float width, float fontSize, ParagraphSpecification paragraphSpec, CardQueryCache cache, out float resultingHeight);
         int Boxes { get; set; }
         //void RemoveBox();
         void Reset();
 
         bool PenaliseSplit { get; }
 
-        IFixedCardSectionRect Parent { get; }
+        IFixedCardSegmentRect Parent { get; }
 
-        IPartialCardSectionRects Clone();
+        IPartialCardSegmentRects Clone();
     }
 
     public class CardQueryCache {
@@ -110,7 +110,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
         /// <exception cref="CardLayoutException"></exception>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="InvalidRectangleException"></exception>
-        public float GetMinimumHeight(IFixedCardSectionRect rect, float fontSize, ParagraphSpecification paragraphSpec, float width) {
+        public float GetMinimumHeight(IFixedCardSegmentRect rect, float fontSize, ParagraphSpecification paragraphSpec, float width) {
             TotalCalls++;
             CardQuery query = new CardQuery(rect, fontSize, paragraphSpec, width);
             if (cache.TryGetValue(query, out float minimumHeight)) {
@@ -126,7 +126,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
     }
 
     public readonly struct CardQuery {
-        public IFixedCardSectionRect Rect { get; }
+        public IFixedCardSegmentRect Rect { get; }
         public float FontSize { get; }
         public ParagraphSpecification ParagraphSpec { get; }
         public float Width { get; }
@@ -136,7 +136,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
         public float Indent => ParagraphSpec.Indent;
         public float HangingIndent => ParagraphSpec.HangingIndent;
 
-        public CardQuery(IFixedCardSectionRect rect, float fontSize, ParagraphSpecification paragraphSpec, float width) {
+        public CardQuery(IFixedCardSegmentRect rect, float fontSize, ParagraphSpecification paragraphSpec, float width) {
             Rect = rect;
             FontSize = fontSize;
             ParagraphSpec = paragraphSpec;
@@ -164,17 +164,17 @@ namespace SharpSheets.Cards.Card.SectionRects {
         }
     }
 
-    public class CardErrorSectionRect : IFixedCardSectionRect {
+    public class CardErrorSegmentRect : IFixedCardSegmentRect {
 
-        public AbstractCardSectionConfig? Config { get; } = null;
-        public IFixedCardSectionRect Original { get { return this; } }
+        public AbstractCardSegmentConfig? Config { get; } = null;
+        public IFixedCardSegmentRect Original { get { return this; } }
 
         public bool Splittable { get; } = false;
         public bool AcceptRemaining { get; } = false;
 
         public readonly string Message;
 
-        public CardErrorSectionRect(string message) {
+        public CardErrorSegmentRect(string message) {
             Message = message;
         }
 
@@ -192,8 +192,8 @@ namespace SharpSheets.Cards.Card.SectionRects {
             canvas.RestoreState();
         }
 
-        public IPartialCardSectionRects Split(int parts) {
-            throw new NotSupportedException("Cannot split a CardErrorSectionRect.");
+        public IPartialCardSegmentRects Split(int parts) {
+            throw new NotSupportedException($"Cannot split a {nameof(CardErrorSegmentRect)}.");
         }
     }
 

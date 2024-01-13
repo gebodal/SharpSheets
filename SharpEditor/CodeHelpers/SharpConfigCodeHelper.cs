@@ -890,8 +890,8 @@ namespace SharpEditor.CodeHelpers {
 		protected override void GetAdditionalToolTipContent(CardConfigSpan span, string word, List<UIElement> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
 			if (constructor != null) {
 				if (constructor.FullName == CardSetConfigFactory.OutlineConstructor.FullName) {
-					if ((constructorContext ?? Context.Empty).TraverseParents().Any(c => CardSetConfigFactory.SectionConfigConstructors.ContainsKey(c.SimpleName))) {
-						elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSubjectEnvironments.BaseDefinitions.Concat(CardSectionEnvironments.BaseDefinitions).Concat(CardSectionOutlineEnvironments.BaseDefinitions), null));
+					if ((constructorContext ?? Context.Empty).TraverseParents().Any(c => CardSetConfigFactory.SegmentConfigConstructors.ContainsKey(c.SimpleName))) {
+						elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSubjectEnvironments.BaseDefinitions.Concat(CardSegmentEnvironments.BaseDefinitions).Concat(CardSegmentOutlineEnvironments.BaseDefinitions), null));
 					}
 					else {
 						elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSubjectEnvironments.BaseDefinitions.Concat(CardOutlinesEnvironments.BaseDefinitions), null));
@@ -909,7 +909,7 @@ namespace SharpEditor.CodeHelpers {
 					elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardFeatureEnvironments.BaseDefinitions, null));
 				}
 				else if (CardSetConfigFactory.cardConfigConstructorsByName.ContainsKey(constructor.FullName)) { // This one last so we've already checked other possibilities from this collection
-					elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSectionEnvironments.BaseDefinitions, null));
+					elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSegmentEnvironments.BaseDefinitions, null));
 				}
 			}
 		}

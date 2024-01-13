@@ -360,8 +360,8 @@ namespace SharpEditor.Documentation {
 					DocumentationSectionContents.MarkupEnvironmentFunctions => DocumentationBuilder.GetEnvironmentFunctionsContents(SharpSheets.Markup.Canvas.MarkupEnvironments.DrawingStateVariables, this),
 					DocumentationSectionContents.CardSubjectEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardSubjectEnvironments.BaseDefinitions, this),
 					DocumentationSectionContents.CardOutlineEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardOutlinesEnvironments.BaseDefinitions, this),
-					DocumentationSectionContents.CardSectionEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardSectionEnvironments.BaseDefinitions, this),
-					DocumentationSectionContents.CardSectionOutlineEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardSectionOutlineEnvironments.BaseDefinitions, this),
+					DocumentationSectionContents.CardSectionEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardSegmentEnvironments.BaseDefinitions, this),
+					DocumentationSectionContents.CardSectionOutlineEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardSegmentOutlineEnvironments.BaseDefinitions, this),
 					DocumentationSectionContents.CardFeatureEnvironmentVariables => DocumentationBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardFeatureEnvironments.BaseDefinitions, this),
 					_ => throw new InvalidOperationException("Unknown DocumentationSectionContents value.")
 				};

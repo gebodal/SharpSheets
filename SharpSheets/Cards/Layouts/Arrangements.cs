@@ -3,7 +3,7 @@ using SharpSheets.Layouts;
 using SharpSheets.Canvas.Text;
 using System.Collections.Generic;
 using System.Linq;
-using SharpSheets.Cards.Card.SectionRects;
+using SharpSheets.Cards.Card.SegmentRects;
 
 namespace SharpSheets.Cards.Layouts {
 
@@ -11,7 +11,7 @@ namespace SharpSheets.Cards.Layouts {
 
 		public readonly Size sampleFeatureSize;
 
-		public readonly IFixedCardSectionRect[] boxes;
+		public readonly IFixedCardSegmentRect[] boxes;
 		public readonly Size[] areas;
 		public readonly float[] minHeights;
 
@@ -19,7 +19,7 @@ namespace SharpSheets.Cards.Layouts {
 
 		public int Length => boxes.Length;
 
-		public SingleCardLayout(Size sampleFeatureRect, IFixedCardSectionRect[] boxes, Size[] areas, float[] minHeights, float unusedHeight) {
+		public SingleCardLayout(Size sampleFeatureRect, IFixedCardSegmentRect[] boxes, Size[] areas, float[] minHeights, float unusedHeight) {
 			this.sampleFeatureSize = sampleFeatureRect;
 
 			this.boxes = boxes;
@@ -61,16 +61,16 @@ namespace SharpSheets.Cards.Layouts {
 
 	}
 
-	public class CardArrangementComparer : IEqualityComparer<ICardSectionRect[][]> {
+	public class CardArrangementComparer : IEqualityComparer<ICardSegmentRect[][]> {
 
-		public static bool BoxEquality(ICardSectionRect b1, ICardSectionRect b2) {
-			if (b1 is IPartialCardSectionRects p1 && b2 is IPartialCardSectionRects p2) {
+		public static bool BoxEquality(ICardSegmentRect b1, ICardSegmentRect b2) {
+			if (b1 is IPartialCardSegmentRects p1 && b2 is IPartialCardSegmentRects p2) {
 				return p1.Parent == p2.Parent;
 			}
 			return b1 == b2;
 		}
 
-		public bool Equals(ICardSectionRect[][]? a, ICardSectionRect[][]? b) {
+		public bool Equals(ICardSegmentRect[][]? a, ICardSegmentRect[][]? b) {
 			if(a is null || b is null) {
 				return a is null && b is null;
 			}
@@ -95,7 +95,7 @@ namespace SharpSheets.Cards.Layouts {
 			}
 		}
 
-		public int GetHashCode(ICardSectionRect[][] obj) {
+		public int GetHashCode(ICardSegmentRect[][] obj) {
 			return string.Join(", ", obj.Select(a => "[" + string.Join(", ", a.Select(b => b.GetType().Name)) + "]")).GetHashCode();
 
 		}
