@@ -5,9 +5,13 @@ using SharpSheets.Utilities;
 
 namespace SharpSheets.Cards.CardConfigs {
 
-	public class InterpolatedContext : IExpression<IContext> {
+	public class InterpolatedContext {
 
-		public static InterpolatedContext Parse(IContext originalContext, IVariableBox variables, bool pruneChildren) {
+		public static readonly InterpolatedContext Empty = new InterpolatedContext(Context.Empty, VariableBoxes.Empty, true, true, Enumerable.Empty<ContextProperty<string>>(), Enumerable.Empty<ContextProperty<TextExpression>>(), Array.Empty<ContextValue<TextExpression>>());
+
+		public static InterpolatedContext Parse(IContext originalContext, IVariableBox variables, bool pruneChildren, out SharpParsingException[] contextErrors) {
+
+			List<SharpParsingException> errors = new List<SharpParsingException>();
 
 			string? conditionStr = originalContext.GetProperty("condition", true, null, null, out DocumentSpan? conditionLocation);
 
@@ -16,8 +20,10 @@ namespace SharpSheets.Cards.CardConfigs {
 				try {
 					condition = BoolExpression.Parse(conditionStr, variables);
 				}
-				catch (EvaluationException) { }
-				throw new SharpParsingException(conditionLocation, "Invalid condition.");
+				catch (EvaluationException e) {
+					errors.Add(new SharpParsingException(conditionLocation, "Error parsing condition: " + e.Message, e));
+					condition = true;
+				}
 			}
 			else {
 				condition = true;
@@ -37,7 +43,7 @@ namespace SharpSheets.Cards.CardConfigs {
 					}
 				}
 				catch (EvaluationException e) {
-					throw new SharpParsingException(property.ValueLocation, e.Message, e);
+					errors.Add(new SharpParsingException(property.ValueLocation, e.Message, e));
 				}
 			}
 			
@@ -49,21 +55,31 @@ namespace SharpSheets.Cards.CardConfigs {
 					entries.Add(new ContextValue<TextExpression>(entry.Location, expr));
 				}
 				catch (EvaluationException e) {
-					throw new SharpParsingException(entry.Location, e.Message, e);
+					errors.Add(new SharpParsingException(entry.Location, e.Message, e));
 				}
 			}
 
 			InterpolatedContext context = new InterpolatedContext(originalContext, variables, pruneChildren, condition, simpleProperties, exprProperties, entries);
 
 			foreach(IContext child in originalContext.Children) {
-				context.children.Add(Parse(child, variables, pruneChildren));
+				context.children.Add(Parse(child, variables, pruneChildren, out SharpParsingException[] childErrors));
+				errors.AddRange(childErrors);
 			}
 			foreach(KeyValuePair<string, IContext> namedChild in originalContext.NamedChildren) {
-				context.namedChildren.Add(namedChild.Key, Parse(namedChild.Value, variables, pruneChildren));
+				context.namedChildren.Add(namedChild.Key, Parse(namedChild.Value, variables, pruneChildren, out SharpParsingException[] namedChildErrors));
+				errors.AddRange(namedChildErrors);
 			}
 
+			contextErrors = errors.ToArray();
 			return context;
 		}
+
+		public string SimpleName => OriginalContext.SimpleName;
+		public string DetailedName => OriginalContext.DetailedName;
+		public string FullName => OriginalContext.FullName;
+		public DocumentSpan Location => OriginalContext.Location;
+		public int Depth => OriginalContext.Depth;
+		public IContext? Parent => OriginalContext.Parent;
 
 		public IContext OriginalContext { get; }
 		public IVariableBox Variables { get; }
@@ -77,7 +93,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		private readonly List<InterpolatedContext> children;
 		private readonly Dictionary<string, InterpolatedContext> namedChildren;
 
-		public InterpolatedContext(IContext originalContext, IVariableBox variables, bool pruneChildren, BoolExpression condition, IEnumerable<ContextProperty<string>> simpleProperties, IEnumerable<ContextProperty<TextExpression>> exprProperties, IList<ContextValue<TextExpression>> exprEntries) {
+		private InterpolatedContext(IContext originalContext, IVariableBox variables, bool pruneChildren, BoolExpression condition, IEnumerable<ContextProperty<string>> simpleProperties, IEnumerable<ContextProperty<TextExpression>> exprProperties, IList<ContextValue<TextExpression>> exprEntries) {
 			OriginalContext = originalContext;
 			Variables = variables;
 			PruneChildren = pruneChildren;
@@ -97,8 +113,11 @@ namespace SharpSheets.Cards.CardConfigs {
 			}
 		}
 
-		public IContext Evaluate(IEnvironment environment) {
-			return EvaluateContext(environment);
+		public IContext Evaluate(IEnvironment environment, out SharpParsingException[] contextErrors) {
+			List<SharpParsingException> errors = new List<SharpParsingException>();
+			EvaluatedContext result = EvaluateContext(environment, errors);
+			contextErrors = errors.ToArray();
+			return result;
 		}
 
 		public IEnumerable<EvaluationName> GetVariables() {
@@ -109,7 +128,7 @@ namespace SharpSheets.Cards.CardConfigs {
 					).Distinct();
 		}
 
-		private EvaluatedContext EvaluateContext(IEnvironment environment) {
+		private EvaluatedContext EvaluateContext(IEnvironment environment, List<SharpParsingException> errors) {
 			Dictionary<string, ContextProperty<string>> properties = new Dictionary<string, ContextProperty<string>>(simpleProperties, SharpDocuments.StringComparer);
 
 			foreach(KeyValuePair<string, ContextProperty<TextExpression>> property in exprProperties) {
@@ -118,7 +137,7 @@ namespace SharpSheets.Cards.CardConfigs {
 					properties.Add(property.Key, new ContextProperty<string>(property.Value.Location, property.Value.Name, property.Value.ValueLocation, result));
 				}
 				catch (EvaluationException e) {
-					throw new SharpParsingException(property.Value.ValueLocation, e.Message, e);
+					errors.Add(new SharpParsingException(property.Value.ValueLocation, e.Message, e));
 				}
 			}
 
@@ -130,7 +149,7 @@ namespace SharpSheets.Cards.CardConfigs {
 					entries.Add(new ContextValue<string>(entry.Location, result));
 				}
 				catch (EvaluationException e) {
-					throw new SharpParsingException(entry.Location, e.Message, e);
+					errors.Add(new SharpParsingException(entry.Location, e.Message, e));
 				}
 			}
 
@@ -138,12 +157,12 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			foreach(InterpolatedContext child in children) {
 				if (!PruneChildren || child.Condition.Evaluate(environment)) {
-					context.children.Add(child.EvaluateContext(environment));
+					context.children.Add(child.EvaluateContext(environment, errors));
 				}
 			}
 			foreach(KeyValuePair<string, InterpolatedContext> namedChild in namedChildren) {
 				if (!PruneChildren || namedChild.Value.Condition.Evaluate(environment)) {
-					context.namedChildren.Add(namedChild.Key, namedChild.Value.EvaluateContext(environment));
+					context.namedChildren.Add(namedChild.Key, namedChild.Value.EvaluateContext(environment, errors));
 				}
 			}
 

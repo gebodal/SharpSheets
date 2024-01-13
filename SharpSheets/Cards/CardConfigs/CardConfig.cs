@@ -60,8 +60,8 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		public readonly ConditionalCollection<CardConfig> cardConfigs;
 
-		public readonly ConditionalCollection<IContext> outlines;
-		public readonly ConditionalCollection<IContext> headers;
+		public readonly ConditionalCollection<InterpolatedContext> outlines;
+		public readonly ConditionalCollection<InterpolatedContext> headers;
 		public readonly ConditionalCollection<AbstractCardSegmentConfig> cardSegments;
 
 		public readonly List<FilePath> archivePaths;
@@ -120,8 +120,8 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			this.cardConfigs = new ConditionalCollection<CardConfig>();
 
-			this.outlines = new ConditionalCollection<IContext>();
-			this.headers = new ConditionalCollection<IContext>();
+			this.outlines = new ConditionalCollection<InterpolatedContext>();
+			this.headers = new ConditionalCollection<InterpolatedContext>();
 			this.cardSegments = new ConditionalCollection<AbstractCardSegmentConfig>();
 
 			this.archivePaths = new List<FilePath>();
@@ -165,8 +165,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly bool joinSplitCards;
 		
 		public readonly DefinitionGroup definitions;
-		public readonly ConditionalCollection<IContext> outlines;
-		public readonly ConditionalCollection<IContext> headers;
+		public readonly ConditionalCollection<InterpolatedContext> outlines;
+		public readonly ConditionalCollection<InterpolatedContext> headers;
 		public readonly ConditionalCollection<AbstractCardSegmentConfig> cardSegments;
 
 		private readonly bool singles;
@@ -222,8 +222,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.joinSplitCards = joinSplitCards;
 
 			this.definitions = new DefinitionGroup(cardSetConfig.definitions); // Combined with card set definitions here
-			this.outlines = new ConditionalCollection<IContext>();
-			this.headers = new ConditionalCollection<IContext>();
+			this.outlines = new ConditionalCollection<InterpolatedContext>();
+			this.headers = new ConditionalCollection<InterpolatedContext>();
 			this.cardSegments = new ConditionalCollection<AbstractCardSegmentConfig>();
 
 			this.variableBox = new VariableDefinitionBox(CardConfigEnvironments.BaseDefinitions, this.definitions, cardSetConfig.Variables);
@@ -239,7 +239,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly bool splittable;
 		public readonly bool acceptRemaining;
 		public readonly DefinitionGroup definitions;
-		public readonly ConditionalCollection<IContext> outlines;
+		public readonly ConditionalCollection<InterpolatedContext> outlines;
 		public readonly RegexFormats regexFormats;
 
 		public readonly int[]? atPosition;
@@ -272,7 +272,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.regexFormats = format ?? new RegexFormats(null, null, null, null);
 
 			this.definitions = new DefinitionGroup();
-			this.outlines = new ConditionalCollection<IContext>();
+			this.outlines = new ConditionalCollection<InterpolatedContext>();
 
 			this.variableBox = new VariableDefinitionBox(CardSegmentEnvironments.BaseDefinitions, this.definitions, parent.Variables);
 		}
@@ -503,8 +503,17 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly AbstractCardSegmentConfig cardSegmentConfig;
 
 		public readonly DefinitionGroup definitions;
-		public readonly IContext layout;
+		private InterpolatedContext? layout;
 		private readonly RegexFormats? regexFormats;
+
+		public InterpolatedContext Layout {
+			get {
+				return layout ?? InterpolatedContext.Empty;
+			}
+			internal set {
+				layout = value;
+			}
+		}
 
 		public RegexFormats RegexFormats { get { return regexFormats ?? cardSegmentConfig.regexFormats; } }
 
@@ -515,11 +524,10 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// 
 		/// </summary>
 		/// <param name="cardSegment" exclude="true"></param>
-		/// <param name="layout" exclude="true"></param>
 		/// <param name="format"></param>
-		public CardFeatureConfig(AbstractCardSegmentConfig cardSegment, IContext layout, RegexFormats? format = null) {
+		public CardFeatureConfig(AbstractCardSegmentConfig cardSegment, RegexFormats? format = null) {
 			this.cardSegmentConfig = cardSegment;
-			this.layout = layout;
+			this.layout = null;
 			this.regexFormats = format;
 
 			this.definitions = new DefinitionGroup();

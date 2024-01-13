@@ -187,17 +187,19 @@ namespace SharpSheets.Cards.CardConfigs {
 			IEnvironment outlinesDryRunEnvironment = CardOutlinesEnvironments.GetDryRun(cardSetConfig);
 
 			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor.Name))) {
-				Conditional<IContext> outlineEntry = MakeCondition(outline, outline, outlinesVariables, errors);
+				InterpolatedContext outlineContext = MakeInterpolatedContext(outline, outlinesVariables, errors);
+				Conditional<InterpolatedContext> outlineEntry = MakeCondition(outline, outlineContext, outlinesVariables, errors);
 				cardSetConfig.outlines.Add(outlineEntry);
 				if (origins != null) { origins.Add(outline, outline); } // TODO Yes?
-				DryRunRect(outline, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
+				DryRunParse(outlineContext, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
 			}
 
 			foreach (IContext header in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, HeaderConstructor.Name))) {
-				Conditional<IContext> headerEntry = MakeCondition(header, header, outlinesVariables, errors);
+				InterpolatedContext headerContext = MakeInterpolatedContext(header, outlinesVariables, errors);
+				Conditional<InterpolatedContext> headerEntry = MakeCondition(header, headerContext, outlinesVariables, errors);
 				cardSetConfig.headers.Add(headerEntry);
 				if (origins != null) { origins.Add(header, header); } // TODO Yes?
-				DryRunRect(header, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
+				DryRunParse(headerContext, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
 			}
 
 			foreach (IContext segment in context.Children.Where(c => cardSegmentConfigConstructorsByName.ContainsKey(c.SimpleName))) {
@@ -307,17 +309,19 @@ namespace SharpSheets.Cards.CardConfigs {
 			IEnvironment outlinesDryRunEnvironment = CardOutlinesEnvironments.GetDryRun(cardConfig); // DynamicCardEnvironments.CardNumberDryRun(CardSubjectEnvironments.GetDryRun(cardConfig));
 
 			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor.Name))) {
-				Conditional<IContext> outlineEntry = MakeCondition(outline, outline, outlinesVariables, errors);
+				InterpolatedContext outlineContext = MakeInterpolatedContext(outline, outlinesVariables, errors);
+				Conditional<InterpolatedContext> outlineEntry = MakeCondition(outline, outlineContext, outlinesVariables, errors);
 				cardConfig.outlines.Add(outlineEntry);
 				if (origins != null) { origins.Add(outline, outline); } // TODO Yes?
-				DryRunRect(outline, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
+				DryRunParse(outlineContext, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
 			}
 
 			foreach (IContext header in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, HeaderConstructor.Name))) {
-				Conditional<IContext> headerEntry = MakeCondition(header, header, outlinesVariables, errors);
+				InterpolatedContext headerContext = MakeInterpolatedContext(header, outlinesVariables, errors);
+				Conditional<InterpolatedContext> headerEntry = MakeCondition(header, headerContext, outlinesVariables, errors);
 				cardConfig.headers.Add(headerEntry);
 				if (origins != null) { origins.Add(header, header); } // TODO Yes?
-				DryRunRect(header, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
+				DryRunParse(headerContext, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
 			}
 
 			foreach (IContext segment in context.Children.Where(c => cardSegmentConfigConstructorsByName.ContainsKey(c.SimpleName))) {
@@ -402,10 +406,11 @@ namespace SharpSheets.Cards.CardConfigs {
 			IVariableBox outlinesVariables = CardSegmentOutlineEnvironments.GetVariables(cardSegment);
 			IEnvironment outlinesDryRunEnvironment = CardSegmentOutlineEnvironments.GetDryRun(cardSegment);
 			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor.Name))) {
-				Conditional<IContext> outlineEntry = MakeCondition(outline, outline, outlinesVariables, errors);
+				InterpolatedContext outlineContext = MakeInterpolatedContext(outline, outlinesVariables, errors);
+				Conditional<InterpolatedContext> outlineEntry = MakeCondition(outline, outlineContext, outlinesVariables, errors);
 				cardSegment.outlines.Add(outlineEntry);
 				if (origins != null) { origins.Add(outline, outline); } // TODO Yes?
-				DryRunRect(outline, outlinesDryRunEnvironment, parent.Source, errors);
+				DryRunParse(outlineContext, outlinesDryRunEnvironment, parent.Source, errors);
 			}
 
 			if (cardSegment is DynamicCardSegmentConfig featuredSegment) {
@@ -416,7 +421,7 @@ namespace SharpSheets.Cards.CardConfigs {
 						Conditional<CardFeatureConfig> segmentFeatureConditional = MakeCondition(feature, cardFeature, cardFeature.Variables, errors);
 						featuredSegment.cardFeatures.Add(segmentFeatureConditional);
 
-						DryRunRect(feature, CardFeatureEnvironments.GetDryRun(cardFeature), parent.Source, errors);
+						DryRunParse(cardFeature.Layout, CardFeatureEnvironments.GetDryRun(cardFeature), parent.Source, errors);
 					}
 				}
 
@@ -437,9 +442,9 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		private CardFeatureConfig? MakeFeature(IContext context, DynamicCardSegmentConfig segmentConfig, DirectoryPath source, Dictionary<object, IDocumentEntity>? origins, List<SharpParsingException> errors) {
 			CardFeatureConfig? cardFeature;
-
+			
 			try {
-				cardFeature = (CardFeatureConfig)SharpFactory.Construct(featureConfigConstructorInfo, context, source, widgetFactory, shapeFactory, new object[] { segmentConfig, context }, out SharpParsingException[] cardFeatureBuildErrors);
+				cardFeature = (CardFeatureConfig)SharpFactory.Construct(featureConfigConstructorInfo, context, source, widgetFactory, shapeFactory, new object[] { segmentConfig }, out SharpParsingException[] cardFeatureBuildErrors);
 				errors.AddRange(cardFeatureBuildErrors);
 			}
 			catch (SharpParsingException e) {
@@ -454,17 +459,20 @@ namespace SharpSheets.Cards.CardConfigs {
 			if (cardFeature == null) { return null; }
 			if (origins != null) { origins.Add(cardFeature, context); }
 
-			IVariableBox definitionVariables = BasisEnvironment.Instance.AppendVariables(cardFeature.Variables);
+			IVariableBox featureVariables = BasisEnvironment.Instance.AppendVariables(cardFeature.Variables);
 
 			foreach (ContextValue<string> definitionValue in context.GetDefinitions(context)) {
 				try {
-					Definition definition = Definition.Parse(definitionValue.Value, definitionVariables);
+					Definition definition = Definition.Parse(definitionValue.Value, featureVariables);
 					cardFeature.definitions.Add(definition);
 				}
 				catch (Exception e) {
 					errors.Add(new SharpParsingException(definitionValue.Location, e.Message, e));
 				}
 			}
+
+			InterpolatedContext featureContext = MakeInterpolatedContext(context, featureVariables, errors);
+			cardFeature.Layout = featureContext;
 
 			return cardFeature;
 		}
@@ -493,6 +501,12 @@ namespace SharpSheets.Cards.CardConfigs {
 			}
 		}
 
+		private InterpolatedContext MakeInterpolatedContext(IContext context, IVariableBox variables, List<SharpParsingException> errors) {
+			InterpolatedContext result = InterpolatedContext.Parse(context, variables, true, out SharpParsingException[] contextErrors);
+			errors.AddRange(contextErrors);
+			return result;
+		}
+
 		private static TextExpression? MakeTextProperty(string property, IContext context, IVariableBox variables, List<SharpParsingException> errors) {
 			if (variables == null) {
 				// TODO Error here?
@@ -513,7 +527,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			}
 		}
 
-		private static void CheckCondition(IContext context, IVariableBox variables, List<SharpParsingException> errors) {
+		/*
+		private static void CheckCondition(InterpolatedContext context, IVariableBox variables, List<SharpParsingException> errors) {
 			string? conditionStr = context.GetProperty(ConditionArgument.Name, true, context, null, out DocumentSpan? conditionLocation);
 			if (conditionStr != null) {
 				try {
@@ -524,15 +539,18 @@ namespace SharpSheets.Cards.CardConfigs {
 				}
 			}
 		}
+		*/
 
-		private void DryRunRect(IContext context, IEnvironment environment, DirectoryPath source, List<SharpParsingException> errors) {
+		private void DryRunParse(InterpolatedContext context, IEnvironment environment, DirectoryPath source, List<SharpParsingException> errors) {
+			/*
 			CheckCondition(context, environment, errors);
 			foreach(IContext child in context.TraverseChildren(true)) {
 				CheckCondition(child, environment, errors);
 			}
+			*/
 
 			try {
-				widgetFactory.MakeWidget(typeof(Div), new InterpolateContext(context, environment, false), source, out SharpParsingException[] rectErrors);
+				widgetFactory.MakeWidget(typeof(Div), new LazyInterpolatedContext(context.OriginalContext, environment, false), source, out SharpParsingException[] rectErrors);
 				errors.AddRange(rectErrors);
 			}
 			catch(UndefinedVariableException e) {
@@ -616,6 +634,125 @@ namespace SharpSheets.Cards.CardConfigs {
 		}
 
 		#endregion
+	}
+
+	public class LazyInterpolatedContext : IContext {
+
+		public IContext OriginalContext { get; }
+		public IEnvironment Environment { get; }
+		public bool PruneChildren { get; }
+
+		/// <summary></summary>
+		/// <exception cref="ArgumentNullException"></exception>
+		public LazyInterpolatedContext(IContext originalContext, IEnvironment environment, bool pruneChildren) {
+			this.OriginalContext = originalContext ?? throw new ArgumentNullException(nameof(originalContext));
+			this.Environment = environment ?? throw new ArgumentNullException(nameof(environment));
+			this.PruneChildren = pruneChildren;
+		}
+
+		/// <summary></summary>
+		/// <exception cref="SharpParsingException"></exception>
+		[return: NotNullIfNotNull(nameof(original))]
+		private string? Replace(string? original, DocumentSpan? location) {
+			if (original == null) { return null; }
+			// Find any variables/expressions ($-prefixed or ${}-wrapped) and replace
+			try {
+				TextExpression expr = Interpolation.Parse(original, Environment, true);
+				string result = expr.Evaluate(Environment); // Environment.Interpolate(original, true);
+				return result;
+			}
+			catch (EvaluationException e) {
+				throw new SharpParsingException(location, e.Message, e);
+			}
+		}
+
+		public string SimpleName => OriginalContext.SimpleName;
+		public string DetailedName => OriginalContext.DetailedName;
+		public string FullName => OriginalContext.FullName;
+		public DocumentSpan Location => OriginalContext.Location;
+		public int Depth => OriginalContext.Depth;
+
+		public IContext? Parent { get { return OriginalContext.Parent is not null ? new LazyInterpolatedContext(OriginalContext.Parent, Environment, PruneChildren) : null; } } // TODO Is this k'sha?
+		public IEnumerable<IContext> Children {
+			get {
+				IEnumerable<IContext> candidates = PruneChildren ? OriginalContext.Children.Where(EvaluateCondition) : OriginalContext.Children;
+				return candidates.Select(c => new LazyInterpolatedContext(c, Environment, PruneChildren));
+			}
+		}
+		public IEnumerable<KeyValuePair<string, IContext>> NamedChildren {
+			get {
+				IEnumerable<KeyValuePair<string, IContext>> candidates = PruneChildren ? OriginalContext.NamedChildren.Where(kv => EvaluateCondition(kv.Value)) : OriginalContext.NamedChildren;
+				return candidates.Select(kv => new KeyValuePair<string, IContext>(kv.Key, new LazyInterpolatedContext(kv.Value, Environment, PruneChildren)));
+			}
+		}
+
+		IDocumentEntity? IDocumentEntity.Parent => Parent;
+		IEnumerable<IDocumentEntity> IDocumentEntity.Children => Children;
+
+		/// <summary></summary>
+		/// <exception cref="SharpParsingException"></exception>
+		private bool EvaluateCondition(IContext context) {
+			string? conditionStr = context.GetProperty("condition", true, context, null, out DocumentSpan? location);
+			if (conditionStr == null) {
+				return true;
+			}
+			else {
+				try {
+					BoolExpression condition = BoolExpression.Parse(conditionStr, Environment);
+					object evaluation = condition.Evaluate(Environment);
+					if (evaluation is bool result) { return result; }
+				}
+				catch (EvaluationException) { }
+				throw new SharpParsingException(location, "Invalid condition.");
+			}
+		}
+
+		public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) {
+			return OriginalContext.GetLocalProperties(origin)
+				.Select(p => new ContextProperty<string>(p.Location, p.Name, p.ValueLocation, Replace(p.Value, p.ValueLocation)));
+		}
+
+		public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) {
+			return OriginalContext.GetLocalFlags(origin);
+		}
+
+		public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) {
+			return OriginalContext.GetEntries(origin).Select(e => new ContextValue<string>(e.Location, Replace(e.Value, e.Location)));
+		}
+
+		public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) {
+			return OriginalContext.GetDefinitions(origin); // TODO Is this right?
+		}
+
+		public bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
+			return OriginalContext.GetFlag(flag, local, origin, out location);
+		}
+
+		public IContext? GetNamedChild(string name) {
+			IContext? namedChild = OriginalContext.GetNamedChild(name);
+			if (namedChild == null) {
+				return null;
+			}
+			else if (PruneChildren) {
+				return EvaluateCondition(namedChild) ? new LazyInterpolatedContext(namedChild, Environment, PruneChildren) : null;
+			}
+			else {
+				return new LazyInterpolatedContext(namedChild, Environment, PruneChildren);
+			}
+		}
+
+		public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
+			string? value = OriginalContext.GetProperty(key, local, origin, defaultValue, out location);
+			return Replace(value, location);
+		}
+
+		public bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
+			return OriginalContext.HasFlag(flag, local, origin, out location);
+		}
+
+		public bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location) {
+			return OriginalContext.HasProperty(key, local, origin, out location);
+		}
 	}
 
 }

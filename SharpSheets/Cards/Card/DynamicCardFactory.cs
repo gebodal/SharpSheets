@@ -81,12 +81,16 @@ namespace SharpSheets.Cards.Card
 			return (headerCollection, outlineCollection);
 		}
 
-		private static bool ProcessCardArrangementOutline(CardSubject subject, ConditionalCollection<IContext> primary, ConditionalCollection<IContext> fallback, IEnvironment environment, DirectoryPath source, WidgetFactory widgetFactory, List<SharpParsingException> errors, string typeName, [MaybeNullWhen(false)] out IWidget result) {
+		private static bool ProcessCardArrangementOutline(CardSubject subject, ConditionalCollection<InterpolatedContext> primary, ConditionalCollection<InterpolatedContext> fallback, IEnvironment environment, DirectoryPath source, WidgetFactory widgetFactory, List<SharpParsingException> errors, string typeName, [MaybeNullWhen(false)] out IWidget result) {
 			IContext? outlineContext;
 			try {
-				outlineContext = primary.GetValue(environment);
-				if (outlineContext == null) {
-					outlineContext = fallback.GetValue(environment);
+				InterpolatedContext? outlineExprContext = primary.GetValue(environment) ?? fallback.GetValue(environment);
+				if (outlineExprContext is not null) {
+					outlineContext = outlineExprContext.Evaluate(environment, out SharpParsingException[] contextErrors);
+					errors.AddRange(contextErrors);
+				}
+				else {
+					outlineContext = null;
 				}
 			}
 			catch (EvaluationException e) {
@@ -97,7 +101,7 @@ namespace SharpSheets.Cards.Card
 			if (outlineContext != null) {
 				IWidget outlineRect;
 				try {
-					outlineRect = widgetFactory.MakeWidget(typeof(Div), new InterpolateContext(outlineContext, environment, true), source, out SharpParsingException[] outlineErrors);
+					outlineRect = widgetFactory.MakeWidget(typeof(Div), outlineContext, source, out SharpParsingException[] outlineErrors);
 					errors.AddRange(outlineErrors.Select(e => e.AtLocation(subject.Location)));
 				}
 				catch (UndefinedVariableException e) {
@@ -237,7 +241,9 @@ namespace SharpSheets.Cards.Card
 				CardFeatureConfig? featureConfig = feature.FeatureConfig;
 				if (featureConfig != null) {
 					IEnvironment featureEnvironment = BasisEnvironment.Instance.AppendEnvironment(feature.Environment);
-					IWidget featureContent = widgetFactory.MakeWidget(typeof(Div), new InterpolateContext(featureConfig.layout, featureEnvironment, true), segmentConfig.parent.Source, out SharpParsingException[] featureErrors);
+					IContext featureContext = featureConfig.Layout.Evaluate(featureEnvironment, out SharpParsingException[] featureContextErrors);
+					errors.AddRange(featureContextErrors);
+					IWidget featureContent = widgetFactory.MakeWidget(typeof(Div), featureContext, segmentConfig.parent.Source, out SharpParsingException[] featureErrors);
 					errors.AddRange(featureErrors.Select(e => e.AtLocation(feature.Location)));
 
 					Div featureDiv = new Div(new WidgetSetup(_size: Dimension.Automatic));
@@ -369,7 +375,9 @@ namespace SharpSheets.Cards.Card
 
 			if (featureConfig != null) {
 				IEnvironment featureEnvironment = BasisEnvironment.Instance.AppendEnvironment(subject.Environment);
-				IWidget featureContent = widgetFactory.MakeWidget(typeof(Div), new InterpolateContext(featureConfig.layout, featureEnvironment, true), segmentConfig.parent.Source, out SharpParsingException[] featureErrors);
+				IContext featureContext = featureConfig.Layout.Evaluate(featureEnvironment, out SharpParsingException[] featureContextErrors);
+				errors.AddRange(featureContextErrors);
+				IWidget featureContent = widgetFactory.MakeWidget(typeof(Div), featureContext, segmentConfig.parent.Source, out SharpParsingException[] featureErrors);
 				errors.AddRange(featureErrors.Select(e => e.AtLocation(subject.Location)));
 
 				Div featureDiv = new Div(new WidgetSetup(_size: Dimension.Automatic));
@@ -430,7 +438,14 @@ namespace SharpSheets.Cards.Card
 
 					IContext? outline;
 					try {
-						outline = segmentConfig.outlines.GetValue(segmentOutlinesEnvironment);
+						InterpolatedContext? outlineExp = segmentConfig.outlines.GetValue(segmentOutlinesEnvironment);
+						if(outlineExp != null) {
+							outline = outlineExp.Evaluate(segmentOutlinesEnvironment, out SharpParsingException[] contextErrors);
+							errors.AddRange(contextErrors);
+						}
+						else {
+							outline = null;
+						}
 					}
 					catch(EvaluationException e) {
 						errors.Add(new SharpParsingException(location, e.Message, e));
@@ -440,7 +455,7 @@ namespace SharpSheets.Cards.Card
 					if (outline != null) {
 						IWidget outlineRect;
 						try {
-							outlineRect = widgetFactory.MakeWidget(typeof(Div), new InterpolateContext(outline, segmentOutlinesEnvironment, true), segmentConfig.parent.Source, out SharpParsingException[] outlineErrors);
+							outlineRect = widgetFactory.MakeWidget(typeof(Div), outline, segmentConfig.parent.Source, out SharpParsingException[] outlineErrors);
 							errors.AddRange(outlineErrors.Select(e => e.AtLocation(location)));
 						}
 						catch (UndefinedVariableException e) {
@@ -464,122 +479,4 @@ namespace SharpSheets.Cards.Card
 		}
 	}
 
-	public class InterpolateContext : IContext {
-
-		public IContext OriginalContext { get; }
-		public IEnvironment Environment { get; }
-		public bool PruneChildren { get; }
-
-		/// <summary></summary>
-		/// <exception cref="ArgumentNullException"></exception>
-		public InterpolateContext(IContext originalContext, IEnvironment environment, bool pruneChildren) {
-			this.OriginalContext = originalContext ?? throw new ArgumentNullException(nameof(originalContext));
-			this.Environment = environment ?? throw new ArgumentNullException(nameof(environment));
-			this.PruneChildren = pruneChildren;
-		}
-
-		/// <summary></summary>
-		/// <exception cref="SharpParsingException"></exception>
-		[return: NotNullIfNotNull(nameof(original))]
-		private string? Replace(string? original, DocumentSpan? location) {
-			if(original == null) { return null; }
-			// Find any variables/expressions ($-prefixed or ${}-wrapped) and replace
-			try {
-				TextExpression expr = Interpolation.Parse(original, Environment, true);
-				string result = expr.Evaluate(Environment); // Environment.Interpolate(original, true);
-				return result;
-			}
-			catch (EvaluationException e) {
-				throw new SharpParsingException(location, e.Message, e);
-			}
-		}
-
-		public string SimpleName => OriginalContext.SimpleName;
-		public string DetailedName => OriginalContext.DetailedName;
-		public string FullName => OriginalContext.FullName;
-		public DocumentSpan Location => OriginalContext.Location;
-		public int Depth => OriginalContext.Depth;
-
-		public IContext? Parent { get { return OriginalContext.Parent is not null ? new InterpolateContext(OriginalContext.Parent, Environment, PruneChildren) : null; } } // TODO Is this k'sha?
-		public IEnumerable<IContext> Children {
-			get {
-				IEnumerable<IContext> candidates = PruneChildren ? OriginalContext.Children.Where(EvaluateCondition) : OriginalContext.Children;
-				return candidates.Select(c => new InterpolateContext(c, Environment, PruneChildren));
-			}
-		}
-		public IEnumerable<KeyValuePair<string, IContext>> NamedChildren {
-			get {
-				IEnumerable<KeyValuePair<string, IContext>> candidates = PruneChildren ? OriginalContext.NamedChildren.Where(kv => EvaluateCondition(kv.Value)) : OriginalContext.NamedChildren;
-				return candidates.Select(kv => new KeyValuePair<string, IContext>(kv.Key, new InterpolateContext(kv.Value, Environment, PruneChildren)));
-			}
-		}
-
-		IDocumentEntity? IDocumentEntity.Parent => Parent;
-		IEnumerable<IDocumentEntity> IDocumentEntity.Children => Children;
-
-		/// <summary></summary>
-		/// <exception cref="SharpParsingException"></exception>
-		private bool EvaluateCondition(IContext context) {
-			string? conditionStr = context.GetProperty("condition", true, context, null, out DocumentSpan? location);
-			if (conditionStr == null) {
-				return true;
-			}
-			else {
-				try {
-					BoolExpression condition = BoolExpression.Parse(conditionStr, Environment);
-					object evaluation = condition.Evaluate(Environment);
-					if (evaluation is bool result) { return result; }
-				}
-				catch (EvaluationException) { }
-				throw new SharpParsingException(location, "Invalid condition.");
-			}
-		}
-
-		public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) {
-			return OriginalContext.GetLocalProperties(origin)
-				.Select(p => new ContextProperty<string>(p.Location, p.Name, p.ValueLocation, Replace(p.Value, p.ValueLocation)));
-		}
-
-		public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) {
-			return OriginalContext.GetLocalFlags(origin);
-		}
-
-		public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) {
-			return OriginalContext.GetEntries(origin).Select(e => new ContextValue<string>(e.Location, Replace(e.Value, e.Location)));
-		}
-
-		public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) {
-			return OriginalContext.GetDefinitions(origin); // TODO Is this right?
-		}
-
-		public bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-			return OriginalContext.GetFlag(flag, local, origin, out location);
-		}
-
-		public IContext? GetNamedChild(string name) {
-			IContext? namedChild = OriginalContext.GetNamedChild(name);
-			if(namedChild == null) {
-				return null;
-			}
-			else if (PruneChildren) {
-				return EvaluateCondition(namedChild) ? new InterpolateContext(namedChild, Environment, PruneChildren) : null;
-			}
-			else {
-				return new InterpolateContext(namedChild, Environment, PruneChildren);
-			}
-		}
-
-		public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
-			string? value = OriginalContext.GetProperty(key, local, origin, defaultValue, out location);
-			return Replace(value, location);
-		}
-
-		public bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-			return OriginalContext.HasFlag(flag, local, origin, out location);
-		}
-
-		public bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location) {
-			return OriginalContext.HasProperty(key, local, origin, out location);
-		}
-	}
 }
