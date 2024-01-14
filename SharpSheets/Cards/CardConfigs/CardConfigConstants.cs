@@ -6,6 +6,8 @@
 		public static readonly string ArchiveName = "archive";
 		public static readonly string ExamplesName = "examples";
 
+		public static readonly char TableDelimiter = '|';
+
 	}
 
 }

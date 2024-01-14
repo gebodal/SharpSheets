@@ -318,7 +318,7 @@ namespace SharpSheets.Cards.Card
 			IFixedCardSegmentRect rect;
 
 			// TODO This logic needs correcting. Won't work properly with string escaping.
-			RichString[][] tableEntries = segment.Enumerate().Select(f => DelimitedUtils.SplitDelimitedString(f.Item.Text.Value.Evaluate(f.Item.Environment), ',', true).Select(s => (f.Index == 0) ? new RichString(s, TextFormat.BOLD) : new RichString(s)).ToArray()).ToArray();
+			RichString[][] tableEntries = segment.Enumerate().Select(f => DelimitedUtils.SplitDelimitedString(f.Item.Text.Value.Evaluate(f.Item.Environment), CardConfigConstants.TableDelimiter, true).Select(s => (f.Index == 0) ? new RichString(s, TextFormat.BOLD) : new RichString(s)).ToArray()).ToArray();
 			
 			if (tableEntries.Select(r => r.Length).Distinct().Count() != 1) {
 				throw new SharpParsingException(segment.Location, "Table must have same number of columns in each row.");
