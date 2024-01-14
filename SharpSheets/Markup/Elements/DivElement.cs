@@ -174,7 +174,7 @@ namespace SharpSheets.Markup.Elements {
 			foreach (object value in values) {
 				IEnvironment variableEnv = SimpleEnvironments.Single(Variable, value);
 				if (includeOriginal) {
-					yield return environment.AppendEnvironment(variableEnv);
+					yield return variableEnv.AppendEnvironment(environment);
 				}
 				else {
 					yield return variableEnv;
@@ -307,8 +307,8 @@ namespace SharpSheets.Markup.Elements {
 
 				foreach (IEnvironment forEachEnv in setup.ForEachEnvironments(outerGraphicsEnvironment, false)) {
 
-					IEnvironment finalDivEnvironment = fullDivEnvironment.AppendEnvironment(forEachEnv);
-					IEnvironment evaluationEnvironment = Environments.Concat(graphicsEnvironment, finalDivEnvironment);
+					IEnvironment finalDivEnvironment = Environments.Concat(forEachEnv, fullDivEnvironment);
+					IEnvironment evaluationEnvironment = Environments.Concat(finalDivEnvironment, graphicsEnvironment);
 
 					if (setup.enabled?.Evaluate(evaluationEnvironment) ?? true) {
 
@@ -741,8 +741,8 @@ namespace SharpSheets.Markup.Elements {
 			return rect.ContainAspect(AspectRatio);
 		}
 
-		private IVariableBox AreaMarginsOnlyComputeVariables => MarkupEnvironments.GraphicsStateVariables.AppendVariables(environment);
-		private IEnvironment AreaMarginsOnlyComputeEnvironment(ISharpGraphicsState graphicsState) => MarkupEnvironments.MakeGraphicsStateEnvironment(graphicsState.GetMarkupData()).AppendEnvironment(environment);
+		private IVariableBox AreaMarginsOnlyComputeVariables => VariableBoxes.Concat(environment, MarkupEnvironments.GraphicsStateVariables);
+		private IEnvironment AreaMarginsOnlyComputeEnvironment(ISharpGraphicsState graphicsState) => Environments.Concat(environment, MarkupEnvironments.MakeGraphicsStateEnvironment(graphicsState.GetMarkupData()));
 		
 		private IVariableBox AreaFullComputeVariables => MarkupEnvironments.InferenceDrawingStateVariables.AppendVariables(environment);
 

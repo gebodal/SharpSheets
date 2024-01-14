@@ -301,7 +301,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			if(EvaluationTypes.TryGetArray(value, out Array? arrayValue)) {
 				foreach (object entry in arrayValue) {
 					IEnvironment loopVarEnv = SimpleEnvironments.Single(LoopVariable, entry);
-					yield return environment.AppendEnvironment(loopVarEnv);
+					yield return loopVarEnv.AppendEnvironment(environment);
 				}
 			}
 		}

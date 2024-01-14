@@ -331,6 +331,19 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public EvaluationType GetReturnType(EvaluationNode[] args) {
+			if (args.Length != argumentVars.Length) {
+				throw new EvaluationTypeException($"Invalid number of arguments for {name}: expected {argumentVars.Length}, got {args.Length}");
+			}
+
+			for (int i = 0; i < argumentVars.Length; i++) {
+				EvaluationType paramType = argumentVars[i].EvaluationType;
+				EvaluationType argType = args[i].ReturnType;
+
+				if(!EvaluationTypes.IsCompatibleType(paramType, argType)) {
+					throw new EvaluationTypeException($"Invalid argument types for {name}: " + string.Join(", ", args.Select(a => a.ReturnType)));
+				}
+			}
+
 			return Type.ReturnType;
 		}
 
@@ -339,11 +352,15 @@ namespace SharpSheets.Cards.Definitions {
 				throw new EvaluationCalculationException($"Invalid number of arguments for {name}: expected {argumentVars.Length}, got {args.Length}");
 			}
 
-			object?[] argVals = args.Select(a => a.Evaluate(environment)).ToArray();
+			object?[] argVals = new object?[args.Length];
+			for(int i=0; i<args.Length; i++) {
+				object? argVal = args[i].Evaluate(environment);
+				argVals[i] = EvaluationTypes.GetCompatibleValue(argumentVars[i].EvaluationType, argVal);
+			}
 
 			IEnvironment evaluationEnvironment = Environments.Concat(
-				environment,
-				SimpleEnvironments.Create(argVals.Zip(argumentVars).ToArray())
+				SimpleEnvironments.Create(argVals.Zip(argumentVars).ToArray()),
+				environment
 				);
 
 			return Expression.Evaluate(evaluationEnvironment);
@@ -406,6 +423,10 @@ namespace SharpSheets.Cards.Definitions {
 				}
 
 				EvaluationName argName = new EvaluationName(argMatch.Groups["name"].Value);
+
+				if (variables.IsVariable(argName)) {
+					throw new FormatException($"There is already a variabled named {argName} in this context.");
+				}
 
 				string typeStr = argMatch.Groups["type"].Value.ToLowerInvariant();
 				int arrayRank = argMatch.Groups["array"].Success ? Regex.Replace(argMatch.Groups["array"].Value, @"\s+", "").Length / 2 : 0;

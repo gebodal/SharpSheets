@@ -446,6 +446,10 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
+		public static bool IsCompatibleType(EvaluationType type, EvaluationType other) {
+			return TryGetCompatibleType(type, other, out EvaluationType? compatible) && type == compatible;
+		}
+
 		/// <summary></summary>
 		/// <param name="compatible"></param>
 		/// <param name="value"></param>

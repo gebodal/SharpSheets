@@ -66,7 +66,11 @@ namespace SharpSheets.Cards.Card
 			// Only the card number/total can vary, so just enumerate all possibilities and store them
 			for (int cardCount = 1; cardCount <= subject.CardConfig.MaxCards; cardCount++) {
 				for (int card = 0; card < cardCount; card++) {
-					IEnvironment cardOutlinesEnvironment = BasisEnvironment.Instance.AppendEnvironment(subject.Environment.AppendEnvironment(CardOutlinesEnvironments.GetEnvironment(card, cardCount))); // DynamicCardEnvironments.CardNumberEnvironment(subject.Environment, card, totalCards);
+					IEnvironment cardOutlinesEnvironment = Environments.Concat(
+						CardOutlinesEnvironments.GetEnvironment(card, cardCount),
+						subject.Environment,
+						BasisEnvironment.Instance
+						);
 
 					if(ProcessCardArrangementOutline(subject, cardConfig.headers, cardConfig.cardSetConfig.headers, cardOutlinesEnvironment, cardSetConfig.Source, widgetFactory, errors, "header", out IWidget? headerRect)) {
 						headerCollection[card, cardCount] = headerRect;

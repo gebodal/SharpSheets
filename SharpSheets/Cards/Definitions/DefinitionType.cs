@@ -102,7 +102,7 @@ namespace SharpSheets.Cards.Definitions {
 			private readonly EvaluationType castType;
 			public override EvaluationType ReturnType {
 				get {
-					if (EvaluationTypes.TryGetCompatibleType(castType, Subject.ReturnType, out EvaluationType? compatible) && castType == compatible) {
+					if (EvaluationTypes.IsCompatibleType(castType, Subject.ReturnType)) {
 						return castType;
 					}
 					else {
