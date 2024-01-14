@@ -264,7 +264,7 @@
 
 		<!-- Condition line and expression -->
 		<Span enabled="CardConfig" color="Condition">
-			<Begin>^ \s* condition \s* (?=:\s*[^\s])</Begin>
+			<Begin>^ \s* (condition|foreach) \s* (?=:\s*[^\s])</Begin>
 			<RuleSet>
 				<Import ruleSet="Expressions"/>
 			</RuleSet>

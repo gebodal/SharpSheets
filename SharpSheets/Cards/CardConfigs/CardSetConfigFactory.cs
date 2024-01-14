@@ -565,14 +565,32 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		public static readonly ArgumentDetails ConditionArgument = new ArgumentDetails(
 			"condition",
-			new DocumentationString("A boolean expression used to determine if this part of the configuration should be used, based on the card subject data. If no expression is provided, it is assumed to be true."),
+			new DocumentationString("A boolean expression used to determine if this part of the configuration " +
+				"should be used, based on the card subject data. If no expression is provided, it is assumed to be true."),
 			ArgumentType.Simple(typeof(BoolExpression)), true, true, "True", new BoolExpression(true), null);
+
+		public static readonly ArgumentDetails ForEachArgument = new ArgumentDetails(
+			"foreach",
+			new DocumentationString("A for-each expression, which will cause this element to be repeated for each " +
+				"entry of a specified array of values, with each of those entries available as a variable in the " +
+				"corresponding repetition. Must be of the pattern \"loopVar in arrayExpr\", where \"arrayExpr\" is " +
+				"an expression which evaluates to an array, and \"loopVar\" is the name to use for the loop variable."),
+			ArgumentType.Simple(typeof(ContextForEach)), true, true, null, null, null);
+
 		private static ConstructorDetails MakeConfigConstructor(ConstructorDetails constructor) {
-			if(constructor.Arguments.Length > 0 && constructor.Arguments[0].Name == ConditionArgument.Name && constructor.Arguments[0].Description == ConditionArgument.Description && constructor.Arguments[0].Type == ConditionArgument.Type) {
-				return constructor;
-			}
-			else if(constructor.DeclaringType == typeof(CardConfig)) {
+			if (constructor.DeclaringType == typeof(CardConfig)) {
 				return constructor; // The top-level card config has no condition
+			}
+			else if (typeof(IWidget).IsAssignableFrom(constructor.DeclaringType) && constructor != OutlineConstructor && constructor != HeaderConstructor) {
+				if(constructor.Arguments.Length > 1 && ArgumentComparer.Instance.Equals(constructor.Arguments[0], ConditionArgument) && ArgumentComparer.Instance.Equals(constructor.Arguments[1], ForEachArgument)) {
+					return constructor;
+				}
+				else {
+					return constructor.WithArgument(ForEachArgument, 0).WithArgument(ConditionArgument, 0);
+				}
+			}
+			else if(constructor.Arguments.Length > 0 && ArgumentComparer.Instance.Equals(constructor.Arguments[0], ConditionArgument)) {
+				return constructor;
 			}
 			else {
 				return constructor.WithArgument(ConditionArgument, 0);
