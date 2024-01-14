@@ -584,8 +584,8 @@ namespace SharpEditor.Documentation {
 		MarkupEnvironmentVariables, MarkupEnvironmentFunctions,
 		CardSubjectEnvironmentVariables,
 		CardOutlineEnvironmentVariables,
-		CardSectionEnvironmentVariables,
-		CardSectionOutlineEnvironmentVariables,
+		CardSegmentEnvironmentVariables,
+		CardSegmentOutlineEnvironmentVariables,
 		CardFeatureEnvironmentVariables,
 		CardConfigs, CardStructures
 	}
