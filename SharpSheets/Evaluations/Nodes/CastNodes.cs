@@ -53,6 +53,13 @@ namespace SharpSheets.Evaluations.Nodes {
 				throw new EvaluationTypeException($"Cannot cast value of type {EvaluationUtils.GetDataTypeName(a)} to integer.");
 			}
 		}
+
+		public static EvaluationNode MakeIntCastNode(EvaluationNode argument) {
+			EnvironmentFunctionNode node = new EnvironmentFunctionNode(Instance);
+			node.SetArgumentCount(1);
+			node.Arguments[0] = argument;
+			return node.Simplify();
+		}
 	}
 
 	public class FloatCastFunction : AbstractFunction {

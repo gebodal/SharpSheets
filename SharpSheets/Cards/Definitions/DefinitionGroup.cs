@@ -15,16 +15,20 @@ namespace SharpSheets.Cards.Definitions {
 
 		private readonly DefinitionGroup? fallback;
 
-		private readonly List<Definition> definitions;
-		private readonly Dictionary<EvaluationName, Definition> aliasLookup;
+		private readonly List<ValueDefinition> valueDefinitions;
+		private readonly List<FunctionDefinition> functionDefinitions;
+		private readonly Dictionary<EvaluationName, ValueDefinition> variableAliasLookup;
+		private readonly Dictionary<EvaluationName, FunctionDefinition> functionAliasLookup;
 		private readonly Dictionary<EvaluationName, EnvironmentVariableInfo> variableInfos;
 
-		public int Count { get { return definitions.Count + (fallback?.Count ?? 0); } }
+		public int Count { get { return valueDefinitions.Count + functionDefinitions.Count + (fallback?.Count ?? 0); } }
 
 		public DefinitionGroup(DefinitionGroup? fallback) {
 			this.fallback = fallback;
-			definitions = new List<Definition>();
-			aliasLookup = new Dictionary<EvaluationName, Definition>();
+			valueDefinitions = new List<ValueDefinition>();
+			functionDefinitions = new List<FunctionDefinition>();
+			variableAliasLookup = new Dictionary<EvaluationName, ValueDefinition>();
+			functionAliasLookup = new Dictionary<EvaluationName, FunctionDefinition>();
 			variableInfos = new Dictionary<EvaluationName, EnvironmentVariableInfo>();
 		}
 
@@ -41,9 +45,23 @@ namespace SharpSheets.Cards.Definitions {
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException">A <see cref="Definition"/> with a matching name or alias already exists in the collection.</exception>
 		public void Add(Definition definition) {
+			if(definition is ValueDefinition valueDefinition) {
+				AddValue(valueDefinition);
+			}
+			else if(definition is FunctionDefinition functionDefinition) {
+				AddFunction(functionDefinition);
+			}
+			else {
+				throw new InvalidOperationException($"Unrecognized {nameof(Definition)} type: {definition.GetType().Name}");
+			}
+		}
+
+		/// <summary></summary>
+		/// <exception cref="InvalidOperationException">A <see cref="ValueDefinition"/> with a matching name or alias already exists in the collection.</exception>
+		private void AddValue(ValueDefinition definition) {
 			List<EvaluationName> alreadyAdded = new List<EvaluationName>();
 			foreach (EvaluationName alias in definition.AllNames) {
-				if (Conflicting(alias)) {
+				if (ConflictingVariable(alias)) {
 					alreadyAdded.Add(alias);
 				}
 			}
@@ -51,13 +69,34 @@ namespace SharpSheets.Cards.Definitions {
 				throw new InvalidOperationException("Definition names already registered: " + string.Join(", ", alreadyAdded)); // Better error?
 			}
 
-			definitions.Add(definition);
+			valueDefinitions.Add(definition);
 
-			aliasLookup.Add(definition.name, definition);
+			variableAliasLookup.Add(definition.name, definition);
 			variableInfos.Add(definition.name, new EnvironmentVariableInfo(definition.name, definition.Type.ReturnType, definition.description));
 			foreach (EvaluationName alias in definition.aliases) {
-				aliasLookup.Add(alias, definition);
+				variableAliasLookup.Add(alias, definition);
 				variableInfos.Add(alias, new EnvironmentVariableInfo(alias, definition.Type.ReturnType, definition.description));
+			}
+		}
+
+		/// <summary></summary>
+		/// <exception cref="InvalidOperationException">A <see cref="FunctionDefinition"/> with a matching name already exists in the collection.</exception>
+		private void AddFunction(FunctionDefinition definition) {
+			List<EvaluationName> alreadyAdded = new List<EvaluationName>();
+			foreach (EvaluationName alias in definition.AllNames) {
+				if (ConflictingFunction(alias)) {
+					alreadyAdded.Add(alias);
+				}
+			}
+			if (alreadyAdded.Count > 0) {
+				throw new InvalidOperationException("Definition names already registered: " + string.Join(", ", alreadyAdded)); // Better error?
+			}
+
+			functionDefinitions.Add(definition);
+
+			functionAliasLookup.Add(definition.name, definition);
+			foreach (EvaluationName alias in definition.aliases) {
+				functionAliasLookup.Add(alias, definition);
 			}
 		}
 
@@ -68,7 +107,12 @@ namespace SharpSheets.Cards.Definitions {
 		/// <param name="definition"></param>
 		/// <returns></returns>
 		public bool TryGetDefinition(EvaluationName key, [MaybeNullWhen(false)] out Definition definition) {
-			if(aliasLookup.TryGetValue(key, out definition)) {
+			if(variableAliasLookup.TryGetValue(key, out ValueDefinition? valueDefinition)) {
+				definition = valueDefinition;
+				return true;
+			}
+			else if (functionAliasLookup.TryGetValue(key, out FunctionDefinition? functionDefinition)) {
+				definition = functionDefinition;
 				return true;
 			}
 			else if (fallback != null) {
@@ -80,12 +124,24 @@ namespace SharpSheets.Cards.Definitions {
 			}
 		}
 
-		private bool Conflicting(EvaluationName alias) {
-			if (aliasLookup.ContainsKey(alias)) {
+		private bool ConflictingVariable(EvaluationName alias) {
+			if (variableAliasLookup.ContainsKey(alias)) {
 				return true;
 			}
 			else if(fallback != null) {
-				return fallback.Conflicting(alias);
+				return fallback.ConflictingVariable(alias);
+			}
+			else {
+				return false;
+			}
+		}
+
+		private bool ConflictingFunction(EvaluationName name) {
+			if (functionAliasLookup.ContainsKey(name)) {
+				return true;
+			}
+			else if (fallback != null) {
+				return fallback.ConflictingFunction(name);
 			}
 			else {
 				return false;
@@ -93,17 +149,35 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public bool Conflicting(Definition other) {
-			if (Conflicting(other.name)) {
-				return true;
-			}
-
-			foreach (EvaluationName alias in other.aliases) {
-				if (Conflicting(alias)) {
+			if (other is ValueDefinition valueDefinition) {
+				if (ConflictingVariable(valueDefinition.name)) {
 					return true;
 				}
-			}
 
-			return false;
+				foreach (EvaluationName alias in valueDefinition.aliases) {
+					if (ConflictingVariable(alias)) {
+						return true;
+					}
+				}
+
+				return false;
+			}
+			else if(other is FunctionDefinition functionDefinition) {
+				if (ConflictingFunction(functionDefinition.name)) {
+					return true;
+				}
+
+				foreach (EvaluationName alias in functionDefinition.aliases) {
+					if (ConflictingFunction(alias)) {
+						return true;
+					}
+				}
+
+				return false;
+			}
+			else {
+				throw new InvalidOperationException($"Unrecognized {nameof(Definition)} type: {other.GetType().Name}");
+			}
 		}
 
 		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
@@ -121,7 +195,7 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node) {
-			if (aliasLookup.TryGetValue(key, out Definition? definition)) {
+			if (variableAliasLookup.TryGetValue(key, out ValueDefinition? definition)) {
 				if (definition is CalculatedDefinition calculated) {
 					node = calculated.Evaluation;
 					return true;
@@ -140,24 +214,45 @@ namespace SharpSheets.Cards.Definitions {
 			return false;
 		}
 
-		public IEnumerable<EnvironmentVariableInfo> GetVariables() => variableInfos.Values.ConcatOrNothing(fallback?.GetVariables()).Distinct();
+		public IEnumerable<EnvironmentVariableInfo> GetVariables() {
+			return variableInfos.Values.ConcatOrNothing(fallback?.GetVariables()).DistinctBy(i => i.Name);
+		}
+
+		public bool TryGetFunctionDefinition(EvaluationName name, [MaybeNullWhen(false)] out FunctionDefinition function) {
+			if (functionAliasLookup.TryGetValue(name, out FunctionDefinition? func)) {
+				function = func;
+				return true;
+			}
+			else if (fallback != null && fallback.TryGetFunctionDefinition(name, out function)) {
+				return true;
+			}
+			else {
+				function = null;
+				return false;
+			}
+		}
 
 		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
-			// This will need updating if we end up implementing user defined functions
-			functionInfo = null;
-			return false;
+			if(TryGetFunctionDefinition(name, out FunctionDefinition? function)) {
+				functionInfo = function;
+				return true;
+			}
+			else {
+				functionInfo = null;
+				return false;
+			}
 		}
+
 		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
-			// This will need updating if we end up implementing user defined functions
-			return Enumerable.Empty<IEnvironmentFunctionInfo>().ConcatOrNothing(fallback?.GetFunctionInfos());
+			return functionAliasLookup.Values.DistinctBy(f => f.name);
 		}
 
 		public IEnumerator<Definition> GetEnumerator() {
 			if (fallback != null) {
-				return fallback.definitions.Concat(definitions).GetEnumerator();
+				return fallback.Concat(valueDefinitions, functionDefinitions).GetEnumerator();
 			}
 			else {
-				return definitions.GetEnumerator();
+				return valueDefinitions.Concat<Definition>(functionDefinitions).GetEnumerator();
 			}
 		}
 		IEnumerator IEnumerable.GetEnumerator() {

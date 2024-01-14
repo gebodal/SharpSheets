@@ -117,17 +117,21 @@ namespace SharpSheets.Cards.Definitions {
 			return false;
 		}
 
-		// These may need updating if we end up implementing user defined functions
 		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {
-			functionInfo = null;
-			return false;
+			return definitions.TryGetFunctionInfo(name, out functionInfo);
 		}
 		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator) {
-			functionEvaluator = null;
-			return false;
+			if (definitions.TryGetFunctionDefinition(name, out FunctionDefinition? function)) {
+				functionEvaluator = function;
+				return true;
+			}
+			else {
+				functionEvaluator = null;
+				return false;
+			}
 		}
 		public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
-			return Enumerable.Empty<IEnvironmentFunctionInfo>();
+			return definitions.GetFunctionInfos();
 		}
 
 		#region IEnumerable
