@@ -1,3 +1,5 @@
+<p align='center'><img src="images/banner.png" style="width:90%"></p>
+
 # SharpSheets
 
 Welcome to SharpSheets, a program for creating PDF documents for all your gaming needs. SharpSheets will enable you to create form-fillable PDF documents from text-based configuration files, allowing easy customisation and sharing of your creations. You will be able to create character sheets, card sets, and other game aids, using the many features SharpSheets offers for specifying the look and layout of your documents.
