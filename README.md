@@ -1,3 +1,15 @@
+<p align='center'><img src="images/banner.png" style="width:90%"/></p>
+
+<div align="center">
+
+[![dotnet Version](https://img.shields.io/badge/dotnet-.NET%206-512BD4?logo=dotnet)](https://learn.microsoft.com/dotnet/core/whats-new/dotnet-6)
+[![GitHub License](https://img.shields.io/github/license/gebodal/SharpSheets)](LICENCE)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/t/gebodal/SharpSheets)](https://github.com/gebodal/SharpSheets/commits/master/)
+[![GitHub commits since latest release](https://img.shields.io/github/commits-since/gebodal/SharpSheets/latest)](https://github.com/gebodal/SharpSheets/commits/master/)
+[![GitHub repo size](https://img.shields.io/github/repo-size/gebodal/SharpSheets?color=a1a1a1)](https://github.com/gebodal/SharpSheets/releases)
+
+</div>
+
 # SharpSheets
 
 Welcome to SharpSheets, a program for creating PDF documents for all your gaming needs. SharpSheets will enable you to create form-fillable PDF documents from text-based configuration files, allowing easy customisation and sharing of your creations. You will be able to create character sheets, card sets, and other game aids, using the many features SharpSheets offers for specifying the look and layout of your documents.
@@ -39,3 +51,8 @@ SharpSheets makes use of some other free software from the .NET community, and w
 * [`SixLabors/ImageSharp`](https://github.com/SixLabors/ImageSharp) (used here under the Apache License 2.0)
 
 And of course the dotnet team for their work on C# itself.
+
+We have also made use of the following open source projects, and would like to thank those creators for their work:
+
+* [`feathericons/feather`](https://github.com/feathericons/feather) (MIT license)
+* [`Remix-Design/RemixIcon`](https://github.com/Remix-Design/RemixIcon) (Apache License 2.0)
