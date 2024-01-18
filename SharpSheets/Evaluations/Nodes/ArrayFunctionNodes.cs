@@ -11,7 +11,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private ArrayCreateFunction() { }
 
 		public override EvaluationName Name { get; } = "array";
-		public override string? Description { get; } = "Created an array from the arguments. The arguments must be of compatible types.";
+		public override string? Description { get; } = "Creates an array from the arguments. The arguments must be of compatible types.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null), true)
@@ -21,23 +21,18 @@ namespace SharpSheets.Evaluations.Nodes {
 			EvaluationType[] returnTypes = args.Select(a => a.ReturnType).Distinct().ToArray();
 
 			if (returnTypes.Length == 0) {
-				throw new EvaluationTypeException("Unknown return type for array create node (contains no elements).");
+				throw new EvaluationTypeException("Unknown return type for array create function (contains no elements).");
 			}
 
 			EvaluationType arrayType = returnTypes[0];
 			bool badTypes = false;
 			for (int i = 1; i < returnTypes.Length; i++) {
-				if (arrayType != returnTypes[i]) {
-					if (arrayType.IsIntegral() && returnTypes[i].IsIntegral()) {
-						arrayType = EvaluationType.INT;
-					}
-					else if (arrayType.IsReal() && returnTypes[i].IsReal()) {
-						arrayType = EvaluationType.FLOAT;
-					}
-					else {
-						badTypes = true;
-						break;
-					}
+				if(EvaluationTypes.TryGetCompatibleType(arrayType, returnTypes[i], out EvaluationType? compatible)) {
+					arrayType = compatible;
+				}
+				else {
+					badTypes = true;
+					break;
 				}
 			}
 
@@ -55,19 +50,14 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
 			EvaluationType returnType = GetReturnType(args);
+			EvaluationType elemType = returnType.ElementType ?? throw new EvaluationTypeException($"Invalid return type for {nameof(ArrayCreateFunction)}.");
 			Type? elementType = (returnType.ElementType?.DataType) ?? throw new EvaluationCalculationException($"Cannot construct array of type {returnType.ElementType}.");
 			
 			List<object?> results = new List<object?>();
 
 			for (int i = 0; i < args.Length; i++) {
 				object? arg = args[i].Evaluate(environment);
-				if (elementType == typeof(int) && arg is not int && EvaluationTypes.TryGetIntegral(arg, out int intVal)) {
-					arg = intVal;
-				}
-				else if (elementType == typeof(float) && arg is not float && EvaluationTypes.TryGetReal(arg, out float realVal)) {
-					arg = realVal;
-				}
-				results.Add(arg);
+				results.Add(EvaluationTypes.GetCompatibleValue(elemType, arg));
 			}
 
 			return EvaluationTypes.MakeArray(elementType, results);
@@ -84,6 +74,84 @@ namespace SharpSheets.Evaluations.Nodes {
 				node.Arguments[i] = arguments[i];
 			}
 			return node.Simplify();
+		}
+	}
+
+	public class ArrayConcatenateFunction : AbstractFunction {
+
+		public static readonly ArrayConcatenateFunction Instance = new ArrayConcatenateFunction();
+		private ArrayConcatenateFunction() { }
+
+		public override EvaluationName Name { get; } = "concat";
+		public override string? Description { get; } = "Concat all array arguments into a single array. The arguments must be of compatible types.";
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("array", null, null), true)
+		);
+
+		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+			EvaluationType[] returnTypes = args.Select(a => a.ReturnType).Distinct().ToArray();
+
+			if (returnTypes.Length == 0) {
+				throw new EvaluationTypeException("Unknown return type for array concat function (no arguments provided).");
+			}
+
+			EvaluationType? resultElemType;
+			if (returnTypes[0].IsArray) {
+				resultElemType = returnTypes[0].ElementType!;
+				for (int i = 1; i < returnTypes.Length; i++) {
+					EvaluationType? argElemType = returnTypes[i].ElementType;
+					if(argElemType is null) {
+						resultElemType = null;
+						break;
+					}
+
+					if(EvaluationTypes.TryGetCompatibleType(resultElemType, argElemType, out EvaluationType? compatible)) {
+						resultElemType = compatible;
+					}
+					else {
+						resultElemType = null;
+						break;
+					}
+				}
+			}
+			else {
+				resultElemType = null;
+			}
+
+			if (resultElemType is null) {
+				string s = (returnTypes.Length > 1) ? "s" : "";
+				throw new EvaluationTypeException($"Cannot create an array from arguments with type{s}: " + string.Join(", ", returnTypes.Select(t => t.ToString())));
+			}
+
+			if (resultElemType.DataType == null) {
+				throw new EvaluationTypeException($"Cannot create array of dynamic type {resultElemType}.");
+			}
+
+			return resultElemType.MakeArray();
+		}
+
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationType returnType = GetReturnType(args);
+			EvaluationType elemType = returnType.ElementType ?? throw new EvaluationTypeException($"Invalid return type for {nameof(ArrayConcatenateFunction)}.");
+			Type? elementType = (returnType.ElementType?.DataType) ?? throw new EvaluationCalculationException($"Cannot construct array of type {returnType.ElementType}.");
+
+			List<object?> results = new List<object?>();
+
+			for (int i = 0; i < args.Length; i++) {
+				object? arg = args[i].Evaluate(environment);
+
+				if(arg is Array arrayArg) {
+					foreach(object? val in arrayArg) {
+						results.Add(EvaluationTypes.GetCompatibleValue(elemType, val));
+					}
+				}
+				else {
+					throw new EvaluationCalculationException($"Cannot concatenate non-array result to array of type {returnType}.");
+				}
+			}
+
+			return EvaluationTypes.MakeArray(elementType, results);
 		}
 	}
 
