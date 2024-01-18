@@ -12,19 +12,21 @@ namespace SharpSheets.Cards.Definitions {
 
 	public static class CardSetConfigEnvironments {
 
-		public static readonly DefinitionGroup BaseDefinitions;
+		//public static readonly DefinitionGroup BaseDefinitions;
+		public static DefinitionGroup BaseDefinitions => CardSubjectEnvironments.BaseDefinitions;
 
 		static CardSetConfigEnvironments() {
-			BaseDefinitions = new DefinitionGroup();
+			//BaseDefinitions = new DefinitionGroup();
 		}
 	}
 
 	public static class CardConfigEnvironments {
 
-		public static readonly DefinitionGroup BaseDefinitions;
+		//public static readonly DefinitionGroup BaseDefinitions;
+		public static DefinitionGroup BaseDefinitions => CardSubjectEnvironments.BaseDefinitions;
 
 		static CardConfigEnvironments() {
-			BaseDefinitions = new DefinitionGroup();
+			//BaseDefinitions = new DefinitionGroup();
 		}
 	}
 

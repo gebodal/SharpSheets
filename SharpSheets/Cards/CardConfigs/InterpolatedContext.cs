@@ -314,6 +314,14 @@ namespace SharpSheets.Cards.CardConfigs {
 				$
 				", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="text"></param>
+		/// <param name="variables"></param>
+		/// <returns></returns>
+		/// <exception cref="FormatException"></exception>
+		/// <exception cref="EvaluationException"></exception>
 		public static ContextForEach Parse(string text, IVariableBox variables) {
 			Match match = forEachRegex.Match(text);
 			if(!match.Success) {

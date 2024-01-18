@@ -258,5 +258,9 @@ namespace SharpSheets.Cards.Definitions {
 		IEnumerator IEnumerable.GetEnumerator() {
 			return GetEnumerator();
 		}
+
+		public IEnumerable<Definition> GetLocalDefinitions() {
+			return valueDefinitions.Concat<Definition>(functionDefinitions);
+		}
 	}
 }

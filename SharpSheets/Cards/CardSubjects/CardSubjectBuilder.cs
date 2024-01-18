@@ -158,7 +158,7 @@ namespace SharpSheets.Cards.CardSubjects {
 		*/
 
 		private CardSegment? BuildBase(CardSubject subject, List<SharpParsingException> errors) {
-			foreach (Conditional<AbstractCardSegmentConfig> segment in subject.CardConfig.cardSegments.Concat(subject.CardConfig.cardSetConfig.cardSegments).Where(s => s.Value != null && (s.Value is not DynamicCardSegmentConfig dynamic || !dynamic.AlwaysInclude))) {
+			foreach (Conditional<AbstractCardSegmentConfig> segment in subject.CardConfig.AllCardSegments.Where(s => s.Value != null && (s.Value is not DynamicCardSegmentConfig dynamic || !dynamic.AlwaysInclude))) {
 				if (segment.Value.definitions.Count == 0 && segment.Condition.IsTrue) {
 					return new CardSegment(Location, segment.Value, subject, Heading, Note, DefinitionEnvironment.Empty);
 				}

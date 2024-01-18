@@ -207,7 +207,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 				if (cardSegment != null) {
 					Conditional<AbstractCardSegmentConfig> segmentConditional = MakeCondition(segment, cardSegment, cardSegment.Variables, errors);
-					cardSetConfig.cardSegments.Add(segmentConditional);
+					cardSetConfig.cardSetSegments.Add(segmentConditional);
 				}
 			}
 
@@ -329,7 +329,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 				if (cardSegment != null) {
 					Conditional<AbstractCardSegmentConfig> segmentConditional = MakeCondition(segment, cardSegment, cardSegment.Variables, errors);
-					cardConfig.cardSegments.Add(segmentConditional);
+					cardConfig.AddSegment(segmentConditional);
 				}
 			}
 
@@ -550,7 +550,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			*/
 
 			try {
-				widgetFactory.MakeWidget(typeof(Div), new LazyInterpolatedContext(context.OriginalContext, environment, false), source, out SharpParsingException[] rectErrors);
+				widgetFactory.MakeWidget(typeof(Div), new LazyInterpolatedContext(context.OriginalContext, environment), source, out SharpParsingException[] rectErrors);
 				errors.AddRange(rectErrors);
 			}
 			catch(UndefinedVariableException e) {
@@ -658,14 +658,13 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		public IContext OriginalContext { get; }
 		public IEnvironment Environment { get; }
-		public bool PruneChildren { get; }
 
 		/// <summary></summary>
 		/// <exception cref="ArgumentNullException"></exception>
-		public LazyInterpolatedContext(IContext originalContext, IEnvironment environment, bool pruneChildren) {
+		public LazyInterpolatedContext(IContext originalContext, IEnvironment environment) {
 			this.OriginalContext = originalContext ?? throw new ArgumentNullException(nameof(originalContext));
-			this.Environment = environment ?? throw new ArgumentNullException(nameof(environment));
-			this.PruneChildren = pruneChildren;
+			//this.Environment = environment ?? throw new ArgumentNullException(nameof(environment));
+			this.Environment = GetFullEnvironment(originalContext, environment ?? throw new ArgumentNullException(nameof(environment)));
 		}
 
 		/// <summary></summary>
@@ -690,23 +689,24 @@ namespace SharpSheets.Cards.CardConfigs {
 		public DocumentSpan Location => OriginalContext.Location;
 		public int Depth => OriginalContext.Depth;
 
-		public IContext? Parent { get { return OriginalContext.Parent is not null ? new LazyInterpolatedContext(OriginalContext.Parent, Environment, PruneChildren) : null; } } // TODO Is this k'sha?
+		public IContext? Parent => OriginalContext.Parent; // TODO This is still not right...
 		public IEnumerable<IContext> Children {
 			get {
-				IEnumerable<IContext> candidates = PruneChildren ? OriginalContext.Children.Where(EvaluateCondition) : OriginalContext.Children;
-				return candidates.Select(c => new LazyInterpolatedContext(c, Environment, PruneChildren));
+				return OriginalContext.Children
+					.Select(c => new LazyInterpolatedContext(c, Environment));
 			}
 		}
 		public IEnumerable<KeyValuePair<string, IContext>> NamedChildren {
 			get {
-				IEnumerable<KeyValuePair<string, IContext>> candidates = PruneChildren ? OriginalContext.NamedChildren.Where(kv => EvaluateCondition(kv.Value)) : OriginalContext.NamedChildren;
-				return candidates.Select(kv => new KeyValuePair<string, IContext>(kv.Key, new LazyInterpolatedContext(kv.Value, Environment, PruneChildren)));
+				return OriginalContext.NamedChildren
+					.Select(kv => new KeyValuePair<string, IContext>(kv.Key, new LazyInterpolatedContext(kv.Value, Environment)));
 			}
 		}
 
 		IDocumentEntity? IDocumentEntity.Parent => Parent;
 		IEnumerable<IDocumentEntity> IDocumentEntity.Children => Children;
 
+		/*
 		/// <summary></summary>
 		/// <exception cref="SharpParsingException"></exception>
 		private bool EvaluateCondition(IContext context) {
@@ -723,6 +723,20 @@ namespace SharpSheets.Cards.CardConfigs {
 				catch (EvaluationException) { }
 				throw new SharpParsingException(location, "Invalid condition.");
 			}
+		}
+		*/
+
+		private static IEnvironment GetFullEnvironment(IContext context, IEnvironment initial) {
+			string? foreachStr = context.GetProperty("foreach", true, null, null, out _);
+			if (foreachStr is not null) {
+				try {
+					ContextForEach forEach = ContextForEach.Parse(foreachStr, initial);
+					return initial.AppendEnvironment(new DryRunEnvironment(SimpleVariableBoxes.Single(forEach.LoopVariable)));
+				}
+				catch (EvaluationException) { }
+				catch (FormatException) { }
+			}
+			return initial;
 		}
 
 		public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) {
@@ -751,11 +765,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			if (namedChild == null) {
 				return null;
 			}
-			else if (PruneChildren) {
-				return EvaluateCondition(namedChild) ? new LazyInterpolatedContext(namedChild, Environment, PruneChildren) : null;
-			}
 			else {
-				return new LazyInterpolatedContext(namedChild, Environment, PruneChildren);
+				return new LazyInterpolatedContext(namedChild, Environment);
 			}
 		}
 

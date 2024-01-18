@@ -43,6 +43,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly FilePath origin;
 		public DirectoryPath Source { get; }
 
+		public readonly string? description;
+
 		public readonly AbstractLayoutStrategy layoutStrategy;
 		public readonly PageSize paper;
 		public readonly Margins pageMargins;
@@ -62,7 +64,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		public readonly ConditionalCollection<InterpolatedContext> outlines;
 		public readonly ConditionalCollection<InterpolatedContext> headers;
-		public readonly ConditionalCollection<AbstractCardSegmentConfig> cardSegments;
+		public readonly ConditionalCollection<AbstractCardSegmentConfig> cardSetSegments;
 
 		public readonly List<FilePath> archivePaths;
 		private readonly Dictionary<string, CardSubject> archive;
@@ -76,6 +78,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="name" exclude="true"></param>
 		/// <param name="origin" exclude="true"></param>
 		/// <param name="source" exclude="true"></param>
+		/// <param name="_description"></param>
 		/// <param name="_layoutStrategy"></param>
 		/// <param name="_paper"></param>
 		/// <param name="_pageMargins" default="(20,20,20,20)"></param>
@@ -90,6 +93,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			string name,
 			FilePath origin,
 			DirectoryPath source,
+			List<string>? _description = null,
 			LayoutStrategy _layoutStrategy = LayoutStrategy.CARD,
 			PageSize? _paper = null,
 			Margins? _pageMargins = null,
@@ -103,6 +107,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.name = name ?? throw new ArgumentNullException(nameof(name));
 			this.origin = origin;
 			this.Source = source;
+
+			this.description = _description is not null ? string.Join(" ", _description.Select(s=>s.Trim())) : null;
 
 			this.layoutStrategy = _layoutStrategy == LayoutStrategy.CARD ? AbstractLayoutStrategy.Card : AbstractLayoutStrategy.Scroll;
 
@@ -122,7 +128,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			this.outlines = new ConditionalCollection<InterpolatedContext>();
 			this.headers = new ConditionalCollection<InterpolatedContext>();
-			this.cardSegments = new ConditionalCollection<AbstractCardSegmentConfig>();
+			this.cardSetSegments = new ConditionalCollection<AbstractCardSegmentConfig>();
 
 			this.archivePaths = new List<FilePath>();
 			this.archive = new Dictionary<string, CardSubject>(StringComparer.InvariantCultureIgnoreCase); // TODO This is not the right StringComparer
@@ -152,6 +158,9 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	public class CardConfig : ICardSegmentParent {
 
+		public readonly string? name;
+		public readonly string? description;
+
 		public readonly CardSetConfig cardSetConfig;
 		public DirectoryPath Source => cardSetConfig.Source;
 
@@ -167,7 +176,9 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly DefinitionGroup definitions;
 		public readonly ConditionalCollection<InterpolatedContext> outlines;
 		public readonly ConditionalCollection<InterpolatedContext> headers;
+
 		public readonly ConditionalCollection<AbstractCardSegmentConfig> cardSegments;
+		public IEnumerable<Conditional<AbstractCardSegmentConfig>> AllCardSegments => cardSegments.Concat(cardSetConfig.cardSetSegments);
 
 		private readonly bool singles;
 		private readonly int? _maxCards;
@@ -180,6 +191,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// 
 		/// </summary>
 		/// /// <param name="cardSetConfig" exclude="true"></param>
+		/// <param name="_name"></param>
+		/// <param name="_description"></param>
 		/// <param name="font"></param>
 		/// <param name="minFontSize"></param>
 		/// <param name="maxFontSize"></param>
@@ -194,6 +207,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="joinSplitCards"></param>
 		public CardConfig(
 			CardSetConfig cardSetConfig,
+			string? _name = null,
+			List<string>? _description = null,
 			FontPathGrouping? font = null,
 			float minFontSize = 7.5f,
 			float maxFontSize = 8.5f,
@@ -207,6 +222,10 @@ namespace SharpSheets.Cards.CardConfigs {
 			bool cropOnFinalCard = false,
 			bool joinSplitCards = false
 		) {
+
+			this.name = _name;
+			this.description = _description is not null ? string.Join(" ", _description.Select(s => s.Trim())) : null;
+
 			this.cardSetConfig = cardSetConfig;
 
 			this.fonts = font;
@@ -229,12 +248,19 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.variableBox = new VariableDefinitionBox(CardConfigEnvironments.BaseDefinitions, this.definitions, cardSetConfig.Variables);
 		}
 
+		public void AddSegment(Conditional<AbstractCardSegmentConfig> segmentConfig) {
+			cardSegments.Add(segmentConfig);
+		}
+
 	}
 
 	public abstract class AbstractCardSegmentConfig : IHasVariableDefinitionBox {
 
 		//public readonly CardConfig cardConfig;
 		public readonly ICardSegmentParent parent;
+
+		public readonly string? name;
+		public readonly string? description;
 
 		public readonly bool splittable;
 		public readonly bool acceptRemaining;
@@ -251,6 +277,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// 
 		/// </summary>
 		/// <param name="parent" exclude="true"></param>
+		/// <param name="_name"></param>
+		/// <param name="_description"></param>
 		/// <param name="_splittable"></param>
 		/// <param name="_acceptRemaining"></param>
 		/// <param name="_atPosition"></param>
@@ -258,12 +286,18 @@ namespace SharpSheets.Cards.CardConfigs {
 		public AbstractCardSegmentConfig(
 			//CardConfig cardConfig,
 			ICardSegmentParent parent,
+			string? _name = null,
+			List<string>? _description = null,
 			bool _splittable = false,
 			bool _acceptRemaining = false,
 			int[]? _atPosition = null,
 			RegexFormats? format = null
 		) {
 			this.parent = parent;
+
+			this.name = _name;
+			this.description = _description is not null ? string.Join(" ", _description.Select(s => s.Trim())) : null;
+
 			this.splittable = _splittable;
 			this.acceptRemaining = _acceptRemaining;
 
@@ -293,6 +327,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// 
 		/// </summary>
 		/// <param name="parent" exclude="true"></param>
+		/// <param name="_name"></param>
+		/// <param name="_description"></param>
 		/// <param name="_splittable"></param>
 		/// <param name="_acceptRemaining"></param>
 		/// <param name="_equalSizeFeatures"></param>
@@ -304,6 +340,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		public DynamicCardSegmentConfig(
 			//CardConfig cardConfig,
 			ICardSegmentParent parent,
+			string? _name = null,
+			List<string>? _description = null,
 			bool _splittable = false,
 			bool _acceptRemaining = false,
 			bool _equalSizeFeatures = false,
@@ -312,7 +350,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			bool _alwaysInclude = false,
 			int[]? _atPosition = null,
 			RegexFormats? format = null
-		) : base(parent, _splittable, _acceptRemaining, _atPosition, format) {
+		) : base(parent, _name, _description, _splittable, _acceptRemaining, _atPosition, format) {
 
 			this.equalSizeFeatures = _equalSizeFeatures;
 			this.spaceFeatures = _spaceFeatures;
@@ -346,6 +384,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="_delimiter" default="\n"></param>
 		/// <param name="_prefix" default="null"></param>
 		/// <param name="_tail" default="null"></param>
+		/// <param name="_name"></param>
+		/// <param name="_description"></param>
 		/// <param name="_splittable"></param>
 		/// <param name="_acceptRemaining"></param>
 		/// <param name="paragraph"></param>
@@ -361,6 +401,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			IExpression<string> _delimiter,
 			IExpression<string> _prefix,
 			IExpression<string> _tail,
+			string? _name = null,
+			List<string>? _description = null,
 			bool _splittable = false,
 			bool _acceptRemaining = false,
 			ParagraphIndentArg? paragraph = null,
@@ -369,7 +411,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			TextHeightStrategy heightStrategy = TextHeightStrategy.LineHeightDescent,
 			int[]? _atPosition = null,
 			RegexFormats? format = null
-		) : base(parent, _splittable, _acceptRemaining, _atPosition, format) {
+		) : base(parent, _name, _description, _splittable, _acceptRemaining, _atPosition, format) {
 
 			this.content = _content ?? CardFeatureEnvironments.TextExpression;
 			this.delimiter = _delimiter ?? new StringExpression("\n");
@@ -405,6 +447,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// </summary>
 		/// <param name="parent" exclude="true"></param>
 		/// <param name="_content" default="default"></param>
+		/// <param name="_name"></param>
+		/// <param name="_description"></param>
 		/// <param name="_splittable"></param>
 		/// <param name="_acceptRemaining"></param>
 		/// <param name="paragraph"></param>
@@ -421,6 +465,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			//CardConfig cardConfig,
 			ICardSegmentParent parent,
 			IExpression<string> _content,
+			string? _name = null,
+			List<string>? _description = null,
 			bool _splittable = false,
 			bool _acceptRemaining = false,
 			ParagraphIndentArg? paragraph = null,
@@ -433,7 +479,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			(float x,float y) bulletOffset = default,
 			int[]? _atPosition = null,
 			RegexFormats? format = null
-		) : base(parent, _splittable, _acceptRemaining, _atPosition, format) {
+		) : base(parent, _name, _description, _splittable, _acceptRemaining, _atPosition, format) {
 
 			this.content = _content ?? CardFeatureEnvironments.TextExpression;
 
@@ -465,6 +511,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// 
 		/// </summary>
 		/// <param name="parent" exclude="true"></param>
+		/// <param name="_name"></param>
+		/// <param name="_description"></param>
 		/// <param name="_splittable"></param>
 		/// <param name="_acceptRemaining"></param>
 		/// <param name="_equalSizeFeatures"></param>
@@ -477,6 +525,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		public TableCardSegmentConfig(
 			//CardConfig cardConfig,
 			ICardSegmentParent parent,
+			string? _name = null,
+			List<string>? _description = null,
 			bool _splittable = false,
 			bool _acceptRemaining = false,
 			bool _equalSizeFeatures = false,
@@ -486,7 +536,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			Color[]? tableColors = null,
 			int[]? _atPosition = null,
 			RegexFormats? format = null
-		) : base(parent, _splittable, _acceptRemaining, _atPosition, format) {
+		) : base(parent, _name, _description, _splittable, _acceptRemaining, _atPosition, format) {
 
 			this.equalSizeFeatures = _equalSizeFeatures;
 			this.spaceFeatures = _spaceFeatures;
@@ -501,6 +551,9 @@ namespace SharpSheets.Cards.CardConfigs {
 	public class CardFeatureConfig : IHasVariableDefinitionBox {
 
 		public readonly AbstractCardSegmentConfig cardSegmentConfig;
+
+		public readonly string? name;
+		public readonly string? description;
 
 		public readonly DefinitionGroup definitions;
 		private InterpolatedContext? layout;
@@ -524,9 +577,21 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// 
 		/// </summary>
 		/// <param name="cardSegment" exclude="true"></param>
+		/// <param name="_name"></param>
+		/// <param name="_description"></param>
 		/// <param name="format"></param>
-		public CardFeatureConfig(AbstractCardSegmentConfig cardSegment, RegexFormats? format = null) {
+		public CardFeatureConfig(
+			AbstractCardSegmentConfig cardSegment,
+			string? _name = null,
+			List<string>? _description = null,
+			RegexFormats? format = null
+		) {
+
 			this.cardSegmentConfig = cardSegment;
+
+			this.name = _name;
+			this.description = _description is not null ? string.Join(" ", _description.Select(s => s.Trim())) : null;
+
 			this.layout = null;
 			this.regexFormats = format;
 

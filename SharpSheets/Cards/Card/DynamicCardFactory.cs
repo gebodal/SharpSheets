@@ -35,7 +35,7 @@ namespace SharpSheets.Cards.Card
 			}
 
 			IEnumerable<DynamicCardSegmentConfig> alwaysIncluded = cardConfig
-				.cardSegments.Concat(cardConfig.cardSetConfig.cardSegments)
+				.AllCardSegments
 				.Where(c => c.Value is DynamicCardSegmentConfig d && d.AlwaysInclude)
 				.Where(c => c.Condition.Evaluate(subject.Environment))
 				.Select(c => (DynamicCardSegmentConfig)c.Value); // .Reverse();
