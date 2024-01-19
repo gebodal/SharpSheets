@@ -13,8 +13,12 @@ namespace SharpSheets.Evaluations.Nodes {
 			get {
 				EvaluationType firstType = First.ReturnType;
 				EvaluationType secondType = Second.ReturnType;
-				if (firstType == secondType) { return firstType; }
-				else { throw new EvaluationTypeException($"Operands must have the same return type ({firstType} != {secondType})."); }
+				if (EvaluationTypes.TryGetCompatibleType(firstType, secondType, out EvaluationType? compatible)) {
+					return compatible;
+				}
+				else {
+					throw new EvaluationTypeException($"Operands must have the same return type ({firstType} != {secondType}).");
+				}
 			}
 		}
 
@@ -24,17 +28,23 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override object? Evaluate(IEnvironment environment) {
 
+			EvaluationType firstType = First.ReturnType;
+			EvaluationType secondType = Second.ReturnType;
+			if (!EvaluationTypes.TryGetCompatibleType(firstType, secondType, out EvaluationType? compatible)) {
+				throw new EvaluationTypeException($"Operands must have the same return type ({firstType} != {secondType}).");
+			}
+
 			object? a = null;
 			try {
-				a = First.Evaluate(environment);
+				a = EvaluationTypes.GetCompatibleValue(compatible, First.Evaluate(environment));
 			}
-			catch (EvaluationException) { } // Just KeyNotFoundException?
+			catch (EvaluationException) { }
 
 			if (a != null) {
 				return a;
 			}
 			else {
-				return Second.Evaluate(environment);
+				return EvaluationTypes.GetCompatibleValue(compatible, Second.Evaluate(environment));
 			}
 		}
 	}
@@ -53,8 +63,12 @@ namespace SharpSheets.Evaluations.Nodes {
 				}
 				EvaluationType consequentType = Second.ReturnType;
 				EvaluationType alternativeType = Third.ReturnType;
-				if (consequentType == alternativeType) { return consequentType; }
-				else { throw new EvaluationTypeException($"Expressions must have the same return type ({consequentType} != {alternativeType})."); }
+				if (EvaluationTypes.TryGetCompatibleType(consequentType, alternativeType, out EvaluationType? compatibleType)) {
+					return compatibleType;
+				}
+				else {
+					throw new EvaluationTypeException($"Expressions must have the same return type ({consequentType} != {alternativeType}).");
+				}
 			}
 		}
 
@@ -67,11 +81,16 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override object? Evaluate(IEnvironment environment) {
 			bool condition = (bool)(First.Evaluate(environment) ?? throw new EvaluationCalculationException("Cannot evaluate condition."));
 
-			if (condition) {
-				return Second.Evaluate(environment);
+			if (EvaluationTypes.TryGetCompatibleType(Second.ReturnType, Third.ReturnType, out EvaluationType? compatibleType)) {
+				if (condition) {
+					return EvaluationTypes.GetCompatibleValue(compatibleType, Second.Evaluate(environment));
+				}
+				else {
+					return EvaluationTypes.GetCompatibleValue(compatibleType, Third.Evaluate(environment));
+				}
 			}
 			else {
-				return Third.Evaluate(environment);
+				throw new EvaluationTypeException($"Expressions must have the same return type ({Second.ReturnType} != {Third.ReturnType}).");
 			}
 		}
 

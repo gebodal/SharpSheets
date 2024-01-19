@@ -146,7 +146,7 @@
 		<!-- Multiline Comments -->
 		<Span color="Comment" multiline="true" begin="\#--" end="--\#"/>
 
-		<!-- Definitions -->
+		<!-- Value Definitions -->
 		<Span enabled="CardConfig" color="Def">
 			<Begin>^\s*def\s+</Begin>
 			<RuleSet ignoreCase="true">
@@ -199,6 +199,61 @@
 			</RuleSet>
 		</Span>
 
+		<!-- Function Definitions -->
+		<Span enabled="CardConfig" color="Def">
+			<Begin>^\s*fun\s+</Begin>
+			<RuleSet ignoreCase="true">
+				<!-- Description -->
+				<Span color="Description">
+					<Begin>\/\/\/</Begin>
+				</Span>
+				<!-- Expression -->
+				<Span color="Punctuation">
+					<Begin>\=</Begin>
+					<End>(?=\/\/\/)|$</End>
+					<RuleSet>
+						<Import ruleSet="Expressions"/>
+					</RuleSet>
+				</Span>
+				<!-- Type -->
+				<Span color="Punctuation">
+					<Begin>\:</Begin>
+					<End>(?=\=|\)|\,|\/\/\/)|$</End>
+					<RuleSet>
+						<Span color="DefinitionType">
+							<Begin>(?i:(multi)?category)\(</Begin>
+							<End>\)\s*(?=\=|\/\/\/|$)</End>
+							<RuleSet>
+								<Rule color="Punctuation">
+									\,
+								</Rule>
+								<Rule color="DefinitionCategory">
+									.
+								</Rule>
+							</RuleSet>
+						</Span>
+						<Span color="DefinitionType">
+							<Begin>(?i:string)\(</Begin>
+							<End>\)\s*(?=\=|\/\/\/|$)</End>
+							<RuleSet>
+								<Import ruleSet="Regex"/>
+							</RuleSet>
+						</Span>
+						<Rule color="DefinitionType">
+							.
+						</Rule>
+					</RuleSet>
+				</Span>
+				<!-- Punctuation ("|", ",", "(", ")") -->
+				<Rule color="Punctuation">
+					[\|\,\(\)]
+				</Rule>
+				<Rule color="DefinitionName">
+					[A-Za-z\s]+
+				</Rule>
+			</RuleSet>
+		</Span>
+
 		<!-- Entries -->
 		<Span color="Entry">
 			<Begin>^ \s* -</Begin>
@@ -209,7 +264,7 @@
 
 		<!-- Condition line and expression -->
 		<Span enabled="CardConfig" color="Condition">
-			<Begin>^ \s* condition \s* (?=:\s*[^\s])</Begin>
+			<Begin>^ \s* (condition|foreach) \s* (?=:\s*[^\s])</Begin>
 			<RuleSet>
 				<Import ruleSet="Expressions"/>
 			</RuleSet>

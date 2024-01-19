@@ -113,7 +113,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		public static MarkupGeometry CreateGeometry(SharpCanvasGraphicsSnapshot snapshot, Layouts.Rectangle drawingRect, Layouts.Size? referenceRect, NSliceValuesExpression? slicingValues, IEnvironment contextEnvironment) {
 			IEnvironment drawingEnvironment = MarkupEnvironments.MakeDrawingStateEnvironment(snapshot.GetMarkupData(), new Layouts.Rectangle(drawingRect.Width, drawingRect.Height), referenceRect);
-			IEnvironment finalEnvironment = drawingEnvironment.AppendEnvironment(contextEnvironment);
+			IEnvironment finalEnvironment = Environments.Concat(contextEnvironment, drawingEnvironment);
 
 			NSliceValues? slicingValuesEval = slicingValues?.Evaluate(finalEnvironment);
 

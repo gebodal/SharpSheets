@@ -16,29 +16,35 @@ namespace SharpSheets.Cards.Card {
 		private readonly WidgetFactory widgetFactory;
 
 		public CardCollectionParser(CardSubjectParser subjectParser, WidgetFactory widgetFactory, ShapeFactory shapeFactory) {
-			//subjectParser = new CardSubjectParser(defaultConfigsPath, shapeFactory);
 			this.subjectParser = subjectParser;
 			this.shapeFactory = shapeFactory;
 			this.widgetFactory = widgetFactory;
 		}
 
-		public CardCollection Parse(DirectoryPath source, string description, out CompilationResult results) {
-			CardSubjectDocument subjectsDocument = subjectParser.Parse(source, description, out CompilationResult subjectResults);
-			//DynamicCard[][] cards = subjects.SelectFrom(s => DynamicCardFactory.CreateCard(s, out _));
-
+		public CardCollection Parse(CardSubjectDocument subjectsDocument, out SharpParsingException[] dynamicCardErrors, out Dictionary<object, IDocumentEntity> origins) {
 			List<SharpParsingException> errors = new List<SharpParsingException>();
-			Dictionary<object, IDocumentEntity> origins = new Dictionary<object, IDocumentEntity>();
+			origins = new Dictionary<object, IDocumentEntity>();
 
 			List<List<DynamicCard>> cards = new List<List<DynamicCard>>();
-			foreach(CardSubjectSet subjectSet in subjectsDocument) {
+			foreach (CardSubjectSet subjectSet in subjectsDocument) {
 				List<DynamicCard> cardSet = new List<DynamicCard>();
-				foreach(CardSubject subject in subjectSet) {
+				foreach (CardSubject subject in subjectSet) {
 					DynamicCard card = DynamicCardFactory.CreateCard(subject, origins, widgetFactory, out List<SharpParsingException> cardErrors);
 					cardSet.Add(card);
 					errors.AddRange(cardErrors);
 				}
 				cards.Add(cardSet);
 			}
+
+			dynamicCardErrors = errors.ToArray();
+
+			return new CardCollection(cards.Select(cs => cs.ToArray()).ToArray());
+		}
+
+		public CardCollection Parse(DirectoryPath source, string description, out CompilationResult results) {
+			CardSubjectDocument subjectsDocument = subjectParser.Parse(source, description, out CompilationResult subjectResults);
+
+			CardCollection result = Parse(subjectsDocument, out SharpParsingException[] errors, out Dictionary<object, IDocumentEntity> origins);
 
 			results = new CompilationResult(
 				subjectResults.rootEntity,
@@ -51,7 +57,7 @@ namespace SharpSheets.Cards.Card {
 				subjectResults.dependencies
 			);
 
-			return new CardCollection(cards.Select(cs => cs.ToArray()).ToArray());
+			return result;
 		}
 
 		public static CardCollection MakeCollection(IEnumerable<CardSubject> subjects, WidgetFactory widgetFactory, Dictionary<object, IDocumentEntity>? origins, out SharpParsingException[] errors) {

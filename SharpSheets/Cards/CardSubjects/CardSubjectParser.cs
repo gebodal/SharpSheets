@@ -299,23 +299,23 @@ namespace SharpSheets.Cards.CardSubjects {
 						}
 
 						if (titleLevel == 2) {
-							//Console.WriteLine($"{i,3}: New section title. Name: {titleText} ({titleNote}) [{titleDetails.Value}]");
+							//Console.WriteLine($"{i,3}: New segment title. Name: {titleText} ({titleNote}) [{titleDetails.Value}]");
 							useLastFeature = false;
-							CardSectionBuilder newSection = CardSectionBuilder.Create(titleTextValue.Location, currentSubject, titleTextValue, titleNoteValue, titleDetailsValue);
-							currentSubject.sections.Add(newSection);
-							AssignRelation(currentSubject.Location, newSection.Location);
-							//parents[i] = newSection;
+							CardSegmentBuilder newSegment = CardSegmentBuilder.Create(titleTextValue.Location, currentSubject, titleTextValue, titleNoteValue, titleDetailsValue);
+							currentSubject.segments.Add(newSegment);
+							AssignRelation(currentSubject.Location, newSegment.Location);
+							//parents[i] = newSegment;
 						}
-						else if (currentSubject.sections.Count > 0) { // titleLevel > 2 (consider all of these to be equal)
+						else if (currentSubject.segments.Count > 0) { // titleLevel > 2 (consider all of these to be equal)
 							//Console.WriteLine($"{i,3}: New feature title. Name: {titleText} ({titleNote}) [{titleDetails.Value}]");
 							useLastFeature = true;
-							CardSectionBuilder currentSection = currentSubject.sections.Last();
-							CardFeatureBuilder newFeature = currentSection.AddEmpty(titleTextValue.Location, titleTextValue, titleNoteValue, titleDetailsValue);
-							AssignRelation(currentSection.Location, newFeature.Location);
+							CardSegmentBuilder currentSegment = currentSubject.segments.Last();
+							CardFeatureBuilder newFeature = currentSegment.AddEmpty(titleTextValue.Location, titleTextValue, titleNoteValue, titleDetailsValue);
+							AssignRelation(currentSegment.Location, newFeature.Location);
 							//parents[i] = newFeature;
 						}
 						else {
-							errors.Add(new SharpParsingException(lineSpan, "Invalid feature title line: no section available."));
+							errors.Add(new SharpParsingException(lineSpan, "Invalid feature title line: no segment available."));
 						}
 					}
 					else {
@@ -354,12 +354,12 @@ namespace SharpSheets.Cards.CardSubjects {
 						initialSetup[entryNameValue.Value] = new ContextProperty<string>(entryNameValue.Location, entryNameValue.Value, entryTextValue.Value.Location, entryTextValue.Value.Value);
 						AssignRelation(currentSubject.Location, lineSpan);
 					}
-					else if ((configStack.Peek().allowSingleLineFeatures || configStack.Peek().allowFeatureFollowOn) && currentSubject.sections.Count > 0) {
+					else if ((configStack.Peek().allowSingleLineFeatures || configStack.Peek().allowFeatureFollowOn) && currentSubject.segments.Count > 0) {
 						//Console.WriteLine($"{i,3}: New one-line feature. Name: \"{entryName}\", Note: \"{entryNote}\", Details: \"{entryDetails}\", Text: \"{entryText}\"");
-						CardSectionBuilder currentSection = currentSubject.sections.Last();
-						currentSection.Add(entryNameValue.Location, entryNameValue, entryNoteValue, entryDetailsValue, entryTextValue, false);
+						CardSegmentBuilder currentSegment = currentSubject.segments.Last();
+						currentSegment.Add(entryNameValue.Location, entryNameValue, entryNoteValue, entryDetailsValue, entryTextValue, false);
 						useLastFeature = configStack.Peek().allowFeatureFollowOn && !lineTerminated;
-						AssignRelation(currentSection.Location, lineSpan);
+						AssignRelation(currentSegment.Location, lineSpan);
 						//parents[i] = newFeature;
 					}
 					else {
@@ -374,14 +374,14 @@ namespace SharpSheets.Cards.CardSubjects {
 							errors.Add(new SharpParsingException(lineSpan, "Free line of text provided before setup completed."));
 							continue; // Skip further processing of this line of config
 						}
-						else if (currentSubject.sections.Count == 0) {
+						else if (currentSubject.segments.Count == 0) {
 							currentSubject.SetProperties(initialSetup.Values);
 							initialSetup = null;
 
-							CardSectionBuilder newSection = CardSectionBuilder.Create(lineSpan, currentSubject, null, null, null);
-							currentSubject.sections.Add(newSection);
+							CardSegmentBuilder newSegment = CardSegmentBuilder.Create(lineSpan, currentSubject, null, null, null);
+							currentSubject.segments.Add(newSegment);
 							AssignRelation(currentSubject.Location, lineSpan);
-							//parents[i] = newSection;
+							//parents[i] = newSegment;
 							useLastFeature = false;
 						}
 					}
@@ -392,27 +392,27 @@ namespace SharpSheets.Cards.CardSubjects {
 						Group listItemContentGroup = match.Groups["content"];
 						ContextValue<string> listItemContentValue = GetGroupValue(listItemContentGroup, lineSpan)!.Value; // Cannot be null if match was successful
 						//Console.WriteLine($"{i,3}: List item text provided. Create list item Feature. Text: {listItemContent}" + (lineTerminated ? " (line terminated)" : ""));
-						CardSectionBuilder currentSection = currentSubject.sections.Last();
-						currentSection.Add(lineSpan, null, null, null, listItemContentValue, true);
-						AssignRelation(currentSection.Location, lineSpan);
+						CardSegmentBuilder currentSegment = currentSubject.segments.Last();
+						currentSegment.Add(lineSpan, null, null, null, listItemContentValue, true);
+						AssignRelation(currentSegment.Location, lineSpan);
 						//parents[i] = newFeature;
 						useLastFeature = configStack.Peek().allowFeatureFollowOn && !lineTerminated;
 					}
 					else if (useLastFeature) {
-						//Console.WriteLine($"{i,3}: Free line of text provided. Append to last Feature ({currentSubject.sections.Last().Features.Last().Title}). Text: \"{lineContent}\"" + (lineTerminated ? " (line terminated)" : ""));
-						currentSubject.sections.Last().AppendToLast(TrimText(lineContentValue));
+						//Console.WriteLine($"{i,3}: Free line of text provided. Append to last Feature ({currentSubject.segments.Last().Features.Last().Title}). Text: \"{lineContent}\"" + (lineTerminated ? " (line terminated)" : ""));
+						currentSubject.segments.Last().AppendToLast(TrimText(lineContentValue));
 						useLastFeature = useLastFeature && !lineTerminated;
 					}
-					else if (currentSubject.sections.Count > 0){
+					else if (currentSubject.segments.Count > 0){
 						//Console.WriteLine($"{i,3}: Free line of text provided. Create title-less Feature. Text: {lineContent}" + (lineTerminated ? " (line terminated)" : ""));
-						CardSectionBuilder currentSection = currentSubject.sections.Last();
-						currentSection.Add(lineSpan, null, null, null, TrimText(lineContentValue), false);
-						AssignRelation(currentSection.Location, lineSpan);
+						CardSegmentBuilder currentSegment = currentSubject.segments.Last();
+						currentSegment.Add(lineSpan, null, null, null, TrimText(lineContentValue), false);
+						AssignRelation(currentSegment.Location, lineSpan);
 						//parents[i] = newFeature;
 						useLastFeature = configStack.Peek().allowFeatureFollowOn && !lineTerminated;
 					}
 					else {
-						errors.Add(new SharpParsingException(lineSpan, "Invalid text line: No section available."));
+						errors.Add(new SharpParsingException(lineSpan, "Invalid text line: No segment available."));
 					}
 				}
 				else {

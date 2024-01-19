@@ -178,7 +178,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationType ReturnType {
 			get {
 				EvaluationType indexType = Second.ReturnType;
-				if (indexType != EvaluationType.INT) {
+				if (!indexType.IsIntegral()) {
 					throw new EvaluationTypeException($"Index value must be an integer, not {indexType}.");
 				}
 
@@ -209,7 +209,10 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override object? Evaluate(IEnvironment environment) {
 			object? subject = First.Evaluate(environment);
-			int index = (int)(Second.Evaluate(environment) ?? throw new EvaluationCalculationException("Cannot evaluate index value."));
+
+			if(!EvaluationTypes.TryGetIntegral(Second.Evaluate(environment), out int index)) {
+				throw new EvaluationCalculationException("Cannot evaluate index value to integer.");
+			}
 
 			if(subject is null) {
 				throw new EvaluationCalculationException("Cannot index into null value.");
@@ -264,8 +267,8 @@ namespace SharpSheets.Evaluations.Nodes {
 			get {
 				EvaluationType index1Type = Second.ReturnType;
 				EvaluationType index2Type = Third.ReturnType;
-				if (index1Type != EvaluationType.INT || index2Type != EvaluationType.INT) {
-					string typeString = string.Join(", ", new string[] { index1Type.ToString(), index2Type.ToString() }.Distinct());
+				if (!index1Type.IsIntegral() || !index2Type.IsIntegral()) {
+					string typeString = string.Join(", ", new string[] { index1Type.ToString(), index2Type.ToString() });
 					throw new EvaluationTypeException($"Index values must be an integers, not [{typeString}].");
 				}
 
@@ -300,8 +303,13 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override object Evaluate(IEnvironment environment) {
 			object? subject = First.Evaluate(environment);
-			int index1 = (int)(Second.Evaluate(environment) ?? throw new EvaluationCalculationException("Cannot evaluate start index value."));
-			int index2 = (int)(Third.Evaluate(environment) ?? throw new EvaluationCalculationException("Cannot evaluate end index value."));
+
+			if (!EvaluationTypes.TryGetIntegral(Second.Evaluate(environment), out int index1)) {
+				throw new EvaluationCalculationException("Cannot evaluate start index value to integer.");
+			}
+			if (!EvaluationTypes.TryGetIntegral(Third.Evaluate(environment), out int index2)) {
+				throw new EvaluationCalculationException("Cannot evaluate end index value to integer.");
+			}
 
 			if (subject is null) {
 				throw new EvaluationCalculationException("Cannot index into null value.");

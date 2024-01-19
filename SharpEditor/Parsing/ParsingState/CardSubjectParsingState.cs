@@ -22,7 +22,7 @@ namespace SharpEditor {
 	public class CardSubjectParsingState : ParsingState<CardSubjectSpan> {
 
 		public static readonly float TitleHeaderSizeFactor = 1.3f;
-		public static readonly float SectionHeaderSizeFactor = 1.1f;
+		public static readonly float SegmentHeaderSizeFactor = 1.1f;
 		public static readonly float FeatureHeaderSizeFactor = 1.05f;
 
 		public CardSubjectParsingState(TextDocument document) : base(document) { }
@@ -220,24 +220,24 @@ namespace SharpEditor {
 
 						AddEnvironmentSpans(span, cardSubject.Properties);
 					}
-					else if(entity is CardSection cardSection) {
-						DocumentSpan sectionLocation = cardSection.Location;
+					else if(entity is CardSegment cardSegment) {
+						DocumentSpan segmentLocation = cardSegment.Location;
 
-						CardSubjectSpan? span = MakeSpan(sectionLocation);
+						CardSubjectSpan? span = MakeSpan(segmentLocation);
 						if (span != null) {
-							span.Type = CardSubjectSpanType.SECTION;
-							span.Name = cardSection.Heading.Value;
-							span.Entity = cardSection;
+							span.Type = CardSubjectSpanType.SEGMENT;
+							span.Name = cardSegment.Heading.Value;
+							span.Entity = cardSegment;
 
-							entitySpans.Add(cardSection, span);
+							entitySpans.Add(cardSegment, span);
 
-							if (cardSection.Subject != null && entitySpans.TryGetValue(cardSection.Subject, out CardSubjectSpan? parent)) {
+							if (cardSegment.Subject != null && entitySpans.TryGetValue(cardSegment.Subject, out CardSubjectSpan? parent)) {
 								parent.Children.Add(span);
 								span.Owners.Add(parent);
 							}
 						}
 
-						AddEnvironmentSpans(span, cardSection.Details);
+						AddEnvironmentSpans(span, cardSegment.Details);
 					}
 					else if(entity is CardFeature cardFeature) {
 						DocumentSpan featureLocation = cardFeature.Location;
@@ -251,7 +251,7 @@ namespace SharpEditor {
 
 							entitySpans.Add(cardFeature, span);
 
-							if (cardFeature.Section != null && entitySpans.TryGetValue(cardFeature.Section, out CardSubjectSpan? parent)) {
+							if (cardFeature.Segment != null && entitySpans.TryGetValue(cardFeature.Segment, out CardSubjectSpan? parent)) {
 								parent.Children.Add(span);
 								span.Owners.Add(parent);
 							}
@@ -383,7 +383,7 @@ namespace SharpEditor {
 
 		private static readonly Dictionary<Type, int> precedence = new Dictionary<Type, int> {
 			{ typeof(CardSubject), 3 },
-			{ typeof(CardSection), 2 },
+			{ typeof(CardSegment), 2 },
 			{ typeof(CardFeature), 1 }
 		};
 
@@ -475,11 +475,11 @@ namespace SharpEditor {
 		}
 	}
 
-	public enum CardSubjectSpanType : int { NONE = 0, SUBJECT = 1, SECTION = 2, FEATURE = 3, PROPERTY = 4, MACRO = 5, EXPRESSION = 6, DRAWING_ERROR = 7 }
+	public enum CardSubjectSpanType : int { NONE = 0, SUBJECT = 1, SEGMENT = 2, FEATURE = 3, PROPERTY = 4, MACRO = 5, EXPRESSION = 6, DRAWING_ERROR = 7 }
 
 	public class CardSubjectSpan : EditorParseSpan {
 		[MemberNotNullWhen(true, nameof(Entity))]
-		public bool IsParent { get { return (Type == CardSubjectSpanType.SUBJECT || Type == CardSubjectSpanType.SECTION || Type == CardSubjectSpanType.FEATURE) && Entity != null; } } // { get; set; }
+		public bool IsParent { get { return (Type == CardSubjectSpanType.SUBJECT || Type == CardSubjectSpanType.SEGMENT || Type == CardSubjectSpanType.FEATURE) && Entity != null; } } // { get; set; }
 		public string? Name { get; set; }
 		public object? Value { get; set; }
 		public CardSubjectSpanType Type { get; set; } = CardSubjectSpanType.NONE;
@@ -492,8 +492,8 @@ namespace SharpEditor {
 					if (Entity is CardSubject subject) {
 						return subject.Environment;
 					}
-					else if(Entity is CardSection section) {
-						return section.Environment;
+					else if(Entity is CardSegment segment) {
+						return segment.Environment;
 					}
 					else if(Entity is CardFeature feature) {
 						return feature.Environment;
@@ -519,7 +519,7 @@ namespace SharpEditor {
 					multiplier = CardSubjectParsingState.TitleHeaderSizeFactor;
 				}
 				else if (titleStyle.Length == 2) {
-					multiplier = CardSubjectParsingState.SectionHeaderSizeFactor;
+					multiplier = CardSubjectParsingState.SegmentHeaderSizeFactor;
 				}
 				else if (titleStyle.Length > 2) {
 					multiplier = CardSubjectParsingState.FeatureHeaderSizeFactor;

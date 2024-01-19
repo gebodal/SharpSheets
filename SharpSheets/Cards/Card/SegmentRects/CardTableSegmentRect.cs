@@ -9,13 +9,13 @@ using System.Text.RegularExpressions;
 using SharpSheets.Utilities;
 using System.Linq;
 
-namespace SharpSheets.Cards.Card.SectionRects {
+namespace SharpSheets.Cards.Card.SegmentRects {
 
-    public abstract class CardTableSectionRect : IFixedCardSectionRect {
+    public abstract class CardTableSegmentRect : IFixedCardSegmentRect {
 
-        AbstractCardSectionConfig IFixedCardSectionRect.Config => Config;
-        public TableCardSectionConfig Config { get; }
-        public IFixedCardSectionRect? Original { get; set; }
+        AbstractCardSegmentConfig IFixedCardSegmentRect.Config => Config;
+        public TableCardSegmentConfig Config { get; }
+        public IFixedCardSegmentRect? Original { get; set; }
 
         public readonly ArrangementCollection<IWidget> outlines;
         public readonly (float column, float row) tableSpacing;
@@ -26,7 +26,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
         private int partIndex { get; } = 0;
         private int partsCount { get; } = 1;
 
-        public CardTableSectionRect(TableCardSectionConfig config, ArrangementCollection<IWidget> outlines, (float column, float row) tableSpacing, bool splittable, bool acceptRemaining) {
+        public CardTableSegmentRect(TableCardSegmentConfig config, ArrangementCollection<IWidget> outlines, (float column, float row) tableSpacing, bool splittable, bool acceptRemaining) {
             Config = config;
             this.outlines = outlines;
             this.tableSpacing = tableSpacing;
@@ -138,12 +138,12 @@ namespace SharpSheets.Cards.Card.SectionRects {
         public abstract void DrawRow(int i, ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec, Dimension[] columnDimensions);
         protected abstract Dimension[] GetColumnDimensions(ISharpGraphicsState graphicsState, float width, float fontSize, ParagraphSpecification paragraphSpec);
 
-        public IPartialCardSectionRects Split(int parts) {
+        public IPartialCardSegmentRects Split(int parts) {
             throw new NotImplementedException(); // TODO Implement
         }
     }
 
-    public class SimpleCardTableSectionRect : CardTableSectionRect {
+    public class SimpleCardTableSegmentRect : CardTableSegmentRect {
 
         public override float HeaderGutter { get { return tableSpacing.row * 2f; } }
         private readonly float edgeOffset;
@@ -159,7 +159,7 @@ namespace SharpSheets.Cards.Card.SectionRects {
 
         private readonly TextHeightStrategy cellHeightStrategy = TextHeightStrategy.AscentDescent;
 
-        public SimpleCardTableSectionRect(TableCardSectionConfig definition, ArrangementCollection<IWidget> outlines, RichString? title, RichString[,] tableEntries, (float, float) tableSpacing, float edgeOffset, Color[] rowColors, bool splittable, bool acceptRemaining) : base(definition, outlines, tableSpacing, splittable, acceptRemaining) {
+        public SimpleCardTableSegmentRect(TableCardSegmentConfig definition, ArrangementCollection<IWidget> outlines, RichString? title, RichString[,] tableEntries, (float, float) tableSpacing, float edgeOffset, Color[] rowColors, bool splittable, bool acceptRemaining) : base(definition, outlines, tableSpacing, splittable, acceptRemaining) {
             this.title = title;
             entries = tableEntries;
             this.rowColors = rowColors;

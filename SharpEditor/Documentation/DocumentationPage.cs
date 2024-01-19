@@ -10,13 +10,13 @@ namespace SharpEditor.Documentation {
 
 	public delegate UIElement DocumentationRefresh();
 
-	public class DocumentationPage1 : Page {
+	public class DocumentationPage : Page {
 
 		public DocumentationRefresh? RefreshAction { get; set; }
 
 		private readonly DockPanel panel;
 
-		public DocumentationPage1() {
+		public DocumentationPage() {
 			panel = new DockPanel() { Margin = new Thickness(20.0), MaxWidth = 650 };
 			ScrollViewer scrollViewer = new ScrollViewer() {
 				Content = panel,

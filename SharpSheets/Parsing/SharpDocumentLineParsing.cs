@@ -51,7 +51,7 @@ namespace SharpSheets.Parsing {
 
 	public static class SharpDocumentLineParsing {
 
-		private static readonly Regex regex = new Regex(@"^((?<definition>def\s+.+)|(?<property>\@?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*\s*:.+)|(?<div>[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*):|-\s*(?<entry>.+)|(?<flag>\@?\!?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*))$", RegexOptions.IgnoreCase);
+		private static readonly Regex regex = new Regex(@"^((?<definition>(?:def|fun)\s+.+)|(?<property>\@?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*\s*:.+)|(?<div>[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*):|-\s*(?<entry>.+)|(?<flag>\@?\!?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*))$", RegexOptions.IgnoreCase);
 		private static readonly string[] types = new string[] { "div", "definition", "property", "entry", "flag" };
 
 		private static readonly bool removeComments = true;

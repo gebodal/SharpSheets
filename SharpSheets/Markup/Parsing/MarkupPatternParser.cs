@@ -1294,18 +1294,20 @@ namespace SharpSheets.Markup.Parsing {
 			}
 
 			private static IVariableBox MakeValidateVariables(ContextProperty<EvaluationName> name, ContextProperty<EvaluationName>? variableName, EvaluationType type) {
-				return BasisEnvironment.Instance.AppendVariables(
+				return VariableBoxes.Concat(
 					SimpleVariableBoxes.Single(
 						new EnvironmentVariableInfo(variableName?.Value ?? name.Value, type, null)
-						)
+						),
+					BasisEnvironment.Instance
 					);
 			}
 			private static IEnvironment MakeValidateEnvironment(ContextProperty<EvaluationName> name, ContextProperty<EvaluationName>? variableName, EvaluationType type, object? exampleValue) {
-				return BasisEnvironment.Instance.AppendEnvironment(
+				return Environments.Concat(
 					SimpleEnvironments.Single(
 						new EnvironmentVariableInfo((variableName ?? name).Value.ToString(), type, null),
 						exampleValue
-						)
+						),
+					BasisEnvironment.Instance
 					);
 			}
 

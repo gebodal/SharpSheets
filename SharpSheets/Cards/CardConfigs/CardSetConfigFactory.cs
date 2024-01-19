@@ -33,67 +33,67 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		private static readonly ConstructorInfo cardSetConfigConstructorInfo;
 		private static readonly ConstructorInfo cardConfigConstructorInfo;
-		//private static readonly ConstructorInfo sectionConfigConstructorInfo;
-		private static readonly ConstructorInfo dynamicSectionConfigConstructorInfo;
-		private static readonly ConstructorInfo textSectionConfigConstructorInfo;
-		private static readonly ConstructorInfo paragraphSectionConfigConstructorInfo;
-		private static readonly ConstructorInfo tableSectionConfigConstructorInfo;
+		//private static readonly ConstructorInfo segmentConfigConstructorInfo;
+		private static readonly ConstructorInfo dynamicSegmentConfigConstructorInfo;
+		private static readonly ConstructorInfo textSegmentConfigConstructorInfo;
+		private static readonly ConstructorInfo paragraphSegmentConfigConstructorInfo;
+		private static readonly ConstructorInfo tableSegmentConfigConstructorInfo;
 		private static readonly ConstructorInfo featureConfigConstructorInfo;
 
-		private static readonly Dictionary<Type, ConstructorInfo> sectionConstructorsByType;
-		private static readonly Dictionary<string, ConstructorInfo> sectionConstructorsByName;
+		private static readonly Dictionary<Type, ConstructorInfo> segmentConstructorsByType;
+		private static readonly Dictionary<string, ConstructorInfo> segmentConstructorsByName;
 
 		public static readonly ConstructorDetails CardSetConfigConstructor;
 		public static readonly ConstructorDetails CardConfigConstructor;
-		//public static readonly ConstructorDetails SectionConfigConstructor;
-		public static readonly ConstructorDetails DynamicSectionConfigConstructor;
-		public static readonly ConstructorDetails TextSectionConfigConstructor;
-		public static readonly ConstructorDetails ParagraphSectionConfigConstructor;
-		public static readonly ConstructorDetails TableSectionConfigConstructor;
+		//public static readonly ConstructorDetails SegmentConfigConstructor;
+		public static readonly ConstructorDetails DynamicSegmentConfigConstructor;
+		public static readonly ConstructorDetails TextSegmentConfigConstructor;
+		public static readonly ConstructorDetails ParagraphSegmentConfigConstructor;
+		public static readonly ConstructorDetails TableSegmentConfigConstructor;
 		public static readonly ConstructorDetails FeatureConfigConstructor;
 
 		public static readonly ITypeDetailsCollection ConfigConstructors;
-		public static readonly ITypeDetailsCollection SectionConfigConstructors;
+		public static readonly ITypeDetailsCollection SegmentConfigConstructors;
 
 		public static readonly ConstructorDetails OutlineConstructor;
 		public static readonly ConstructorDetails HeaderConstructor;
 
 		private static readonly Dictionary<Type, ConstructorDetails> cardConfigConstructorsByType;
 		public static readonly Dictionary<string, ConstructorDetails> cardConfigConstructorsByName;
-		public static readonly Dictionary<string, ConstructorDetails> cardSectionConfigConstructorsByName;
+		public static readonly Dictionary<string, ConstructorDetails> cardSegmentConfigConstructorsByName;
 
 		/// <summary></summary>
 		/// <exception cref="TypeInitializationException"></exception>
 		static CardSetConfigFactory() {
 			cardSetConfigConstructorInfo = typeof(CardSetConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(CardSetConfig)} constructor.", null);
 			cardConfigConstructorInfo = typeof(CardConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(CardConfig)} constructor.", null);
-			//sectionConfigConstructorInfo = typeof(CardSectionConfig).GetConstructors().First();
-			dynamicSectionConfigConstructorInfo = typeof(DynamicCardSectionConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(DynamicCardSectionConfig)} constructor.", null);
-			textSectionConfigConstructorInfo = typeof(TextCardSectionConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(TextCardSectionConfig)} constructor.", null);
-			paragraphSectionConfigConstructorInfo = typeof(ParagraphCardSectionConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(ParagraphCardSectionConfig)} constructor.", null);
-			tableSectionConfigConstructorInfo = typeof(TableCardSectionConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(TableCardSectionConfig)} constructor.", null);
+			//segmentConfigConstructorInfo = typeof(CardSegmentConfig).GetConstructors().First();
+			dynamicSegmentConfigConstructorInfo = typeof(DynamicCardSegmentConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(DynamicCardSegmentConfig)} constructor.", null);
+			textSegmentConfigConstructorInfo = typeof(TextCardSegmentConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(TextCardSegmentConfig)} constructor.", null);
+			paragraphSegmentConfigConstructorInfo = typeof(ParagraphCardSegmentConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(ParagraphCardSegmentConfig)} constructor.", null);
+			tableSegmentConfigConstructorInfo = typeof(TableCardSegmentConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(TableCardSegmentConfig)} constructor.", null);
 			featureConfigConstructorInfo = typeof(CardFeatureConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(CardFeatureConfig)} constructor.", null);
 
-			CardSetConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(CardSetConfig), cardSetConfigConstructorInfo, "CardSetConfig");
-			CardConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(CardConfig), cardConfigConstructorInfo, "CardConfig");
-			//SectionConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(CardSectionConfig), sectionConfigConstructorInfo, "CardSection");
-			DynamicSectionConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(DynamicCardSectionConfig), dynamicSectionConfigConstructorInfo, "CardSection");
-			TextSectionConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(TextCardSectionConfig), textSectionConfigConstructorInfo, "CardTextSection");
-			ParagraphSectionConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(ParagraphCardSectionConfig), paragraphSectionConfigConstructorInfo, "CardParagraphSection");
-			TableSectionConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(TableCardSectionConfig), tableSectionConfigConstructorInfo, "CardTableSection");
+			CardSetConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(CardSetConfig), cardSetConfigConstructorInfo, "CardsConfiguration");
+			CardConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(CardConfig), cardConfigConstructorInfo, "Card");
+			//SegmentConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(CardSegmentConfig), segmentConfigConstructorInfo, "CardSegment");
+			DynamicSegmentConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(DynamicCardSegmentConfig), dynamicSegmentConfigConstructorInfo, "Segment");
+			TextSegmentConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(TextCardSegmentConfig), textSegmentConfigConstructorInfo, "TextBlock");
+			ParagraphSegmentConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(ParagraphCardSegmentConfig), paragraphSegmentConfigConstructorInfo, "Paragraphs");
+			TableSegmentConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(TableCardSegmentConfig), tableSegmentConfigConstructorInfo, "Table");
 			FeatureConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(CardFeatureConfig), featureConfigConstructorInfo, "Feature");
 
-			sectionConstructorsByType = new Dictionary<Type, ConstructorInfo>() {
-				{ typeof(DynamicCardSectionConfig), dynamicSectionConfigConstructorInfo },
-				{ typeof(TextCardSectionConfig), textSectionConfigConstructorInfo },
-				{ typeof(ParagraphCardSectionConfig), paragraphSectionConfigConstructorInfo },
-				{ typeof(TableCardSectionConfig), tableSectionConfigConstructorInfo }
+			segmentConstructorsByType = new Dictionary<Type, ConstructorInfo>() {
+				{ typeof(DynamicCardSegmentConfig), dynamicSegmentConfigConstructorInfo },
+				{ typeof(TextCardSegmentConfig), textSegmentConfigConstructorInfo },
+				{ typeof(ParagraphCardSegmentConfig), paragraphSegmentConfigConstructorInfo },
+				{ typeof(TableCardSegmentConfig), tableSegmentConfigConstructorInfo }
 			};
-			sectionConstructorsByName = new Dictionary<string, ConstructorInfo>(SharpDocuments.StringComparer) {
-				{ DynamicSectionConfigConstructor.Name, dynamicSectionConfigConstructorInfo },
-				{ TextSectionConfigConstructor.Name, textSectionConfigConstructorInfo },
-				{ ParagraphSectionConfigConstructor.Name, paragraphSectionConfigConstructorInfo },
-				{ TableSectionConfigConstructor.Name, tableSectionConfigConstructorInfo }
+			segmentConstructorsByName = new Dictionary<string, ConstructorInfo>(SharpDocuments.StringComparer) {
+				{ DynamicSegmentConfigConstructor.Name, dynamicSegmentConfigConstructorInfo },
+				{ TextSegmentConfigConstructor.Name, textSegmentConfigConstructorInfo },
+				{ ParagraphSegmentConfigConstructor.Name, paragraphSegmentConfigConstructorInfo },
+				{ TableSegmentConfigConstructor.Name, tableSegmentConfigConstructorInfo }
 			};
 
 			ConstructorDetails baseDivConstructor = WidgetFactory.DivConstructor;
@@ -105,33 +105,33 @@ namespace SharpSheets.Cards.CardConfigs {
 				new ConstructorDetails[] {
 					CardSetConfigConstructor,
 					CardConfigConstructor,
-					//SectionConfigConstructor,
-					DynamicSectionConfigConstructor,
-					TextSectionConfigConstructor,
-					ParagraphSectionConfigConstructor,
-					TableSectionConfigConstructor,
+					//SegmentConfigConstructor,
+					DynamicSegmentConfigConstructor,
+					TextSegmentConfigConstructor,
+					ParagraphSegmentConfigConstructor,
+					TableSegmentConfigConstructor,
 					FeatureConfigConstructor,
 					OutlineConstructor,
 					HeaderConstructor
 				}, SharpDocuments.StringComparer);
 
-			SectionConfigConstructors = new TypeDetailsCollection(
+			SegmentConfigConstructors = new TypeDetailsCollection(
 				new ConstructorDetails[] {
-					//SectionConfigConstructor,
-					DynamicSectionConfigConstructor,
-					TextSectionConfigConstructor,
-					ParagraphSectionConfigConstructor,
-					TableSectionConfigConstructor
+					//SegmentConfigConstructor,
+					DynamicSegmentConfigConstructor,
+					TextSegmentConfigConstructor,
+					ParagraphSegmentConfigConstructor,
+					TableSegmentConfigConstructor
 				}, SharpDocuments.StringComparer);
 
 			cardConfigConstructorsByType = new Dictionary<Type, ConstructorDetails>() {
 				{ typeof(CardSetConfig), CardSetConfigConstructor },
 				{ typeof(CardConfig), CardConfigConstructor },
-				//{ typeof(CardSectionConfig), SectionConfigConstructor },
-				{ typeof(DynamicCardSectionConfig), DynamicSectionConfigConstructor },
-				{ typeof(TextCardSectionConfig), TextSectionConfigConstructor },
-				{ typeof(ParagraphCardSectionConfig), ParagraphSectionConfigConstructor },
-				{ typeof(TableCardSectionConfig), TableSectionConfigConstructor },
+				//{ typeof(CardSegmentConfig), SegmentConfigConstructor },
+				{ typeof(DynamicCardSegmentConfig), DynamicSegmentConfigConstructor },
+				{ typeof(TextCardSegmentConfig), TextSegmentConfigConstructor },
+				{ typeof(ParagraphCardSegmentConfig), ParagraphSegmentConfigConstructor },
+				{ typeof(TableCardSegmentConfig), TableSegmentConfigConstructor },
 				{ typeof(CardFeatureConfig), FeatureConfigConstructor }
 			};
 			cardConfigConstructorsByName = new Dictionary<string, ConstructorDetails>(
@@ -140,8 +140,8 @@ namespace SharpSheets.Cards.CardConfigs {
 				{OutlineConstructor.Name, OutlineConstructor },
 				{HeaderConstructor.Name, HeaderConstructor }
 			};
-			cardSectionConfigConstructorsByName = new Dictionary<string, ConstructorDetails>(
-				SectionConfigConstructors.ToDictionary(c => c.Name, c => c),
+			cardSegmentConfigConstructorsByName = new Dictionary<string, ConstructorDetails>(
+				SegmentConfigConstructors.ToDictionary(c => c.Name, c => c),
 				SharpDocuments.StringComparer); ;
 		}
 
@@ -187,25 +187,27 @@ namespace SharpSheets.Cards.CardConfigs {
 			IEnvironment outlinesDryRunEnvironment = CardOutlinesEnvironments.GetDryRun(cardSetConfig);
 
 			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor.Name))) {
-				Conditional<IContext> outlineEntry = MakeCondition(outline, outline, outlinesVariables, errors);
+				InterpolatedContext outlineContext = MakeInterpolatedContext(outline, outlinesVariables, errors);
+				Conditional<InterpolatedContext> outlineEntry = MakeCondition(outline, outlineContext, outlinesVariables, errors);
 				cardSetConfig.outlines.Add(outlineEntry);
 				if (origins != null) { origins.Add(outline, outline); } // TODO Yes?
-				DryRunRect(outline, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
+				DryRunParse(outlineContext, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
 			}
 
 			foreach (IContext header in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, HeaderConstructor.Name))) {
-				Conditional<IContext> headerEntry = MakeCondition(header, header, outlinesVariables, errors);
+				InterpolatedContext headerContext = MakeInterpolatedContext(header, outlinesVariables, errors);
+				Conditional<InterpolatedContext> headerEntry = MakeCondition(header, headerContext, outlinesVariables, errors);
 				cardSetConfig.headers.Add(headerEntry);
 				if (origins != null) { origins.Add(header, header); } // TODO Yes?
-				DryRunRect(header, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
+				DryRunParse(headerContext, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
 			}
 
-			foreach (IContext section in context.Children.Where(c => cardSectionConfigConstructorsByName.ContainsKey(c.SimpleName))) {
-				AbstractCardSectionConfig? cardSection = MakeSection(section, cardSetConfig, origins, errors);
+			foreach (IContext segment in context.Children.Where(c => cardSegmentConfigConstructorsByName.ContainsKey(c.SimpleName))) {
+				AbstractCardSegmentConfig? cardSegment = MakeSegment(segment, cardSetConfig, origins, errors);
 
-				if (cardSection != null) {
-					Conditional<AbstractCardSectionConfig> sectionConditional = MakeCondition(section, cardSection, cardSection.Variables, errors);
-					cardSetConfig.cardSections.Add(sectionConditional);
+				if (cardSegment != null) {
+					Conditional<AbstractCardSegmentConfig> segmentConditional = MakeCondition(segment, cardSegment, cardSegment.Variables, errors);
+					cardSetConfig.cardSetSegments.Add(segmentConditional);
 				}
 			}
 
@@ -307,25 +309,27 @@ namespace SharpSheets.Cards.CardConfigs {
 			IEnvironment outlinesDryRunEnvironment = CardOutlinesEnvironments.GetDryRun(cardConfig); // DynamicCardEnvironments.CardNumberDryRun(CardSubjectEnvironments.GetDryRun(cardConfig));
 
 			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor.Name))) {
-				Conditional<IContext> outlineEntry = MakeCondition(outline, outline, outlinesVariables, errors);
+				InterpolatedContext outlineContext = MakeInterpolatedContext(outline, outlinesVariables, errors);
+				Conditional<InterpolatedContext> outlineEntry = MakeCondition(outline, outlineContext, outlinesVariables, errors);
 				cardConfig.outlines.Add(outlineEntry);
 				if (origins != null) { origins.Add(outline, outline); } // TODO Yes?
-				DryRunRect(outline, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
+				DryRunParse(outlineContext, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
 			}
 
 			foreach (IContext header in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, HeaderConstructor.Name))) {
-				Conditional<IContext> headerEntry = MakeCondition(header, header, outlinesVariables, errors);
+				InterpolatedContext headerContext = MakeInterpolatedContext(header, outlinesVariables, errors);
+				Conditional<InterpolatedContext> headerEntry = MakeCondition(header, headerContext, outlinesVariables, errors);
 				cardConfig.headers.Add(headerEntry);
 				if (origins != null) { origins.Add(header, header); } // TODO Yes?
-				DryRunRect(header, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
+				DryRunParse(headerContext, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
 			}
 
-			foreach (IContext section in context.Children.Where(c => cardSectionConfigConstructorsByName.ContainsKey(c.SimpleName))) {
-				AbstractCardSectionConfig? cardSection = MakeSection(section, cardConfig, origins, errors);
+			foreach (IContext segment in context.Children.Where(c => cardSegmentConfigConstructorsByName.ContainsKey(c.SimpleName))) {
+				AbstractCardSegmentConfig? cardSegment = MakeSegment(segment, cardConfig, origins, errors);
 
-				if (cardSection != null) {
-					Conditional<AbstractCardSectionConfig> sectionConditional = MakeCondition(section, cardSection, cardSection.Variables, errors);
-					cardConfig.cardSections.Add(sectionConditional);
+				if (cardSegment != null) {
+					Conditional<AbstractCardSegmentConfig> segmentConditional = MakeCondition(segment, cardSegment, cardSegment.Variables, errors);
+					cardConfig.AddSegment(segmentConditional);
 				}
 			}
 
@@ -334,54 +338,54 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
-		private AbstractCardSectionConfig? MakeSection(IContext context, ICardSectionParent parent, Dictionary<object, IDocumentEntity>? origins, List<SharpParsingException> errors) {
-			//ConstructorInfo constructorInfo = sectionConstructorsByType[typeof(T)];
-			ConstructorInfo constructorInfo = sectionConstructorsByName.GetValueOrFallback(context.SimpleName, null) ?? throw new InvalidOperationException($"Could not find section constructor for \"{context.SimpleName}\"");
-			Type sectionType = constructorInfo.DeclaringType ?? throw new InvalidOperationException("Could not resolve corresponding card section constructor.");
+		private AbstractCardSegmentConfig? MakeSegment(IContext context, ICardSegmentParent parent, Dictionary<object, IDocumentEntity>? origins, List<SharpParsingException> errors) {
+			//ConstructorInfo constructorInfo = segmentConstructorsByType[typeof(T)];
+			ConstructorInfo constructorInfo = segmentConstructorsByName.GetValueOrFallback(context.SimpleName, null) ?? throw new InvalidOperationException($"Could not find segment constructor for \"{context.SimpleName}\"");
+			Type segmentType = constructorInfo.DeclaringType ?? throw new InvalidOperationException("Could not resolve corresponding card segment constructor.");
 
-			AbstractCardSectionConfig? cardSection;
+			AbstractCardSegmentConfig? cardSegment;
 
 			try {
 				List<object> requiredArgs = new List<object>() { parent };
-				if (sectionType == typeof(TextCardSectionConfig) || sectionType == typeof(ParagraphCardSectionConfig)) {
+				if (segmentType == typeof(TextCardSegmentConfig) || segmentType == typeof(ParagraphCardSegmentConfig)) {
 					IVariableBox featureVariables = CardFeatureEnvironments.GetVariables(parent); // BasisEnvironment.Instance.AppendVariables(CardFeatureEnvironments.BaseDefinitions); // TODO CardFeatureEnvironments.GetTextVariables(parent);?
 					TextExpression? content = MakeTextProperty("content", context, featureVariables, errors);
 					requiredArgs.Add(content ?? new TextExpression(""));
 				}
-				if(sectionType == typeof(TextCardSectionConfig)) {
-					IVariableBox sectionVariables = CardSectionEnvironments.GetVariables(parent); // BasisEnvironment.Instance.AppendVariables(CardSectionEnvironments.BaseDefinitions);
-					TextExpression? delimiter = MakeTextProperty("delimiter", context, sectionVariables, errors);
+				if(segmentType == typeof(TextCardSegmentConfig)) {
+					IVariableBox segmentVariables = CardSegmentEnvironments.GetVariables(parent); // BasisEnvironment.Instance.AppendVariables(CardSegmentEnvironments.BaseDefinitions);
+					TextExpression? delimiter = MakeTextProperty("delimiter", context, segmentVariables, errors);
 					requiredArgs.Add(delimiter ?? new TextExpression(""));
-					TextExpression? prefix = MakeTextProperty("prefix", context, sectionVariables, errors);
+					TextExpression? prefix = MakeTextProperty("prefix", context, segmentVariables, errors);
 					requiredArgs.Add(prefix ?? new TextExpression(""));
-					TextExpression? tail = MakeTextProperty("tail", context, sectionVariables, errors);
+					TextExpression? tail = MakeTextProperty("tail", context, segmentVariables, errors);
 					requiredArgs.Add(tail ?? new TextExpression(""));
 				}
-				cardSection = (AbstractCardSectionConfig)SharpFactory.Construct(constructorInfo, context, parent.Source, widgetFactory, shapeFactory, requiredArgs.ToArray(), out SharpParsingException[] cardSectionBuildErrors);
-				errors.AddRange(cardSectionBuildErrors);
+				cardSegment = (AbstractCardSegmentConfig)SharpFactory.Construct(constructorInfo, context, parent.Source, widgetFactory, shapeFactory, requiredArgs.ToArray(), out SharpParsingException[] cardSegmentBuildErrors);
+				errors.AddRange(cardSegmentBuildErrors);
 			}
 			catch (SharpParsingException e) {
-				cardSection = null;
+				cardSegment = null;
 				errors.Add(e);
 			}
 			catch (SharpFactoryException e) {
-				cardSection = null;
+				cardSegment = null;
 				errors.AddRange(e.Errors);
 			}
 
-			if (cardSection == null) { return null; }
+			if (cardSegment == null) { return null; }
 
-			if (origins != null) { origins.Add(cardSection, context); }
+			if (origins != null) { origins.Add(cardSegment, context); }
 
-			IVariableBox definitionVariables = BasisEnvironment.Instance.AppendVariables(cardSection.Variables);
+			IVariableBox definitionVariables = BasisEnvironment.Instance.AppendVariables(cardSegment.Variables);
 
 			// If not dynamic, or is dynamic and not always included
-			// AlwaysInclude sections cannot have their own Definitions specified
-			if (cardSection is not DynamicCardSectionConfig dynamic || !dynamic.AlwaysInclude) { 
+			// AlwaysInclude segments cannot have their own Definitions specified
+			if (cardSegment is not DynamicCardSegmentConfig dynamic || !dynamic.AlwaysInclude) { 
 				foreach (ContextValue<string> definitionValue in context.GetDefinitions(context)) {
 					try {
 						Definition definition = Definition.Parse(definitionValue.Value, definitionVariables);
-						cardSection.definitions.Add(definition);
+						cardSegment.definitions.Add(definition);
 					}
 					catch (Exception e) {
 						errors.Add(new SharpParsingException(definitionValue.Location, e.Message, e));
@@ -390,56 +394,57 @@ namespace SharpSheets.Cards.CardConfigs {
 			}
 
 			/*
-			IEnvironment sectionEnvironment = CardSectionEnvironments.GetDryRun(cardSection);
+			IEnvironment segmentEnvironment = CardSegmentEnvironments.GetDryRun(cardSegment);
 			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor.Name))) {
-				Conditional<IContext> outlineEntry = MakeCondition(outline, outline, cardSection.Variables, errors);
-				cardSection.outlines.Add(outlineEntry);
+				Conditional<IContext> outlineEntry = MakeCondition(outline, outline, cardSegment.Variables, errors);
+				cardSegment.outlines.Add(outlineEntry);
 				if (origins != null) { origins.Add(outline, outline); } // Yes?
-				DryRunRect(outline, sectionEnvironment, cardConfig.source, errors);
+				DryRunRect(outline, segmentEnvironment, cardConfig.source, errors);
 			}
 			*/
 
-			IVariableBox outlinesVariables = CardSectionOutlineEnvironments.GetVariables(cardSection);
-			IEnvironment outlinesDryRunEnvironment = CardSectionOutlineEnvironments.GetDryRun(cardSection);
+			IVariableBox outlinesVariables = CardSegmentOutlineEnvironments.GetVariables(cardSegment);
+			IEnvironment outlinesDryRunEnvironment = CardSegmentOutlineEnvironments.GetDryRun(cardSegment);
 			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor.Name))) {
-				Conditional<IContext> outlineEntry = MakeCondition(outline, outline, outlinesVariables, errors);
-				cardSection.outlines.Add(outlineEntry);
+				InterpolatedContext outlineContext = MakeInterpolatedContext(outline, outlinesVariables, errors);
+				Conditional<InterpolatedContext> outlineEntry = MakeCondition(outline, outlineContext, outlinesVariables, errors);
+				cardSegment.outlines.Add(outlineEntry);
 				if (origins != null) { origins.Add(outline, outline); } // TODO Yes?
-				DryRunRect(outline, outlinesDryRunEnvironment, parent.Source, errors);
+				DryRunParse(outlineContext, outlinesDryRunEnvironment, parent.Source, errors);
 			}
 
-			if (cardSection is DynamicCardSectionConfig featuredSection) {
+			if (cardSegment is DynamicCardSegmentConfig featuredSegment) {
 				foreach (IContext feature in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, FeatureConfigConstructor.Name))) {
-					CardFeatureConfig? cardFeature = MakeFeature(feature, featuredSection, parent.Source, origins, errors);
+					CardFeatureConfig? cardFeature = MakeFeature(feature, featuredSegment, parent.Source, origins, errors);
 
 					if (cardFeature is not null) {
-						Conditional<CardFeatureConfig> sectionFeatureConditional = MakeCondition(feature, cardFeature, cardFeature.Variables, errors);
-						featuredSection.cardFeatures.Add(sectionFeatureConditional);
+						Conditional<CardFeatureConfig> segmentFeatureConditional = MakeCondition(feature, cardFeature, cardFeature.Variables, errors);
+						featuredSegment.cardFeatures.Add(segmentFeatureConditional);
 
-						DryRunRect(feature, CardFeatureEnvironments.GetDryRun(cardFeature), parent.Source, errors);
+						DryRunParse(cardFeature.Layout, CardFeatureEnvironments.GetDryRun(cardFeature), parent.Source, errors);
 					}
 				}
 
-				if(featuredSection.cardFeatures.Count == 0) {
-					errors.Add(new SharpParsingException(context.Location, "Section must have at least one valid feature."));
+				if(featuredSegment.cardFeatures.Count == 0) {
+					errors.Add(new SharpParsingException(context.Location, "Segment must have at least one valid feature."));
 					return null;
 				}
 
 				/*
-				if(featuredSection.cardFeatures.Count == 1 && !featuredSection.cardFeatures.First().Condition.IsTrue && origins.TryGetValue(featuredSection.cardFeatures.First().Value, out IDocumentEntity featureEntity)) {
+				if(featuredSegment.cardFeatures.Count == 1 && !featuredSegment.cardFeatures.First().Condition.IsTrue && origins.TryGetValue(featuredSegment.cardFeatures.First().Value, out IDocumentEntity featureEntity)) {
 					errors.Add(new SharpParsingException(featureEntity.Location, "Only one feature is provided, and it has a condition."));
 				}
 				*/
 			}
 
-			return cardSection;
+			return cardSegment;
 		}
 
-		private CardFeatureConfig? MakeFeature(IContext context, DynamicCardSectionConfig sectionConfig, DirectoryPath source, Dictionary<object, IDocumentEntity>? origins, List<SharpParsingException> errors) {
+		private CardFeatureConfig? MakeFeature(IContext context, DynamicCardSegmentConfig segmentConfig, DirectoryPath source, Dictionary<object, IDocumentEntity>? origins, List<SharpParsingException> errors) {
 			CardFeatureConfig? cardFeature;
-
+			
 			try {
-				cardFeature = (CardFeatureConfig)SharpFactory.Construct(featureConfigConstructorInfo, context, source, widgetFactory, shapeFactory, new object[] { sectionConfig, context }, out SharpParsingException[] cardFeatureBuildErrors);
+				cardFeature = (CardFeatureConfig)SharpFactory.Construct(featureConfigConstructorInfo, context, source, widgetFactory, shapeFactory, new object[] { segmentConfig }, out SharpParsingException[] cardFeatureBuildErrors);
 				errors.AddRange(cardFeatureBuildErrors);
 			}
 			catch (SharpParsingException e) {
@@ -454,17 +459,20 @@ namespace SharpSheets.Cards.CardConfigs {
 			if (cardFeature == null) { return null; }
 			if (origins != null) { origins.Add(cardFeature, context); }
 
-			IVariableBox definitionVariables = BasisEnvironment.Instance.AppendVariables(cardFeature.Variables);
+			IVariableBox featureVariables = BasisEnvironment.Instance.AppendVariables(cardFeature.Variables);
 
 			foreach (ContextValue<string> definitionValue in context.GetDefinitions(context)) {
 				try {
-					Definition definition = Definition.Parse(definitionValue.Value, definitionVariables);
+					Definition definition = Definition.Parse(definitionValue.Value, featureVariables);
 					cardFeature.definitions.Add(definition);
 				}
 				catch (Exception e) {
 					errors.Add(new SharpParsingException(definitionValue.Location, e.Message, e));
 				}
 			}
+
+			InterpolatedContext featureContext = MakeInterpolatedContext(context, featureVariables, errors);
+			cardFeature.Layout = featureContext;
 
 			return cardFeature;
 		}
@@ -493,6 +501,12 @@ namespace SharpSheets.Cards.CardConfigs {
 			}
 		}
 
+		private InterpolatedContext MakeInterpolatedContext(IContext context, IVariableBox variables, List<SharpParsingException> errors) {
+			InterpolatedContext result = InterpolatedContext.Parse(context, variables, true, out SharpParsingException[] contextErrors);
+			errors.AddRange(contextErrors);
+			return result;
+		}
+
 		private static TextExpression? MakeTextProperty(string property, IContext context, IVariableBox variables, List<SharpParsingException> errors) {
 			if (variables == null) {
 				// TODO Error here?
@@ -513,7 +527,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			}
 		}
 
-		private static void CheckCondition(IContext context, IVariableBox variables, List<SharpParsingException> errors) {
+		/*
+		private static void CheckCondition(InterpolatedContext context, IVariableBox variables, List<SharpParsingException> errors) {
 			string? conditionStr = context.GetProperty(ConditionArgument.Name, true, context, null, out DocumentSpan? conditionLocation);
 			if (conditionStr != null) {
 				try {
@@ -524,15 +539,18 @@ namespace SharpSheets.Cards.CardConfigs {
 				}
 			}
 		}
+		*/
 
-		private void DryRunRect(IContext context, IEnvironment environment, DirectoryPath source, List<SharpParsingException> errors) {
+		private void DryRunParse(InterpolatedContext context, IEnvironment environment, DirectoryPath source, List<SharpParsingException> errors) {
+			/*
 			CheckCondition(context, environment, errors);
 			foreach(IContext child in context.TraverseChildren(true)) {
 				CheckCondition(child, environment, errors);
 			}
+			*/
 
 			try {
-				widgetFactory.MakeWidget(typeof(Div), new InterpolateContext(context, environment, false), source, out SharpParsingException[] rectErrors);
+				widgetFactory.MakeWidget(typeof(Div), new LazyInterpolatedContext(context.OriginalContext, environment), source, out SharpParsingException[] rectErrors);
 				errors.AddRange(rectErrors);
 			}
 			catch(UndefinedVariableException e) {
@@ -547,14 +565,32 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		public static readonly ArgumentDetails ConditionArgument = new ArgumentDetails(
 			"condition",
-			new DocumentationString("A boolean expression used to determine if this part of the configuration should be used, based on the card subject data. If no expression is provided, it is assumed to be true."),
+			new DocumentationString("A boolean expression used to determine if this part of the configuration " +
+				"should be used, based on the card subject data. If no expression is provided, it is assumed to be true."),
 			ArgumentType.Simple(typeof(BoolExpression)), true, true, "True", new BoolExpression(true), null);
+
+		public static readonly ArgumentDetails ForEachArgument = new ArgumentDetails(
+			"foreach",
+			new DocumentationString("A for-each expression, which will cause this element to be repeated for each " +
+				"entry of a specified array of values, with each of those entries available as a variable in the " +
+				"corresponding repetition. Must be of the pattern \"loopVar in arrayExpr\", where \"arrayExpr\" is " +
+				"an expression which evaluates to an array, and \"loopVar\" is the name to use for the loop variable."),
+			ArgumentType.Simple(typeof(ContextForEach)), true, true, null, null, null);
+
 		private static ConstructorDetails MakeConfigConstructor(ConstructorDetails constructor) {
-			if(constructor.Arguments.Length > 0 && constructor.Arguments[0].Name == ConditionArgument.Name && constructor.Arguments[0].Description == ConditionArgument.Description && constructor.Arguments[0].Type == ConditionArgument.Type) {
-				return constructor;
-			}
-			else if(constructor.DeclaringType == typeof(CardConfig)) {
+			if (constructor.DeclaringType == typeof(CardConfig)) {
 				return constructor; // The top-level card config has no condition
+			}
+			else if (typeof(IWidget).IsAssignableFrom(constructor.DeclaringType) && constructor != OutlineConstructor && constructor != HeaderConstructor) {
+				if(constructor.Arguments.Length > 1 && ArgumentComparer.Instance.Equals(constructor.Arguments[0], ConditionArgument) && ArgumentComparer.Instance.Equals(constructor.Arguments[1], ForEachArgument)) {
+					return constructor;
+				}
+				else {
+					return constructor.WithArgument(ForEachArgument, 0).WithArgument(ConditionArgument, 0);
+				}
+			}
+			else if(constructor.Arguments.Length > 0 && ArgumentComparer.Instance.Equals(constructor.Arguments[0], ConditionArgument)) {
+				return constructor;
 			}
 			else {
 				return constructor.WithArgument(ConditionArgument, 0);
@@ -616,6 +652,136 @@ namespace SharpSheets.Cards.CardConfigs {
 		}
 
 		#endregion
+	}
+
+	public class LazyInterpolatedContext : IContext {
+
+		public IContext OriginalContext { get; }
+		public IEnvironment Environment { get; }
+
+		/// <summary></summary>
+		/// <exception cref="ArgumentNullException"></exception>
+		public LazyInterpolatedContext(IContext originalContext, IEnvironment environment) {
+			this.OriginalContext = originalContext ?? throw new ArgumentNullException(nameof(originalContext));
+			//this.Environment = environment ?? throw new ArgumentNullException(nameof(environment));
+			this.Environment = GetFullEnvironment(originalContext, environment ?? throw new ArgumentNullException(nameof(environment)));
+		}
+
+		/// <summary></summary>
+		/// <exception cref="SharpParsingException"></exception>
+		[return: NotNullIfNotNull(nameof(original))]
+		private string? Replace(string? original, DocumentSpan? location) {
+			if (original == null) { return null; }
+			// Find any variables/expressions ($-prefixed or ${}-wrapped) and replace
+			try {
+				TextExpression expr = Interpolation.Parse(original, Environment, true);
+				string result = expr.Evaluate(Environment); // Environment.Interpolate(original, true);
+				return result;
+			}
+			catch (EvaluationException e) {
+				throw new SharpParsingException(location, e.Message, e);
+			}
+		}
+
+		public string SimpleName => OriginalContext.SimpleName;
+		public string DetailedName => OriginalContext.DetailedName;
+		public string FullName => OriginalContext.FullName;
+		public DocumentSpan Location => OriginalContext.Location;
+		public int Depth => OriginalContext.Depth;
+
+		public IContext? Parent => OriginalContext.Parent; // TODO This is still not right...
+		public IEnumerable<IContext> Children {
+			get {
+				return OriginalContext.Children
+					.Select(c => new LazyInterpolatedContext(c, Environment));
+			}
+		}
+		public IEnumerable<KeyValuePair<string, IContext>> NamedChildren {
+			get {
+				return OriginalContext.NamedChildren
+					.Select(kv => new KeyValuePair<string, IContext>(kv.Key, new LazyInterpolatedContext(kv.Value, Environment)));
+			}
+		}
+
+		IDocumentEntity? IDocumentEntity.Parent => Parent;
+		IEnumerable<IDocumentEntity> IDocumentEntity.Children => Children;
+
+		/*
+		/// <summary></summary>
+		/// <exception cref="SharpParsingException"></exception>
+		private bool EvaluateCondition(IContext context) {
+			string? conditionStr = context.GetProperty("condition", true, context, null, out DocumentSpan? location);
+			if (conditionStr == null) {
+				return true;
+			}
+			else {
+				try {
+					BoolExpression condition = BoolExpression.Parse(conditionStr, Environment);
+					object evaluation = condition.Evaluate(Environment);
+					if (evaluation is bool result) { return result; }
+				}
+				catch (EvaluationException) { }
+				throw new SharpParsingException(location, "Invalid condition.");
+			}
+		}
+		*/
+
+		private static IEnvironment GetFullEnvironment(IContext context, IEnvironment initial) {
+			string? foreachStr = context.GetProperty("foreach", true, null, null, out _);
+			if (foreachStr is not null) {
+				try {
+					ContextForEach forEach = ContextForEach.Parse(foreachStr, initial);
+					return initial.AppendEnvironment(new DryRunEnvironment(SimpleVariableBoxes.Single(forEach.LoopVariable)));
+				}
+				catch (EvaluationException) { }
+				catch (FormatException) { }
+			}
+			return initial;
+		}
+
+		public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) {
+			return OriginalContext.GetLocalProperties(origin)
+				.Select(p => new ContextProperty<string>(p.Location, p.Name, p.ValueLocation, Replace(p.Value, p.ValueLocation)));
+		}
+
+		public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) {
+			return OriginalContext.GetLocalFlags(origin);
+		}
+
+		public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) {
+			return OriginalContext.GetEntries(origin).Select(e => new ContextValue<string>(e.Location, Replace(e.Value, e.Location)));
+		}
+
+		public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) {
+			return OriginalContext.GetDefinitions(origin); // TODO Is this right?
+		}
+
+		public bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
+			return OriginalContext.GetFlag(flag, local, origin, out location);
+		}
+
+		public IContext? GetNamedChild(string name) {
+			IContext? namedChild = OriginalContext.GetNamedChild(name);
+			if (namedChild == null) {
+				return null;
+			}
+			else {
+				return new LazyInterpolatedContext(namedChild, Environment);
+			}
+		}
+
+		public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
+			string? value = OriginalContext.GetProperty(key, local, origin, defaultValue, out location);
+			return Replace(value, location);
+		}
+
+		public bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
+			return OriginalContext.HasFlag(flag, local, origin, out location);
+		}
+
+		public bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location) {
+			return OriginalContext.HasProperty(key, local, origin, out location);
+		}
 	}
 
 }

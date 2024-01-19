@@ -423,6 +423,66 @@ namespace SharpSheets.Evaluations {
 			return commonType;
 		}
 
+		public static bool TryGetCompatibleType(EvaluationType a, EvaluationType b, [MaybeNullWhen(false)] out EvaluationType compatible) {
+			if (a == b) {
+				compatible = a;
+				return true;
+			}
+			else if (a.IsIntegral() && b.IsIntegral()) {
+				compatible = EvaluationType.INT;
+				return true;
+			}
+			else if (a.IsReal() && b.IsReal()) {
+				compatible = EvaluationType.FLOAT;
+				return true;
+			}
+			else if (a.IsArray && b.IsArray && TryGetCompatibleType(a.ElementType, b.ElementType, out EvaluationType? compatibleElement)) {
+				compatible = compatibleElement.MakeArray();
+				return true;
+			}
+			else {
+				compatible = null;
+				return false;
+			}
+		}
+
+		public static bool IsCompatibleType(EvaluationType type, EvaluationType other) {
+			return TryGetCompatibleType(type, other, out EvaluationType? compatible) && type == compatible;
+		}
+
+		/// <summary></summary>
+		/// <param name="compatible"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
+		/// <exception cref="EvaluationCalculationException"></exception>
+		/// <exception cref="EvaluationTypeException"></exception>
+		public static object GetCompatibleValue(EvaluationType compatible, object? value) {
+			if (value is null) {
+				throw new EvaluationCalculationException($"Cannot convert null value to {compatible}.");
+			}
+			else if (compatible.DataType == value.GetType()) {
+				return value;
+			}
+			else if (compatible == EvaluationType.INT && TryGetIntegral(value, out int intVal)) {
+				return intVal;
+			}
+			else if (compatible == EvaluationType.FLOAT && TryGetReal(value, out float floatVal)) {
+				return floatVal;
+			}
+			else if (compatible.IsArray && value is Array arrayValue) {
+				List<object?> compatibleValues = new List<object?>();
+
+				foreach (object? i in arrayValue) {
+					compatibleValues.Add(GetCompatibleValue(compatible.ElementType, i));
+				}
+
+				return MakeArray(compatible.ElementType.DataType, compatibleValues);
+			}
+			else {
+				throw new EvaluationTypeException($"Cannot convert {value.GetType().Name} value to {compatible} value.");
+			}
+		}
+
 		public static object[] VerifyArray(object?[] array) {
 			object[] result = new object[array.Length];
 			for (int i = 0; i < array.Length; i++) {

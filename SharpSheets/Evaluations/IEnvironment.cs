@@ -196,8 +196,21 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
+		private static IEnumerable<IEnvironment> UnpackEnvironments(IEnumerable<IEnvironment> environments) {
+			foreach (IEnvironment env in environments) {
+				if (env is ConcatenatedEnvironment concatenated) {
+					foreach (IEnvironment nestedEnv in UnpackEnvironments(concatenated.environments)) {
+						yield return nestedEnv;
+					}
+				}
+				else {
+					yield return env;
+				}
+			}
+		}
+
 		public static IEnvironment Concat(params IEnvironment[] environments) {
-			return new ConcatenatedEnvironment(environments);
+			return new ConcatenatedEnvironment(UnpackEnvironments(environments));
 		}
 
 		#endregion

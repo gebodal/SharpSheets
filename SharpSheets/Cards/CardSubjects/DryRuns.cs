@@ -10,14 +10,18 @@ namespace SharpSheets.Cards.CardSubjects {
 
 	public static class DryRunConstants {
 		private static readonly int Int = 1;
+		private static readonly uint UInt = 1;
 		private static readonly float Float = 0.5f;
+		private static readonly UFloat UFloat = new UFloat(0.5f);
 		private static readonly bool Bool = true;
 		private static readonly string String = "string";
 		private static readonly Color Color = Color.Black;
 
 		private static readonly Dictionary<EvaluationType, object> values = new Dictionary<EvaluationType, object>() {
 			[EvaluationType.INT] = Int,
+			[EvaluationType.UINT] = UInt,
 			[EvaluationType.FLOAT] = Float,
+			[EvaluationType.UFLOAT] = UFloat,
 			[EvaluationType.BOOL] = Bool,
 			[EvaluationType.STRING] = String,
 			[EvaluationType.COLOR] = Color

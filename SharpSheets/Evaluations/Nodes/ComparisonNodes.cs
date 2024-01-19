@@ -101,11 +101,11 @@ namespace SharpSheets.Evaluations.Nodes {
 				object? b = Second.Evaluate(environment);
 
 				// TODO Should this be using TryGetIntegral/TryGetReal?
-				if (a is float aFloat && b is int bInt) {
-					return aFloat == bInt;
+				if (EvaluationTypes.TryGetIntegral(a, out int aIntVal) && EvaluationTypes.TryGetIntegral(b, out int bIntVal)) {
+					return aIntVal == bIntVal;
 				}
-				else if (a is int aInt && b is float bFloat) {
-					return aInt == bFloat;
+				else if (EvaluationTypes.TryGetReal(a, out float aFloatVal) && EvaluationTypes.TryGetReal(b, out float bFloatVal)) {
+					return aFloatVal == bFloatVal;
 				}
 				else if (First.ReturnType.IsEnum || Second.ReturnType.IsEnum) {
 					if (a is Enum aEnumVal && b is Enum bEnumVal) {

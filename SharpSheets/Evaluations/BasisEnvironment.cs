@@ -18,7 +18,7 @@ namespace SharpSheets.Evaluations {
 		}.ToDictionary(i => i.info.Name);
 
 		private static readonly Dictionary<EvaluationName, IEnvironmentFunction> functions = new List<IEnvironmentFunction> {
-			ArrayCreateFunction.Instance,
+			ArrayCreateFunction.Instance, ArrayConcatenateFunction.Instance,
 			ArrayContainsFunction.Instance,
 			ArrayAllFunction.Instance, ArrayAnyFunction.Instance,
 			ArraySortFunction.Instance,

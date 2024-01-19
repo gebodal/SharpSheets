@@ -92,7 +92,7 @@ namespace SharpEditor {
 			GlyphTypeface glyphs = new GlyphTypeface(new Uri(origin.Path));
 			FontFamily family = new FontFamily(origin.Path + "#" + glyphs.FamilyNames.First().Value);
 			Typeface typeface = new Typeface(family, glyphs.Style, glyphs.Weight, glyphs.Stretch);
-			PdfFont pdfFont = FontGraphicsRegistry.CreateFont(origin); // PdfEncodings.WINANSI
+			PdfFont pdfFont = FontGraphicsRegistry.GetPdfFont(origin); // PdfEncodings.WINANSI
 			SetFont(format, typeface, pdfFont, origin);
 		}
 

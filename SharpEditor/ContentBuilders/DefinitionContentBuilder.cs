@@ -62,10 +62,25 @@ namespace SharpEditor.ContentBuilders {
 				yield return nameInline;
 			}
 
+			if (definition is FunctionDefinition function) {
+				yield return new Run("(") { };
+
+				bool first = true;
+				foreach (EnvironmentVariableInfo arg in function.Arguments) {
+					if (first) { first = false; }
+					else { yield return new Run(", ") { }; }
+					yield return new Run(definition.name.ToString()) { Foreground = SharpEditorPalette.DefinitionNameBrush };
+					yield return new Run(":" + SharpValueHandler.NO_BREAK_SPACE) { };
+					yield return new Run(arg.EvaluationType.ToString()) { Foreground = SharpEditorPalette.DefinitionTypeBrush };
+				}
+
+				yield return new Run(")") { };
+			}
+
 			yield return new Run(":" + SharpValueHandler.NO_BREAK_SPACE) { };
 			yield return new Run(GetDefinitionTypeName(definition.Type)) { Foreground = SharpEditorPalette.DefinitionTypeBrush };
 
-			bool printedValue = false;
+			//bool printedValue = false;
 			if (environment != null) {
 				object? result = null;
 				if (environment.TryGetValue(definition.name, out object? value)) {
@@ -83,10 +98,11 @@ namespace SharpEditor.ContentBuilders {
 				if (result != null) {
 					yield return new Run(SharpValueHandler.NO_BREAK_SPACED_EQUALS) { };
 					yield return BaseContentBuilder.GetValueInline(definition.Type.ReturnType.DisplayType, result, false);
-					printedValue = true;
+					//printedValue = true;
 				}
 			}
 
+			/*
 			if (!printedValue) {
 				if(definition is FallbackDefinition fallbackDefinition) {
 					yield return new Run(SharpValueHandler.NO_BREAK_SPACED_EQUALS) { Foreground = SharpEditorPalette.DefaultValueBrush };
@@ -97,6 +113,7 @@ namespace SharpEditor.ContentBuilders {
 					yield return BaseContentBuilder.GetValueInline(definition.Type.ReturnType.DisplayType, calculatedDefinition.Evaluation, false);
 				}
 			}
+			*/
 		}
 
 		public static IEnumerable<TextBlock> MakeDefinitionEntries(IEnumerable<Definition> definitions, IEnvironment? evaluationEnvironment, Thickness textMargin) {

@@ -16,6 +16,14 @@ namespace SharpSheets.Fonts {
 
 	public static class FontGraphicsRegistry {
 
+		public static PdfFont GetPdfFont(FontPath font) {
+			if (!knownFonts.ContainsKey(font)) {
+				PdfFont pdfFont = CreateFont(font);
+				knownFonts.Add(font, pdfFont);
+			}
+			return knownFonts[font];
+		}
+
 		public static PdfFont GetPdfFont(FontPath? font, TextFormat format) {
 			if (font is null) {
 				return defaultFonts.GetPdfFont(format);
@@ -48,7 +56,7 @@ namespace SharpSheets.Fonts {
 			}
 		}
 
-		public static PdfFont CreateFont(FontPath fontPath) {
+		private static PdfFont CreateFont(FontPath fontPath) {
 			if (fontPath.FontIndex >= 0) {
 				throw new ArgumentException("Font collections not surrently supported (requested font is part of a font collection file).");
 			}

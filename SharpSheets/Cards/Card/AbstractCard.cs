@@ -1,14 +1,14 @@
 ﻿using SharpSheets.Layouts;
 using System.Collections.Generic;
 using SharpSheets.Canvas;
-using SharpSheets.Cards.Card.SectionRects;
+using SharpSheets.Cards.Card.SegmentRects;
 
 namespace SharpSheets.Cards.Card
 {
 
     public abstract class AbstractCard {
 
-		public abstract IFixedCardSectionRect[] Sections { get; }
+		public abstract IFixedCardSegmentRect[] Segments { get; }
 
 		public abstract bool CropOnFinalCard { get; }
 		public abstract float Gutter { get; }

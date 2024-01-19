@@ -127,9 +127,11 @@ namespace SharpSheets.Evaluations {
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
-		private static float ParseFloat(string token) {
+		private static object ParseFloat(string token) {
 			try {
-				return float.Parse(token);
+				float value = float.Parse(token);
+				if (value >= 0f) { return new UFloat(value); }
+				else { return value; }
 			}
 			catch(FormatException e) {
 				throw new EvaluationSyntaxException($"\"{token}\" is not a valid float value.", e);
@@ -137,9 +139,11 @@ namespace SharpSheets.Evaluations {
 		}
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
-		private static int ParseInt(string token) {
+		private static object ParseInt(string token) {
 			try {
-				return int.Parse(token);
+				int value = int.Parse(token);
+				if (value >= 0) { return (uint)value; }
+				else { return value; }
 			}
 			catch (FormatException e) {
 				throw new EvaluationSyntaxException($"\"{token}\" is not a valid int value.", e);

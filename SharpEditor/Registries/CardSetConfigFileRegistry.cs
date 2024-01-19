@@ -141,6 +141,9 @@ namespace SharpEditor.Registries {
 								SharpEditorRegistries.LogRegistryErrors(filepath, e.Yield());
 								return null;
 							}
+							else {
+								System.Threading.Thread.Sleep(250);
+							}
 						}
 					}
 

@@ -98,24 +98,30 @@ namespace SharpSheets.Cards.Definitions {
 		private class SimpleTypeValidationNode : EvaluationNode {
 
 			public EvaluationNode Subject { get; }
-			public override EvaluationType ReturnType { get; }
+
+			private readonly EvaluationType castType;
+			public override EvaluationType ReturnType {
+				get {
+					if (EvaluationTypes.IsCompatibleType(castType, Subject.ReturnType)) {
+						return castType;
+					}
+					else {
+						throw new EvaluationTypeException($"Cannot cast {Subject.ReturnType} to {castType}.");
+					}
+				}
+			}
 
 			public override bool IsConstant => Subject.IsConstant;
 
 			public SimpleTypeValidationNode(EvaluationNode subject, EvaluationType returnType) {
 				Subject = subject;
-				this.ReturnType = returnType;
+				this.castType = returnType;
 			}
 
 			public override object Evaluate(IEnvironment environment) {
-				object? result = Subject.Evaluate(environment);
+				object? arg = Subject.Evaluate(environment);
 
-				if (result is not null && ReturnType.ValidDataType(result.GetType())) { // result.GetType() == ReturnType.SystemType
-					return result;
-				}
-				else {
-					throw new EvaluationTypeException($"Value is not a valid {ReturnType}.");
-				}
+				return EvaluationTypes.GetCompatibleValue(castType, arg);
 			}
 
 			public override EvaluationNode Clone() => new SimpleTypeValidationNode(Subject.Clone(), ReturnType);

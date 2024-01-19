@@ -58,18 +58,69 @@ namespace SharpSheets.Cards.Definitions {
 			}
 			else {
 				EvaluationNode eval = Evaluation.Parse(text, variables);
+				/*
 				EvaluationType evalType = eval.ReturnType;
 				if (evalType == returnType) {
 					return eval;
 				}
-				else if (returnType == EvaluationType.FLOAT && evalType == EvaluationType.INT) {
+				else if(returnType == EvaluationType.INT && evalType.IsIntegral()) {
+					return IntCastFunction.MakeIntCastNode(eval);
+				}
+				else if (returnType == EvaluationType.FLOAT && evalType.IsReal()) {
 					return FloatCastFunction.MakeFloatCastNode(eval);
 				}
 				else {
 					throw new EvaluationTypeException("Invalid expression type.");
 				}
+				*/
+				return eval;
 			}
 		}
+
+		private static readonly Regex defNameRegex = new Regex(@"
+				^(?:def|fun) \s+ (?<name>[a-z][a-z0-9]*) .+
+				", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+
+		public static string? GetDefinitionName(string str) {
+			Match match = defNameRegex.Match(str);
+			if (match.Success) {
+				return match.Groups["name"].Value;
+			}
+			return null;
+		}
+
+		public static Definition Parse(string str, IVariableBox variables) {
+			return str[..3] switch {
+				"def" => ValueDefinition.ParseValueDefnition(str, variables),
+				"fun" => FunctionDefinition.ParseFunctionDefinition(str, variables),
+				_ => throw new FormatException("Cannot parse definition.")
+			};
+		}
+
+		public override bool Equals(object? obj) {
+			if(obj is Definition other) {
+				return this.name == other.name &&
+					Enumerable.SequenceEqual(this.aliases, other.aliases) &&
+					this.description == other.description &&
+					this.Type.ReturnType == other.Type.ReturnType;
+			}
+			else {
+				return false;
+			}
+		}
+		public override int GetHashCode() {
+			return (name + string.Join("|", aliases) + description + Type.ReturnType.ToString()).GetHashCode();
+		}
+
+		public override string ToString() {
+			return string.Join("|", AllNames);
+		}
+	}
+
+	public abstract class ValueDefinition : Definition {
+
+		public ValueDefinition(EvaluationName name, EvaluationName[] aliases, DefinitionType type, string? description)
+			: base(name, aliases, type, description) { }
 
 		private static readonly Regex defRegex = new Regex(@"
 				^ # Must be start of line
@@ -78,8 +129,8 @@ namespace SharpSheets.Cards.Definitions {
 					\s*\:\s* # Colon separator
 					(
 						(?<type>
-							(?<typename>int|float|bool|string (\s*\((?<regex>(.(?!\/\/\/))+)\))? ) # Main type name
-							(\s*(?<array>\[\s*\](\s*\[\s*\])?))? # Optional array specification
+							(?<typename>int|uint|float|ufloat|bool|string (\s*\((?<regex>(.(?!\/\/\/))+)\))? ) # Main type name
+							(\s*(?<array>\[\s*\](\s*\[\s*\])*))? # Optional array specification
 						)
 						|
 						(?<multi>multi)?category \s* \( \s* (?<categories>[a-z0-9\ ]+ (\s* \, \s* [a-z0-9\ ]+)*) \)
@@ -96,18 +147,10 @@ namespace SharpSheets.Cards.Definitions {
 			return match.Groups["aliases"].Value.SplitAndTrim('|').Select(s => new EvaluationName(s)).Distinct().ToArray();
 		}
 
-		public static string? GetDefinitionName(string str) {
-			Match match = defRegex.Match(str);
-			if (match.Success) {
-				return GetDefinitionNames(match).First().ToString();
-			}
-			return null;
-		}
-
-		public static Definition Parse(string str, IVariableBox variables) {
+		public static Definition ParseValueDefnition(string str, IVariableBox variables) {
 			Match match = defRegex.Match(str);
 			if (!match.Success) {
-				throw new FormatException("Cannot parse definition.");
+				throw new FormatException("Cannot parse value definition.");
 			}
 
 			EvaluationName[] allNames = GetDefinitionNames(match); // match.Groups["aliases"].Value.SplitAndTrim('|').Select(s => new EvaluationName(s)).Distinct().ToArray();
@@ -129,14 +172,15 @@ namespace SharpSheets.Cards.Definitions {
 
 			if (match.Groups["type"].Success) {
 				// TODO This seems restrictive. Can we allow more freedom of types?
-				string typeNameStr = match.Groups["typename"].Value;
-				int arrayRank = match.Groups["array"].Success ? match.Groups["array"].Value.Length / 2 : 0;
-				if (typeNameStr.StartsWith("string", StringComparison.InvariantCultureIgnoreCase)) {
+				string typeNameStr = match.Groups["typename"].Value.ToLowerInvariant();
+				int arrayRank = match.Groups["array"].Success ? Regex.Replace(match.Groups["array"].Value, @"\s+", "").Length / 2 : 0;
+				if (arrayRank > 2) { throw new FormatException("Definition value types cannot be arrays with a rank greater than 2."); }
+				if (typeNameStr.StartsWith("string")) {
 					if (match.Groups["regex"].Success) {
 						try {
 							definitionType = DefinitionType.Regex(new Regex(match.Groups["regex"].Value), arrayRank);
 						}
-						catch(ArgumentException e) {
+						catch (ArgumentException e) {
 							throw new FormatException("Invalid regex format in type.", e);
 						}
 					}
@@ -145,7 +189,9 @@ namespace SharpSheets.Cards.Definitions {
 					}
 				}
 				else if (typeNameStr == "int") { definitionType = DefinitionType.Simple(EvaluationType.INT, arrayRank); }
+				else if (typeNameStr == "uint") { definitionType = DefinitionType.Simple(EvaluationType.UINT, arrayRank); }
 				else if (typeNameStr == "float") { definitionType = DefinitionType.Simple(EvaluationType.FLOAT, arrayRank); }
+				else if (typeNameStr == "ufloat") { definitionType = DefinitionType.Simple(EvaluationType.UFLOAT, arrayRank); }
 				else if (typeNameStr == "bool") { definitionType = DefinitionType.Simple(EvaluationType.BOOL, arrayRank); }
 				else { throw new FormatException($"Unrecognized definition type: {match.Groups["type"].Value}"); }
 			}
@@ -175,27 +221,9 @@ namespace SharpSheets.Cards.Definitions {
 			}
 		}
 
-		public override bool Equals(object? obj) {
-			if(obj is Definition other) {
-				return this.name == other.name &&
-					Enumerable.SequenceEqual(this.aliases, other.aliases) &&
-					this.description == other.description &&
-					this.Type.ReturnType == other.Type.ReturnType;
-			}
-			else {
-				return false;
-			}
-		}
-		public override int GetHashCode() {
-			return (name + string.Join("|", aliases) + description + Type.ReturnType.ToString()).GetHashCode();
-		}
-
-		public override string ToString() {
-			return string.Join("|", AllNames);
-		}
 	}
 
-	public class ConstantDefinition : Definition {
+	public class ConstantDefinition : ValueDefinition {
 
 		public ConstantDefinition(EvaluationName name, EvaluationName[] aliases, string? description, DefinitionType type) : base(name, aliases, type, description) { }
 
@@ -210,7 +238,7 @@ namespace SharpSheets.Cards.Definitions {
 		}
 	}
 
-	public class CalculatedDefinition : Definition {
+	public class CalculatedDefinition : ValueDefinition {
 		public EvaluationNode Evaluation { get; }
 
 		public CalculatedDefinition(EvaluationName name, EvaluationName[] aliases, string? description, EvaluationNode evaluation) : base(name, aliases, DefinitionType.Simple(evaluation.ReturnType, 0), description) {
@@ -224,11 +252,11 @@ namespace SharpSheets.Cards.Definitions {
 		*/
 	}
 
-	public class FallbackDefinition : Definition {
+	public class FallbackDefinition : ValueDefinition {
 		public EvaluationNode Evaluation { get; }
 
 		public FallbackDefinition(EvaluationName name, EvaluationName[] aliases, string? description, DefinitionType type, EvaluationNode evaluation) : base(name, aliases, type, description) {
-			if(this.Type.ReturnType != evaluation.ReturnType) {
+			if(!EvaluationTypes.TryGetCompatibleType(this.Type.ReturnType, evaluation.ReturnType, out _)) {
 				throw new EvaluationTypeException($"Invalid definition: fallback expression return type must must match the stated definition type.");
 			}
 
@@ -283,6 +311,149 @@ namespace SharpSheets.Cards.Definitions {
 
 	}
 
+	public class FunctionDefinition : Definition, IEnvironmentFunction {
+
+		public EnvironmentVariableInfo[] Arguments { get; }
+		public EvaluationNode Expression { get; }
+
+		EvaluationName IEnvironmentFunctionInfo.Name => this.name;
+		string? IEnvironmentFunctionInfo.Description => this.description;
+		private readonly EnvironmentFunctionArguments args;
+		EnvironmentFunctionArguments IEnvironmentFunctionInfo.Args => args;
+
+		public FunctionDefinition(EvaluationName name, string? description, EnvironmentVariableInfo[] arguments, EvaluationNode expression) : base(name, Array.Empty<EvaluationName>(), DefinitionType.Simple(expression.ReturnType, 0), description) {
+			Expression = expression;
+			this.Arguments = arguments;
+			this.args = new EnvironmentFunctionArguments(null,
+				new EnvironmentFunctionArgList[] {
+					new EnvironmentFunctionArgList(arguments.Select(a => new EnvironmentFunctionArg(a.Name, a.EvaluationType, null)).ToArray())
+				});
+		}
+
+		public EvaluationType GetReturnType(EvaluationNode[] args) {
+			if (args.Length != Arguments.Length) {
+				throw new EvaluationTypeException($"Invalid number of arguments for {name}: expected {Arguments.Length}, got {args.Length}");
+			}
+
+			for (int i = 0; i < Arguments.Length; i++) {
+				EvaluationType paramType = Arguments[i].EvaluationType;
+				EvaluationType argType = args[i].ReturnType;
+
+				if(!EvaluationTypes.IsCompatibleType(paramType, argType)) {
+					throw new EvaluationTypeException($"Invalid argument types for {name}: " + string.Join(", ", args.Select(a => a.ReturnType)));
+				}
+			}
+
+			return Type.ReturnType;
+		}
+
+		public object? Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			if (args.Length != Arguments.Length) {
+				throw new EvaluationCalculationException($"Invalid number of arguments for {name}: expected {Arguments.Length}, got {args.Length}");
+			}
+
+			object?[] argVals = new object?[args.Length];
+			for(int i=0; i<args.Length; i++) {
+				object? argVal = args[i].Evaluate(environment);
+				argVals[i] = EvaluationTypes.GetCompatibleValue(Arguments[i].EvaluationType, argVal);
+			}
+
+			IEnvironment evaluationEnvironment = Environments.Concat(
+				SimpleEnvironments.Create(argVals.Zip(Arguments).ToArray()),
+				environment
+				);
+
+			return Expression.Evaluate(evaluationEnvironment);
+		}
+
+		private static readonly Regex funRegex = new Regex(@"
+				^ # Must be start of line
+				fun \s+ (?<name>[a-z][a-z0-9]*) # Declaration and name
+				\s* \( \s* # Opening argument brace
+				(?<args>
+					(?: # First argument
+						[a-z][a-z0-9]* # First arg name
+						\s* \: \s* # Colon separator
+						(?:[a-z]+) # First arg type name
+						(?:\s*(?:\[\s*\](?:\s*\[\s*\])*))? # Optional array specification
+					) # End first argument
+					(?: # Follow-on argument
+						\s* \, \s*
+						[a-z][a-z0-9]* # Follow-on arg name
+						\s* \: \s* # Colon separator
+						(?:[a-z]+) # Follow-on arg type name
+						(?:\s*(?:\[\s*\](?:\s*\[\s*\])*))? # Optional array specification
+					)* # End follow-on argument
+				)? # Function argument list
+				\s* \) # Closing argument brace
+				(?:\s*\=\s*(?<expression>(?:.(?!\/\/\/))+)) # Function expression
+				(?:\s*\/\/\/\s*(?<description>.*))? # Optional description
+				$ # Must be end of line
+				", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+
+		private static readonly Regex argRegex = new Regex(@"
+				^ # Must be start of string
+				(?<name>[a-z][a-z0-9]*) # Arg name
+				\s* \: \s*
+				(?<type>[a-z]+) # Arg type name
+				(\s*(?<array>\[\s*\](?:\s*\[\s*\])*))? # Optional array specification
+				$ # Must be end of string
+				", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+
+		internal static FunctionDefinition ParseFunctionDefinition(string str, IVariableBox variables) {
+			Match match = funRegex.Match(str);
+			if (!match.Success) {
+				throw new FormatException("Cannot parse function definition.");
+			}
+
+			EvaluationName name = new EvaluationName(match.Groups["name"].Value);
+
+			string? description = null;
+			if (match.Groups["description"].Success && match.Groups["description"].Length > 0) {
+				description = match.Groups["description"].Value;
+			}
+
+			string[] argsValues = !string.IsNullOrWhiteSpace(match.Groups["args"].Value) ? match.Groups["args"].Value.SplitAndTrim(',') : Array.Empty<string>();
+			List<EnvironmentVariableInfo> args = new List<EnvironmentVariableInfo>();
+			foreach(string argVal in argsValues) {
+				Match argMatch = argRegex.Match(argVal);
+
+				if (!argMatch.Success) {
+					throw new FormatException($"Cannot parse function argument: \"{argVal}\"");
+				}
+
+				EvaluationName argName = new EvaluationName(argMatch.Groups["name"].Value);
+
+				if (variables.IsVariable(argName)) {
+					throw new FormatException($"There is already a variabled named {argName} in this context.");
+				}
+
+				string typeStr = argMatch.Groups["type"].Value.ToLowerInvariant();
+				int arrayRank = argMatch.Groups["array"].Success ? Regex.Replace(argMatch.Groups["array"].Value, @"\s+", "").Length / 2 : 0;
+
+				EvaluationType argType = (typeStr switch {
+					"int" => EvaluationType.INT,
+					"uint" => EvaluationType.UINT,
+					"float" => EvaluationType.FLOAT,
+					"ufloat" => EvaluationType.UFLOAT,
+					"bool" => EvaluationType.BOOL,
+					"color" => EvaluationType.COLOR,
+					"string" => EvaluationType.STRING,
+					_ => throw new FormatException($"Unrecognized definition argument type: \"{argMatch.Groups["type"].Value}\"")
+				}).MakeArray(arrayRank);
+
+				args.Add(new EnvironmentVariableInfo(argName, argType, null));
+			}
+
+			IVariableBox functionVariables = variables.AppendVariables(SimpleVariableBoxes.Create(args));
+
+			string expressionStr = match.Groups["expression"].Value;
+			EvaluationNode? expression = Evaluation.Parse(expressionStr, functionVariables);
+
+			return new FunctionDefinition(name, description, args.ToArray(), expression);
+		}
+	}
+
 	public static class DefinitionUtils {
 
 		public static IEnvironment ToEnvironment(this Dictionary<Definition, object> source) {
@@ -302,4 +473,5 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 	}
+
 }

@@ -94,13 +94,13 @@ namespace SharpSheets.Cards.CardSubjects {
 	}
 
 	[System.Diagnostics.DebuggerDisplay("# {Name} (@{Location.Line})")]
-	public class CardSubject : ICardDocumentEntity, IEnumerable<CardSection> {
+	public class CardSubject : ICardDocumentEntity, IEnumerable<CardSegment> {
 
 		string IDocumentEntity.SimpleName { get { return Name.Value; } }
 		string IDocumentEntity.DetailedName { get { return $"<{SubjectSet.IndexOf(this)}>{(this as IDocumentEntity).SimpleName}"; } }
 		string IDocumentEntity.FullName { get { return $"{(SubjectSet as IDocumentEntity).FullName}.{(this as IDocumentEntity).DetailedName}"; } }
 		IDocumentEntity IDocumentEntity.Parent { get { return SubjectSet; } }
-		IEnumerable<IDocumentEntity> IDocumentEntity.Children { get { return sections; } }
+		IEnumerable<IDocumentEntity> IDocumentEntity.Children { get { return segments; } }
 		public DocumentSpan Location { get { return Name.Location; } }
 		public int Depth => 1;
 
@@ -109,11 +109,11 @@ namespace SharpSheets.Cards.CardSubjects {
 		public CardConfig CardConfig { get; }
 		public ContextValue<string> Name { get; }
 
-		public int Count { get { return sections.Count; } }
-		public CardSection this[int sectionIdx] { get { return sections[sectionIdx]; } }
-		public int IndexOf(CardSection section) { return sections.IndexOf(section); }
+		public int Count { get { return segments.Count; } }
+		public CardSegment this[int segmentIdx] { get { return segments[segmentIdx]; } }
+		public int IndexOf(CardSegment segment) { return segments.IndexOf(segment); }
 
-		private readonly List<CardSection> sections;
+		private readonly List<CardSegment> segments;
 
 		public DefinitionGroup SubjectDefinitions { get; }
 		public DefinitionEnvironment Properties { get; }
@@ -133,7 +133,7 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.Name = name;
 			this.CardConfig = cardConfig;
 
-			this.sections = new List<CardSection>();
+			this.segments = new List<CardSegment>();
 
 			this.Properties = subjectProperties;
 
@@ -141,14 +141,14 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.Environment = CardSubjectEnvironments.MakeBaseEnvironment(this.Name).AppendEnvironment(this.Properties);
 		}
 
-		public void AddSection(CardSection section) {
-			sections.Add(section);
+		public void AddSegment(CardSegment segment) {
+			segments.Add(segment);
 		}
 
 		public CardSubject WithOrigin(CardSubjectSet subjectSet, DocumentSpan location) {
 			CardSubject newSubject = new CardSubject(subjectSet, new ContextValue<string>(location, Name.Value), CardConfig, Properties);
-			foreach (CardSection section in sections) {
-				newSubject.AddSection(section.WithOrigin(DocumentSpan.Imaginary, newSubject));
+			foreach (CardSegment segment in segments) {
+				newSubject.AddSegment(segment.WithOrigin(DocumentSpan.Imaginary, newSubject));
 			}
 			return newSubject;
 		}
@@ -169,8 +169,8 @@ namespace SharpSheets.Cards.CardSubjects {
 		public object this[string key] => subjectEnvironment[key];
 		*/
 
-		public IEnumerator<CardSection> GetEnumerator() {
-			return sections.GetEnumerator();
+		public IEnumerator<CardSegment> GetEnumerator() {
+			return segments.GetEnumerator();
 		}
 		IEnumerator IEnumerable.GetEnumerator() {
 			return GetEnumerator();
@@ -195,9 +195,9 @@ namespace SharpSheets.Cards.CardSubjects {
 				result.Append($"\n{property.Key.name}: {DefinitionType.ValueToString(property.Value.Value)}");
 			}
 
-			foreach (CardSection section in sections) {
+			foreach (CardSegment segment in segments) {
 				result.Append("\n\n");
-				result.Append(section.ToText());
+				result.Append(segment.ToText());
 			}
 
 			return result.ToString();
@@ -205,7 +205,7 @@ namespace SharpSheets.Cards.CardSubjects {
 	}
 
 	[System.Diagnostics.DebuggerDisplay("## {Heading} (@{Location.Line})")]
-	public class CardSection : ICardDocumentEntity, IEnumerable<CardFeature> {
+	public class CardSegment : ICardDocumentEntity, IEnumerable<CardFeature> {
 
 		string IDocumentEntity.SimpleName { get { return Heading.Value; } }
 		string IDocumentEntity.DetailedName { get { return $"<{Subject.IndexOf(this)}>{(this as IDocumentEntity).SimpleName}"; } }
@@ -215,7 +215,7 @@ namespace SharpSheets.Cards.CardSubjects {
 		public DocumentSpan Location { get; }
 		public int Depth => 2;
 
-		public AbstractCardSectionConfig SectionConfig { get; }
+		public AbstractCardSegmentConfig SegmentConfig { get; }
 		public CardSubject Subject { get; }
 		public ContextValue<string> Heading { get; }
 		public ContextValue<string> Note { get; }
@@ -226,16 +226,16 @@ namespace SharpSheets.Cards.CardSubjects {
 
 		private readonly List<CardFeature> features;
 
-		public DefinitionGroup SectionDefinitions { get; }
+		public DefinitionGroup SegmentDefinitions { get; }
 		public DefinitionEnvironment Details { get; }
 		public IEnvironment Environment { get; }
 
-		DefinitionGroup ICardDocumentEntity.Definitions => SectionDefinitions;
+		DefinitionGroup ICardDocumentEntity.Definitions => SegmentDefinitions;
 		DefinitionEnvironment ICardDocumentEntity.Properties => Details;
 
-		public CardSection(DocumentSpan location, AbstractCardSectionConfig sectionConfig, CardSubject subject, ContextValue<string> heading, ContextValue<string> note, DefinitionEnvironment details) {
+		public CardSegment(DocumentSpan location, AbstractCardSegmentConfig segmentConfig, CardSubject subject, ContextValue<string> heading, ContextValue<string> note, DefinitionEnvironment details) {
 			this.Location = location;
-			this.SectionConfig = sectionConfig;
+			this.SegmentConfig = segmentConfig;
 			this.Subject = subject;
 			this.Heading = new ContextValue<string>(heading.Location, heading.Value ?? "");
 			this.Note = new ContextValue<string>(note.Location, note.Value ?? "");
@@ -244,10 +244,10 @@ namespace SharpSheets.Cards.CardSubjects {
 
 			this.Details = details;
 
-			this.SectionDefinitions = new DefinitionGroup(CardSectionEnvironments.BaseDefinitions, this.Details);
+			this.SegmentDefinitions = new DefinitionGroup(CardSegmentEnvironments.BaseDefinitions, this.Details);
 			this.Environment = Environments.Concat(
 				subject.Environment,
-				CardSectionEnvironments.MakeBaseEnvironment(this),
+				CardSegmentEnvironments.MakeBaseEnvironment(this),
 				this.Details
 				);
 		}
@@ -256,23 +256,13 @@ namespace SharpSheets.Cards.CardSubjects {
 			features.Add(feature);
 		}
 
-		public CardSection WithOrigin(DocumentSpan location, CardSubject newSubject) {
-			CardSection newSection = new CardSection(location, SectionConfig, newSubject, new ContextValue<string>(location, Heading.Value), new ContextValue<string>(location, Note.Value), Details);
+		public CardSegment WithOrigin(DocumentSpan location, CardSubject newSubject) {
+			CardSegment newSegment = new CardSegment(location, SegmentConfig, newSubject, new ContextValue<string>(location, Heading.Value), new ContextValue<string>(location, Note.Value), Details);
 			foreach (CardFeature feature in features) {
-				newSection.AddFeature(feature.WithOrigin(DocumentSpan.Imaginary, newSection));
+				newSegment.AddFeature(feature.WithOrigin(DocumentSpan.Imaginary, newSegment));
 			}
-			return newSection;
+			return newSegment;
 		}
-
-		/*
-		public bool IsVariable(string key) => sectionEnvironment.IsVariable(key);
-		public EvaluationType GetReturnType(string key) => sectionEnvironment.GetReturnType(key);
-		public bool TryGetNode(string key, out EvaluationNode node) => sectionEnvironment.TryGetNode(key, out node);
-		public bool TryGetFunctionInfo(string name, out EnvironmentFunctionInfo functionInfo) => sectionEnvironment.TryGetFunctionInfo(name, out functionInfo);
-		public EnvironmentFunction GetFunction(string name) => sectionEnvironment.GetFunction(name);
-		public IEnumerable<string> GetVariables() => sectionEnvironment.GetVariables();
-		public object this[string key] => sectionEnvironment[key];
-		*/
 
 		public IEnumerator<CardFeature> GetEnumerator() {
 			return features.GetEnumerator();
@@ -280,19 +270,6 @@ namespace SharpSheets.Cards.CardSubjects {
 		IEnumerator IEnumerable.GetEnumerator() {
 			return GetEnumerator();
 		}
-
-		/*
-		public static IEnvironment GetDryRun(CardSectionConfig sectionConfig) {
-			return new DryRunEnvironment(
-				sectionConfig.AppendVariables(
-					new Dictionary<EvaluationName, EvaluationType> { 
-						{ "title", EvaluationType.STRING },
-						{ "note", EvaluationType.STRING }
-					}
-					)
-				);
-		}
-		*/
 
 		public string ToText() {
 			StringBuilder result = new StringBuilder();
@@ -338,15 +315,15 @@ namespace SharpSheets.Cards.CardSubjects {
 	public class CardFeature : ICardDocumentEntity {
 
 		string IDocumentEntity.SimpleName { get { return Title.Value; } }
-		string IDocumentEntity.DetailedName { get { return $"<{Section.IndexOf(this)}>{(this as IDocumentEntity).SimpleName}"; } }
-		string IDocumentEntity.FullName { get { return $"{(Section as IDocumentEntity).FullName}.{(this as IDocumentEntity).DetailedName}"; } }
-		IDocumentEntity IDocumentEntity.Parent { get { return Section; } }
+		string IDocumentEntity.DetailedName { get { return $"<{Segment.IndexOf(this)}>{(this as IDocumentEntity).SimpleName}"; } }
+		string IDocumentEntity.FullName { get { return $"{(Segment as IDocumentEntity).FullName}.{(this as IDocumentEntity).DetailedName}"; } }
+		IDocumentEntity IDocumentEntity.Parent { get { return Segment; } }
 		IEnumerable<IDocumentEntity> IDocumentEntity.Children { get { return Enumerable.Empty<IDocumentEntity>(); } }
 		public DocumentSpan Location { get; }
 		public int Depth => 3;
 
 		public CardFeatureConfig? FeatureConfig { get; }
-		public CardSection Section { get; }
+		public CardSegment Segment { get; }
 		public ContextValue<string> Title { get; } // TextExpression?
 		public ContextValue<string> Note { get; } // TextExpression?
 		public ContextValue<TextExpression> Text { get; }
@@ -354,7 +331,7 @@ namespace SharpSheets.Cards.CardSubjects {
 		public bool IsListItem { get; }
 		public int Index { get; }
 
-		public RegexFormats RegexFormats => FeatureConfig?.RegexFormats ?? Section.SectionConfig.regexFormats;
+		public RegexFormats RegexFormats => FeatureConfig?.RegexFormats ?? Segment.SegmentConfig.regexFormats;
 
 		public DefinitionEnvironment TextEnvironment { get; }
 
@@ -365,10 +342,10 @@ namespace SharpSheets.Cards.CardSubjects {
 		DefinitionGroup ICardDocumentEntity.Definitions => FeatureDefinitions;
 		DefinitionEnvironment ICardDocumentEntity.Properties => Details;
 
-		public CardFeature(DocumentSpan location, CardFeatureConfig? featureConfig, CardSection section, ContextValue<string> title, ContextValue<string> note, ContextValue<TextExpression> text, DefinitionEnvironment details, bool isMultiLine, bool isListItem, int index) {
+		public CardFeature(DocumentSpan location, CardFeatureConfig? featureConfig, CardSegment segment, ContextValue<string> title, ContextValue<string> note, ContextValue<TextExpression> text, DefinitionEnvironment details, bool isMultiLine, bool isListItem, int index) {
 			this.Location = location;
 			this.FeatureConfig = featureConfig;
-			this.Section = section;
+			this.Segment = segment;
 			this.Title = new ContextValue<string>(title.Location, title.Value ?? "");
 			this.Note = new ContextValue<string>(note.Location, note.Value ?? "");
 			this.Text = new ContextValue<TextExpression>(text.Location, text.Value ?? new TextExpression(""));
@@ -380,7 +357,7 @@ namespace SharpSheets.Cards.CardSubjects {
 
 			this.FeatureDefinitions = new DefinitionGroup(CardFeatureEnvironments.BaseDefinitions, this.Details);
 			this.Environment = Environments.Concat(
-				section.Environment,
+				segment.Environment,
 				CardFeatureEnvironments.MakeBaseEnvironment(this),
 				this.Details
 				);
@@ -388,8 +365,8 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.TextEnvironment = CardFeatureEnvironments.GetTextEnvironment(this);
 		}
 
-		public CardFeature WithOrigin(DocumentSpan location, CardSection newSection) {
-			CardFeature newFeature = new CardFeature(location, FeatureConfig, newSection, new ContextValue<string>(location, Title.Value), new ContextValue<string>(location, Note.Value), new ContextValue<TextExpression>(location, Text.Value), Details, IsMultiLine, IsListItem, Index);
+		public CardFeature WithOrigin(DocumentSpan location, CardSegment newSegment) {
+			CardFeature newFeature = new CardFeature(location, FeatureConfig, newSegment, new ContextValue<string>(location, Title.Value), new ContextValue<string>(location, Note.Value), new ContextValue<TextExpression>(location, Text.Value), Details, IsMultiLine, IsListItem, Index);
 			return newFeature;
 		}
 

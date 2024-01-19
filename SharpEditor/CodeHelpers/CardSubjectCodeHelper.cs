@@ -140,16 +140,16 @@ namespace SharpEditor.CodeHelpers {
 
 		public static IEnumerable<TextBlock> MakeCardEntityEntries(ICardDocumentEntity cardEntity) {
 			IEnvironment evaluationEnvironment = cardEntity.Environment;
-			DefinitionGroup? displayEnvironment = null;
+			DefinitionGroup? definitionList = null;
 			if (cardEntity is CardSubject subject) {
 				yield return TooltipBuilder.GetToolTipTextBlock($"Subject: {subject.Name.Value}");
 
-				displayEnvironment = subject.SubjectDefinitions;
+				definitionList = subject.SubjectDefinitions;
 			}
-			else if (cardEntity is CardSection section) {
-				yield return TooltipBuilder.GetToolTipTextBlock($"Section: {section.Heading.Value}");
+			else if (cardEntity is CardSegment segment) {
+				yield return TooltipBuilder.GetToolTipTextBlock($"Segment: {segment.Heading.Value}");
 
-				displayEnvironment = section.SectionDefinitions;
+				definitionList = segment.SegmentDefinitions;
 			}
 			else if (cardEntity is CardFeature feature) {
 				string featureText = feature.Text.Value.ToString();
@@ -157,11 +157,11 @@ namespace SharpEditor.CodeHelpers {
 
 				yield return TooltipBuilder.GetToolTipTextBlock("Feature: " + exampleText);
 
-				displayEnvironment = feature.FeatureDefinitions; // feature.TextEnvironment;
+				definitionList = feature.FeatureDefinitions; // feature.TextEnvironment;
 			}
 
-			if (displayEnvironment != null && evaluationEnvironment != null) {
-				foreach (TextBlock frameworkElement in TooltipBuilder.MakeDefinitionEntries(displayEnvironment, evaluationEnvironment)) {
+			if (definitionList != null && evaluationEnvironment != null) {
+				foreach (TextBlock frameworkElement in TooltipBuilder.MakeDefinitionEntries(definitionList, evaluationEnvironment)) {
 					yield return frameworkElement;
 				}
 			}
