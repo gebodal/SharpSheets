@@ -313,7 +313,7 @@ namespace SharpSheets.Cards.Definitions {
 
 	public class FunctionDefinition : Definition, IEnvironmentFunction {
 
-		private readonly EnvironmentVariableInfo[] argumentVars;
+		public EnvironmentVariableInfo[] Arguments { get; }
 		public EvaluationNode Expression { get; }
 
 		EvaluationName IEnvironmentFunctionInfo.Name => this.name;
@@ -323,7 +323,7 @@ namespace SharpSheets.Cards.Definitions {
 
 		public FunctionDefinition(EvaluationName name, string? description, EnvironmentVariableInfo[] arguments, EvaluationNode expression) : base(name, Array.Empty<EvaluationName>(), DefinitionType.Simple(expression.ReturnType, 0), description) {
 			Expression = expression;
-			this.argumentVars = arguments;
+			this.Arguments = arguments;
 			this.args = new EnvironmentFunctionArguments(null,
 				new EnvironmentFunctionArgList[] {
 					new EnvironmentFunctionArgList(arguments.Select(a => new EnvironmentFunctionArg(a.Name, a.EvaluationType, null)).ToArray())
@@ -331,12 +331,12 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public EvaluationType GetReturnType(EvaluationNode[] args) {
-			if (args.Length != argumentVars.Length) {
-				throw new EvaluationTypeException($"Invalid number of arguments for {name}: expected {argumentVars.Length}, got {args.Length}");
+			if (args.Length != Arguments.Length) {
+				throw new EvaluationTypeException($"Invalid number of arguments for {name}: expected {Arguments.Length}, got {args.Length}");
 			}
 
-			for (int i = 0; i < argumentVars.Length; i++) {
-				EvaluationType paramType = argumentVars[i].EvaluationType;
+			for (int i = 0; i < Arguments.Length; i++) {
+				EvaluationType paramType = Arguments[i].EvaluationType;
 				EvaluationType argType = args[i].ReturnType;
 
 				if(!EvaluationTypes.IsCompatibleType(paramType, argType)) {
@@ -348,18 +348,18 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public object? Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			if (args.Length != argumentVars.Length) {
-				throw new EvaluationCalculationException($"Invalid number of arguments for {name}: expected {argumentVars.Length}, got {args.Length}");
+			if (args.Length != Arguments.Length) {
+				throw new EvaluationCalculationException($"Invalid number of arguments for {name}: expected {Arguments.Length}, got {args.Length}");
 			}
 
 			object?[] argVals = new object?[args.Length];
 			for(int i=0; i<args.Length; i++) {
 				object? argVal = args[i].Evaluate(environment);
-				argVals[i] = EvaluationTypes.GetCompatibleValue(argumentVars[i].EvaluationType, argVal);
+				argVals[i] = EvaluationTypes.GetCompatibleValue(Arguments[i].EvaluationType, argVal);
 			}
 
 			IEnvironment evaluationEnvironment = Environments.Concat(
-				SimpleEnvironments.Create(argVals.Zip(argumentVars).ToArray()),
+				SimpleEnvironments.Create(argVals.Zip(Arguments).ToArray()),
 				environment
 				);
 
