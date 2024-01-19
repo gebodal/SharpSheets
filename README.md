@@ -2,8 +2,9 @@
 
 <div align="center">
 
-[![dotnet Version](https://img.shields.io/badge/dotnet-.NET%206-512BD4?logo=dotnet)](https://learn.microsoft.com/dotnet/core/whats-new/dotnet-6)
+[![GitHub Release](https://img.shields.io/github/v/release/gebodal/SharpSheets)](https://github.com/gebodal/SharpSheets/releases/latest)
 [![GitHub License](https://img.shields.io/github/license/gebodal/SharpSheets)](LICENCE)
+[![dotnet Version](https://img.shields.io/badge/dotnet-.NET%206-512BD4?logo=dotnet)](https://learn.microsoft.com/dotnet/core/whats-new/dotnet-6)
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/t/gebodal/SharpSheets)](https://github.com/gebodal/SharpSheets/commits/master/)
 [![GitHub commits since latest release](https://img.shields.io/github/commits-since/gebodal/SharpSheets/latest)](https://github.com/gebodal/SharpSheets/commits/master/)
 [![GitHub repo size](https://img.shields.io/github/repo-size/gebodal/SharpSheets?color=a1a1a1)](https://github.com/gebodal/SharpSheets/releases)
