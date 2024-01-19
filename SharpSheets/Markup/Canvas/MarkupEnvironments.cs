@@ -115,7 +115,14 @@ namespace SharpSheets.Markup.Canvas {
 					MarkupEnvironmentVariables.DrawLeft,
 					MarkupEnvironmentVariables.DrawRight,
 					MarkupEnvironmentVariables.DrawBottom,
-					MarkupEnvironmentVariables.DrawTop
+					MarkupEnvironmentVariables.DrawTop,
+					// Page rect variables
+					MarkupEnvironmentVariables.PageWidth,
+					MarkupEnvironmentVariables.PageHeight,
+					MarkupEnvironmentVariables.PageLeft,
+					MarkupEnvironmentVariables.PageRight,
+					MarkupEnvironmentVariables.PageBottom,
+					MarkupEnvironmentVariables.PageTop
 				}));
 
 		public static IEnvironment MakeGraphicsStateEnvironment(MarkupCanvasGraphicsData graphicsData) {
@@ -148,7 +155,7 @@ namespace SharpSheets.Markup.Canvas {
 				);
 		}
 
-		public static IEnvironment MakeDrawingStateEnvironment(MarkupCanvasGraphicsData graphicsData, Layouts.Rectangle drawingRect, Layouts.Size? referenceRect) {
+		public static IEnvironment MakeDrawingStateEnvironment(MarkupCanvasGraphicsData graphicsData, Layouts.Rectangle pageRect, Layouts.Rectangle drawingRect, Layouts.Size? referenceRect) {
 			return MakeGraphicsStateEnvironment(graphicsData).AppendEnvironment(
 				SimpleEnvironments.Create(
 					new (object?, EnvironmentVariableInfo)[] {
@@ -166,6 +173,13 @@ namespace SharpSheets.Markup.Canvas {
 						(drawingRect.Right, MarkupEnvironmentVariables.DrawRight),
 						(drawingRect.Bottom, MarkupEnvironmentVariables.DrawBottom),
 						(drawingRect.Top, MarkupEnvironmentVariables.DrawTop),
+						// Page rect variables
+						(pageRect.Width, MarkupEnvironmentVariables.PageWidth),
+						(pageRect.Height, MarkupEnvironmentVariables.PageHeight),
+						(pageRect.Left, MarkupEnvironmentVariables.PageLeft),
+						(pageRect.Right, MarkupEnvironmentVariables.PageRight),
+						(pageRect.Bottom, MarkupEnvironmentVariables.PageBottom),
+						(pageRect.Top, MarkupEnvironmentVariables.PageTop),
 						// Random seed calculated from area variables
 						(drawingRect.GetHashCode(), MarkupEnvironmentVariables.Seed)
 					})
@@ -239,10 +253,18 @@ namespace SharpSheets.Markup.Canvas {
 		// Drawing rect variables
 		public static readonly EnvironmentVariableInfo DrawWidth = new EnvironmentVariableInfo("drawwidth", EvaluationType.FLOAT, "The width of the actual drawing area on the document page.");
 		public static readonly EnvironmentVariableInfo DrawHeight = new EnvironmentVariableInfo("drawheight", EvaluationType.FLOAT, "The height of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo DrawLeft = new EnvironmentVariableInfo("drawleft", EvaluationType.FLOAT, "The left-hand side x-coordinate of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo DrawRight = new EnvironmentVariableInfo("drawright", EvaluationType.FLOAT, "The right-hand side x-coordinate of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo DrawBottom = new EnvironmentVariableInfo("drawbottom", EvaluationType.FLOAT, "The top edge y-coordinate of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo DrawTop = new EnvironmentVariableInfo("drawtop", EvaluationType.FLOAT, "The bottom edge y-coordinate of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo DrawLeft = new EnvironmentVariableInfo("drawleft", EvaluationType.FLOAT, "The left-hand side x-coordinate of the drawing area in its own coordinate view.");
+		public static readonly EnvironmentVariableInfo DrawRight = new EnvironmentVariableInfo("drawright", EvaluationType.FLOAT, "The right-hand side x-coordinate of the drawing area in its own coordinate view.");
+		public static readonly EnvironmentVariableInfo DrawBottom = new EnvironmentVariableInfo("drawbottom", EvaluationType.FLOAT, "The top edge y-coordinate of the drawing area in its own coordinate view.");
+		public static readonly EnvironmentVariableInfo DrawTop = new EnvironmentVariableInfo("drawtop", EvaluationType.FLOAT, "The bottom edge y-coordinate of the drawing area in its own coordinate view.");
+
+		// Drawing rect variables
+		public static readonly EnvironmentVariableInfo PageWidth = new EnvironmentVariableInfo("pagewidth", EvaluationType.FLOAT, "The width of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo PageHeight = new EnvironmentVariableInfo("pageheight", EvaluationType.FLOAT, "The height of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo PageLeft = new EnvironmentVariableInfo("pageleft", EvaluationType.FLOAT, "The left-hand side x-coordinate of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo PageRight = new EnvironmentVariableInfo("pageright", EvaluationType.FLOAT, "The right-hand side x-coordinate of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo PageBottom = new EnvironmentVariableInfo("pagebottom", EvaluationType.FLOAT, "The top edge y-coordinate of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo PageTop = new EnvironmentVariableInfo("pagetop", EvaluationType.FLOAT, "The bottom edge y-coordinate of the actual drawing area on the document page.");
 
 		// Random seed calculated from area variables
 		public static readonly EnvironmentVariableInfo Seed = new EnvironmentVariableInfo("seed", EvaluationType.INT, "A random seed for this drawing area (based on the actual position on the document page).");
