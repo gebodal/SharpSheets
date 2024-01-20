@@ -54,6 +54,24 @@ namespace SharpSheets.Utilities {
 			}
 		}
 
+		public static IEnumerable<T> Repeat<T>(this IEnumerable<T> source, int count) {
+			if (count < 1) {
+				yield break;
+			}
+
+			List<T> entries = new List<T>();
+			foreach (T entry in source) {
+				yield return entry;
+				entries.Add(entry);
+			}
+
+			for (int i = 1; i < count; i++) {
+				for (int j = 0; j < entries.Count; j++) {
+					yield return entries[j];
+				}
+			}
+		}
+
 		/*
 		public static IEnumerable<ValueTuple<R, S>> Zip<R, S>(this IEnumerable<R> source, IEnumerable<S> other) {
 			if (source is null || other is null) {

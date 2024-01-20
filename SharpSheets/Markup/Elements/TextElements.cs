@@ -96,11 +96,11 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		public void Draw(MarkupCanvas canvas) {
-			canvas.SaveState();
-
 			if (!StyleSheet.Enabled.Evaluate(canvas.Environment)) {
 				return;
 			}
+
+			canvas.SaveState();
 
 			// Does this work?
 			if (StyleSheet.DrawingCoords != null) {
@@ -180,31 +180,45 @@ namespace SharpSheets.Markup.Elements {
 					for (int i = 0; i < spans.Count; i++) {
 						TSpan span = spans[i];
 
-						float dy = spans[i].dy != null ? canvas.TransformLength(spans[i].dy!) : 0f;
-						start += new Vector(dxs[i], dy).Rotate(directionRotation);
+						foreach (IEnvironment forEachEnv in span.StyleSheet.GetForEachEnvironments(canvas.Environment)) {
+							canvas.SaveEnvironment();
+							canvas.ApplyEnvironment(forEachEnv);
 
-						canvas.SaveState();
-						TextElementUtils.ApplyGraphicsParameters(span, canvas);
+							float dy = spans[i].dy != null ? canvas.TransformLength(spans[i].dy!) : 0f;
+							start += new Vector(dxs[i], dy).Rotate(directionRotation);
 
-						canvas.ApplyTransform(Transform.Rotate(directionRotation, start.X, start.Y));
-						canvas.DrawTextExact(texts[i], start.X, start.Y);
+							canvas.SaveState();
+							TextElementUtils.ApplyGraphicsParameters(span, canvas);
 
-						canvas.RestoreState();
+							canvas.ApplyTransform(Transform.Rotate(directionRotation, start.X, start.Y));
+							canvas.DrawTextExact(texts[i], start.X, start.Y);
 
-						start += new Vector(textWidths[i], 0f).Rotate(directionRotation);
+							canvas.RestoreState();
+
+							start += new Vector(textWidths[i], 0f).Rotate(directionRotation);
+
+							canvas.RestoreEnvironment();
+						}
 					}
 				}
 				else if (pieces.Count > 0 && pieces.Peek() is TextPath) {
 					TextPath textPath = (TextPath)pieces.Dequeue();
 
-					bool trimStart = first;
-					bool trimEnd = pieces.Count == 0;
-					first = false;
+					foreach (IEnvironment forEachEnv in textPath.StyleSheet.GetForEachEnvironments(canvas.Environment)) {
+						canvas.SaveEnvironment();
+						canvas.ApplyEnvironment(forEachEnv);
 
-					textPath.Draw(canvas, out DrawPointExpression? end, out VectorExpression? normalExpression, trimStart, trimEnd);
+						bool trimStart = first;
+						bool trimEnd = pieces.Count == 0;
+						first = false;
 
-					if (end != null) { start = canvas.TransformPoint(end); }
-					normal = canvas.Evaluate(normalExpression, new Vector(0, 1));
+						textPath.Draw(canvas, out DrawPointExpression? end, out VectorExpression? normalExpression, trimStart, trimEnd);
+
+						if (end != null) { start = canvas.TransformPoint(end); }
+						normal = canvas.Evaluate(normalExpression, new Vector(0, 1));
+
+						canvas.RestoreEnvironment();
+					}
 				}
 			}
 
@@ -313,22 +327,28 @@ namespace SharpSheets.Markup.Elements {
 			// Need to apply text style information from StyleSheet
 			TextElementUtils.ApplyGraphicsParameters(this, canvas);
 
-			List<TSpan> spans = textContent.Where(s => s.StyleSheet.Enabled.Evaluate(canvas.Environment)).ToList();
+			TSpan[] spans = textContent.Where(s => s.StyleSheet.Enabled.Evaluate(canvas.Environment)).ToArray();
 
-			RichString[] spanStrings = new RichString[spans.Count];
-			for (int i = 0; i < spans.Count; i++) {
-				if (spans[i].StyleSheet.Enabled.Evaluate(canvas.Environment)) {
+			List<RichString> spanStrings = new List<RichString>();
+			for (int i = 0; i < spans.Length; i++) {
+				IEnvironment[] forEachEnvs = spans[i].StyleSheet.GetForEachEnvironments(canvas.Environment).ToArray();
+				for (int e = 0; e < forEachEnvs.Length; e++) {
+					canvas.SaveEnvironment();
+					canvas.ApplyEnvironment(forEachEnvs[e]);
+
 					string spanText = spans[i].text.Evaluate(canvas.Environment);
 					TextFormat spanFormat = spans[i].StyleSheet.FontStyle?.Evaluate(canvas.Environment) ?? canvas.GetTextFormat();
 
-					if (i == 0) {
+					if (i == 0) { // TODO Conditional on e==0?
 						spanText = spanText.TrimStart();
 					}
-					if (i == spans.Count - 1) {
+					if (i == spans.Length - 1) { // TODO Conditional on e==forEachEnvs.Length-1?
 						spanText = spanText.TrimEnd();
 					}
 
-					spanStrings[i] = RichString.Create(spanText, spanFormat);
+					spanStrings.Add(RichString.Create(spanText, spanFormat));
+
+					canvas.RestoreEnvironment();
 				}
 			}
 
@@ -531,9 +551,16 @@ namespace SharpSheets.Markup.Elements {
 			if (textAnchor == TextAnchor.End || textAnchor == TextAnchor.Middle) {
 				float textLength = 0f;
 				foreach (TSpan span in spans) {
-					float dx = span.dx != null ? canvas.TransformLength(span.dx) : 0f;
-					float textWidth = canvas.GetWidth(span.text, span.StyleSheet.FontStyle, span.StyleSheet.FontSize);
-					textLength += dx + textWidth;
+					foreach (IEnvironment forEachEnv in span.StyleSheet.GetForEachEnvironments(canvas.Environment)) {
+						canvas.SaveEnvironment();
+						canvas.ApplyEnvironment(forEachEnv);
+
+						float dx = span.dx != null ? canvas.TransformLength(span.dx) : 0f;
+						float textWidth = canvas.GetWidth(span.text, span.StyleSheet.FontStyle, span.StyleSheet.FontSize);
+						textLength += dx + textWidth;
+
+						canvas.RestoreEnvironment();
+					}
 				}
 
 				if (textAnchor == TextAnchor.End) {
@@ -559,78 +586,82 @@ namespace SharpSheets.Markup.Elements {
 			for (int k = 0; k < spans.Length; k++) {
 				TSpan span = spans[k];
 
-				canvas.SaveState();
-				TextElementUtils.ApplyGraphicsParameters(span, canvas);
-
-				float dx = span.dx != null ? canvas.TransformLength(span.dx) : 0f;
-				float dy = span.dy != null ? canvas.TransformLength(span.dy) : 0f;
-
-				position += direction * dx;
-
-				string text = span.text.Evaluate(canvas.Environment);
-
-				if (k == 0 && trimStart) {
-					text = text.TrimStart();
-				}
-				if (k == spans.Length - 1 && trimEnd) {
-					text = text.TrimEnd();
-				}
-
-				for (int i = 0; i < text.Length; i++) {
-					string c = text[i].ToString();
-					float charWidth = canvas.GetWidth((StringExpression)c, span.StyleSheet.FontStyle, span.StyleSheet.FontSize);
-					float pointPosition = position + direction * 0.5f * charWidth;
-					if (continuePastEnd == ContinueStyle.LOOP) {
-						//Console.Write($"Position: {pointPosition}, ");
-						//pointPosition %= path.Length;
-						pointPosition = (pointPosition % path.Length + path.Length) % path.Length;
-						//Console.WriteLine($"After: {pointPosition}");
-					}
-					DrawPoint? point = path.PointAt(pointPosition, out Vector? normal);
-
-					Vector textDirection;
-
-					if (point.HasValue) {
-						textDirection = GetDirection(normal!.Value, side);
-					}
-					else if (continuePastEnd == ContinueStyle.CONTINUE && positionLocation.HasValue) {
-						point = positionLocation;
-						normal = positionNormal;
-						textDirection = positionDirection!.Value;
-					}
-					else {
-						// Just update for next char and move on
-						position += direction * charWidth;
-						continue;
-					}
-
-					float directionRotation = textDirection.Rotation();
-
-					DrawPoint xy = point.Value + new Vector(-0.5f * charWidth, dy).Rotate(directionRotation);
-
+				foreach (IEnvironment forEachEnv in span.StyleSheet.GetForEachEnvironments(canvas.Environment)) {
+					canvas.SaveEnvironment().ApplyEnvironment(forEachEnv);
 					canvas.SaveState();
-					canvas.ApplyTransform(Transform.Rotate(directionRotation, xy.X, xy.Y));
-					canvas.DrawTextExact(c, xy.X, xy.Y);
-					//canvas.DrawTextExact(c, point.Value.X, point.Value.Y);
-					canvas.RestoreState();
+					TextElementUtils.ApplyGraphicsParameters(span, canvas);
 
-					// Update for next char
-					position += direction * charWidth;
+					float dx = span.dx != null ? canvas.TransformLength(span.dx) : 0f;
+					float dy = span.dy != null ? canvas.TransformLength(span.dy) : 0f;
 
-					positionLocation = point + (textDirection * charWidth);
-					positionNormal = normal;
-					positionDirection = textDirection;
+					position += direction * dx;
 
-					if (canvas.CollectingDiagnostics) {
-						if (bounds == null) {
-							bounds = new Rectangle(point.Value.X, point.Value.Y, 0f, 0f);
-						}
-						bounds = bounds.Include(point.Value);
-						bounds = bounds.Include(point.Value + (normal!.Value * canvas.GetAscent(new StringExpression(c), span.StyleSheet.FontStyle, span.StyleSheet.FontSize)));
+					string text = span.text.Evaluate(canvas.Environment);
+
+					if (k == 0 && trimStart) { // TODO Conditional on [envNum]==0?
+						text = text.TrimStart();
 					}
-				}
+					if (k == spans.Length - 1 && trimEnd) { // TODO Conditional on [envNum]==forEachEnvs.Length-1?
+						text = text.TrimEnd();
+					}
 
-				canvas.RestoreState();
+					for (int i = 0; i < text.Length; i++) {
+						string c = text[i].ToString();
+						float charWidth = canvas.GetWidth((StringExpression)c, span.StyleSheet.FontStyle, span.StyleSheet.FontSize);
+						float pointPosition = position + direction * 0.5f * charWidth;
+						if (continuePastEnd == ContinueStyle.LOOP) {
+							//Console.Write($"Position: {pointPosition}, ");
+							//pointPosition %= path.Length;
+							pointPosition = (pointPosition % path.Length + path.Length) % path.Length;
+							//Console.WriteLine($"After: {pointPosition}");
+						}
+						DrawPoint? point = path.PointAt(pointPosition, out Vector? normal);
+
+						Vector textDirection;
+
+						if (point.HasValue) {
+							textDirection = GetDirection(normal!.Value, side);
+						}
+						else if (continuePastEnd == ContinueStyle.CONTINUE && positionLocation.HasValue) {
+							point = positionLocation;
+							normal = positionNormal;
+							textDirection = positionDirection!.Value;
+						}
+						else {
+							// Just update for next char and move on
+							position += direction * charWidth;
+							continue;
+						}
+
+						float directionRotation = textDirection.Rotation();
+
+						DrawPoint xy = point.Value + new Vector(-0.5f * charWidth, dy).Rotate(directionRotation);
+
+						canvas.SaveState();
+						canvas.ApplyTransform(Transform.Rotate(directionRotation, xy.X, xy.Y));
+						canvas.DrawTextExact(c, xy.X, xy.Y);
+						//canvas.DrawTextExact(c, point.Value.X, point.Value.Y);
+						canvas.RestoreState();
+
+						// Update for next char
+						position += direction * charWidth;
+
+						positionLocation = point + (textDirection * charWidth);
+						positionNormal = normal;
+						positionDirection = textDirection;
+
+						if (canvas.CollectingDiagnostics) {
+							if (bounds == null) {
+								bounds = new Rectangle(point.Value.X, point.Value.Y, 0f, 0f);
+							}
+							bounds = bounds.Include(point.Value);
+							bounds = bounds.Include(point.Value + (normal!.Value * canvas.GetAscent(new StringExpression(c), span.StyleSheet.FontStyle, span.StyleSheet.FontSize)));
+						}
+					}
+
+					canvas.RestoreState();
+					canvas.RestoreEnvironment();
+				}
 
 				//if (reachedEnd) { break; }
 			}
@@ -652,7 +683,7 @@ namespace SharpSheets.Markup.Elements {
 				endNormal = new Vector(-finalNorm!.Value.X, -finalNorm!.Value.Y);
 			}
 
-			if (canvas.CollectingDiagnostics && bounds is Rectangle) {
+			if (canvas.CollectingDiagnostics && bounds is not null) {
 				canvas.RegisterArea(this, bounds);
 				//Console.WriteLine(bounds);
 			}

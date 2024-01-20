@@ -767,14 +767,14 @@ namespace SharpSheets.Markup.Parsing {
 				return divElement;
 			}
 
-			private IIdentifiableMarkupElement? MakeElement(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, IVariableBox variables, DirectoryPath source) {
+			private IIdentifiableMarkupElement? MakeElement(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, IVariableBox initialVariables, DirectoryPath source) {
 				// TODO Need to deal with errors in this method
 
 				if (constructed.TryGetValue(elem, out IIdentifiableMarkupElement? existing)) { return existing; }
 
 				IIdentifiableMarkupElement? finalElement = null;
 
-				StyleSheet styleSheet = GetStyleSheet(root, elem, constructed, variables, source);
+				StyleSheet styleSheet = GetStyleSheet(root, elem, constructed, initialVariables, source, out IVariableBox variables);
 				string? id = GetAttribute(elem, "id", false, s => s, null);
 				//string classname = GetAttribute(elem, "class", false, s => s, null);
 
@@ -882,7 +882,7 @@ namespace SharpSheets.Markup.Parsing {
 								LogVisit(textPieceElem);
 							}
 							else if (node is XMLText textNode) {
-								pieces.Add(new TSpan(null, styleSheet, null, null, null, null, ParseText(textNode.Yield(), variables)));
+								pieces.Add(new TSpan(null, styleSheet.WithoutForEach(), null, null, null, null, ParseText(textNode.Yield(), variables)));
 								LogVisit(textNode);
 							}
 							else if (node is not XMLComment) {
@@ -944,7 +944,7 @@ namespace SharpSheets.Markup.Parsing {
 								}
 							}
 							else if (node is XMLText textNode) {
-								tspans.Add(new TSpan(null, styleSheet, null, null, null, null, ParseText(textNode.Yield(), variables)));
+								tspans.Add(new TSpan(null, styleSheet.WithoutForEach(), null, null, null, null, ParseText(textNode.Yield(), variables)));
 								LogVisit(textNode);
 							}
 							else if (node is not XMLComment) {
@@ -1176,7 +1176,19 @@ namespace SharpSheets.Markup.Parsing {
 			private static readonly SolidPaint defaultFillPaint = new SolidPaint(null, MarkupEnvironments.BackgroundExpression);
 			private static readonly SolidPaint defaultTextPaint = new SolidPaint(null, MarkupEnvironments.TextColorExpression);
 
-			private StyleSheet GetStyleSheet(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, IVariableBox variables, DirectoryPath source) {
+			private StyleSheet GetStyleSheet(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, IVariableBox initialVariables, DirectoryPath source, out IVariableBox finalVariables) {
+
+				// Get foreach expression for this div, using outer context variables
+				ForEachExpression? forEach = GetAttribute(elem, "for-each", false, s => ForEachExpression.Parse(s, initialVariables), null);
+
+				IVariableBox variables;
+				if (forEach != null) {
+					// If for-each provided, add it's variable to the collection used for parsing
+					variables = initialVariables.AppendVariables(SimpleVariableBoxes.Single(forEach.Variable));
+				}
+				else {
+					variables = initialVariables;
+				}
 
 				StyleSheet styleSheet = new StyleSheet(
 					_clip_path: GetClipPath(root, elem, constructed, variables, source),
@@ -1209,9 +1221,11 @@ namespace SharpSheets.Markup.Parsing {
 					text_color: GetAttribute(elem, "text-color", true, s => MarkupValueParsing.ParseColor(s, variables), MarkupEnvironments.TextColorExpression),
 					_transform: GetAttribute(elem, "transform", false, s => MarkupValueParsing.ParseTransform(s, variables), null),
 					drawing_coords: GetAttribute(elem, "coords", true, s => MarkupValueParsing.ParseEnum<DrawingCoords>(s, variables), null),
-					enabled: GetAttribute(elem, "enabled", true, s => BoolExpression.Parse(s, variables), true)
+					_enabled: GetAttribute(elem, "enabled", false, s => BoolExpression.Parse(s, variables), true),
+					_for_each: forEach
 				);
 
+				finalVariables = variables;
 				return styleSheet;
 			}
 

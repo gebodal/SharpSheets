@@ -45,7 +45,12 @@ namespace SharpSheets.Markup.Elements {
 				}
 
 				foreach (IDrawableElement elem in elements) {
-					elem.Draw(canvas);
+					foreach(IEnvironment forEachEnv in elem.StyleSheet.GetForEachEnvironments(canvas.Environment)) {
+						canvas.SaveEnvironment();
+						canvas.ApplyEnvironment(forEachEnv);
+						elem.Draw(canvas);
+						canvas.RestoreEnvironment();
+					}
 				}
 
 				canvas.RestoreState();
@@ -140,7 +145,12 @@ namespace SharpSheets.Markup.Elements {
 		public void Apply(MarkupCanvas canvas) {
 			if (StyleSheet.Enabled.Evaluate(canvas.Environment) && elements.Length > 0) {
 				foreach (IShapeElement elem in elements) {
-					elem.AssignGeometry(canvas);
+					foreach (IEnvironment forEachEnv in elem.StyleSheet.GetForEachEnvironments(canvas.Environment)) {
+						canvas.SaveEnvironment();
+						canvas.ApplyEnvironment(forEachEnv);
+						elem.AssignGeometry(canvas);
+						canvas.RestoreEnvironment();
+					}
 				}
 
 				// TODO What to do about DrawingCoords here?
@@ -309,7 +319,12 @@ namespace SharpSheets.Markup.Elements {
 			// TODO Need to get size of new rect and make a new canvas with a rect that size
 
 			foreach (IDrawableElement elem in elements) {
-				elem.Draw(canvas);
+				foreach (IEnvironment forEachEnv in elem.StyleSheet.GetForEachEnvironments(canvas.Environment)) {
+					canvas.SaveEnvironment();
+					canvas.ApplyEnvironment(forEachEnv);
+					elem.Draw(canvas);
+					canvas.RestoreEnvironment();
+				}
 			}
 
 			//canvas.SetLineWidth(0.01f).SetStrokeColor(System.Drawing.Color.Red).Rectangle(clipArea).Stroke();
