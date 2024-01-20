@@ -300,6 +300,47 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 	}
 
+	public class AbsoluteFunction : AbstractFunction {
+
+		public static readonly AbsoluteFunction Instance = new AbsoluteFunction();
+		private AbsoluteFunction() { }
+
+		public override EvaluationName Name { get; } = "abs";
+		public override string? Description { get; } = "Returns the absolute value of the argument.";
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.FLOAT, null)),
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.INT, null))
+		);
+
+		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+			EvaluationType argType = args[0].ReturnType;
+			if (argType.IsIntegral()) {
+				return EvaluationType.UINT;
+			}
+			else if (argType.IsReal()) {
+				return EvaluationType.UFLOAT;
+			}
+			else {
+				throw new EvaluationTypeException($"{Name} not defined for value of type {argType}.");
+			}
+		}
+
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			object? a = args[0].Evaluate(environment);
+
+			if (EvaluationTypes.TryGetIntegral(a, out int aInt)) {
+				return (uint)Math.Abs(aInt);
+			}
+			else if (EvaluationTypes.TryGetReal(a, out float aFloat)) {
+				return new UFloat(Math.Abs(aFloat));
+			}
+			else {
+				throw new EvaluationTypeException($"{Name} not defined for value of type {EvaluationUtils.GetDataTypeName(a)}.");
+			}
+		}
+	}
+
 	public abstract class MathematicalFunction : AbstractFunction {
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
