@@ -503,6 +503,7 @@ namespace SharpSheets.Widgets {
 
 		protected readonly Justification justification;
 		protected readonly Alignment alignment;
+		protected readonly Direction orientation;
 		protected readonly TextHeightStrategy heightStrategy;
 
 		protected readonly (float x, float y) offset;
@@ -540,6 +541,8 @@ namespace SharpSheets.Widgets {
 		/// is greater than zero.</param>
 		/// <param name="justification">The horizontal justification to use for the text within the available area.</param>
 		/// <param name="alignment">The vertical alignment to use for the text within the available area.</param>
+		/// <param name="orientation">Orientation for the text, which will control the "up" direction
+		/// when the text is drawn.</param>
 		/// <param name="heightStrategy">The height calculation strategy to use when arranging the text within the available area.</param>
 		/// <param name="fit" example="true">Flag to indicate that the font size should be adjusted to fit the text to the
 		/// available area.</param>
@@ -561,6 +564,7 @@ namespace SharpSheets.Widgets {
 				float epsilon = 0.25f,
 				Justification justification = Justification.LEFT,
 				Alignment alignment = Alignment.TOP,
+				Direction orientation = Direction.NORTH,
 				TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline,
 				bool fit = false,
 				(float x, float y) offset = default,
@@ -587,6 +591,7 @@ namespace SharpSheets.Widgets {
 
 			this.justification = justification;
 			this.alignment = alignment;
+			this.orientation = orientation;
 			this.heightStrategy = heightStrategy;
 
 			this.offset = offset;
@@ -599,18 +604,26 @@ namespace SharpSheets.Widgets {
 
 			rect = new Rectangle(rect.X + offset.x, rect.Y + offset.y, rect.Width, rect.Height);
 
+			canvas.SaveState();
+
+			(Transform transform, Rectangle textRect) = TitleUtils.TransformRect(rect, orientation); // TODO This should probably be moved somewhere more generic
+
+			canvas.ApplyTransform(transform);
+
 			if (fit || fontSize <= 0) {
 				FontSizeSearchParams searchParams = new FontSizeSearchParams(minfontsize, maxfontsize, epsilon);
 				if (singleline) {
-					canvas.FitRichTextLine(rect, text, searchParams, justification, alignment, heightStrategy);
+					canvas.FitRichTextLine(textRect, text, searchParams, justification, alignment, heightStrategy);
 				}
 				else {
-					canvas.FitRichText(rect, text, paragraphSpec, new FontSizeSearchParams(minfontsize, maxfontsize, epsilon), justification, alignment, heightStrategy, true);
+					canvas.FitRichText(textRect, text, paragraphSpec, new FontSizeSearchParams(minfontsize, maxfontsize, epsilon), justification, alignment, heightStrategy, true);
 				}
 			}
 			else {
-				canvas.DrawRichText(rect, text, fontSize, paragraphSpec, justification, alignment, heightStrategy, true);
+				canvas.DrawRichText(textRect, text, fontSize, paragraphSpec, justification, alignment, heightStrategy, true);
 			}
+
+			canvas.RestoreState();
 		}
 
 		protected override Rectangle? GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
@@ -622,10 +635,17 @@ namespace SharpSheets.Widgets {
 
 			RichString[][] singleLineParagraphs = text.Split('\n').Select(s => new RichString[] { s }).ToArray();
 
-			float width = Math.Min(availableSpace.Width, RichStringLayout.CalculateWidth(graphicsState, singleLineParagraphs, fontSize, paragraphSpec, true));
-			float height = RichStringLayout.CalculateHeight(graphicsState, text, availableSpace.Width, fontSize, paragraphSpec, heightStrategy, true);
+			float availableWidth = (orientation == Direction.EAST || orientation == Direction.WEST) ? availableSpace.Height : availableSpace.Width;
 
-			return new Size(width, height);
+			float width = Math.Min(availableWidth, RichStringLayout.CalculateWidth(graphicsState, singleLineParagraphs, fontSize, paragraphSpec, true));
+			float height = RichStringLayout.CalculateHeight(graphicsState, text, availableWidth, fontSize, paragraphSpec, heightStrategy, true);
+
+			if (orientation == Direction.EAST || orientation == Direction.WEST) {
+				return new Size(height, width);
+			}
+			else {
+				return new Size(width, height);
+			}
 		}
 	}
 
