@@ -20,9 +20,9 @@ namespace SharpEditor {
 			AppInitialization();
 
 			// Initialise static variables in data handlers
-			SharpEditorRegistries.Initialise();
 			SharpDataManager.Initialise();
 			SharpEditorPalette.Initialise();
+			SharpEditorRegistries.Initialise();
 
 			this.window = new SharpEditorWindow(this);
 

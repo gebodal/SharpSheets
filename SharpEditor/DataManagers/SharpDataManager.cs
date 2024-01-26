@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Windows;
+using System.Configuration;
+using System.IO;
 
 namespace SharpEditor.DataManagers {
 
@@ -10,8 +12,22 @@ namespace SharpEditor.DataManagers {
 		public static SharpDataManager Instance { get; }
 
 		static SharpDataManager() {
+			CheckSettingsFile(); // Upgrade settings file if required
 			Instance = new SharpDataManager();
 			InitialiseInstance();
+		}
+
+		private SharpDataManager() { }
+
+		private static void CheckSettingsFile() {
+			// With thanks to: https://stackoverflow.com/a/74227345/11002708
+			string configPath = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoamingAndLocal).FilePath;
+			if (!File.Exists(configPath)) {
+				//Existing user config does not exist, so load settings from previous assembly
+				SharpEditor.Properties.Settings.Default.Upgrade();
+				SharpEditor.Properties.Settings.Default.Reload();
+				SharpEditor.Properties.Settings.Default.Save();
+			}
 		}
 
 		private static void InitialiseInstance() {
