@@ -45,8 +45,14 @@ namespace SharpEditor {
 			return new CardConfigSpan(this, startOffset, length);
 		}
 
+		private static IEnumerable<SharpSheets.Documentation.ArgumentDetails> SpecialArgs {
+			get {
+				return CardSetConfigFactory.ConditionArgument.Yield().Append(CardSetConfigFactory.ForEachArgument);
+			}
+		}
+
 		protected override SharpConfigColorizingTransformer<CardConfigSpan> MakeColorizer() {
-			return new SharpConfigColorizingTransformer<CardConfigSpan>(this, SharpEditorRegistries.CardSetConfigFactoryInstance, SharpEditorRegistries.ShapeFactoryInstance, CardSetConfigFactory.ConditionArgument.Yield());
+			return new SharpConfigColorizingTransformer<CardConfigSpan>(this, SharpEditorRegistries.CardSetConfigFactoryInstance, SharpEditorRegistries.ShapeFactoryInstance, SpecialArgs);
 		}
 
 		#region Loading Data
