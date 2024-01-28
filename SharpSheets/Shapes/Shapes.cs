@@ -202,11 +202,13 @@ namespace SharpSheets.Shapes {
 		protected IContainerShape box;
 		protected Vector offset;
 		protected float spacing;
+		protected Colors.Color? textColor;
 
-		public TitleStyledBoxBase(IContainerShape box, string name, TextFormat format, float fontSize, Vector offset, float spacing) : base(-1, name, format, fontSize) {
+		public TitleStyledBoxBase(IContainerShape box, string name, TextFormat format, float fontSize, Vector offset, float spacing, Colors.Color? color) : base(-1, name, format, fontSize) {
 			this.box = box;
 			this.offset = offset;
 			this.spacing = spacing;
+			this.textColor = color;
 		}
 
 		public override Rectangle AspectRect(ISharpGraphicsState graphicsState, Rectangle rect) {

@@ -18,7 +18,7 @@ namespace SharpSheets.Shapes {
 		/// </summary>
 		/// <param name="box">Base shape.</param>
 		/// <param name="name">Title text.</param>
-		public Untitled(IContainerShape box, string name) : base(box, name, TextFormat.REGULAR, 0f, default, 0f) { }
+		public Untitled(IContainerShape box, string name) : base(box, name, TextFormat.REGULAR, 0f, default, 0f, null) { }
 
 		protected override void DrawFrame(ISharpCanvas canvas, Rectangle aspectRect) {
 			box.Draw(canvas, aspectRect);
@@ -45,7 +45,7 @@ namespace SharpSheets.Shapes {
 		protected readonly ParagraphSpecification paragraphSpec;
 		protected readonly RichString[] richParts;
 
-		public AbstractPositionedTitleStyle(IContainerShape box, string name, TitlePosition position, Layout layout, Direction orientation, Margins padding, TextFormat format, float fontSize, Vector offset, float spacing, Justification justification, float lineSpacing, TextHeightStrategy heightStrategy) : base(box, name, format, fontSize, offset, spacing) {
+		public AbstractPositionedTitleStyle(IContainerShape box, string name, TitlePosition position, Layout layout, Direction orientation, Margins padding, TextFormat format, float fontSize, Vector offset, float spacing, Colors.Color? color, Justification justification, float lineSpacing, TextHeightStrategy heightStrategy) : base(box, name, format, fontSize, offset, spacing, color) {
 			this.position = position;
 			this.layout = layout;
 			this.orientation = orientation;
@@ -80,6 +80,10 @@ namespace SharpSheets.Shapes {
 
 			(Transform transform, _, Rectangle textArea) = GetNameArea(canvas, rect);
 			canvas.ApplyTransform(transform);
+
+			if(textColor.HasValue) {
+				canvas.SetTextColor(textColor.Value);
+			}
 
 			DrawTitleText(canvas, textArea);
 
@@ -124,13 +128,15 @@ namespace SharpSheets.Shapes {
 		/// whereas bottom-aligned titles will be offset upwards - and vice versa for left and right.</param>
 		/// <param name="spacing">The spacing between the title text and the remaining area, if the remaining
 		/// area requires adjustment after the title has been drawn.</param>
+		/// <param name="color">An optional color for the title text. If no value is provided, the current
+		/// text color will be used.</param>
 		/// <param name="justification">The justification for the title text, relative to the widest line
 		/// of the title text. Note this this will not move the position of the title relative to the outline,
 		/// but only within the bounding box created by the text height and maximum line width.</param>
 		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
-		public Named(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 3f), spacing, justification, lineSpacing, heightStrategy) { }
+		public Named(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 3f), spacing, color, justification, lineSpacing, heightStrategy) { }
 
 		protected override void DrawFrame(ISharpCanvas canvas, Rectangle rect) {
 			box.Draw(canvas, rect);
@@ -192,13 +198,15 @@ namespace SharpSheets.Shapes {
 		/// edge, meaning that for top-aligned titles, positive offsets will move the title downwards,
 		/// whereas bottom-aligned titles will be offset upwards - and vice versa for left and right.</param>
 		/// <param name="spacing">The spacing between the title text and the outline shape area.</param>
+		/// <param name="color">An optional color for the title text. If no value is provided, the current
+		/// text color will be used.</param>
 		/// <param name="justification">The justification for the title text, relative to the widest line
 		/// of the title text. Note this this will not move the position of the title relative to the outline,
 		/// but only within the bounding box created by the text height and maximum line width.</param>
 		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
-		public Titled(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 0f), spacing, justification, lineSpacing, heightStrategy) { }
+		public Titled(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 0f), spacing, color, justification, lineSpacing, heightStrategy) { }
 
 		protected Rectangle BoxRect(ISharpGraphicsState graphicsState, Rectangle rect) {
 			return box.AspectRect(graphicsState, rect.Margins(GetNameMargins(graphicsState), false));
@@ -276,6 +284,8 @@ namespace SharpSheets.Shapes {
 		/// edge, meaning that for top-aligned titles, positive offsets will move the title downwards,
 		/// whereas bottom-aligned titles will be offset upwards - and vice versa for left and right.</param>
 		/// <param name="spacing">The spacing between the title box and the outline shape area.</param>
+		/// <param name="color">An optional color for the title text. If no value is provided, the current
+		/// text color will be used.</param>
 		/// <param name="justification">The justification for the title text, relative to the widest line
 		/// of the title text. Note this this will not move the position of the title text or box relative to
 		/// the outline, but only within the bounding box created by the text height and maximum line width.
@@ -283,7 +293,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
-		public BoxedTitle(IContainerShape box, string name, IBox box_, Margins trim = default, TitlePosition position = TitlePosition.TOP, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 11f, Vector offset = default, float spacing = 3f, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset, spacing, justification, lineSpacing, heightStrategy) {
+		public BoxedTitle(IContainerShape box, string name, IBox box_, Margins trim = default, TitlePosition position = TitlePosition.TOP, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 11f, Vector offset = default, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy) {
 			this.outline = box_ ?? new NoOutline(-1f);
 			this.trim = trim;
 		}
@@ -313,6 +323,11 @@ namespace SharpSheets.Shapes {
 
 			(Transform transform, Rectangle titleTextRect) = TransformRect(titleBoxRemainingPage.Margins(trim, false));
 			canvas.ApplyTransform(transform);
+
+			if (textColor.HasValue) {
+				canvas.SetTextColor(textColor.Value);
+			}
+
 			DrawTitleText(canvas, titleTextRect);
 
 			canvas.RestoreState();
@@ -400,6 +415,8 @@ namespace SharpSheets.Shapes {
 		/// it will increase leftwards (and vica versa for vertical arrangements).</param>
 		/// <param name="spacing">The spacing between the title text and the main outline inside the tab
 		/// area.</param>
+		/// <param name="color">An optional color for the title text. If no value is provided, the current
+		/// text color will be used.</param>
 		/// <param name="justification">The justfication for the title text inside the tab label area. Note
 		/// that this justification includes the entire tab area, and is not just relative to the widest
 		/// title line. This means that if <paramref name="protrusion"/> or <paramref name="tabBreadth"/>
@@ -414,9 +431,10 @@ namespace SharpSheets.Shapes {
 				Dimension? protrusion = null, Dimension? tabBreadth = null, bool includeProtrusion = true,
 				Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f,
 				Vector offset = default, float spacing = 3f,
+				Colors.Color? color = null,
 				Justification justification = Justification.CENTRE,
 				float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentDescent
-			) : base(box, name, format, fontSize, offset, spacing) {
+			) : base(box, name, format, fontSize, offset, spacing, color) {
 			
 			this.tabBox = tabBox ?? new NoOutline(-1);
 			this.protrusionLength = protrusion;
@@ -576,6 +594,7 @@ namespace SharpSheets.Shapes {
 			(Transform transform, Rectangle textArea) = TitleUtils.TransformRect(labelRect, orientation);
 			canvas.SaveState();
 			canvas.ApplyTransform(transform);
+			if (textColor.HasValue) { canvas.SetTextColor(textColor.Value); }
 			canvas.DrawRichText(textArea, richParts, fontSize, paragraphSpec, justification, Alignment.CENTRE, heightStrategy, false);
 			canvas.RestoreState();
 			
