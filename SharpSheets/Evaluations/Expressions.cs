@@ -101,7 +101,7 @@ namespace SharpSheets.Evaluations {
 			else {
 				object result = evaluation!.Evaluate(environment) ?? throw new EvaluationCalculationException("Evaluation does not produce a value.");
 				
-				if(EvaluationTypes.TryGetReal(result, out var realValue)) {
+				if(EvaluationTypes.TryGetReal(result, out float realValue)) {
 					return realValue;
 				}
 				else {
@@ -143,10 +143,20 @@ namespace SharpSheets.Evaluations {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
 		public IntExpression(EvaluationNode evaluation) {
-			if (evaluation.ReturnType == EvaluationType.INT) {
+			if (evaluation.ReturnType.IsIntegral()) {
 				if (evaluation.IsConstant) {
+					int value;
+					object eval = evaluation.Evaluate(Environments.Empty) ?? throw new EvaluationProcessingException("Provided constant evaluation does not produce a value.");
+
+					if (EvaluationTypes.TryGetIntegral(eval, out int evalResult)) {
+						value = evalResult;
+					}
+					else {
+						throw new EvaluationCalculationException("Provided constant evaluation does not produce a valid integer value.");
+					}
+
 					this.evaluation = null;
-					value = (int)(evaluation.Evaluate(Environments.Empty) ?? throw new EvaluationProcessingException("Provided constant evaluation does not produce a value."));
+					this.value = value;
 				}
 				else {
 					this.evaluation = evaluation;
@@ -186,7 +196,14 @@ namespace SharpSheets.Evaluations {
 				return value.Value;
 			}
 			else {
-				return (int)(evaluation!.Evaluate(environment) ?? throw new EvaluationCalculationException("Evaluation does not produce a value."));
+				object result = evaluation!.Evaluate(environment) ?? throw new EvaluationCalculationException("Evaluation does not produce a value.");
+
+				if (EvaluationTypes.TryGetIntegral(result, out int intValue)) {
+					return intValue;
+				}
+				else {
+					throw new EvaluationCalculationException("Evaluation does not produce a valid integer value.");
+				}
 			}
 		}
 

@@ -431,6 +431,14 @@ namespace SharpSheets.Markup.Canvas {
 			}
 		}
 
+		private T[] Evaluate<T>(IExpression<T>[] expressions) {
+			T[] result = new T[expressions.Length];
+			for(int i=0; i<expressions.Length; i++) {
+				result[i] = expressions[i].Evaluate(Environment);
+			}
+			return result;
+		}
+
 		public void LogError(object origin, string message, Exception innerException) {
 			exceptions.Add(new SharpDrawingException(origin, message, innerException));
 		}
@@ -944,6 +952,18 @@ namespace SharpSheets.Markup.Canvas {
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
 			float abs = Evaluate(mitreLimit);
 			Canvas.SetMiterLimit(abs);
+			return this;
+		}
+
+		/// <summary></summary>
+		/// <returns> This MarkupCanvas instance. </returns>
+		/// <exception cref="MarkupCanvasStateException"> If the canvas has an unclosed child canvas. </exception>
+		/// <exception cref="EvaluationCalculationException"></exception>
+		public MarkupCanvas SetStrokeDash(FloatExpression[] dashArray, FloatExpression? offset) {
+			if (Canvas is null) { throw new MarkupCanvasStateException(); }
+			float[] absArray = Evaluate(dashArray);
+			float absOffset = Evaluate(offset, 0f);
+			Canvas.SetStrokeDash(new StrokeDash(absArray, absOffset));
 			return this;
 		}
 
