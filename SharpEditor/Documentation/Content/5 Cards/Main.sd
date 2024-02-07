@@ -1,7 +1,15 @@
-﻿# Card Configurations
+﻿# Cards
+
+SharpSheets also allows you to generate cards based on configurations and subjects - how the cards look, and what content they have, respectively. Card configurations use a similar syntax to the standard SharpSheets configuration files, while the card subject files use a Markdown-inspired syntax.
+
+Card configuration files can be saved into the Templates Directory, and then used by card subject files anywhere.
+
+For a tutorial on writing card configuration files, see [here](Cards/Configuration Tutorial).
+
+For a tutorial on writing card subject files, see [here](Cards/Subjects Tutorial).
+
+# Card Configurations
+
+Below is a list of the currently installed card configurations, which will lead you to the documentation for each such configuration.
 
 [[CardConfigs]]
-
-## Card Config Design
-
-[[CardStructures]]
