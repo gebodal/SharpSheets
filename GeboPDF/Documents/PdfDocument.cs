@@ -192,7 +192,7 @@ namespace GeboPdf.Documents {
 			yield return new KeyValuePair<PdfName, PdfObject>(PdfNames.Parent, PdfIndirectReference.Create(parent));
 			yield return new KeyValuePair<PdfName, PdfObject>(PdfNames.Contents, PdfIndirectReference.Create(contents));
 
-			if (pageResources.Count > 0) {
+			if (pageResources.Standalone) {
 				yield return new KeyValuePair<PdfName, PdfObject>(PdfNames.Resources, PdfIndirectReference.Create(pageResources));
 			}
 			else {
