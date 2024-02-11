@@ -754,6 +754,34 @@ namespace GeboPdf.Graphics {
 			return this;
 		}
 
+		public GraphicsStream ShowTextCalculateKerning(string text) {
+			if (text.Length > 1 && state.Font is not null) {
+
+				List<(string text, float? offset)> positioned = new List<(string text, float? offset)>();
+
+				StringBuilder builder = new StringBuilder();
+				builder.Append(text[0]);
+
+				for (int i = 1; i < text.Length; i++) {
+					float kerning = state.Font.font.GetKerning(text[i - 1], text[i]);
+					if (kerning != 0f) {
+						positioned.Add((builder.ToString(), -kerning));
+						builder.Clear();
+					}
+					builder.Append(text[i]);
+				}
+
+				if (builder.Length > 0) {
+					positioned.Add((builder.ToString(), null));
+				}
+
+				return ShowTextWithPositioning(positioned.ToArray());
+			}
+			else {
+				return ShowText(text);
+			}
+		}
+
 		#endregion Text Showing
 
 		#endregion Text

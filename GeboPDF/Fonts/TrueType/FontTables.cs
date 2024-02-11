@@ -953,4 +953,216 @@ namespace GeboPdf.Fonts.TrueType {
 
 	}
 
+	[Flags]
+	public enum KernCoverage : ushort {
+		None = 0,
+		/// <summary>
+		/// Bit set if table has horizontal data, otherwise vertical.
+		/// </summary>
+		Horizontal = 1 << 0,
+		/// <summary>
+		/// If this bit is set, the table has minimum values. Otherwise, the table has kerning values.
+		/// </summary>
+		Minimum = 1 << 1,
+		/// <summary>
+		/// If bit is set, kerning is perpendicular to the flow of the text.<para/>
+		/// If the text is normally written horizontally, kerning will be done in the up and down directions. If kerning values are positive, the text will be kerned upwards; if they are negative, the text will be kerned downwards.<para/>
+		/// If the text is normally written vertically, kerning will be done in the left and right directions. If kerning values are positive, the text will be kerned to the right; if they are negative, the text will be kerned to the left.<para/>
+		/// The value 0x8000 in the kerning data resets the cross-stream kerning back to 0.
+		/// </summary>
+		CrossStream = 1 << 2,
+		/// <summary>
+		/// If this bit is set the value in this table should replace the value currently being accumulated.
+		/// </summary>
+		Override = 1 << 3,
+	}
+
+	public static class KernCoverageUtils {
+
+		public static bool IsHorizontal(this KernCoverage coverage) {
+			return (coverage & KernCoverage.Horizontal) == KernCoverage.Horizontal;
+		}
+
+		public static bool IsVertical(this KernCoverage coverage) {
+			return (coverage & KernCoverage.Horizontal) == KernCoverage.None;
+		}
+
+		public static bool IsMinimum(this KernCoverage coverage) {
+			return (coverage & KernCoverage.Minimum) == KernCoverage.Minimum;
+		}
+
+		public static bool IsKerningValues(this KernCoverage coverage) {
+			return (coverage & KernCoverage.Minimum) == KernCoverage.None;
+		}
+
+		public static bool IsCrossStream(this KernCoverage coverage) {
+			return (coverage & KernCoverage.CrossStream) == KernCoverage.CrossStream;
+		}
+
+		public static bool IsOverride(this KernCoverage coverage) {
+			return (coverage & KernCoverage.Override) == KernCoverage.Override;
+		}
+
+	}
+
+	public class TrueTypeKerningTable {
+
+		public readonly TrueTypeKerningSubtable[] Subtables;
+
+		internal TrueTypeKerningTable(TrueTypeKerningSubtable[] subtables) {
+			this.Subtables = subtables;
+		}
+
+		internal static TrueTypeKerningTable? Read(FontFileReader reader, long offset) {
+
+			reader.Position = offset;
+
+			ushort version = reader.ReadUInt16();
+
+			if(version == 0) {
+
+				List<TrueTypeKerningSubtable> subtables = new List<TrueTypeKerningSubtable>();
+
+				ushort numSubtables = reader.ReadUInt16();
+
+				//Console.WriteLine($"kern subtables: {numSubtables}");
+
+				for (int t = 0; t < numSubtables; t++) {
+					long subtableOffset = reader.Position;
+
+					/*ushort subtableVersion*/ _ = reader.ReadUInt16();
+					ushort length = reader.ReadUInt16();
+					ushort coverageValue = reader.ReadUInt16();
+
+					//KernCoverage coverage = (KernCoverage)(((uint)0xF000) & coverageValue);
+					//uint subtableFormat = ((uint)0x00FF) & coverageValue;
+
+					KernCoverage coverage = (KernCoverage)(((uint)0b1111) & coverageValue);
+					uint subtableFormat = ((uint)0xFF00) & coverageValue;
+
+					//Console.WriteLine($"kern: format={subtableFormat}, coverage={coverage}");
+
+					if (subtableFormat == 0) {
+						ushort nPairs = reader.ReadUInt16();
+						/*ushort searchRange*/ _ = reader.ReadUInt16();
+						/*ushort entrySelector*/ _ = reader.ReadUInt16();
+						/*ushort rangeShift*/ _ = reader.ReadUInt16();
+
+						Dictionary<uint, short> values = new Dictionary<uint, short>();
+
+						for (int p = 0; p < nPairs; p++) {
+							ushort left = reader.ReadUInt16();
+							ushort right = reader.ReadUInt16();
+							short value = reader.ReadFWord();
+
+							values[CombineGlyphs(left, right)] = value;
+							//Console.WriteLine($"left: {left,5}, right: {right,5}, value: {value,5}, combine: {CombineGlyphs(left, right)}");
+						}
+
+						subtables.Add(new TrueTypeKerningSubtable(coverage, values));
+					}
+					else if (subtableFormat == 2) {
+						/*ushort rowWidth*/ _ = reader.ReadUInt16();
+						ushort leftOffsetTable = reader.ReadUInt16();
+						ushort rightOffsetTable = reader.ReadUInt16();
+						ushort kerningArrayOffset = reader.ReadUInt16();
+
+						reader.Position = subtableOffset + leftOffsetTable;
+						ushort firstLeftGlyph = reader.ReadUInt16();
+						ushort nLeftGlyphs = reader.ReadUInt16();
+						ushort[] leftOffsets = new ushort[nLeftGlyphs];
+						for (int i = 0; i < nLeftGlyphs; i++) {
+							leftOffsets[i] = reader.ReadUInt16();
+						}
+
+						reader.Position = subtableOffset + rightOffsetTable;
+						ushort firstRightGlyph = reader.ReadUInt16();
+						ushort nRightGlyphs = reader.ReadUInt16();
+						ushort[] rightOffsets = new ushort[nRightGlyphs];
+						for (int i = 0; i < nRightGlyphs; i++) {
+							rightOffsets[i] = reader.ReadUInt16();
+						}
+
+						Dictionary<uint, short> values = new Dictionary<uint, short>();
+
+						for (ushort i = 0; i < nLeftGlyphs; i++) {
+							ushort left = (ushort)(firstLeftGlyph + i);
+							for (ushort j = 0; j < nRightGlyphs; j++) {
+								ushort right = (ushort)(firstRightGlyph + j);
+
+								reader.Position = kerningArrayOffset + left + right;
+								short value = reader.ReadFWord();
+
+								values[CombineGlyphs(left, right)] = value;
+							}
+						}
+
+						subtables.Add(new TrueTypeKerningSubtable(coverage, values));
+					}
+
+					reader.Position = subtableOffset + length;
+				}
+
+				return new TrueTypeKerningTable(subtables.ToArray());
+			}
+			else if (version == 1) {
+				// Unsupported table version
+				//Console.WriteLine($"kern version {version} not supported");
+				// Need to read another uint16 for version
+				return null;
+			}
+			else {
+				// Unrecognized table version
+				return null;
+			}
+		}
+
+		public static uint CombineGlyphs(ushort left, ushort right) {
+			return ((uint)left << 16) | (uint)right;
+		}
+
+		public static (ushort left, ushort right) SplitGlyphs(uint pair) {
+			ushort left = (ushort)(pair >> 16);
+			ushort right = (ushort)(pair & 0xFFFF);
+			return (left, right);
+		}
+
+		public short GetKerning(uint pair) {
+			short kerning = 0;
+
+			for (int i = 0; i < Subtables.Length; i++) {
+				if (Subtables[i].Coverage.IsKerningValues()) {
+					if (Subtables[i].Values.TryGetValue(pair, out short value)) {
+						if (Subtables[i].Coverage.IsOverride()) {
+							kerning = value;
+						}
+						else {
+							kerning += value;
+						}
+					}
+				}
+			}
+
+			return kerning;
+		}
+
+		public short GetKerning(ushort left, ushort right) {
+			uint pair = CombineGlyphs(left, right);
+			return GetKerning(pair);
+		}
+
+	}
+
+	public class TrueTypeKerningSubtable {
+
+		public readonly KernCoverage Coverage;
+		public readonly IReadOnlyDictionary<uint, short> Values;
+
+		internal TrueTypeKerningSubtable(KernCoverage coverage, IReadOnlyDictionary<uint, short> values) {
+			this.Coverage = coverage;
+			this.Values = values;
+		}
+
+	}
+
 }

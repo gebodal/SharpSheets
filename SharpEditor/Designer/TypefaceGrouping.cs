@@ -149,7 +149,14 @@ namespace SharpEditor {
 		}
 
 		public float GetWidth(string text, TextFormat format, float fontsize) {
-			return GetPdfFont(format).GetWidth(text, fontsize);
+			return GetPdfFont(format).GetWidthWithKerning(text, fontsize);
+		}
+
+		public float GetWidth(char c, TextFormat format, float fontsize) {
+			return GetPdfFont(format).GetWidth(c.ToString(), fontsize);
+		}
+		public float GetKerning(char left, char right, TextFormat format, float fontsize) {
+			return GetPdfFont(format).GetKerning(left, right, fontsize);
 		}
 
 		public TypefaceGrouping() {

@@ -1,4 +1,5 @@
 ﻿using GeboPdf.Documents;
+using GeboPdf.Fonts.TrueType;
 using GeboPdf.Objects;
 using GeboPdf.Utilities;
 using System;
@@ -27,9 +28,10 @@ namespace GeboPdf.Fonts {
 
 		public abstract byte[] GetBytes(string text);
 
-		public abstract float GetWidth(string text);
-		public abstract float GetAscent(string text);
-		public abstract float GetDescent(string text);
+		public abstract int GetWidth(string text);
+		public abstract int GetAscent(string text);
+		public abstract int GetDescent(string text);
+		public abstract int GetKerning(char left, char right);
 
 		public float GetWidth(string text, float fontsize) {
 			return (GetWidth(text) * fontsize) / 1000f;
@@ -39,6 +41,20 @@ namespace GeboPdf.Fonts {
 		}
 		public float GetDescent(string text, float fontsize) {
 			return (GetDescent(text) * fontsize) / 1000f;
+		}
+		public float GetKerning(char left, char right, float fontsize) {
+			return (GetKerning(left, right) * fontsize) / 1000f;
+		}
+
+		public float GetWidthWithKerning(string text) {
+			float width = GetWidth(text);
+			for (int i = 1; i < text.Length; i++) {
+				width += GetKerning(text[i - 1], text[i]);
+			}
+			return width;
+		}
+		public float GetWidthWithKerning(string text, float fontsize) {
+			return (GetWidthWithKerning(text) * fontsize) / 1000f;
 		}
 
 		public override int GetHashCode() => FontDictionary.GetHashCode();
@@ -136,7 +152,7 @@ namespace GeboPdf.Fonts {
 			return bytes;
 		}
 
-		public override float GetWidth(string text) {
+		public override int GetWidth(string text) {
 			int width = 0;
 			for (int i = 0; i < text.Length; i++) {
 				// TODO Do we need to consider kerning here?
@@ -151,9 +167,9 @@ namespace GeboPdf.Fonts {
 			return width;
 		}
 
-		public override float GetAscent(string text) {
+		public override int GetAscent(string text) {
 			if(text.Length == 0) {
-				return 0f;
+				return 0;
 			}
 
 			int ascent = int.MinValue;
@@ -166,9 +182,9 @@ namespace GeboPdf.Fonts {
 			return ascent;
 		}
 
-		public override float GetDescent(string text) {
+		public override int GetDescent(string text) {
 			if (text.Length == 0) {
-				return 0f;
+				return 0;
 			}
 
 			int descent = int.MaxValue;
@@ -179,6 +195,10 @@ namespace GeboPdf.Fonts {
 				}
 			}
 			return descent;
+		}
+
+		public override int GetKerning(char left, char right) {
+			return 0;
 		}
 
 	}
@@ -212,14 +232,16 @@ namespace GeboPdf.Fonts {
 		private readonly int[] advanceWidths;
 		private readonly int[] ascents;
 		private readonly int[] descents;
+		private readonly Dictionary<uint, int> kerning;
 
-		public PdfType0Font(Type2CIDFont cidFont, Dictionary<uint,ushort> unicodeToGID, int[] advanceWidths, int[] ascents, int[] descents, AbstractPdfStream? toUnicode) {
+		public PdfType0Font(Type2CIDFont cidFont, Dictionary<uint,ushort> unicodeToGID, int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, int> kerning, AbstractPdfStream? toUnicode) {
 			this.cidFont = cidFont;
 			this.toUnicode = toUnicode;
 			this.unicodeToGID = unicodeToGID;
 			this.advanceWidths = advanceWidths;
 			this.ascents = ascents;
 			this.descents = descents;
+			this.kerning = kerning;
 
 			PdfArray descendantFonts = new PdfArray(this.cidFont.FontDictionaryReference);
 
@@ -272,7 +294,7 @@ namespace GeboPdf.Fonts {
 			}
 		}
 
-		public override float GetWidth(string text) {
+		public override int GetWidth(string text) {
 			int width = 0;
 			for (int i = 0; i < text.Length; i++) {
 				// What do we do about kerning here?
@@ -283,7 +305,7 @@ namespace GeboPdf.Fonts {
 			return width;
 		}
 
-		public override float GetAscent(string text) {
+		public override int GetAscent(string text) {
 			int ascent = 0;
 			for (int i = 0; i < text.Length; i++) {
 				uint c = (uint)text[i];
@@ -295,7 +317,7 @@ namespace GeboPdf.Fonts {
 			return ascent;
 		}
 
-		public override float GetDescent(string text) {
+		public override int GetDescent(string text) {
 			int descent = 0;
 			for (int i = 0; i < text.Length; i++) {
 				uint c = (uint)text[i];
@@ -306,6 +328,14 @@ namespace GeboPdf.Fonts {
 			}
 			return descent;
 		}
+
+		public override int GetKerning(char left, char right) {
+			ushort leftGID = unicodeToGID.GetValueOrDefault(left, (ushort)0);
+			ushort rightGID = unicodeToGID.GetValueOrDefault(right, (ushort)0);
+			uint pair = TrueTypeKerningTable.CombineGlyphs(leftGID, rightGID);
+			return kerning.GetValueOrDefault(pair, 0);
+		}
+
 	}
 
 	public class Type2CIDFont : IPdfDocumentContents {

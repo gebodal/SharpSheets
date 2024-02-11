@@ -769,14 +769,14 @@ namespace SharpSheets.PDFs {
 
 		public float GetAscent(string text, TextFormat format, float fontsize) => state.fonts.GetPdfFont(format).GetAscent(text, fontsize);
 		public float GetDescent(string text, TextFormat format, float fontsize) => state.fonts.GetPdfFont(format).GetDescent(text, fontsize);
-		public float GetWidth(string text, TextFormat format, float fontsize) => state.fonts.GetPdfFont(format).GetWidth(text, fontsize);
+		public float GetWidth(string text, TextFormat format, float fontsize) => state.fonts.GetPdfFont(format).GetWidthWithKerning(text, fontsize);
 
 		public ISharpCanvas DrawText(string text, float x, float y) {
 			canvas.SaveState();
 			SetFillColor(GetTextColor());
 			canvas.BeginText()
 				.MoveToStart(x, y)
-				.ShowText(text)
+				.ShowTextCalculateKerning(text)
 				.EndText();
 			canvas.RestoreState();
 

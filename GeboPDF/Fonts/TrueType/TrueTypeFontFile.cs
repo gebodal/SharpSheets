@@ -26,6 +26,8 @@ namespace GeboPdf.Fonts.TrueType {
 		public readonly TrueTypeCMapTable cmap;
 		public readonly TrueTypeOS2Table? os2;
 
+		public readonly TrueTypeKerningTable? kern;
+
 		public EmbeddingFlags EmbeddingFlags => os2?.fsType ?? EmbeddingFlags.EditableEmbedding;
 
 		private TrueTypeFontFile(
@@ -39,7 +41,8 @@ namespace GeboPdf.Fonts.TrueType {
 				TrueTypeGlyphTable? glyf,
 				TrueTypeHorizontalMetricsTable hmtx,
 				TrueTypeCMapTable cmap,
-				TrueTypeOS2Table? os2
+				TrueTypeOS2Table? os2,
+				TrueTypeKerningTable? kern
 			) {
 
 			this.scalerType = scalerType;
@@ -59,6 +62,8 @@ namespace GeboPdf.Fonts.TrueType {
 			this.hmtx = hmtx;
 			this.cmap = cmap;
 			this.os2 = os2;
+
+			this.kern = kern;
 		}
 
 		public static TrueTypeFontFile Open(string fontProgramPath) {
@@ -179,11 +184,18 @@ namespace GeboPdf.Fonts.TrueType {
 				os2 = null;
 			}
 
+			///////////// Kerning table
+			TrueTypeKerningTable? kern = null;
+			if (tables.TryGetValue("kern", out TrueTypeFontTable? kernTable)) {
+				kern = TrueTypeKerningTable.Read(reader, kernTable.offset);
+			}
+
 			return new TrueTypeFontFile(
 				scalerType, numTables, searchRange, entrySelector, rangeShift,
 				tables,
 				numGlyphs,
-				head, name, hhea, loca, glyf, hmtx, cmap, os2);
+				head, name, hhea, loca, glyf, hmtx, cmap, os2,
+				kern);
 		}
 
 	}

@@ -879,7 +879,7 @@ namespace SharpEditor {
 			}
 
 			Point point = MakePoint(x, y);
-			GeometryGroup textGeometryGroup = new GeometryGroup();
+			GeometryGroup textGeometryGroup = new GeometryGroup() { FillRule = FillRule.Nonzero };
 
 			SolidColorBrush? brush = new SolidColorBrush(ConvertColor(GetTextColor()));
 
@@ -889,17 +889,22 @@ namespace SharpEditor {
 			// Draw each character individually, as there is no way to turn off kerning in WPF
 			float runningX = 0f;
 			for (int i = 0; i < text.Length; i++) {
-				string c = text[i].ToString();
+				char c = text[i];
 
-				if (!string.IsNullOrWhiteSpace(c)) {
-					FormattedText formatted = GetFormattedText(c, gsState.font, gsState.fontsize, brush, out _);
+				if (i > 0) {
+					// Adjust for kerning
+					runningX += gsState.typefaces.GetKerning(text[i - 1], c, gsState.font, gsState.fontsize);
+				}
+
+				if (!char.IsWhiteSpace(c)) {
+					FormattedText formatted = GetFormattedText(c.ToString(), gsState.font, gsState.fontsize, brush, out _);
 
 					Geometry textGeometry = formatted.BuildGeometry(new Point(runningX, -formatted.Baseline));
 
 					textGeometryGroup.Children.Add(textGeometry);
 				}
 
-				runningX += GetWidth(c, gsState.font, gsState.fontsize); // This will need to be adjusted when GeboPDF kerning is implemented
+				runningX += gsState.typefaces.GetWidth(c, gsState.font, gsState.fontsize); // Kerning is dealt with above
 			}
 
 			textGeometryGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y) * SharpSheets.Canvas.Transform.Scale(1, -1));

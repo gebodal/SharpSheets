@@ -48,11 +48,11 @@ namespace GeboPdf.Fonts {
 			int defaultWidth = GetDefaultWidth(fontFile);
 			PdfArray widths = GetWidths(fontFile);
 
-			(int[] advanceWidths, int[] ascents, int[] descents) = GetMetrics(fontFile);
+			(int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, int> kerning) = GetMetrics(fontFile);
 
 			Type2CIDFont cidFont = new Type2CIDFont(fontName, fontDescriptor, defaultWidth, widths);
 
-			PdfType0Font pdfFont = new PdfType0Font(cidFont, cmap, advanceWidths, ascents, descents, toUnicode);
+			PdfType0Font pdfFont = new PdfType0Font(cidFont, cmap, advanceWidths, ascents, descents, kerning, toUnicode);
 
 			return pdfFont;
 		}
@@ -227,8 +227,7 @@ namespace GeboPdf.Fonts {
 			return array;
 		}
 
-		private static (int[] advanceWidths, int[] ascents, int[] descents) GetMetrics(TrueTypeFontFile fontFile) {
-
+		private static (int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, int> kerning) GetMetrics(TrueTypeFontFile fontFile) {
 
 			int[] advanceWidths = new int[fontFile.numGlyphs];
 			int[] ascents = new int[fontFile.numGlyphs];
@@ -256,7 +255,31 @@ namespace GeboPdf.Fonts {
 				descents[i] = (int)(1000 * (yMin / (double)fontFile.head.unitsPerEm));
 			}
 
-			return (advanceWidths, ascents, descents);
+			Dictionary<uint, int> kerning = new Dictionary<uint, int>();
+			if (fontFile.kern is not null) {
+				foreach (uint pair in fontFile.kern.Subtables.SelectMany(s => s.Values.Keys).Distinct().OrderBy(p => p)) {
+
+					int kernValue = 0;
+
+					for (int s = 0; s < fontFile.kern.Subtables.Length; s++) {
+						TrueTypeKerningSubtable subtable = fontFile.kern.Subtables[s];
+						if(subtable.Coverage.IsKerningValues() && subtable.Coverage.IsHorizontal() && !subtable.Coverage.IsCrossStream()) {
+							if (subtable.Values.TryGetValue(pair, out short value)) {
+								if (subtable.Coverage.IsOverride()) {
+									kernValue = value;
+								}
+								else {
+									kernValue += value;
+								}
+							}
+						}
+					}
+
+					kerning[pair] = (int)(1000 * (kernValue / (double)fontFile.head.unitsPerEm));
+				}
+			}
+
+			return (advanceWidths, ascents, descents, kerning);
 		}
 
 	}
