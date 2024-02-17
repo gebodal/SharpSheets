@@ -124,11 +124,11 @@ namespace GeboPdf.Fonts {
 		}
 
 		private static int ProcessShort(short value, TrueTypeFontFile fontFile) {
-			return (int)(1000 * (value / (double)fontFile.head.unitsPerEm));
+			return (int)(1000 * (value / (double)fontFile.UnitsPerEm));
 		}
 
 		private static int ProcessUShort(ushort value, TrueTypeFontFile fontFile) {
-			return (int)(1000 * ((int)value / (double)fontFile.head.unitsPerEm));
+			return (int)(1000 * ((int)value / (double)fontFile.UnitsPerEm));
 		}
 
 		private static PdfRectangle GetBBox(TrueTypeFontFile fontFile) {
@@ -235,7 +235,7 @@ namespace GeboPdf.Fonts {
 
 			for (int i = 0; i < fontFile.numGlyphs; i++) {
 				// Advance width
-				advanceWidths[i] = (int)(1000 * (fontFile.hmtx.advanceWidths[i] / (double)fontFile.head.unitsPerEm));
+				advanceWidths[i] = (int)(1000 * (fontFile.hmtx.advanceWidths[i] / (double)fontFile.UnitsPerEm));
 
 				// Ascent & Descent
 				short yMax, yMin;
@@ -251,8 +251,8 @@ namespace GeboPdf.Fonts {
 					yMax = fontFile.head.yMax;
 					yMin = fontFile.head.yMax;
 				}
-				ascents[i] = (int)(1000 * (yMax / (double)fontFile.head.unitsPerEm));
-				descents[i] = (int)(1000 * (yMin / (double)fontFile.head.unitsPerEm));
+				ascents[i] = (int)(1000 * (yMax / (double)fontFile.UnitsPerEm));
+				descents[i] = (int)(1000 * (yMin / (double)fontFile.UnitsPerEm));
 			}
 
 			Dictionary<uint, int> kerning = new Dictionary<uint, int>();
@@ -275,7 +275,7 @@ namespace GeboPdf.Fonts {
 						}
 					}
 
-					kerning[pair] = (int)(1000 * (kernValue / (double)fontFile.head.unitsPerEm));
+					kerning[pair] = (int)(1000 * (kernValue / (double)fontFile.UnitsPerEm));
 				}
 			}
 

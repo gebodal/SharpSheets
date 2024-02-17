@@ -215,6 +215,42 @@ namespace GeboPdf.Fonts.TrueType {
 			reader.ReadBytes(count * 4);
 		}
 
+		/*** Offset16 ***/
+		public ushort? ReadOffset16() {
+			ushort offset = ReadUInt16();
+			return offset > 0 ? offset : null;
+		}
+
+		public ushort?[] ReadOffset16(int count) {
+			ushort?[] array = new ushort?[count];
+			for (int i = 0; i < count; i++) {
+				array[i] = ReadOffset16();
+			}
+			return array;
+		}
+
+		public void SkipOffset16(int count) {
+			SkipUInt16(count);
+		}
+
+		/*** Offset32 ***/
+		public uint? ReadOffset32() {
+			uint offset = ReadUInt32();
+			return offset > 0 ? offset : null;
+		}
+
+		public uint?[] ReadOffset32(int count) {
+			uint?[] array = new uint?[count];
+			for (int i = 0; i < count; i++) {
+				array[i] = ReadOffset32();
+			}
+			return array;
+		}
+
+		public void SkipOffset32(int count) {
+			SkipUInt32(count);
+		}
+
 	}
 
 }

@@ -6,7 +6,6 @@ using System.Linq;
 
 namespace GeboPdf.Fonts.TrueType {
 
-
 	[Flags]
 	public enum TrueTypeHeadFlags : ushort {
 		/// <summary>
