@@ -463,7 +463,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 			public override ushort GetClass(ushort glyph) {
 				int index = StartGlyphID - glyph;
-				if (index < ClassValueArray.Length) {
+				if (index >= 0 && index < ClassValueArray.Length) {
 					return ClassValueArray[index];
 				}
 				else {

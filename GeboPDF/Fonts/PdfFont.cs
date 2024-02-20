@@ -258,7 +258,9 @@ namespace GeboPdf.Fonts {
 
 	public abstract class PdfGlyphFont : PdfFont {
 
+		public abstract ushort[] GetGlyphs(string text);
 		public abstract PositionedGlyphRun GetGlyphRun(string text);
+		public abstract PositionedGlyphRun GetGlyphRun(string text, out FontGlyphUsage fontUsage);
 
 		public abstract int GetWidth(ushort glyph);
 
@@ -305,7 +307,7 @@ namespace GeboPdf.Fonts {
 
 		public override IEnumerable<PdfObject> CollectObjects(FontGlyphUsage usage, out PdfIndirectReference fontReference) {
 
-			PdfType0FontDictionary fontDictionary = CIDFontFactory.CreateFontDictionary(fontStream);
+			PdfType0FontDictionary fontDictionary = CIDFontFactory.CreateFontDictionary(fontStream, usage);
 
 			fontReference = PdfIndirectReference.Create(fontDictionary.FontDictionary);
 
@@ -324,23 +326,50 @@ namespace GeboPdf.Fonts {
 			return false;
 		}
 
-		public override PositionedGlyphRun GetGlyphRun(string text) {
+		public override ushort[] GetGlyphs(string text) {
 			List<ushort> glyphs = new List<ushort>();
 			foreach (uint codePoint in GetCodePoints(text)) {
 				ushort gid = unicodeToGID.GetValueOrDefault(codePoint, (ushort)0);
 				glyphs.Add(gid);
 			}
-			ushort[] finalGlyphs = glyphs.ToArray();
+			return glyphs.ToArray();
+		}
+
+		public override PositionedGlyphRun GetGlyphRun(string text) {
+			ushort[] finalGlyphs = GetGlyphs(text);
+
 			if (gsub is not null) {
 				SubstitutionGlyphRun glyphRun = new SubstitutionGlyphRun(finalGlyphs);
 				gsub.PerformSubstitutions(glyphRun);
 				finalGlyphs = glyphRun.ToArray();
 			}
+
+			return PerformPositioning(finalGlyphs);
+		}
+
+		public override PositionedGlyphRun GetGlyphRun(string text, out FontGlyphUsage fontUsage) {
+			fontUsage = new FontGlyphUsage();
+
+			ushort[] finalGlyphs = GetGlyphs(text);
+
+			if (gsub is not null) {
+				TrackedSubstitutionGlyphRun glyphRun = new TrackedSubstitutionGlyphRun(finalGlyphs);
+				gsub.PerformSubstitutions(glyphRun);
+				finalGlyphs = glyphRun.ToArray();
+				fontUsage.AddMappings(glyphRun.GetMappings());
+			}
+
+			fontUsage.AddGlyphs(finalGlyphs);
+
+			return PerformPositioning(finalGlyphs);
+		}
+
+		private PositionedScaledGlyphRun PerformPositioning(ushort[] finalGlyphs) {
 			PositionedScaledGlyphRun positioned = new PositionedScaledGlyphRun(finalGlyphs, unitsPerEm);
 			if (gpos is not null) {
 				gpos.PerformPositioning(positioned);
 			}
-			else if(kerning is not null) {
+			else if (kerning is not null) {
 				ApplyKerning(positioned, kerning);
 			}
 			return positioned;

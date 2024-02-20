@@ -145,7 +145,7 @@ namespace GeboPdf.Documents {
 
 		public void RegisterFontUsageAll(PdfFont font) {
 			if (fontUsages.TryGetValue(font, out FontGlyphUsage? existing)) {
-				existing.AddAll();
+				existing.AddAllGlyphs();
 			}
 			else {
 				fontUsages.Add(font, FontGlyphUsage.UseAll());

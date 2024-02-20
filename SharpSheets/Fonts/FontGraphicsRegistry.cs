@@ -60,10 +60,10 @@ namespace SharpSheets.Fonts {
 			if (fontPath.FontIndex >= 0) {
 				throw new ArgumentException("Font collections not surrently supported (requested font is part of a font collection file).");
 			}
-			return CIDFontFactory.CreateFont(fontPath.Path);
+			return CIDFontFactory.CreateFont(fontPath.Path, new OpenTypeLayoutTags("latn", null, new HashSet<string>() { "liga", "kern", "dlig" }));
 		}
 		private static PdfGlyphFont CreateFont(string fontUri, Stream fontStream) {
-			return CIDFontFactory.CreateFont(fontUri, fontStream);
+			return CIDFontFactory.CreateFont(fontUri, fontStream, new OpenTypeLayoutTags("latn", null, new HashSet<string>() { "liga", "kern", "dlig" }));
 		}
 
 		public static PdfGlyphFont GetRegularDefault() {

@@ -11,22 +11,22 @@ namespace GeboPdf.Fonts {
 
 	public static class CIDFontFactory {
 
-		public static PdfType0Font CreateFont(string fontPath) {
+		public static PdfType0Font CreateFont(string fontPath, OpenTypeLayoutTags layoutTags) {
 			byte[] fontBytes = File.ReadAllBytes(fontPath);
 			MemoryStream memoryStream = new MemoryStream(fontBytes, false);
 
-			return CreateFont(memoryStream, fontPath);
+			return CreateFont(memoryStream, fontPath, layoutTags);
 		}
 
-		public static PdfType0Font CreateFont(string fontUri, Stream stream) {
+		public static PdfType0Font CreateFont(string fontUri, Stream stream, OpenTypeLayoutTags layoutTags) {
 			MemoryStream memoryStream = new MemoryStream();
 			stream.CopyTo(memoryStream);
 			memoryStream.Position = 0;
 
-			return CreateFont(memoryStream, fontUri);
+			return CreateFont(memoryStream, fontUri, layoutTags);
 		}
 
-		private static PdfType0Font CreateFont(MemoryStream memoryStream, string fontUri) {
+		private static PdfType0Font CreateFont(MemoryStream memoryStream, string fontUri, OpenTypeLayoutTags layoutTags) {
 
 			TrueTypeFontFile fontFile = ReadFontFile(memoryStream);
 
@@ -38,7 +38,7 @@ namespace GeboPdf.Fonts {
 				}
 			}
 
-			OpenTypeLayoutTags layoutTags = new OpenTypeLayoutTags("latn", null, new HashSet<string>() { "liga", "kern", "dlig" });
+			//OpenTypeLayoutTags layoutTags = new OpenTypeLayoutTags("latn", null, new HashSet<string>() { "liga", "kern", "dlig" });
 
 			GlyphSubstitutionLookupSet? gsubLookups = fontFile.gsub?.GetLookups(layoutTags);
 			GlyphPositioningLookupSet? gposLookups = fontFile.gpos?.GetLookups(layoutTags);
@@ -54,7 +54,7 @@ namespace GeboPdf.Fonts {
 			return pdfFont;
 		}
 
-		public static PdfType0FontDictionary CreateFontDictionary(MemoryStream memoryStream) {
+		public static PdfType0FontDictionary CreateFontDictionary(MemoryStream memoryStream, FontGlyphUsage fontUsage) {
 
 			TrueTypeFontFile fontFile = ReadFontFile(memoryStream);
 
@@ -82,7 +82,9 @@ namespace GeboPdf.Fonts {
 
 			FontDescriptor fontDescriptor = new FontDescriptor(fontName, fontProgram, flags, fontBBox, italicAngle, ascent, descent, capHeight, stemV);
 
-			PdfCmapStream toUnicode = CMapWriter.CreateToUnicode(cmap, fontName);
+			IReadOnlySet<(ushort, ushort[])> mappings = GetMappings(fontUsage);
+
+			PdfCmapStream toUnicode = CMapWriter.CreateToUnicode(cmap, mappings, fontName);
 
 			int defaultWidth = GetDefaultWidth(fontFile);
 			PdfArray widths = GetWidths(fontFile);
@@ -329,6 +331,14 @@ namespace GeboPdf.Fonts {
 			}
 
 			return (advanceWidths, ascents, descents, kerning);
+		}
+
+		public static IReadOnlySet<(ushort gid, ushort[] originals)> GetMappings(FontGlyphUsage fontUsage) {
+			return new HashSet<(ushort gid, ushort[] originals)>(
+				fontUsage.Mappings
+					.Where(m => m.glyphs.Length == 1)
+					.Select(m => (m.glyphs[0], m.original)),
+				GlyphMappingComparer.Instance);
 		}
 
 	}

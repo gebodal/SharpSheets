@@ -192,44 +192,6 @@ namespace GeboPdf.Fonts.TrueType {
 			return true;
 		}
 
-		private class GlyphMappingComparer : IEqualityComparer<(ushort[], ushort[])> {
-
-			public static readonly GlyphMappingComparer Instance = new GlyphMappingComparer();
-
-			public bool Equals((ushort[], ushort[]) x, (ushort[], ushort[]) y) {
-				if (x.Item1.Length != y.Item1.Length || x.Item2.Length != y.Item2.Length) {
-					return false;
-				}
-
-				for (int i = 0; i < x.Item1.Length; i++) {
-					if (x.Item1[i] != y.Item1[i]) {
-						return false;
-					}
-				}
-
-				for (int i = 0; i < x.Item2.Length; i++) {
-					if (x.Item2[i] != y.Item2[i]) {
-						return false;
-					}
-				}
-
-				return true;
-			}
-
-			public int GetHashCode((ushort[], ushort[]) pair) {
-				HashCode hash = new HashCode();
-				for (int i = 0; i < pair.Item1.Length; i++) {
-					hash.Add(pair.Item1[i]);
-				}
-				//hash.Add(0); // Useful?
-				for (int i = 0; i < pair.Item2.Length; i++) {
-					hash.Add(pair.Item2[i]);
-				}
-				return hash.ToHashCode();
-			}
-
-		}
-
 	}
 
 	public class PositionedGlyphRun : GlyphRun {

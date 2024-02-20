@@ -60,6 +60,17 @@ namespace GeboPdf.Fonts {
 			WriteASCII(">");
 		}
 
+		private void WriteCodepoints(uint[] value) {
+			WriteASCII("<");
+			for (int i = 0; i < value.Length; i++) {
+				string codeStr = char.ConvertFromUtf32((int)value[i]);
+				byte[] bytes = Encoding.BigEndianUnicode.GetBytes(codeStr);
+				string bytesStr = HexWriter.ToString(bytes);
+				WriteASCII(bytesStr);
+			}
+			WriteASCII(">");
+		}
+
 		/*
 		public static CMapWriter Create(Stream stream, string name, string registry, string ordering, int supplement, int version, WritingMode wMode) {
 
@@ -168,7 +179,7 @@ namespace GeboPdf.Fonts {
 			writer.WriteASCIILine("endcodespacerange");
 
 			// Character ranges
-			WriteToUnicodeMappings(writer, unicodeToGID);
+			WriteToUnicodeMappings(writer, unicodeToGID, new HashSet<(ushort, ushort[])>());
 
 			writer.WriteASCIILine("endcmap");
 
@@ -184,7 +195,7 @@ namespace GeboPdf.Fonts {
 			return new PdfCmapStream(stream, name, cidSystemInfo);
 		}
 
-		public static PdfCmapStream CreateToUnicode(Dictionary<uint, ushort> unicodeToGID, string orderingName) {
+		public static PdfCmapStream CreateToUnicode(IReadOnlyDictionary<uint, ushort> unicodeToGID, IReadOnlySet<(ushort gid, ushort[] original)> mappings, string orderingName) {
 
 			// These are required for the CMap, but there meaning here is unclear
 			// Is this sufficient?
@@ -220,7 +231,7 @@ namespace GeboPdf.Fonts {
 			writer.WriteASCIILine("endcodespacerange");
 
 			// Character ranges
-			WriteToUnicodeMappings(writer, unicodeToGID);
+			WriteToUnicodeMappings(writer, unicodeToGID, mappings);
 
 			// End the open data objects and finalise CMap resource
 			writer.WriteASCIILine("endcmap");
@@ -231,11 +242,11 @@ namespace GeboPdf.Fonts {
 			return new PdfCmapStream(stream, name, cidSystemInfo);
 		}
 
-		private static void WriteToUnicodeMappings(CMapWriter writer, Dictionary<uint, ushort> unicodeToGID) {
+		private static void WriteToUnicodeMappings(CMapWriter writer, IReadOnlyDictionary<uint, ushort> unicodeToGID, IReadOnlySet<(ushort gid, ushort[] original)> mappings) {
 
 			SortedDictionary<ushort, uint> sortedGIDToUnicode = GetGIDToUnicodeMap(unicodeToGID);
 
-			List<(ushort gid, uint unicode)> chars = new List<(ushort, uint)>();
+			List<(ushort gid, uint[] unicode)> chars = new List<(ushort, uint[])>();
 			List<(ushort startGID, ushort endGID, uint startUnicode)> ranges = new List<(ushort, ushort, uint)>();
 
 			int count = 0;
@@ -253,7 +264,7 @@ namespace GeboPdf.Fonts {
 							ranges.Add((startGID, previousGID, startCodepoint));
 						}
 						else {
-							chars.Add((startGID, startCodepoint));
+							chars.Add((startGID, new uint[] { startCodepoint }));
 						}
 						startGID = gid;
 						startCodepoint = codepoint;
@@ -269,6 +280,14 @@ namespace GeboPdf.Fonts {
 				count++;
 			}
 
+			foreach((ushort gid, ushort[] original) in mappings) {
+				uint[] unicode = new uint[original.Length];
+				for(int i=0; i<original.Length; i++) {
+					unicode[i] = sortedGIDToUnicode[original[i]];
+				}
+				chars.Add((gid, unicode));
+			}
+
 			chars.Sort((c1,c2) => c1.gid.CompareTo(c2.gid));
 			ranges.Sort((r1,r2) => r1.startGID.CompareTo(r2.startGID));
 
@@ -281,10 +300,10 @@ namespace GeboPdf.Fonts {
 				writer.WriteASCIILine($"{numChars} beginbfchar");
 
 				for (int i = startIndex; i < endIndex; i++) {
-					(ushort gid, uint unicode) value = chars[i];
+					(ushort gid, uint[] unicode) value = chars[i];
 					writer.WriteGID(value.gid);
 					writer.WriteSpace();
-					writer.WriteCodepoint(value.unicode);
+					writer.WriteCodepoints(value.unicode);
 					writer.WriteEOL();
 				}
 
@@ -318,7 +337,7 @@ namespace GeboPdf.Fonts {
 
 		}
 
-		private static SortedDictionary<ushort, uint> GetGIDToUnicodeMap(Dictionary<uint, ushort> unicodeToGID) {
+		private static SortedDictionary<ushort, uint> GetGIDToUnicodeMap(IReadOnlyDictionary<uint, ushort> unicodeToGID) {
 			SortedDictionary<ushort, uint> sortedGIDToUnicode = new SortedDictionary<ushort, uint>();
 
 			foreach(KeyValuePair<uint, ushort> entry in unicodeToGID) {
