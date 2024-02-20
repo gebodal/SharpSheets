@@ -1,5 +1,6 @@
 ﻿using GeboPdf.Documents;
 using GeboPdf.Fonts;
+using GeboPdf.Fonts.TrueType;
 using GeboPdf.IO;
 using GeboPdf.Objects;
 using GeboPdf.Patterns;
@@ -132,6 +133,28 @@ namespace GeboPdf.Graphics {
 
 			writer.WriteASCII("<");
 			writer.WriteASCII(HexWriter.ToString(textBytes));
+			writer.WriteASCII(">");
+		}
+
+		protected void WriteText(ushort[] glyphIDs) {
+			if (state.Font == null) {
+				throw new PdfInvalidGraphicsOperationException("There is no font currently set for this graphics stream.");
+			}
+
+			//byte[] textBytes = state.Font.font.GetBytes(text);
+
+			byte[] bytes = new byte[glyphIDs.Length * 2];
+			for(int i=0; i<glyphIDs.Length; i++) {
+				byte[] glyphBytes = BitConverter.GetBytes(glyphIDs[i]);
+				if (BitConverter.IsLittleEndian) {
+					Array.Reverse(glyphBytes);
+				}
+				bytes[i * 2] = glyphBytes[0];
+				bytes[i * 2 + 1] = glyphBytes[1];
+			}
+
+			writer.WriteASCII("<");
+			writer.WriteASCII(HexWriter.ToString(bytes));
 			writer.WriteASCII(">");
 		}
 
@@ -754,25 +777,53 @@ namespace GeboPdf.Graphics {
 			return this;
 		}
 
+		private GraphicsStream ShowTextWithPositioning(params (ushort[] glyphs, float? offset)[] array) {
+			if (streamLevel != GraphicsStreamState.Text) {
+				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Text);
+			}
+
+			writer.WriteASCII("[");
+			writer.WriteSpace();
+
+			for (int i = 0; i < array.Length; i++) {
+				if (array[i].glyphs.Length > 0) {
+					WriteText(array[i].glyphs);
+					writer.WriteSpace();
+				}
+				if (array[i].offset.HasValue) {
+					writer.WriteFloat(array[i].offset!.Value);
+					writer.WriteSpace();
+				}
+			}
+
+			writer.WriteASCII("]");
+			writer.WriteSpace();
+			WriteOperator("TJ");
+
+			return this;
+		}
+
 		public GraphicsStream ShowTextCalculateKerning(string text) {
-			if (text.Length > 1 && state.Font is not null) {
+			if (text.Length > 1 && state.Font?.font is PdfGlyphFont glyphFont) { // Is this a little brittle?
 
-				List<(string text, float? offset)> positioned = new List<(string text, float? offset)>();
+				PositionedGlyphRun positionedGlyphs = glyphFont.GetGlyphRun(text);
 
-				StringBuilder builder = new StringBuilder();
-				builder.Append(text[0]);
+				List<(ushort[] glyphs, float? offset)> positioned = new List<(ushort[], float?)>();
 
-				for (int i = 1; i < text.Length; i++) {
-					float kerning = state.Font.font.GetKerning(text[i - 1], text[i]);
-					if (kerning != 0f) {
-						positioned.Add((builder.ToString(), -kerning));
+				List<ushort> builder = new List<ushort>();
+
+				for(int i=0; i< positionedGlyphs.Count; i++) {
+					builder.Add(positionedGlyphs[i]);
+					(short xAdvDelta, _) = positionedGlyphs.GetAdvance(i);
+					// TODO Need to make use of placement data here
+					if(xAdvDelta != 0) {
+						positioned.Add((builder.ToArray(), -xAdvDelta));
 						builder.Clear();
 					}
-					builder.Append(text[i]);
 				}
 
-				if (builder.Length > 0) {
-					positioned.Add((builder.ToString(), null));
+				if (builder.Count > 0) {
+					positioned.Add((builder.ToArray(), null));
 				}
 
 				return ShowTextWithPositioning(positioned.ToArray());

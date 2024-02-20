@@ -3,8 +3,10 @@ using GeboPdf.Graphics;
 using GeboPdf.Objects;
 using GeboPdf.Patterns;
 using GeboPdf.XObjects;
+using GeboPDF.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,6 +26,8 @@ namespace GeboPdf.Documents {
 		private readonly ResourcesRegistry<PdfXObject> xObjectRegistry;
 		private readonly ResourcesRegistry<PdfFont> fontRegistry;
 
+		private readonly Dictionary<PdfFont, FontGlyphUsage> fontUsages;
+
 		public PdfResourcesDictionary(bool standalone) {
 			this.Standalone = standalone;
 
@@ -36,6 +40,8 @@ namespace GeboPdf.Documents {
 			shadingRegistry = new ResourcesRegistry<PdfShadingDictionary>(s => PdfIndirectReference.Create(s), "S", allRegistered);
 			xObjectRegistry = new ResourcesRegistry<PdfXObject>(x => x.Reference, "XO", allRegistered);
 			fontRegistry = new ResourcesRegistry<PdfFont>(f => f.FontReference, "F", allRegistered);
+
+			fontUsages = new Dictionary<PdfFont, FontGlyphUsage>();
 		}
 
 		public override int Count {
@@ -90,10 +96,17 @@ namespace GeboPdf.Documents {
 				}
 			}
 
+			/*
 			foreach (PdfFont font in fontRegistry.Entries) {
 				foreach (PdfObject fontObject in font.CollectObjects()) {
 					yield return fontObject;
 				}
+			}
+			*/
+			// TODO Finish implementation
+			foreach(PdfFont font in fontRegistry.Entries) {
+				FontGlyphUsage fontUsage = fontUsages.GetValueOrFallback(font, null) ?? new FontGlyphUsage(); // TODO Should probably not emit font is unused?
+				yield return new PdfFontProxyObject(font, fontUsage);
 			}
 		}
 
@@ -120,6 +133,24 @@ namespace GeboPdf.Documents {
 
 		public bool AddFont(PdfFont font, out PdfName fontName) => fontRegistry.Add(font, out fontName);
 		public bool AddFont(PdfName fontName, PdfFont font) => fontRegistry.Add(fontName, font);
+
+		public void RegisterFontUsage(PdfFont font, FontGlyphUsage usage) {
+			if (fontUsages.TryGetValue(font, out FontGlyphUsage? existing)) {
+				existing.UnionWith(usage);
+			}
+			else {
+				fontUsages.Add(font, usage);
+			}
+		}
+
+		public void RegisterFontUsageAll(PdfFont font) {
+			if (fontUsages.TryGetValue(font, out FontGlyphUsage? existing)) {
+				existing.AddAll();
+			}
+			else {
+				fontUsages.Add(font, FontGlyphUsage.UseAll());
+			}
+		}
 
 		public override int GetHashCode() => base.GetHashCode();
 		public override bool Equals(object? obj) {
@@ -195,6 +226,8 @@ namespace GeboPdf.Documents {
 					return true;
 				}
 			}
+
+			public bool TryGetName(T entry, [MaybeNullWhen(false)] out PdfName name) => registry.TryGetValue(entry, out name);
 
 		}
 

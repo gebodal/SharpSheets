@@ -28,6 +28,7 @@ namespace GeboPdf.Documents {
 
 			PdfResourcesDictionary acroFormDefaultResources = acroForm.defaultResources;
 			acroFormDefaultResources.AddFont(font, out PdfName fontName);
+			acroFormDefaultResources.RegisterFontUsageAll(font);
 			normalAppearance.resources.AddFont(fontName, font);
 			PdfString defaultAppearanceString = GraphicsStream.GetTextFieldDefaultAppearance(normalAppearance.resources, font, fontsize, color);
 
@@ -221,6 +222,7 @@ namespace GeboPdf.Documents {
 				}
 				PdfResourcesDictionary acroFormDefaultResources = acroForm.defaultResources;
 				acroFormDefaultResources.AddFont(font, out PdfName fontName);
+				acroFormDefaultResources.RegisterFontUsageAll(font); // TODO Is this necessary?
 				normalAppearance.resources.AddFont(fontName, font);
 				defaultAppearanceString = GraphicsStream.GetTextFieldDefaultAppearance(normalAppearance.resources, font, size, color);
 

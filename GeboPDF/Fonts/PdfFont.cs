@@ -11,27 +11,32 @@ using System.Threading.Tasks;
 
 namespace GeboPdf.Fonts {
 
-	public abstract class PdfFont : IPdfDocumentContents {
+	public abstract class PdfFont {
 
-		public PdfIndirectReference FontReference { get { return PdfIndirectReference.Create(FontDictionary); } }
+		public PdfIndirectFontReference FontReference { get { return PdfIndirectFontReference.Create(this); } }
 
+		/*
 		protected abstract AbstractPdfDictionary FontDictionary { get; }
 
-		public IEnumerable<PdfObject> CollectObjects() {
+		public IEnumerable<PdfObject> CollectObjects(FontUsage usage, out PdfIndirectReference fontReference) {
 			yield return FontDictionary;
-			foreach(PdfObject fontObject in CollectFontObjects()) {
+			foreach(PdfObject fontObject in CollectFontObjects(usage)) {
 				yield return fontObject;
 			}
 		}
 
-		public abstract IEnumerable<PdfObject> CollectFontObjects();
+		protected abstract IEnumerable<PdfObject> CollectFontObjects(FontUsage usage);
+		*/
+
+
+		public abstract IEnumerable<PdfObject> CollectObjects(FontGlyphUsage usage, out PdfIndirectReference fontReference);
 
 		public abstract byte[] GetBytes(string text);
 
 		public abstract int GetWidth(string text);
 		public abstract int GetAscent(string text);
 		public abstract int GetDescent(string text);
-		public abstract int GetKerning(char left, char right);
+		//public abstract int GetKerning(char left, char right);
 
 		public float GetWidth(string text, float fontsize) {
 			return (GetWidth(text) * fontsize) / 1000f;
@@ -42,6 +47,12 @@ namespace GeboPdf.Fonts {
 		public float GetDescent(string text, float fontsize) {
 			return (GetDescent(text) * fontsize) / 1000f;
 		}
+
+		public static float ConvertDesignSpaceValue(float value, float fontsize) {
+			return (value * fontsize) / 1000f;
+		}
+
+		/*
 		public float GetKerning(char left, char right, float fontsize) {
 			return (GetKerning(left, right) * fontsize) / 1000f;
 		}
@@ -56,7 +67,9 @@ namespace GeboPdf.Fonts {
 		public float GetWidthWithKerning(string text, float fontsize) {
 			return (GetWidthWithKerning(text) * fontsize) / 1000f;
 		}
+		*/
 
+		/*
 		public override int GetHashCode() => FontDictionary.GetHashCode();
 		
 		public override bool Equals(object? obj) {
@@ -77,6 +90,7 @@ namespace GeboPdf.Fonts {
 			if (a is null) { return b is not null; }
 			else { return !a.Equals(b); }
 		}
+		*/
 
 	}
 
@@ -120,27 +134,47 @@ namespace GeboPdf.Fonts {
 			ZapfDingbats = new PdfStandardFont(PdfStandardFonts.ZapfDingbats, null); // new PdfName("StandardEncoding")
 		}
 
-
-		private readonly PdfDictionary dict;
-		protected override AbstractPdfDictionary FontDictionary { get { return dict; } }
+		private readonly PdfStandardFonts font;
+		private readonly PdfName? encoding;
 
 		private readonly Fonts.AfmFile afmFile;
 
 		public PdfStandardFont(PdfStandardFonts font, PdfName? encoding) { // TODO Accept PdfEncoding!
-			dict = new PdfDictionary() {
+			this.font = font;
+			this.encoding = encoding;
+
+			this.afmFile = standardFontMetrics[font];
+		}
+
+		public override IEnumerable<PdfObject> CollectObjects(FontGlyphUsage usage, out PdfIndirectReference fontReference) {
+			PdfDictionary fontDictionary = new PdfDictionary() {
 				{ PdfNames.Type, PdfNames.Font },
 				{ PdfNames.Subtype, PdfNames.Type1 },
 				{ PdfNames.BaseFont, standardFontNames[font] }
 			};
 			if (encoding != null) {
-				dict.Add(PdfNames.Encoding, encoding);
+				fontDictionary.Add(PdfNames.Encoding, encoding);
 			}
 
-			this.afmFile = standardFontMetrics[font];
+			fontReference = PdfIndirectReference.Create(fontDictionary);
+
+			return new PdfObject[] {
+				fontDictionary
+			};
 		}
 
-		public override IEnumerable<PdfObject> CollectFontObjects() {
-			yield break;
+		public override int GetHashCode() {
+			return HashCode.Combine(font, encoding);
+		}
+
+		public override bool Equals(object? obj) {
+			if (ReferenceEquals(this, obj)) {
+				return true;
+			}
+			else if (obj is PdfStandardFont other) {
+				return font == other.font && encoding == other.encoding;
+			}
+			return false;
 		}
 
 		public override byte[] GetBytes(string text) {
@@ -197,9 +231,11 @@ namespace GeboPdf.Fonts {
 			return descent;
 		}
 
+		/*
 		public override int GetKerning(char left, char right) {
 			return 0;
 		}
+		*/
 
 	}
 
@@ -220,54 +256,105 @@ namespace GeboPdf.Fonts {
 		ZapfDingbats
 	}
 
-	public class PdfType0Font : PdfFont {
+	public abstract class PdfGlyphFont : PdfFont {
 
-		private readonly PdfDictionary dict;
-		protected override AbstractPdfDictionary FontDictionary { get { return dict; } }
+		public abstract PositionedGlyphRun GetGlyphRun(string text);
 
-		private readonly Type2CIDFont cidFont;
-		private readonly AbstractPdfStream? toUnicode;
+		public abstract int GetWidth(ushort glyph);
+
+		public float GetWidth(ushort glyph, float fontsize) {
+			return (GetWidth(glyph) * fontsize) / 1000f;
+		}
+
+	}
+
+	public class PdfType0Font : PdfGlyphFont {
+
+		private readonly string origin;
+		private readonly MemoryStream fontStream;
 
 		private readonly Dictionary<uint, ushort> unicodeToGID;
+
 		private readonly int[] advanceWidths;
 		private readonly int[] ascents;
 		private readonly int[] descents;
-		private readonly Dictionary<uint, int> kerning;
+		private readonly Dictionary<uint, short>? kerning;
+		private readonly GlyphSubstitutionLookupSet? gsub;
+		private readonly GlyphPositioningLookupSet? gpos;
+		private readonly ushort unitsPerEm;
 
-		public PdfType0Font(Type2CIDFont cidFont, Dictionary<uint,ushort> unicodeToGID, int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, int> kerning, AbstractPdfStream? toUnicode) {
-			this.cidFont = cidFont;
-			this.toUnicode = toUnicode;
+		public PdfType0Font(
+			string origin, MemoryStream fontStream,
+			Dictionary<uint,ushort> unicodeToGID,
+			int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, short>? kerning,
+			GlyphSubstitutionLookupSet? gsub, GlyphPositioningLookupSet? gpos, ushort unitsPerEm) {
+
+			this.origin = origin; // TODO This is crude, and needs replacing
+			this.fontStream = fontStream;
+
 			this.unicodeToGID = unicodeToGID;
+
 			this.advanceWidths = advanceWidths;
 			this.ascents = ascents;
 			this.descents = descents;
 			this.kerning = kerning;
-
-			PdfArray descendantFonts = new PdfArray(this.cidFont.FontDictionaryReference);
-
-			// If the descendant is a Type 0 CIDFont, this name should be the concatenation of the CIDFont’s BaseFont name, a hyphen, and the CMap name given in the Encoding entry (or the CMapName entry in the CMap). If the descendant is a Type 2 CIDFont, this name should be the same as the CIDFont’s BaseFontname.
-			PdfName fontName = cidFont.FontName;
-
-			dict = new PdfDictionary() {
-				{ PdfNames.Type, PdfNames.Font },
-				{ PdfNames.Subtype, PdfNames.Type0 },
-				{ PdfNames.BaseFont, fontName },
-				{ PdfNames.Encoding, new PdfName("Identity-H") },
-				{ PdfNames.DescendantFonts, descendantFonts }
-			};
-
-			if (this.toUnicode != null) {
-				dict.Add(PdfNames.ToUnicode, PdfIndirectReference.Create(this.toUnicode));
-			}
+			this.gsub = gsub;
+			this.gpos = gpos;
+			this.unitsPerEm = unitsPerEm;
 		}
 
-		public override IEnumerable<PdfObject> CollectFontObjects() {
-			foreach(PdfObject cidFontObj in cidFont.CollectObjects()) {
-				yield return cidFontObj;
-			}
+		public override IEnumerable<PdfObject> CollectObjects(FontGlyphUsage usage, out PdfIndirectReference fontReference) {
 
-			if (toUnicode != null) {
-				yield return toUnicode;
+			PdfType0FontDictionary fontDictionary = CIDFontFactory.CreateFontDictionary(fontStream);
+
+			fontReference = PdfIndirectReference.Create(fontDictionary.FontDictionary);
+
+			return fontDictionary.CollectObjects();
+		}
+
+		public override int GetHashCode() => origin.GetHashCode();
+
+		public override bool Equals(object? obj) {
+			if (ReferenceEquals(this, obj)) {
+				return true;
+			}
+			else if (obj is PdfType0Font other) {
+				return origin == other.origin;
+			}
+			return false;
+		}
+
+		public override PositionedGlyphRun GetGlyphRun(string text) {
+			List<ushort> glyphs = new List<ushort>();
+			foreach (uint codePoint in GetCodePoints(text)) {
+				ushort gid = unicodeToGID.GetValueOrDefault(codePoint, (ushort)0);
+				glyphs.Add(gid);
+			}
+			ushort[] finalGlyphs = glyphs.ToArray();
+			if (gsub is not null) {
+				SubstitutionGlyphRun glyphRun = new SubstitutionGlyphRun(finalGlyphs);
+				gsub.PerformSubstitutions(glyphRun);
+				finalGlyphs = glyphRun.ToArray();
+			}
+			PositionedScaledGlyphRun positioned = new PositionedScaledGlyphRun(finalGlyphs, unitsPerEm);
+			if (gpos is not null) {
+				gpos.PerformPositioning(positioned);
+			}
+			else if(kerning is not null) {
+				ApplyKerning(positioned, kerning);
+			}
+			return positioned;
+		}
+
+		private static void ApplyKerning(PositionedGlyphRun positioned, Dictionary<uint, short> kerning) {
+			for (int i = 1; i < positioned.Count; i++) {
+				ushort leftGID = positioned[i-1];
+				ushort rightGID = positioned[i];
+				uint pair = TrueTypeKerningTable.CombineGlyphs(leftGID, rightGID);
+
+				if(kerning.TryGetValue(pair, out short xAdvAdj)) {
+					positioned.AdjustPosition(i - 1, new ValueRecord(null, null, xAdvAdj, null));
+				}
 			}
 		}
 
@@ -295,6 +382,7 @@ namespace GeboPdf.Fonts {
 		}
 
 		public override int GetWidth(string text) {
+			/*
 			int width = 0;
 			for (int i = 0; i < text.Length; i++) {
 				// What do we do about kerning here?
@@ -303,6 +391,20 @@ namespace GeboPdf.Fonts {
 				width += advanceWidths[gid];
 			}
 			return width;
+			*/
+			PositionedGlyphRun positioned = GetGlyphRun(text);
+
+			int width = 0;
+			for(int i=0; i<positioned.Count; i++) {
+				width += advanceWidths[positioned[i]];
+				(short xAdvance, _) = positioned.GetAdvance(i); // Ignoring vertical writing direction for now
+				width += xAdvance;
+			}
+			return width;
+		}
+
+		public override int GetWidth(ushort glyph) {
+			return advanceWidths[glyph];
 		}
 
 		public override int GetAscent(string text) {
@@ -329,13 +431,64 @@ namespace GeboPdf.Fonts {
 			return descent;
 		}
 
+		/*
 		public override int GetKerning(char left, char right) {
 			ushort leftGID = unicodeToGID.GetValueOrDefault(left, (ushort)0);
 			ushort rightGID = unicodeToGID.GetValueOrDefault(right, (ushort)0);
 			uint pair = TrueTypeKerningTable.CombineGlyphs(leftGID, rightGID);
 			return kerning.GetValueOrDefault(pair, 0);
 		}
+		*/
 
+	}
+
+	public class PdfType0FontDictionary : IPdfDocumentContents {
+
+		public AbstractPdfDictionary FontDictionary { get; }
+
+		private readonly Type2CIDFont cidFont;
+		private readonly AbstractPdfStream toUnicode;
+
+		public PdfType0FontDictionary(Type2CIDFont cidFont, AbstractPdfStream toUnicode) {
+			this.cidFont = cidFont;
+			this.toUnicode = toUnicode;
+
+			PdfArray descendantFonts = new PdfArray(cidFont.FontDictionaryReference);
+
+			// If the descendant is a Type 0 CIDFont, this name should be the concatenation of the CIDFont’s BaseFont name, a hyphen, and the CMap name given in the Encoding entry (or the CMapName entry in the CMap). If the descendant is a Type 2 CIDFont, this name should be the same as the CIDFont’s BaseFontname.
+			PdfName fontName = cidFont.FontName;
+
+			FontDictionary = new PdfDictionary() {
+				{ PdfNames.Type, PdfNames.Font },
+				{ PdfNames.Subtype, PdfNames.Type0 },
+				{ PdfNames.BaseFont, fontName },
+				{ PdfNames.Encoding, new PdfName("Identity-H") },
+				{ PdfNames.DescendantFonts, descendantFonts },
+				{ PdfNames.ToUnicode, PdfIndirectReference.Create(toUnicode) }
+			};
+		}
+
+		public IEnumerable<PdfObject> CollectObjects() {
+			yield return FontDictionary;
+
+			foreach (PdfObject cidFontObj in cidFont.CollectObjects()) {
+				yield return cidFontObj;
+			}
+
+			yield return toUnicode;
+		}
+
+		public override int GetHashCode() => FontDictionary.GetHashCode();
+
+		public override bool Equals(object? obj) {
+			if (ReferenceEquals(this, obj)) {
+				return true;
+			}
+			else if (obj is PdfType0FontDictionary other) {
+				return FontDictionary.Equals(other.FontDictionary);
+			}
+			return false;
+		}
 	}
 
 	public class Type2CIDFont : IPdfDocumentContents {

@@ -494,12 +494,17 @@ namespace GeboPdf.Fonts.TrueType {
 				}
 
 				public bool IsMatch(SubstitutionGlyphRun run, int i) {
-					for (int j = 0; j < ComponentGlyphIDs.Length; j++) {
-						if (run[i + 1 + j] != ComponentGlyphIDs[j]) { // First glyph already checked by this point
-							return false;
+					if (i < run.Count - ComponentGlyphIDs.Length) { // There have to be enough glyphs to check
+						for (int j = 0; j < ComponentGlyphIDs.Length; j++) {
+							if (run[i + 1 + j] != ComponentGlyphIDs[j]) { // First glyph already checked by this point
+								return false;
+							}
 						}
+						return true;
 					}
-					return true;
+					else {
+						return false;
+					}
 				}
 
 			}

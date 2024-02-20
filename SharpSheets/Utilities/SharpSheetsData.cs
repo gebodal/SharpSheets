@@ -18,6 +18,12 @@ namespace SharpSheets.Utilities {
 			return $"{GetCreatorName()} {sharpSheetsVersion.Major}.{sharpSheetsVersion.Minor}.{sharpSheetsVersion.Build}.{sharpSheetsVersion.Revision}";
 		}
 
+		public static string GetAssemblyDataDir() {
+			string appDataFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			string sharpSheetsDataFolder = Path.Combine(appDataFolder, "SharpSheets"); // Is it OK that this doesn't use version numbers?
+			return sharpSheetsDataFolder;
+		}
+
 	}
 
 }

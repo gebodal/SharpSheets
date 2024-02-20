@@ -12,12 +12,51 @@ namespace GeboPdf.Fonts {
 	public static class CIDFontFactory {
 
 		public static PdfType0Font CreateFont(string fontPath) {
-
 			byte[] fontBytes = File.ReadAllBytes(fontPath);
 			MemoryStream memoryStream = new MemoryStream(fontBytes, false);
-			FontFileReader fontReader = new FontFileReader(memoryStream);
 
-			TrueTypeFontFile fontFile = TrueTypeFontFile.Open(fontReader);
+			return CreateFont(memoryStream, fontPath);
+		}
+
+		public static PdfType0Font CreateFont(string fontUri, Stream stream) {
+			MemoryStream memoryStream = new MemoryStream();
+			stream.CopyTo(memoryStream);
+			memoryStream.Position = 0;
+
+			return CreateFont(memoryStream, fontUri);
+		}
+
+		private static PdfType0Font CreateFont(MemoryStream memoryStream, string fontUri) {
+
+			TrueTypeFontFile fontFile = ReadFontFile(memoryStream);
+
+			TrueTypeCMapSubtable cmapSubtable = GetCmap(fontFile);
+			Dictionary<uint, ushort> cmap = cmapSubtable.cidMap;
+			if (cmapSubtable.platformID == 3 && cmapSubtable.encodingID == 0) { // Windows Symbol table
+				if (cmap.All(kv => kv.Key >= 0xF000)) {
+					cmap = cmap.ToDictionary(kv => (uint)(kv.Key - 0xF000), kv => kv.Value);
+				}
+			}
+
+			OpenTypeLayoutTags layoutTags = new OpenTypeLayoutTags("latn", null, new HashSet<string>() { "liga", "kern", "dlig" });
+
+			GlyphSubstitutionLookupSet? gsubLookups = fontFile.gsub?.GetLookups(layoutTags);
+			GlyphPositioningLookupSet? gposLookups = fontFile.gpos?.GetLookups(layoutTags);
+
+			(int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, short>? kerning) = GetMetrics(fontFile);
+
+			PdfType0Font pdfFont = new PdfType0Font(
+				fontUri, memoryStream,
+				cmap,
+				advanceWidths, ascents, descents, kerning,
+				gsubLookups, gposLookups, fontFile.UnitsPerEm);
+
+			return pdfFont;
+		}
+
+		public static PdfType0FontDictionary CreateFontDictionary(MemoryStream memoryStream) {
+
+			TrueTypeFontFile fontFile = ReadFontFile(memoryStream);
 
 			bool openType = fontFile.tables.ContainsKey("CFF ");
 
@@ -30,7 +69,7 @@ namespace GeboPdf.Fonts {
 					cmap = cmap.ToDictionary(kv => (uint)(kv.Key - 0xF000), kv => kv.Value);
 				}
 			}
-			
+
 			TrueTypeFontProgramStream fontProgram = new TrueTypeFontProgramStream(memoryStream, openType);
 
 			FontDescriptorFlags flags = GetFlags(fontFile);
@@ -48,13 +87,21 @@ namespace GeboPdf.Fonts {
 			int defaultWidth = GetDefaultWidth(fontFile);
 			PdfArray widths = GetWidths(fontFile);
 
-			(int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, int> kerning) = GetMetrics(fontFile);
-
 			Type2CIDFont cidFont = new Type2CIDFont(fontName, fontDescriptor, defaultWidth, widths);
 
-			PdfType0Font pdfFont = new PdfType0Font(cidFont, cmap, advanceWidths, ascents, descents, kerning, toUnicode);
+			PdfType0FontDictionary pdfFontDictionary = new PdfType0FontDictionary(cidFont, toUnicode);
 
-			return pdfFont;
+			return pdfFontDictionary;
+		}
+
+		private static TrueTypeFontFile ReadFontFile(MemoryStream memoryStream) {
+			TrueTypeFontFile fontFile;
+			lock (memoryStream) { // TODO Slightly crude attempt at thread safety
+				memoryStream.Position = 0;
+				FontFileReader fontReader = new FontFileReader(memoryStream);
+				fontFile = TrueTypeFontFile.Open(fontReader);
+			}
+			return fontFile;
 		}
 
 		private static string GetFontName(TrueTypeFontFile fontFile) {
@@ -227,7 +274,7 @@ namespace GeboPdf.Fonts {
 			return array;
 		}
 
-		private static (int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, int> kerning) GetMetrics(TrueTypeFontFile fontFile) {
+		private static (int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, short>? kerning) GetMetrics(TrueTypeFontFile fontFile) {
 
 			int[] advanceWidths = new int[fontFile.numGlyphs];
 			int[] ascents = new int[fontFile.numGlyphs];
@@ -255,11 +302,13 @@ namespace GeboPdf.Fonts {
 				descents[i] = (int)(1000 * (yMin / (double)fontFile.UnitsPerEm));
 			}
 
-			Dictionary<uint, int> kerning = new Dictionary<uint, int>();
+			Dictionary<uint, short>? kerning = null;
 			if (fontFile.kern is not null) {
+				kerning = new Dictionary<uint, short>();
+
 				foreach (uint pair in fontFile.kern.Subtables.SelectMany(s => s.Values.Keys).Distinct().OrderBy(p => p)) {
 
-					int kernValue = 0;
+					short kernValue = 0;
 
 					for (int s = 0; s < fontFile.kern.Subtables.Length; s++) {
 						TrueTypeKerningSubtable subtable = fontFile.kern.Subtables[s];
@@ -275,7 +324,7 @@ namespace GeboPdf.Fonts {
 						}
 					}
 
-					kerning[pair] = (int)(1000 * (kernValue / (double)fontFile.UnitsPerEm));
+					kerning[pair] = kernValue;
 				}
 			}
 

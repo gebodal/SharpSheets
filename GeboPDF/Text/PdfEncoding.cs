@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GeboPdf.Objects;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,6 +11,8 @@ namespace GeboPdf.Text {
 	public enum PdfEncodingValue { PDFDocEncoding, StandardEncoding, MacRomanEncoding, WinAnsiEncoding }
 
 	public abstract class PdfEncoding : Encoding {
+
+		public abstract PdfName? Name { get; }
 
 		private static readonly Dictionary<string, char> CharacterNames;
 
@@ -66,10 +69,10 @@ namespace GeboPdf.Text {
 
 			}
 
-			PDFDocEncoding = new PdfCharMapEncoding(pdfDocEncoding);
-			StandardEncoding = new PdfCharMapEncoding(standardEncoding);
-			MacRomanEncoding = new PdfCharMapEncoding(macRomanEncoding);
-			WinAnsiEncoding = new PdfCharMapEncoding(winAnsiEncoding);
+			PDFDocEncoding = new PdfCharMapEncoding(pdfDocEncoding, new PdfName("PDFDocEncoding"));
+			StandardEncoding = new PdfCharMapEncoding(standardEncoding, new PdfName("StandardEncoding"));
+			MacRomanEncoding = new PdfCharMapEncoding(macRomanEncoding, new PdfName("MacRomanEncoding"));
+			WinAnsiEncoding = new PdfCharMapEncoding(winAnsiEncoding, new PdfName("WinAnsiEncoding"));
 
 			UnicodeEncoding = new PdfUnicodeEncoding();
 		}
@@ -79,12 +82,17 @@ namespace GeboPdf.Text {
 		}
 
 		private class PdfCharMapEncoding : PdfEncoding {
+
+			public override PdfName? Name { get; }
+
 			private readonly IReadOnlyDictionary<ushort, byte> encoding;
 			private readonly IReadOnlyDictionary<byte, ushort> toUnicode;
 
-			public PdfCharMapEncoding(IReadOnlyDictionary<ushort, byte> encoding) {
+			public PdfCharMapEncoding(IReadOnlyDictionary<ushort, byte> encoding, PdfName name) {
 				this.encoding = encoding;
 				this.toUnicode = encoding.ToDictionary(kv => kv.Value, kv => kv.Key);
+
+				Name = name;
 			}
 
 			// Single byte encodings
@@ -113,6 +121,8 @@ namespace GeboPdf.Text {
 		}
 
 		private class PdfUnicodeEncoding : PdfEncoding {
+
+			public override PdfName? Name => null;
 
 			private readonly Encoding BaseEncoding = Encoding.BigEndianUnicode;
 			private readonly byte[] StartBytes = new byte[] { 254, 255 };

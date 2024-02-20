@@ -33,7 +33,9 @@ namespace GeboPdf.Fonts.TrueType {
 						lookupIdxs.UnionWith(features[f].LookupListIndices);
 					}
 
-					return lookupIdxs.OrderBy(i => i).ToArray();
+					if (lookupIdxs.Count > 0) {
+						return lookupIdxs.OrderBy(i => i).ToArray();
+					}
 				}
 			}
 

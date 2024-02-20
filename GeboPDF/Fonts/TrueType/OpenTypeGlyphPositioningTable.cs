@@ -306,9 +306,7 @@ namespace GeboPdf.Fonts.TrueType {
 				ValueFormat valueFormat1 = (ValueFormat)reader.ReadUInt16();
 				ValueFormat valueFormat2 = (ValueFormat)reader.ReadUInt16();
 				ushort classDef1Offset = reader.ReadUInt16(); // from beginning of PairPos subtable
-				OpenTypeClassDefinitionTable classDef1 = reader.ReadFrom(offset + classDef1Offset, OpenTypeClassDefinitionTable.Read);
 				ushort classDef2Offset = reader.ReadUInt16(); // from beginning of PairPos subtable
-				OpenTypeClassDefinitionTable classDef2 = reader.ReadFrom(offset + classDef2Offset, OpenTypeClassDefinitionTable.Read);
 				ushort class1Count = reader.ReadUInt16();
 				ushort class2Count = reader.ReadUInt16();
 
@@ -316,6 +314,9 @@ namespace GeboPdf.Fonts.TrueType {
 				for(int i=0; i<class1Count; i++) {
 					class1Records[i] = OpenTypePairAdjustmentPositioningFormat2.Class1Record.Read(reader, class2Count, valueFormat1, valueFormat2);
 				}
+
+				OpenTypeClassDefinitionTable classDef1 = reader.ReadFrom(offset + classDef1Offset, OpenTypeClassDefinitionTable.Read);
+				OpenTypeClassDefinitionTable classDef2 = reader.ReadFrom(offset + classDef2Offset, OpenTypeClassDefinitionTable.Read);
 
 				return new OpenTypePairAdjustmentPositioningFormat2(coverage, valueFormat1, valueFormat2, classDef1, classDef2, class1Records);
 			}
@@ -339,7 +340,7 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			public override int PerformPositioning(PositionedGlyphRun run, int index) {
-				if (Coverage.CoverageIndex(run[index]) is ushort coverageIdx) {
+				if (index < run.Count - 1 && Coverage.CoverageIndex(run[index]) is ushort coverageIdx) {
 					PairSetTable pairSet = PairSets[coverageIdx];
 
 					if (pairSet.PairValueRecords.TryGetValue(run[index + 1], out PairValueRecord? record)) {
@@ -422,9 +423,9 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			public override int PerformPositioning(PositionedGlyphRun run, int index) {
-				if (Coverage.IsCovered(run[index])) {
+				if (index < run.Count - 1 && Coverage.IsCovered(run[index])) {
 					ushort classVal1 = ClassDef1.GetClass(run[index]);
-					ushort classVal2 = ClassDef1.GetClass(run[index + 1]);
+					ushort classVal2 = ClassDef2.GetClass(run[index + 1]);
 
 					Class1Record class1Record = Class1Records[classVal1];
 					Class2Record class2Record = class1Record[classVal2];
@@ -545,7 +546,7 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			public override int PerformPositioning(PositionedGlyphRun run, int index) {
-				if (Coverage.CoverageIndex(run[index]) is ushort coverageIdx1 && Coverage.CoverageIndex(run[index + 1]) is ushort coverageIdx2) {
+				if (index < run.Count - 1 &&  Coverage.CoverageIndex(run[index]) is ushort coverageIdx1 && Coverage.CoverageIndex(run[index + 1]) is ushort coverageIdx2) {
 					(_, AnchorTable? exitAnchor) = ExtryExitRecords[coverageIdx1];
 					(AnchorTable? entryAnchor, _) = ExtryExitRecords[coverageIdx2];
 
@@ -944,6 +945,18 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			// Ignore device tables for now
+			if ((format & ValueFormat.X_PLACEMENT_DEVICE) == ValueFormat.X_PLACEMENT_DEVICE) {
+				reader.SkipOffset16(1);
+			}
+			if ((format & ValueFormat.Y_PLACEMENT_DEVICE) == ValueFormat.Y_PLACEMENT_DEVICE) {
+				reader.SkipOffset16(1);
+			}
+			if ((format & ValueFormat.X_ADVANCE_DEVICE) == ValueFormat.X_ADVANCE_DEVICE) {
+				reader.SkipOffset16(1);
+			}
+			if ((format & ValueFormat.Y_ADVANCE_DEVICE) == ValueFormat.Y_ADVANCE_DEVICE) {
+				reader.SkipOffset16(1);
+			}
 
 			return new ValueRecord(xPlacement, yPlacement, xAdvance, yAdvance);
 		}

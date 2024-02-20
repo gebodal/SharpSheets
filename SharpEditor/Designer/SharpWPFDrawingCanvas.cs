@@ -15,6 +15,8 @@ using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Fonts;
 using SharpSheets.Exceptions;
+using GeboPdf.Fonts;
+using GeboPdf.Fonts.TrueType;
 
 namespace SharpEditor {
 
@@ -820,32 +822,21 @@ namespace SharpEditor {
 
 		#region Text
 
+		/*
 		private FormattedText GetFormattedText(string text, TextFormat font, float fontsize, SolidColorBrush? brush, out Typeface typeface) {
-
-			/*
-			FontStyle style = FontStyles.Normal;
-			FontWeight weight = FontWeights.Normal;
-			if (font == TextFormat.BOLD) {
-				style = FontStyles.Normal;
-				weight = FontWeights.Bold;
-			}
-			else if (font == TextFormat.ITALIC) {
-				style = FontStyles.Italic;
-				weight = FontWeights.Normal;
-			}
-			else if (font == TextFormat.BOLDITALIC) {
-				style = FontStyles.Italic;
-				weight = FontWeights.Bold;
-			}
-			// else Normal, leave defaults
-			*/
-
-			//typeface = new Typeface(fontFamily, style, weight, FontStretches.Normal);
 			typeface = gsState.typefaces.GetTypeface(font);
 			FormattedText formattedText = new FormattedText(text, CultureInfo.CurrentCulture,
 				FlowDirection.LeftToRight, typeface, fontsize, brush,
 				96f); // PixelsPerDip // TODO Make this actually use proper value - might need to be imported from outside canvas at instantiation
 			return formattedText;
+		}
+		*/
+
+		private Geometry? GetGlyphGeometry(ushort glyph, GlyphTypeface glyphTypeface, float fontsize) {
+			// Create a geometry for the glyph
+			Geometry geometry = glyphTypeface.GetGlyphOutline(glyph, fontsize, fontsize);
+
+			return geometry;
 		}
 
 		private bool FillText {
@@ -872,6 +863,65 @@ namespace SharpEditor {
 			}
 		}
 
+		public ISharpCanvas DrawText(string text1, float x, float y) {
+			if (gsState.fontsize <= 0) {
+				// TODO Throw error?
+				return this; // Don't bother drawing if text is invisible
+			}
+
+			Point point = MakePoint(x, y);
+			GeometryGroup textGeometryGroup = new GeometryGroup() { FillRule = FillRule.Nonzero };
+
+			SolidColorBrush? brush = new SolidColorBrush(ConvertColor(GetTextColor()));
+
+			Pen? pen = StrokeText ? new Pen(gsState.strokeBrush, GetLineWidth()) { DashStyle = CurrentDashStyle } : null;
+			brush = FillText ? brush : null;
+
+			float fontsize = gsState.fontsize;
+
+			GlyphTypeface glyphTypeface = gsState.typefaces.GetTypeface(gsState.font);
+			PdfGlyphFont pdfFont = gsState.typefaces.GetPdfFont(gsState.font); // Feels messy to be referencing PDF library here
+
+			PositionedGlyphRun glyphRun = pdfFont.GetGlyphRun(text1);
+
+			// Draw each character individually, as there is no way to turn off kerning in WPF
+			// This will need updating for vertical writing directions
+			float runningX = 0f;
+			for (int i = 0; i < glyphRun.Count; i++) {
+				ushort g = glyphRun[i];
+
+				Geometry? glyphGeometry = glyphTypeface.GetGlyphOutline(g, fontsize, fontsize);
+
+				if (glyphGeometry is not null) {
+					(short xPlacement, short yPlacement) = glyphRun.GetPlacement(i);
+					float xPlaceSized = PdfFont.ConvertDesignSpaceValue(xPlacement, fontsize);
+					float yPlaceSized = PdfFont.ConvertDesignSpaceValue(yPlacement, fontsize);
+					glyphGeometry.Transform = new TranslateTransform(runningX + xPlaceSized, yPlaceSized);
+					textGeometryGroup.Children.Add(glyphGeometry);
+				}
+
+				runningX += pdfFont.GetWidth(g, fontsize);
+				runningX += PdfFont.ConvertDesignSpaceValue(glyphRun.GetAdvance(i).xAdvance, fontsize);
+			}
+
+			textGeometryGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y) * SharpSheets.Canvas.Transform.Scale(1, -1));
+
+			GeometryDrawing textDrawing = new GeometryDrawing(brush, pen, textGeometryGroup);
+
+			if ((gsState.textRenderingMode & SharpSheets.Canvas.TextRenderingMode.FILL_STROKE) != SharpSheets.Canvas.TextRenderingMode.INVISIBLE) {
+				drawingGroup.Children.Add(textDrawing);
+			}
+
+			if (ClipText) {
+				AppendClipGeometry(textGeometryGroup);
+			}
+
+			CurrentPenLocation = null;
+
+			return this;
+		}
+
+		/*
 		public ISharpCanvas DrawText(string text, float x, float y) {
 			if (gsState.fontsize <= 0) {
 				// TODO Throw error?
@@ -923,6 +973,7 @@ namespace SharpEditor {
 
 			return this;
 		}
+		*/
 
 		/*
 		public ISharpCanvas DrawText(string text, float x, float y) {

@@ -129,7 +129,7 @@ namespace SharpSheets.Canvas {
 		}
 
 		public void SetFont(TextFormat format, FontPath origin) {
-			PdfFont pdfFont = FontGraphicsRegistry.GetPdfFont(origin, format);
+			PdfFont pdfFont = FontGraphicsRegistry.GetPdfFont(origin);
 			SetFont(format, origin, pdfFont);
 		}
 
