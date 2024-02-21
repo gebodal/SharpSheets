@@ -467,7 +467,7 @@ namespace SharpEditor {
 
 		#region Font
 
-		public ISharpGraphicsState SetFont(TextFormat format, FontPath? font) {
+		public ISharpGraphicsState SetFont(TextFormat format, FontSetting? font) {
 			if (font?.Path != null) {
 				gsState.typefaces.SetFont(format, font);
 				//Console.WriteLine($"Setting {format} to {font.Path}");
@@ -479,7 +479,7 @@ namespace SharpEditor {
 			return this;
 		}
 
-		public FontPathGrouping GetFonts() {
+		public FontSettingGrouping GetFonts() {
 			return gsState.typefaces.GetFonts();
 		}
 

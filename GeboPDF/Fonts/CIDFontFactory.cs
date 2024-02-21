@@ -11,11 +11,17 @@ namespace GeboPdf.Fonts {
 
 	public static class CIDFontFactory {
 
-		public static PdfType0Font CreateFont(string fontPath, OpenTypeLayoutTags layoutTags) {
-			byte[] fontBytes = File.ReadAllBytes(fontPath);
-			MemoryStream memoryStream = new MemoryStream(fontBytes, false);
+		// Very crude caching - should be improved
+		private static readonly Dictionary<string, MemoryStream> fontStreams = new Dictionary<string, MemoryStream>();
 
-			return CreateFont(memoryStream, fontPath, layoutTags);
+		public static PdfType0Font CreateFont(string fontPath, OpenTypeLayoutTags layoutTags) {
+			if (!fontStreams.ContainsKey(fontPath)) {
+				byte[] fontBytes = File.ReadAllBytes(fontPath);
+				MemoryStream memoryStream = new MemoryStream(fontBytes, false);
+				fontStreams.Add(fontPath, memoryStream);
+			}
+
+			return CreateFont(fontStreams[fontPath], fontPath, layoutTags);
 		}
 
 		public static PdfType0Font CreateFont(string fontUri, Stream stream, OpenTypeLayoutTags layoutTags) {

@@ -16,9 +16,9 @@ namespace SharpEditor {
 		private readonly struct TypefaceInfo {
 			public readonly GlyphTypeface typeface;
 			public readonly PdfGlyphFont pdfFont;
-			public readonly FontPath? origin;
+			public readonly FontSetting? origin;
 
-			public TypefaceInfo(GlyphTypeface typeface, PdfGlyphFont pdfFont, FontPath? origin) {
+			public TypefaceInfo(GlyphTypeface typeface, PdfGlyphFont pdfFont, FontSetting? origin) {
 				this.typeface = typeface;
 				this.pdfFont = pdfFont;
 				this.origin = origin;
@@ -72,7 +72,7 @@ namespace SharpEditor {
 			}
 		}
 
-		private void SetFont(TextFormat format, GlyphTypeface typeface, PdfGlyphFont pdfFont, FontPath? origin) {
+		private void SetFont(TextFormat format, GlyphTypeface typeface, PdfGlyphFont pdfFont, FontSetting? origin) {
 			TypefaceInfo typefaceInfo = new TypefaceInfo(typeface, pdfFont, origin);
 			if (format == TextFormat.REGULAR) {
 				regular = typefaceInfo;
@@ -88,8 +88,8 @@ namespace SharpEditor {
 			}
 		}
 
-		public void SetFont(TextFormat format, FontPath origin) {
-			GlyphTypeface glyphs = new GlyphTypeface(new Uri(origin.Path));
+		public void SetFont(TextFormat format, FontSetting origin) {
+			GlyphTypeface glyphs = new GlyphTypeface(new Uri(origin.Path.Path));
 			PdfGlyphFont pdfFont = FontGraphicsRegistry.GetPdfFont(origin); // PdfEncodings.WINANSI
 			SetFont(format, glyphs, pdfFont, origin);
 		}
@@ -125,8 +125,8 @@ namespace SharpEditor {
 		}
 		*/
 
-		public FontPathGrouping GetFonts() {
-			return new FontPathGrouping(regular.origin, bold?.origin, italic?.origin, bolditalic?.origin);
+		public FontSettingGrouping GetFonts() {
+			return new FontSettingGrouping(regular.origin, bold?.origin, italic?.origin, bolditalic?.origin);
 		}
 
 		/*

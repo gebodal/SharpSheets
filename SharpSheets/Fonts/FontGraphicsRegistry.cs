@@ -16,14 +16,15 @@ namespace SharpSheets.Fonts {
 
 	public static class FontGraphicsRegistry {
 
-		public static PdfGlyphFont GetPdfFont(FontPath font) {
+		public static PdfGlyphFont GetPdfFont(FontSetting font) {
 			if (!knownFonts.ContainsKey(font)) {
-				PdfGlyphFont pdfFont = CreateFont(font);
+				PdfGlyphFont pdfFont = CreateFont(font.Path, font.Tags);
 				knownFonts.Add(font, pdfFont);
 			}
 			return knownFonts[font];
 		}
 
+		/*
 		public static PdfGlyphFont GetPdfFont(FontPath? font, TextFormat format) {
 			if (font is null) {
 				return defaultFonts[format];
@@ -36,34 +37,40 @@ namespace SharpSheets.Fonts {
 				return knownFonts[font];
 			}
 		}
+		*/
 
-		public static PdfGlyphFont GetPdfFont(FontPathGrouping fonts, TextFormat format) {
+		public static PdfGlyphFont GetPdfFont(FontSettingGrouping fonts, TextFormat format) {
 			if (fonts is null) {
 				return defaultFonts[format];
 			}
 
-			FontPath? font = fonts[format] ?? fonts[TextFormat.REGULAR];
+			FontSetting? font = fonts[format] ?? fonts[TextFormat.REGULAR];
 
-			if (font is null) {
+			if (font is null || font.Path is null) {
 				return defaultFonts[format];
 			}
 			else {
 				if (!knownFonts.ContainsKey(font)) {
-					PdfGlyphFont pdfFont = CreateFont(font);
+					PdfGlyphFont pdfFont = CreateFont(font.Path, font.Tags);
 					knownFonts.Add(font, pdfFont);
 				}
 				return knownFonts[font];
 			}
 		}
 
-		private static PdfGlyphFont CreateFont(FontPath fontPath) {
+		private static PdfGlyphFont CreateFont(FontPath fontPath, FontTags? tags) {
 			if (fontPath.FontIndex >= 0) {
 				throw new ArgumentException("Font collections not surrently supported (requested font is part of a font collection file).");
 			}
-			return CIDFontFactory.CreateFont(fontPath.Path, new OpenTypeLayoutTags("latn", null, new HashSet<string>() { "liga", "kern", "dlig" }));
+			return CIDFontFactory.CreateFont(fontPath.Path, GetOpenTypeTags(tags));
 		}
-		private static PdfGlyphFont CreateFont(string fontUri, Stream fontStream) {
-			return CIDFontFactory.CreateFont(fontUri, fontStream, new OpenTypeLayoutTags("latn", null, new HashSet<string>() { "liga", "kern", "dlig" }));
+		private static PdfGlyphFont CreateFont(string fontUri, Stream fontStream, FontTags? fontTags) {
+			return CIDFontFactory.CreateFont(fontUri, fontStream, GetOpenTypeTags(fontTags));
+		}
+
+		private static OpenTypeLayoutTags GetOpenTypeTags(FontTags? tags) {
+			if (tags is null) { tags = FontTags.Default; }
+			return new OpenTypeLayoutTags(tags.ScriptTag, tags.LangSysTag, tags.FeatureTags);
 		}
 
 		public static PdfGlyphFont GetRegularDefault() {
@@ -92,13 +99,13 @@ namespace SharpSheets.Fonts {
 			return defaultFontUris[TextFormat.BOLDITALIC];
 		}
 
-		private static readonly Dictionary<FontPath, PdfGlyphFont> knownFonts;
+		private static readonly Dictionary<FontSetting, PdfGlyphFont> knownFonts;
 
 		private static readonly IReadOnlyDictionary<TextFormat, PdfGlyphFont> defaultFonts;
 		private static readonly IReadOnlyDictionary<TextFormat, Uri> defaultFontUris;
 
 		static FontGraphicsRegistry() {
-			knownFonts = new Dictionary<FontPath, PdfGlyphFont>();
+			knownFonts = new Dictionary<FontSetting, PdfGlyphFont>();
 
 			System.Reflection.Assembly assembly = typeof(FontGraphicsRegistry).Assembly;
 
@@ -136,7 +143,7 @@ namespace SharpSheets.Fonts {
 				defaultFontUrisDict[fontFormat] = new Uri(diskPath);
 
 				using (Stream stream = assembly.GetManifestResourceStream(resourceName)!) { // We know this resource exists
-					PdfGlyphFont defaultFont = CreateFont(diskPath, stream);
+					PdfGlyphFont defaultFont = CreateFont(diskPath, stream, FontTags.Default);
 
 					defaultFontsDict[fontFormat] = defaultFont;
 				}
@@ -188,10 +195,10 @@ namespace SharpSheets.Fonts {
 
 	public class PdfFontPathGrouping {
 
-		private (FontPath? path, PdfGlyphFont font) regular;
-		private (FontPath? path, PdfGlyphFont font)? bold;
-		private (FontPath? path, PdfGlyphFont font)? italic;
-		private (FontPath? path, PdfGlyphFont font)? bolditalic;
+		private (FontSetting? setting, PdfGlyphFont font) regular;
+		private (FontSetting? setting, PdfGlyphFont font)? bold;
+		private (FontSetting? setting, PdfGlyphFont font)? italic;
+		private (FontSetting? setting, PdfGlyphFont font)? bolditalic;
 
 		public PdfGlyphFont GetPdfFont(TextFormat format) {
 			if (format == TextFormat.REGULAR) {
@@ -208,8 +215,8 @@ namespace SharpSheets.Fonts {
 			}
 		}
 
-		private void SetFont(TextFormat format, FontPath? origin, PdfGlyphFont font) {
-			(FontPath?, PdfGlyphFont) info = (origin, font);
+		private void SetFont(TextFormat format, FontSetting? origin, PdfGlyphFont font) {
+			(FontSetting?, PdfGlyphFont) info = (origin, font);
 			if (format == TextFormat.REGULAR) {
 				regular = info;
 			}
@@ -224,7 +231,7 @@ namespace SharpSheets.Fonts {
 			}
 		}
 
-		public void SetFont(TextFormat format, FontPath origin) {
+		public void SetFont(TextFormat format, FontSetting origin) {
 			PdfGlyphFont pdfFont = FontGraphicsRegistry.GetPdfFont(origin);
 			SetFont(format, origin, pdfFont);
 		}
@@ -256,8 +263,8 @@ namespace SharpSheets.Fonts {
 			}
 		}
 
-		public FontPathGrouping GetFonts() {
-			return new FontPathGrouping(regular.path, bold?.path, italic?.path, bolditalic?.path);
+		public FontSettingGrouping GetFonts() {
+			return new FontSettingGrouping(regular.setting, bold?.setting, italic?.setting, bolditalic?.setting);
 		}
 
 		public PdfFontPathGrouping() {

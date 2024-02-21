@@ -23,7 +23,7 @@ namespace SharpSheets.Canvas {
 			return graphicsState.GetDescent(text, graphicsState.GetTextFormat(), graphicsState.GetTextSize());
 		}
 
-		public static ISharpGraphicsState SetFonts(this ISharpGraphicsState graphicsState, FontPathGrouping fonts) {
+		public static ISharpGraphicsState SetFonts(this ISharpGraphicsState graphicsState, FontSettingGrouping fonts) {
 			graphicsState.SetFont(TextFormat.REGULAR, fonts.Regular);
 			graphicsState.SetFont(TextFormat.BOLD, fonts.Bold);
 			graphicsState.SetFont(TextFormat.ITALIC, fonts.Italic);

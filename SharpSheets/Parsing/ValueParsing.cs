@@ -118,6 +118,9 @@ namespace SharpSheets.Parsing {
 				string[] parts = value.SplitAndTrim(',').Select(p => PathSubSource(p, source)).ToArray();
 				return FontPathParsing.ParseGrouping(parts, source.Path);
 			}
+			else if (type == typeof(FontTags)) {
+				return FontTags.Parse(value);
+			}
 			else if(type == typeof(CanvasImageData)) {
 				FilePath imagePath = Parse<FilePath>(value, source) ?? throw new FormatException("Could not resolve image path.");
 				return new CanvasImageData(imagePath);
@@ -317,7 +320,7 @@ namespace SharpSheets.Parsing {
 				value = dictMatch.Groups["dict"].Value;
 			}
 			else {
-				throw new FormatException($"Badly formatted dictionary string for {value.GetType().Name}.");
+				throw new FormatException($"Badly formatted dictionary string for {constructor.DeclaringType?.Name ?? "Unknown Type"}.");
 			}
 
 			//ConstructorInfo constructor = GetSimpleConstructor(type);

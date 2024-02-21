@@ -618,7 +618,7 @@ namespace SharpSheets.PDFs {
 		}
 
 
-		public FontPathGrouping GetFonts() => state.fonts.GetFonts();
+		public FontSettingGrouping GetFonts() => state.fonts.GetFonts();
 		public float GetTextSize() => state.fontsize;
 		public TextFormat GetTextFormat() => state.textFormat;
 
@@ -635,7 +635,7 @@ namespace SharpSheets.PDFs {
 			return this;
 		}
 
-		public ISharpGraphicsState SetFont(TextFormat format, FontPath? font) {
+		public ISharpGraphicsState SetFont(TextFormat format, FontSetting? font) {
 			if (font?.Path != null) {
 				state.fonts.SetFont(format, font);
 			}

@@ -132,7 +132,7 @@ namespace SharpSheets.Cards.Card
 		//private readonly float paragraphSpacing;
 		private readonly float multiplier;
 
-		public readonly FontPath? dingbatsPath;
+		public readonly FontSetting? dingbatsPath;
 		public readonly string? bullet;
 		public readonly (float x,float y) bulletOffset;
 
@@ -147,7 +147,7 @@ namespace SharpSheets.Cards.Card
 			float lineSpacing = 1.35f,
 			ParagraphDataArg? paragraph = null,
 			float multiplier = 1f,
-			FontPath? dingbats = null,
+			FontSetting? dingbats = null,
 			string? bullet = null,
 			(float x,float y) bulletOffset = default
 		) : base(setup) {

@@ -14,6 +14,7 @@ using SharpSheets.Cards.Layouts;
 using SharpSheets.Cards.CardSubjects;
 using SharpSheets.Colors;
 using System.Diagnostics.CodeAnalysis;
+using SharpSheets.Widgets;
 
 namespace SharpSheets.Cards.CardConfigs {
 
@@ -164,7 +165,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly CardSetConfig cardSetConfig;
 		public DirectoryPath Source => cardSetConfig.Source;
 
-		public readonly FontPathGrouping? fonts;
+		public readonly FontSettingGrouping? fonts;
 		public readonly ParagraphSpecification paragraphSpec;
 		public readonly FontSizeSearchParams fontParams;
 
@@ -194,6 +195,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="_name"></param>
 		/// <param name="_description"></param>
 		/// <param name="font"></param>
+		/// <param name="font_"></param>
 		/// <param name="minFontSize"></param>
 		/// <param name="maxFontSize"></param>
 		/// <param name="fontEpsilon"></param>
@@ -209,7 +211,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			CardSetConfig cardSetConfig,
 			string? _name = null,
 			List<string>? _description = null,
-			FontPathGrouping? font = null,
+			WidgetSetup.FontGrouping? font = null,
+			WidgetSetup.FontSettingCollection? font_ = null,
 			float minFontSize = 7.5f,
 			float maxFontSize = 8.5f,
 			float fontEpsilon = 0.5f,
@@ -228,7 +231,14 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			this.cardSetConfig = cardSetConfig;
 
-			this.fonts = font;
+			WidgetSetup.FontSettingCollection fontOverrides = font_ ?? new WidgetSetup.FontSettingCollection();
+			this.fonts = new FontSettingGrouping(
+				fontOverrides.regular ?? font?.Regular,
+				fontOverrides.bold ?? font?.Bold,
+				fontOverrides.italic ?? font?.Italic,
+				fontOverrides.bolditalic ?? font?.BoldItalic
+				);
+
 			this.paragraphSpec = new ParagraphSpecification(lineSpacing, paragraphSpacing, 0f, 0f);
 			this.fontParams = new FontSizeSearchParams(minFontSize, maxFontSize, fontEpsilon);
 
@@ -438,7 +448,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly Alignment alignment;
 		public readonly TextHeightStrategy heightStrategy;
 
-		public readonly FontPath? dingbatsPath;
+		public readonly FontSetting? dingbatsPath;
 		public readonly string bullet;
 		public readonly (float x,float y) bulletOffset;
 
@@ -474,7 +484,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			Alignment alignment = Alignment.TOP,
 			TextHeightStrategy heightStrategy = TextHeightStrategy.LineHeightDescent,
 			ParagraphIndentArg? list = null,
-			FontPath? dingbats = null,
+			FontSetting? dingbats = null,
 			string bullet = "\u2022",
 			(float x,float y) bulletOffset = default,
 			int[]? _atPosition = null,

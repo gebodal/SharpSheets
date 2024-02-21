@@ -25,7 +25,7 @@ namespace SharpSheets.Canvas {
 			public LineCapStyle lineCapStyle;
 			public float mitreLimit;
 
-			public FontPathGrouping fonts;
+			public FontSettingGrouping fonts;
 			public TextFormat textFormat;
 			public float fontsize;
 			public TextRenderingMode textRenderingMode;
@@ -47,7 +47,7 @@ namespace SharpSheets.Canvas {
 				this.fillPaint = graphicsData.GetFillPaint();
 				this.lineJoinStyle = graphicsData.GetLineJoinStyle();
 				this.mitreLimit = graphicsData.GetMiterLimit();
-				this.fonts = new FontPathGrouping(graphicsData.GetFonts());
+				this.fonts = new FontSettingGrouping(graphicsData.GetFonts());
 				this.textFormat = graphicsData.GetTextFormat();
 				this.fontsize = graphicsData.GetTextSize();
 				this.textRenderingMode = graphicsData.GetTextRenderingMode();
@@ -68,7 +68,7 @@ namespace SharpSheets.Canvas {
 				this.fillPaint = source.fillPaint;
 				this.lineJoinStyle = source.lineJoinStyle;
 				this.mitreLimit = source.mitreLimit;
-				this.fonts = new FontPathGrouping(source.fonts);
+				this.fonts = new FontSettingGrouping(source.fonts);
 				this.textFormat = source.textFormat;
 				this.fontsize = source.fontsize;
 				this.textRenderingMode = source.textRenderingMode;
@@ -260,15 +260,15 @@ namespace SharpSheets.Canvas {
 			gState.fontsize = size;
 			return this;
 		}
-		public FontPathGrouping GetFonts() {
+		public FontSettingGrouping GetFonts() {
 			return gState.fonts;
 		}
-		public ISharpGraphicsState SetFont(TextFormat format, FontPath? font) {
-			FontPath? regular = format == TextFormat.REGULAR ? font : gState.fonts.Regular;
-			FontPath? bold = format == TextFormat.BOLD ? font : gState.fonts.Bold;
-			FontPath? italic = format == TextFormat.ITALIC ? font : gState.fonts.Italic;
-			FontPath? boldItalic = format == TextFormat.BOLDITALIC ? font : gState.fonts.BoldItalic;
-			gState.fonts = new FontPathGrouping(regular, bold, italic, boldItalic);
+		public ISharpGraphicsState SetFont(TextFormat format, FontSetting? font) {
+			FontSetting? regular = format == TextFormat.REGULAR ? font : gState.fonts.Regular;
+			FontSetting? bold = format == TextFormat.BOLD ? font : gState.fonts.Bold;
+			FontSetting? italic = format == TextFormat.ITALIC ? font : gState.fonts.Italic;
+			FontSetting? boldItalic = format == TextFormat.BOLDITALIC ? font : gState.fonts.BoldItalic;
+			gState.fonts = new FontSettingGrouping(regular, bold, italic, boldItalic);
 			return this;
 		}
 		public float GetWidth(string text, TextFormat format, float fontsize) {

@@ -56,6 +56,18 @@ namespace GeboPdf.Fonts.TrueType {
 			FeatureTags = featureTags;
 		}
 
+		public static IReadOnlySet<string> GetDefaults(string scriptTag, string? langSysTag) {
+			HashSet<string> defaults = new HashSet<string>() {
+				"ccmp", "curs", "locl", "mark", "mkmk", // Always
+				"calt", "clig", "cpsp", "liga", "opbd", "rand", // Active by default
+				"kern" // Active by default for horizontal text
+				// "rvrn" // If using variational fonts
+				// "size" // Should be active by default, but contributes no subtables?
+				// "valt", "vert", "vkrn", "vrt2" // Active by default for vertical text
+			};
+			return defaults;
+		}
+
 	}
 
 	public class OpenTypeScriptListTable {

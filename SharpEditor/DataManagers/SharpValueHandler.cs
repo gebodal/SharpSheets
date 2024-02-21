@@ -117,6 +117,12 @@ namespace SharpEditor.DataManagers {
 			else if (type == typeof(CanvasImageData)) {
 				return "Image";
 			}
+			else if (type == typeof(SharpSheets.Fonts.FontPath)) {
+				return "Font";
+			}
+			else if (type == typeof(SharpSheets.Fonts.FontPathGrouping)) {
+				return "FontGroup";
+			}
 			else if (type == typeof(object)) {
 				return "Value";
 			}

@@ -148,31 +148,33 @@ namespace GeboPdf.Documents {
 			//AbstractPdfDictionary streamDictionary = stream.GetDictionary();
 
 			MemoryStream originalStreamData = stream.GetStream();
-			MemoryStream streamData;
-			if (CompressStreams && stream.AllowEncoding) {
-				streamData = Deflate1950.Compress(originalStreamData);
+			lock (originalStreamData) { // Crude thread safety attempt
+				MemoryStream streamData;
+				if (CompressStreams && stream.AllowEncoding) {
+					streamData = Deflate1950.Compress(originalStreamData);
+				}
+				else {
+					streamData = originalStreamData;
+				}
+
+				KeyValuePair<PdfName, PdfObject>[] streamEntries = new KeyValuePair<PdfName, PdfObject>[(CompressStreams && stream.AllowEncoding) ? 2 : 1];
+				streamEntries[0] = new KeyValuePair<PdfName, PdfObject>(PdfNames.Length, new PdfInt(streamData.Length));
+				if (CompressStreams && stream.AllowEncoding) {
+					streamEntries[1] = new KeyValuePair<PdfName, PdfObject>(PdfNames.Filter, PdfNames.FlateDecode);
+				}
+
+				WriteDictionary(stream, evaluator, true, streamEntries);
+				_stream.WriteEOL();
+
+				_stream.WriteASCII("stream");
+				_stream.WriteEOL();
+
+				_stream.Write(streamData);
+
+				_stream.WriteEOL();
+				_stream.WriteASCII("endstream");
+				//WriteEOL();
 			}
-			else {
-				streamData = originalStreamData;
-			}
-
-			KeyValuePair<PdfName, PdfObject>[] streamEntries = new KeyValuePair<PdfName, PdfObject>[(CompressStreams && stream.AllowEncoding) ? 2 : 1];
-			streamEntries[0] = new KeyValuePair<PdfName, PdfObject>(PdfNames.Length, new PdfInt(streamData.Length));
-			if (CompressStreams && stream.AllowEncoding) {
-				streamEntries[1] = new KeyValuePair<PdfName, PdfObject>(PdfNames.Filter, PdfNames.FlateDecode);
-			}
-
-			WriteDictionary(stream, evaluator, true, streamEntries);
-			_stream.WriteEOL();
-
-			_stream.WriteASCII("stream");
-			_stream.WriteEOL();
-
-			_stream.Write(streamData);
-
-			_stream.WriteEOL();
-			_stream.WriteASCII("endstream");
-			//WriteEOL();
 		}
 
 		private long WriteIndirectObject(PdfObject indirectObject, DocumentObjectCollection evaluator) {

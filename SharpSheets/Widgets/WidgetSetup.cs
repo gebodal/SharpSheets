@@ -11,11 +11,11 @@ namespace SharpSheets.Widgets {
 
 	public readonly struct WidgetSetup {
 
-		public class FontCollection : ISharpArgsGrouping {
-			public readonly FontPath? regular;
-			public readonly FontPath? bold;
-			public readonly FontPath? italic;
-			public readonly FontPath? bolditalic;
+		public class FontSettingCollection : ISharpArgsGrouping {
+			public readonly FontSetting? regular;
+			public readonly FontSetting? bold;
+			public readonly FontSetting? italic;
+			public readonly FontSetting? bolditalic;
 
 			/// <summary>
 			/// Constructor for FontCollection.
@@ -24,12 +24,41 @@ namespace SharpSheets.Widgets {
 			/// <param name="bold">Font to use for bold text.</param>
 			/// <param name="italic">Font to use for italic text.</param>
 			/// <param name="bolditalic">Font to use for bold-italic text.</param>
-			public FontCollection(FontPath? regular = null, FontPath? bold = null, FontPath? italic = null, FontPath? bolditalic = null) {
+			public FontSettingCollection(FontSetting? regular = null, FontSetting? bold = null, FontSetting? italic = null, FontSetting? bolditalic = null) {
 				this.regular = regular;
 				this.bold = bold;
 				this.italic = italic;
 				this.bolditalic = bolditalic;
 			}
+		}
+
+		public class FontGrouping : ISharpArgSupplemented {
+
+			public FontSetting? Regular => GetSetting(fontPaths?.Regular);
+			public FontSetting? Bold => GetSetting(fontPaths?.Bold);
+			public FontSetting? Italic => GetSetting(fontPaths?.Italic);
+			public FontSetting? BoldItalic => GetSetting(fontPaths?.BoldItalic);
+
+			public readonly FontPathGrouping? fontPaths;
+			public readonly FontTags? tags;
+
+			/// <summary>
+			/// Constructor for FontGroupingWithSetting.
+			/// </summary>
+			/// <param name="fonts">Font paths for this grouping.</param>
+			/// <param name="tags">Font tags to use for this font grouping. This can include script,
+			/// language system, and feature tags (if they are supported by the font
+			/// specified).</param>
+			public FontGrouping(FontPathGrouping? fonts = null, FontTags? tags = null) {
+				this.fontPaths = fonts;
+				this.tags = tags;
+			}
+
+			private FontSetting? GetSetting(FontPath? path) {
+				if (path is null) { return null; }
+				else { return new FontSetting(path, tags); }
+			}
+
 		}
 
 		public static readonly float defaultLinewidth = 1f;
@@ -47,9 +76,9 @@ namespace SharpSheets.Widgets {
 		public readonly Color backgroundColor;
 		public readonly Color midtoneColor;
 		public readonly Color textColor;
-		private readonly FontPathGrouping? fonts;
-		private readonly FontCollection fontOverrides;
-		public readonly FontPathGrouping finalFonts;
+		private readonly FontGrouping? fonts;
+		private readonly FontSettingCollection fontOverrides;
+		public readonly FontSettingGrouping finalFonts;
 		public readonly float gutter;
 		public readonly IDetail? gutterStyle;
 		public readonly Dimension? size;
@@ -109,8 +138,8 @@ namespace SharpSheets.Widgets {
 					Color? background = null,
 					Color? midtone = null,
 					Color? textColor = null,
-					FontPathGrouping? font = null,
-					FontCollection? font_ = null,
+					FontGrouping? font = null,
+					FontSettingCollection? font_ = null,
 					float gutter = 0f,
 					IDetail? gutter_ = null, // gutter_
 					Dimension? _size = null,
@@ -128,8 +157,8 @@ namespace SharpSheets.Widgets {
 			this.textColor = textColor ?? defaultTextColor;
 
 			this.fonts = font;
-			this.fontOverrides = font_ ?? new FontCollection();
-			this.finalFonts = new FontPathGrouping(
+			this.fontOverrides = font_ ?? new FontSettingCollection();
+			this.finalFonts = new FontSettingGrouping(
 				fontOverrides.regular ?? fonts?.Regular,
 				fontOverrides.bold ?? fonts?.Bold,
 				fontOverrides.italic ?? fonts?.Italic,

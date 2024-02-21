@@ -40,12 +40,7 @@ namespace SharpSheets.Fonts {
 		}
 
 		public override bool Equals(object? obj) {
-			if(obj is FontPath otherPath) {
-				return this.Equals(otherPath);
-			}
-			else {
-				return false;
-			}
+			return Equals(obj as FontPath);
 		}
 		public override int GetHashCode() {
 			return HashCode.Combine(Path, FontIndex);
@@ -94,12 +89,14 @@ namespace SharpSheets.Fonts {
 			BoldItalic = boldItalicPath;
 		}
 
-		public FontPathGrouping(FontPathGrouping source) {
+		/*
+		public FontPathGrouping1(FontPathGrouping1 source) {
 			Regular = source.Regular;
 			Bold = source.Bold;
 			Italic = source.Italic;
 			BoldItalic = source.BoldItalic;
 		}
+		*/
 
 		public bool Equals(FontPathGrouping? other) {
 			if(other is null) { return false; }
