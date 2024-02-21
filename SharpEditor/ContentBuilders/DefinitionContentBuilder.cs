@@ -69,7 +69,7 @@ namespace SharpEditor.ContentBuilders {
 				foreach (EnvironmentVariableInfo arg in function.Arguments) {
 					if (first) { first = false; }
 					else { yield return new Run(", ") { }; }
-					yield return new Run(definition.name.ToString()) { Foreground = SharpEditorPalette.DefinitionNameBrush };
+					yield return new Run(arg.Name.ToString()) { Foreground = SharpEditorPalette.DefinitionNameBrush };
 					yield return new Run(":" + SharpValueHandler.NO_BREAK_SPACE) { };
 					yield return new Run(arg.EvaluationType.ToString()) { Foreground = SharpEditorPalette.DefinitionTypeBrush };
 				}
