@@ -101,9 +101,10 @@ namespace SharpSheets.Fonts {
 			return FromArray(normalizedParts);
 		}
 
+		/*
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
-		public static FontPathGrouping MakeFrom(string[] fonts, string sourceDir) {
+		public static FontPathGrouping1 MakeFrom(string[] fonts, string sourceDir) {
 			if (fonts.Length == 0) {
 				throw new FormatException("No fonts provided.");
 			}
@@ -112,6 +113,7 @@ namespace SharpSheets.Fonts {
 
 			return FromArray(normalized);
 		}
+		*/
 
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>

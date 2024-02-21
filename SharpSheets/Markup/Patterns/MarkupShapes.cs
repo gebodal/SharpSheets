@@ -57,7 +57,7 @@ namespace SharpSheets.Markup.Patterns {
 		}
 
 		protected static object? MakeArgumentValue(string name, Type type, bool useLocal, bool isOptional, object? defaultValue, IContext context, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
-			object? value = SharpFactory.CreateParameter(name, type, useLocal, isOptional, defaultValue, context, source, widgetFactory, shapeFactory, out _); // TODO Should we pass these arguments up the chain somehow?
+			object? value = SharpFactory.CreateParameter(name, type, useLocal, isOptional, defaultValue, context, source, widgetFactory, shapeFactory, out _, out _); // TODO Should we pass these arguments up the chain somehow?
 			/*
 			if (type.IsEnum) {
 				value = value.ToString();

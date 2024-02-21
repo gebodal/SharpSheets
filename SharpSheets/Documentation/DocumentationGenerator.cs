@@ -86,14 +86,20 @@ namespace SharpSheets.Documentation {
 						yield return p;
 					}
 				}
+				else if (typeof(ISharpArgSupplemented).IsAssignableFrom(param.ParameterType)) {
+					ConstructorInfo nestedConstructor = ValueParsing.GetSimpleConstructor(param.ParameterType);
+					ConstructorDoc? nestedConstructorDoc = SharpDocumentation.GetConstructorDoc(nestedConstructor);
+
+					ArgumentDoc? firstArgDoc = nestedConstructorDoc?.arguments[0];
+					yield return GetSingleArg(nestedConstructor.GetParameters()[0], parameterName, prefix, useLocal, argDoc?.description, firstArgDoc);
+
+					string nestedPrefix = (prefix.Length > 0 ? prefix + "." : "") + parameterName;
+					foreach (ArgumentDetails p in GetArguments(nestedConstructor, nestedConstructorDoc, nestedPrefix, false).Skip(1)) {
+						yield return p;
+					}
+				}
 				else {
-					string name = (prefix.Length > 0 ? prefix + "." : "") + parameterName;
-					DocumentationString? description = NormaliseDescription(argDoc?.description);
-					object? defaultValue = argDoc?.defaultValue ?? param.DefaultValue;
-					if (param.IsOptional && defaultValue == null && param.ParameterType.IsValueType) { defaultValue = Activator.CreateInstance(param.ParameterType); }
-					object? exampleValue = GetExampleValue(param, argDoc);
-					//Console.WriteLine($"Parameter \"{name}\": default = {defaultValue?.ToString() ?? "null"} ({defaultValue?.GetType()}) ({argumentDoc?.defaultValue ?? "null"})");
-					yield return new ArgumentDetails(name, description, ArgumentType.Simple(param.ParameterType), param.IsOptional, useLocal, defaultValue, exampleValue, null);
+					yield return GetSingleArg(param, parameterName, prefix, useLocal, argDoc?.description, argDoc);
 				}
 			}
 
@@ -102,6 +108,16 @@ namespace SharpSheets.Documentation {
 					yield return p;
 				}
 			}
+		}
+
+		private static ArgumentDetails GetSingleArg(ParameterInfo param, string parameterName, string prefix, bool useLocal, DocumentationString? description, ArgumentDoc? argDoc) {
+			string name = (prefix.Length > 0 ? prefix + "." : "") + parameterName;
+			DocumentationString? docDescription = NormaliseDescription(description);
+			object? defaultValue = argDoc?.defaultValue ?? param.DefaultValue;
+			if (param.IsOptional && defaultValue == null && param.ParameterType.IsValueType) { defaultValue = Activator.CreateInstance(param.ParameterType); }
+			object? exampleValue = GetExampleValue(param, argDoc);
+			//Console.WriteLine($"Parameter \"{name}\": default = {defaultValue?.ToString() ?? "null"} ({defaultValue?.GetType()}) ({argumentDoc?.defaultValue ?? "null"})");
+			return new ArgumentDetails(name, docDescription, ArgumentType.Simple(param.ParameterType), param.IsOptional, useLocal, defaultValue, exampleValue, null);
 		}
 
 		private static object? GetExampleValue(ParameterInfo param, ArgumentDoc? argDoc) {

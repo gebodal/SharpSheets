@@ -49,9 +49,10 @@ namespace SharpSheets.Parsing {
 		/// <exception cref="SharpFactoryException"></exception>
 		/// <exception cref="ArgumentNullException"></exception>
 		/// <exception cref="SystemException"></exception>
-		public static object? CreateParameter(string parameterName, Type parameterType, bool useLocal, bool isOptional, object? defaultValue, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, out SharpParsingException[] buildErrors) {
+		public static object? CreateParameter(string parameterName, Type parameterType, bool useLocal, bool isOptional, object? defaultValue, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, out SharpParsingException[] buildErrors, out bool defaultUsed) {
 			if (parameterType == typeof(WidgetSetup)) {
 				//IContext setupContext = typeof(IWidget).IsAssignableFrom(declaringType) ? context : new NamedContext(context, parameterName, forceLocal: useLocal);
+				defaultUsed = false;
 				return (WidgetSetup)Construct(WidgetFactory.widgetSetupConstructor, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out buildErrors);
 			}
 			else if (parameterType == typeof(ChildHolder)) {
@@ -65,6 +66,7 @@ namespace SharpSheets.Parsing {
 						};
 						throw new SharpFactoryException(childErrors, $"Errors found parsing named child \"{parameterName}\".");
 					}
+					defaultUsed = false;
 					return new ChildHolder((Div)child); // Activator.CreateInstance(parameterType, child);
 				}
 				else if (!isOptional) {
@@ -80,8 +82,9 @@ namespace SharpSheets.Parsing {
 				IContext widgetContext = new NamedContext(context, parameterName, forceLocal: useLocal);
 				IWidget widget = widgetFactory.MakeWidget(parameterType, widgetContext, source, out SharpParsingException[] widgetBuildErrors, setup);
 				widgetErrors.AddRange(widgetBuildErrors);
-				if(widget is not null) {
+				if (widget is not null) {
 					buildErrors = widgetErrors.ToArray();
+					defaultUsed = false;
 					return widget;
 				}
 				else {
@@ -123,17 +126,18 @@ namespace SharpSheets.Parsing {
 				string? contextNameProperty = context.GetProperty("name", true, context, null, out DocumentSpan? nameLocation);
 				try {
 					string? contextName = contextNameProperty != null ? ValueParsing.Parse<string>(contextNameProperty, source) : null;
+					defaultUsed = false;
 					return shapeFactory.MakeShape(parameterType, shapeContext, contextName, source, out buildErrors);
 				}
 				catch (FormatException e) {
 					throw new SharpParsingException(nameLocation ?? context.Location, e.Message, e);
 				}
 			}
-			else if(parameterType.IsNumbered(out Type? numberedElementType)) {
+			else if (parameterType.IsNumbered(out Type? numberedElementType)) {
 				try {
 					Type numberedType = typeof(Numbered<>).MakeGenericType(numberedElementType);
 					INumbered numbered = (INumbered?)Activator.CreateInstance(numberedType) ?? throw new SharpParsingException(context.Location, $"Could not initialize {parameterType} object.");
-					
+
 					object? elementDefaultValue;
 					if (numberedElementType.IsValueType) {
 						elementDefaultValue = Activator.CreateInstance(numberedElementType);
@@ -160,7 +164,7 @@ namespace SharpSheets.Parsing {
 						string numberedName = parameterName + num.ToString();
 
 						try {
-							numbered.Add(index, CreateParameter(numberedName, numberedElementType, useLocal, isOptional, elementDefaultValue, context, source, widgetFactory, shapeFactory, out SharpParsingException[] paramErrors));
+							numbered.Add(index, CreateParameter(numberedName, numberedElementType, useLocal, isOptional, elementDefaultValue, context, source, widgetFactory, shapeFactory, out SharpParsingException[] paramErrors, out _));
 							allParamErrors.AddRange(paramErrors);
 						}
 						catch (SharpParsingException e) {
@@ -174,9 +178,10 @@ namespace SharpSheets.Parsing {
 					if (fatalErrors.Count > 0) { throw new SharpFactoryException(fatalErrors, $"Errors parsing numbered entries."); }
 
 					buildErrors = allParamErrors.ToArray();
+					defaultUsed = false;
 					return numbered;
 				}
-				catch(TargetInvocationException e) {
+				catch (TargetInvocationException e) {
 					throw new SharpParsingException(context.Location, $"Error instantiating Numbered parameter \"{parameterName}\".", e);
 				}
 			}
@@ -185,7 +190,7 @@ namespace SharpSheets.Parsing {
 					Type listElementType = parameterType.GetGenericArguments().Single();
 					Type listType = typeof(List<>).MakeGenericType(listElementType);
 					IList entries = (IList?)Activator.CreateInstance(listType) ?? throw new SharpParsingException(context.Location, $"Could not initialize {listType} object.");
-					
+
 					List<SharpParsingException> errors = new List<SharpParsingException>();
 					foreach (ContextValue<string> entry in context.GetEntries(context)) {
 						try {
@@ -197,9 +202,10 @@ namespace SharpSheets.Parsing {
 					}
 					//if (errors.Count > 0) { throw new SharpFactoryException(errors, $"Errors parsing entries."); } // $"Errors parsing entries for {declaringType.Name}."
 					buildErrors = errors.ToArray();
+					defaultUsed = false;
 					return entries;
 				}
-				catch(TargetInvocationException e) {
+				catch (TargetInvocationException e) {
 					throw new SharpParsingException(context.Location, $"Error instantiating entries parameter \"{parameterName}\".", e);
 				}
 			}
@@ -208,7 +214,41 @@ namespace SharpSheets.Parsing {
 				// TODO Do we still want to accept structs here? Classes are probably a better way to go...
 				ConstructorInfo constructor = ValueParsing.GetSimpleConstructor(parameterType);
 				IContext argContext = new NamedContext(context, parameterName, forceLocal: useLocal);
+				defaultUsed = false;
 				return Construct(constructor, argContext, source, widgetFactory, shapeFactory, Array.Empty<object>(), out buildErrors);
+			}
+			else if (typeof(ISharpArgSupplemented).IsAssignableFrom(parameterType)) {
+				ConstructorInfo constructor = ValueParsing.GetSimpleConstructor(parameterType);
+				ParameterInfo[] parameterList = constructor.GetParameters();
+				List<SharpParsingException> errors = new List<SharpParsingException>();
+
+				object?[] paramValues = new object?[parameterList.Length];
+
+				// Collect first argument
+				object? firstParam = CreateParameter(
+					parameterName, parameterList[0].ParameterType,
+					useLocal, isOptional,
+					parameterList[0].DefaultValue,
+					context,
+					source, widgetFactory, shapeFactory,
+					out SharpParsingException[] firstParamErrors,
+					out bool defaultUsedForFirst);
+				errors.AddRange(firstParamErrors);
+
+				if (!defaultUsedForFirst) {
+					IContext supplementaryContext = new NamedContext(context, parameterName, forceLocal: useLocal);
+					object result = Construct(
+						constructor, supplementaryContext,
+						source, widgetFactory, shapeFactory,
+						new object[] { firstParam! },
+						out SharpParsingException[] constructionErrors);
+
+					errors.AddRange(constructionErrors);
+
+					buildErrors = errors.ToArray();
+					defaultUsed = false;
+					return result;
+				}
 			}
 			else {
 				// From here on, we are dealing with types that rely on a single line in the configuration
@@ -221,6 +261,7 @@ namespace SharpSheets.Parsing {
 				if (parameterType == typeof(bool)) {
 					if (context.HasFlag(parameterName, useLocal, context)) {
 						buildErrors = Array.Empty<SharpParsingException>();
+						defaultUsed = false;
 						return context.GetFlag(parameterName, useLocal, context);
 					}
 					// No else needed - can just use default value (as required parameters already checked)
@@ -242,12 +283,13 @@ namespace SharpSheets.Parsing {
 							}
 
 							// This feels very ugly here.
-							if(parsed is FontPath parsedFontPath && !parsedFontPath.IsKnownEmbeddable) {
+							if (parsed is FontPath parsedFontPath && !parsedFontPath.IsKnownEmbeddable) {
 								buildErrors = new SharpParsingException[] {
 									new FontLicenseWarningException(location ?? context.Location, "This font may have licensing restrictions.")
 								};
 							}
 
+							defaultUsed = false;
 							return parsed;
 						}
 						catch (FormatException e) {
@@ -265,6 +307,7 @@ namespace SharpSheets.Parsing {
 			}
 
 			buildErrors = Array.Empty<SharpParsingException>();
+			defaultUsed = true;
 			return defaultValue;
 		}
 
@@ -272,11 +315,60 @@ namespace SharpSheets.Parsing {
 			return name.Replace("_", "").ToLowerInvariant();
 		}
 
+		private static object? GatherParameter(ParameterInfo parameter, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, List<SharpParsingException> errors, out bool nonOptionalFailed) {
+			string baseParamName = parameter.Name ?? throw new InvalidOperationException("Parameter name null.");
+
+			string parameterName = NormaliseParameterName(baseParamName);
+			Type parameterType = parameter.ParameterType;
+			bool useLocal = baseParamName[0] == '_';
+
+			try {
+				object? result = CreateParameter(
+					parameterName,
+					parameterType,
+					useLocal,
+					parameter.IsOptional,
+					parameter.HasDefaultValue ? parameter.DefaultValue : Type.Missing,
+					context,
+					source,
+					widgetFactory,
+					shapeFactory,
+					out SharpParsingException[] paramBuildErrors,
+					out _);
+				nonOptionalFailed = false;
+				errors.AddRange(paramBuildErrors);
+				return result;
+			}
+			// TODO catch (SharpInitializationException e) { }
+			catch (SharpParsingException e) {
+				//throw e;
+				errors.Add(e);
+			}
+			catch (SharpFactoryException e) {
+				errors.AddRange(e.Errors);
+			}
+			catch (ArgumentNullException e) {
+				errors.Add(new SharpParsingException(context.Location, e.Message, e));
+			}
+			catch (SystemException e) {
+				errors.Add(new SharpParsingException(context.Location, e.Message, e));
+			}
+
+			if (parameter.IsOptional && parameter.HasDefaultValue) { // Do we need to check both?
+				nonOptionalFailed = false;
+				return parameter.DefaultValue;
+			}
+			else {
+				nonOptionalFailed = true;
+				return null;
+			}
+		}
+
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
 		/// <exception cref="SharpFactoryException"></exception>
-		private static object?[] GatherParameters(ConstructorInfo constructor, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, object[] firstParameters, out SharpParsingException[] buildErrors) {
-			ParameterInfo[] parameterList = constructor.GetParameters();
+		private static object?[] GatherParameters(ConstructorInfo constructor, ParameterInfo[] parameterList, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, object[] firstParameters, out SharpParsingException[] buildErrors) {
+			//ParameterInfo[] parameterList = constructor.GetParameters();
 			object?[] parameters = new object?[parameterList.Length];
 
 			for (int i = 0; i < firstParameters.Length; i++) {
@@ -296,53 +388,16 @@ namespace SharpSheets.Parsing {
 
 			bool nonOptionalFailed = false;
 			for (int i = firstParameters.Length; i < parameterList.Length; i++) {
-				string? baseParamName = parameterList[i].Name;
-				if (baseParamName is null) { continue; }
+				if (parameterList[i].Name is null) { continue; }
 
-				string parameterName = NormaliseParameterName(baseParamName);
-				Type parameterType = parameterList[i].ParameterType;
-				bool useLocal = baseParamName[0] == '_';
+				parameters[parameterList[i].Position] = GatherParameter(
+					parameterList[i],
+					context, source,
+					widgetFactory, shapeFactory,
+					errors,
+					out bool nonOptionalParamFailed);
 
-				bool success = false;
-
-				try {
-					parameters[parameterList[i].Position] = CreateParameter(
-						parameterName,
-						parameterType,
-						useLocal,
-						parameterList[i].IsOptional,
-						parameterList[i].HasDefaultValue ? parameterList[i].DefaultValue : Type.Missing,
-						context,
-						source,
-						widgetFactory,
-						shapeFactory,
-						out SharpParsingException[] paramBuildErrors);
-					success = true;
-					errors.AddRange(paramBuildErrors);
-				}
-				// TODO catch (SharpInitializationException e) { }
-				catch (SharpParsingException e) {
-					//throw e;
-					errors.Add(e);
-				}
-				catch (SharpFactoryException e) {
-					errors.AddRange(e.Errors);
-				}
-				catch (ArgumentNullException e) {
-					errors.Add(new SharpParsingException(context.Location, e.Message, e));
-				}
-				catch(SystemException e) {
-					errors.Add(new SharpParsingException(context.Location, e.Message, e));
-				}
-
-				if (!success) {
-					if (parameterList[i].IsOptional && parameterList[i].HasDefaultValue) { // Do we need to check both?
-						parameters[parameterList[i].Position] = parameterList[i].DefaultValue;
-					}
-					else {
-						nonOptionalFailed = true;
-					}
-				}
+				nonOptionalFailed |= nonOptionalParamFailed;
 			}
 
 			if (nonOptionalFailed) {
@@ -359,7 +414,7 @@ namespace SharpSheets.Parsing {
 		/// <exception cref="SharpFactoryException"></exception>
 		public static object Construct(ConstructorInfo constructor, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, object[] firstParameters, out SharpParsingException[] buildErrors) {
 			try {
-				object?[] parameters = GatherParameters(constructor, context, source, widgetFactory, shapeFactory, firstParameters, out buildErrors);
+				object?[] parameters = GatherParameters(constructor, constructor.GetParameters(), context, source, widgetFactory, shapeFactory, firstParameters, out buildErrors);
 
 				return constructor.Invoke(parameters);
 			}
@@ -434,6 +489,12 @@ namespace SharpSheets.Parsing {
 	/// Implementing this interface indicates that this object can be constructed as a dict expression by SharpFactory.
 	/// </summary>
 	public interface ISharpDictArg { }
+
+	/// <summary>
+	/// Implementing this interface indicates that this object is to be interpreted as a primary value with supplementary
+	/// nested arguments by SharpFactory. The first parameter of the primary constructor may not be nullable.
+	/// </summary>
+	public interface ISharpArgSupplemented { }
 
 	public interface INumbered : IEnumerable<KeyValuePair<int, object?>> {
 		/// <summary></summary>

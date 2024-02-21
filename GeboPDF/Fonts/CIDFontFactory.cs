@@ -11,13 +11,58 @@ namespace GeboPdf.Fonts {
 
 	public static class CIDFontFactory {
 
-		public static PdfType0Font CreateFont(string fontPath) {
+		// Very crude caching - should be improved
+		private static readonly Dictionary<string, MemoryStream> fontStreams = new Dictionary<string, MemoryStream>();
 
-			byte[] fontBytes = File.ReadAllBytes(fontPath);
-			MemoryStream memoryStream = new MemoryStream(fontBytes, false);
-			FontFileReader fontReader = new FontFileReader(memoryStream);
+		public static PdfType0Font CreateFont(string fontPath, OpenTypeLayoutTags layoutTags) {
+			if (!fontStreams.ContainsKey(fontPath)) {
+				byte[] fontBytes = File.ReadAllBytes(fontPath);
+				MemoryStream memoryStream = new MemoryStream(fontBytes, false);
+				fontStreams.Add(fontPath, memoryStream);
+			}
 
-			TrueTypeFontFile fontFile = TrueTypeFontFile.Open(fontReader);
+			return CreateFont(fontStreams[fontPath], fontPath, layoutTags);
+		}
+
+		public static PdfType0Font CreateFont(string fontUri, Stream stream, OpenTypeLayoutTags layoutTags) {
+			MemoryStream memoryStream = new MemoryStream();
+			stream.CopyTo(memoryStream);
+			memoryStream.Position = 0;
+
+			return CreateFont(memoryStream, fontUri, layoutTags);
+		}
+
+		private static PdfType0Font CreateFont(MemoryStream memoryStream, string fontUri, OpenTypeLayoutTags layoutTags) {
+
+			TrueTypeFontFile fontFile = ReadFontFile(memoryStream);
+
+			TrueTypeCMapSubtable cmapSubtable = GetCmap(fontFile);
+			Dictionary<uint, ushort> cmap = cmapSubtable.cidMap;
+			if (cmapSubtable.platformID == 3 && cmapSubtable.encodingID == 0) { // Windows Symbol table
+				if (cmap.All(kv => kv.Key >= 0xF000)) {
+					cmap = cmap.ToDictionary(kv => (uint)(kv.Key - 0xF000), kv => kv.Value);
+				}
+			}
+
+			//OpenTypeLayoutTags layoutTags = new OpenTypeLayoutTags("latn", null, new HashSet<string>() { "liga", "kern", "dlig" });
+
+			GlyphSubstitutionLookupSet? gsubLookups = fontFile.gsub?.GetLookups(layoutTags);
+			GlyphPositioningLookupSet? gposLookups = fontFile.gpos?.GetLookups(layoutTags);
+
+			(int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, short>? kerning) = GetMetrics(fontFile);
+
+			PdfType0Font pdfFont = new PdfType0Font(
+				fontUri, memoryStream,
+				cmap,
+				advanceWidths, ascents, descents, kerning,
+				gsubLookups, gposLookups, fontFile.UnitsPerEm);
+
+			return pdfFont;
+		}
+
+		public static PdfType0FontDictionary CreateFontDictionary(MemoryStream memoryStream, FontGlyphUsage fontUsage) {
+
+			TrueTypeFontFile fontFile = ReadFontFile(memoryStream);
 
 			bool openType = fontFile.tables.ContainsKey("CFF ");
 
@@ -30,7 +75,7 @@ namespace GeboPdf.Fonts {
 					cmap = cmap.ToDictionary(kv => (uint)(kv.Key - 0xF000), kv => kv.Value);
 				}
 			}
-			
+
 			TrueTypeFontProgramStream fontProgram = new TrueTypeFontProgramStream(memoryStream, openType);
 
 			FontDescriptorFlags flags = GetFlags(fontFile);
@@ -43,18 +88,28 @@ namespace GeboPdf.Fonts {
 
 			FontDescriptor fontDescriptor = new FontDescriptor(fontName, fontProgram, flags, fontBBox, italicAngle, ascent, descent, capHeight, stemV);
 
-			PdfCmapStream toUnicode = CMapWriter.CreateToUnicode(cmap, fontName);
+			IReadOnlySet<(ushort, ushort[])> mappings = GetMappings(fontUsage);
+
+			PdfCmapStream toUnicode = CMapWriter.CreateToUnicode(cmap, mappings, fontName);
 
 			int defaultWidth = GetDefaultWidth(fontFile);
 			PdfArray widths = GetWidths(fontFile);
 
-			(int[] advanceWidths, int[] ascents, int[] descents) = GetMetrics(fontFile);
-
 			Type2CIDFont cidFont = new Type2CIDFont(fontName, fontDescriptor, defaultWidth, widths);
 
-			PdfType0Font pdfFont = new PdfType0Font(cidFont, cmap, advanceWidths, ascents, descents, toUnicode);
+			PdfType0FontDictionary pdfFontDictionary = new PdfType0FontDictionary(cidFont, toUnicode);
 
-			return pdfFont;
+			return pdfFontDictionary;
+		}
+
+		private static TrueTypeFontFile ReadFontFile(MemoryStream memoryStream) {
+			TrueTypeFontFile fontFile;
+			lock (memoryStream) { // TODO Slightly crude attempt at thread safety
+				memoryStream.Position = 0;
+				FontFileReader fontReader = new FontFileReader(memoryStream);
+				fontFile = TrueTypeFontFile.Open(fontReader);
+			}
+			return fontFile;
 		}
 
 		private static string GetFontName(TrueTypeFontFile fontFile) {
@@ -124,11 +179,11 @@ namespace GeboPdf.Fonts {
 		}
 
 		private static int ProcessShort(short value, TrueTypeFontFile fontFile) {
-			return (int)(1000 * (value / (double)fontFile.head.unitsPerEm));
+			return (int)(1000 * (value / (double)fontFile.UnitsPerEm));
 		}
 
 		private static int ProcessUShort(ushort value, TrueTypeFontFile fontFile) {
-			return (int)(1000 * ((int)value / (double)fontFile.head.unitsPerEm));
+			return (int)(1000 * ((int)value / (double)fontFile.UnitsPerEm));
 		}
 
 		private static PdfRectangle GetBBox(TrueTypeFontFile fontFile) {
@@ -227,8 +282,7 @@ namespace GeboPdf.Fonts {
 			return array;
 		}
 
-		private static (int[] advanceWidths, int[] ascents, int[] descents) GetMetrics(TrueTypeFontFile fontFile) {
-
+		private static (int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, short>? kerning) GetMetrics(TrueTypeFontFile fontFile) {
 
 			int[] advanceWidths = new int[fontFile.numGlyphs];
 			int[] ascents = new int[fontFile.numGlyphs];
@@ -236,7 +290,7 @@ namespace GeboPdf.Fonts {
 
 			for (int i = 0; i < fontFile.numGlyphs; i++) {
 				// Advance width
-				advanceWidths[i] = (int)(1000 * (fontFile.hmtx.advanceWidths[i] / (double)fontFile.head.unitsPerEm));
+				advanceWidths[i] = (int)(1000 * (fontFile.hmtx.advanceWidths[i] / (double)fontFile.UnitsPerEm));
 
 				// Ascent & Descent
 				short yMax, yMin;
@@ -252,11 +306,45 @@ namespace GeboPdf.Fonts {
 					yMax = fontFile.head.yMax;
 					yMin = fontFile.head.yMax;
 				}
-				ascents[i] = (int)(1000 * (yMax / (double)fontFile.head.unitsPerEm));
-				descents[i] = (int)(1000 * (yMin / (double)fontFile.head.unitsPerEm));
+				ascents[i] = (int)(1000 * (yMax / (double)fontFile.UnitsPerEm));
+				descents[i] = (int)(1000 * (yMin / (double)fontFile.UnitsPerEm));
 			}
 
-			return (advanceWidths, ascents, descents);
+			Dictionary<uint, short>? kerning = null;
+			if (fontFile.kern is not null) {
+				kerning = new Dictionary<uint, short>();
+
+				foreach (uint pair in fontFile.kern.Subtables.SelectMany(s => s.Values.Keys).Distinct().OrderBy(p => p)) {
+
+					short kernValue = 0;
+
+					for (int s = 0; s < fontFile.kern.Subtables.Length; s++) {
+						TrueTypeKerningSubtable subtable = fontFile.kern.Subtables[s];
+						if(subtable.Coverage.IsKerningValues() && subtable.Coverage.IsHorizontal() && !subtable.Coverage.IsCrossStream()) {
+							if (subtable.Values.TryGetValue(pair, out short value)) {
+								if (subtable.Coverage.IsOverride()) {
+									kernValue = value;
+								}
+								else {
+									kernValue += value;
+								}
+							}
+						}
+					}
+
+					kerning[pair] = kernValue;
+				}
+			}
+
+			return (advanceWidths, ascents, descents, kerning);
+		}
+
+		public static IReadOnlySet<(ushort gid, ushort[] originals)> GetMappings(FontGlyphUsage fontUsage) {
+			return new HashSet<(ushort gid, ushort[] originals)>(
+				fontUsage.Mappings
+					.Where(m => m.glyphs.Length == 1)
+					.Select(m => (m.glyphs[0], m.original)),
+				GlyphMappingComparer.Instance);
 		}
 
 	}

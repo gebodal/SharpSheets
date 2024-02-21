@@ -57,3 +57,4 @@ We have also made use of the following open source projects, and would like to t
 
 * [`feathericons/feather`](https://github.com/feathericons/feather) (MIT license)
 * [`Remix-Design/RemixIcon`](https://github.com/Remix-Design/RemixIcon) (Apache License 2.0)
+* [`liberationfonts/liberation-fonts`](https://github.com/liberationfonts/liberation-fonts) (OFL 1.1)

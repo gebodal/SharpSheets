@@ -181,9 +181,9 @@ namespace SharpSheets.Markup.Canvas {
 		public readonly Color BackgroundColor;
 		public readonly Color MidtoneColor;
 		public readonly Color TextColor;
-		public readonly FontPathGrouping Fonts;
+		public readonly FontSettingGrouping Fonts;
 
-		public MarkupCanvasGraphicsData(float defaultLineWidth, Color foregroundColor, Color backgroundColor, Color midtoneColor, Color textColor, FontPathGrouping fonts) {
+		public MarkupCanvasGraphicsData(float defaultLineWidth, Color foregroundColor, Color backgroundColor, Color midtoneColor, Color textColor, FontSettingGrouping fonts) {
 			this.DefaultLineWidth = defaultLineWidth;
 			this.ForegroundColor = foregroundColor;
 			this.BackgroundColor = backgroundColor;

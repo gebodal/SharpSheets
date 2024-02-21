@@ -74,7 +74,7 @@ namespace SharpSheets.PDFs {
 		public Canvas.LineJoinStyle lineJoinStyle = SharpGraphicsDefaults.LineJoinStyle;
 		public float mitreLimit = SharpGraphicsDefaults.MitreLimit;
 
-		public GeboFontPathGrouping fonts = new GeboFontPathGrouping();
+		public PdfFontPathGrouping fonts = new PdfFontPathGrouping();
 		public TextFormat textFormat = SharpGraphicsDefaults.TextFormat;
 		public float fontsize = SharpGraphicsDefaults.Fontsize;
 		public Canvas.TextRenderingMode textRenderingMode = SharpGraphicsDefaults.TextRenderingMode;
@@ -98,123 +98,13 @@ namespace SharpSheets.PDFs {
 			this.fillPaint = source.fillPaint;
 			this.lineJoinStyle = source.lineJoinStyle;
 			this.mitreLimit = source.mitreLimit;
-			this.fonts = new GeboFontPathGrouping(source.fonts);
+			this.fonts = new PdfFontPathGrouping(source.fonts);
 			this.textFormat = source.textFormat;
 			this.fontsize = source.fontsize;
 			this.textRenderingMode = source.textRenderingMode;
 			this.transform = source.transform;
 			this.fieldsEnabled = source.fieldsEnabled;
 			this.fieldPrefix = source.fieldPrefix;
-		}
-	}
-
-	public static class SharpGeboFonts {
-
-		private static readonly Dictionary<FontPath, PdfFont> registry = new Dictionary<FontPath, PdfFont>();
-		private static readonly Dictionary<PdfStandardFonts, PdfFont> standardRegistry = new Dictionary<PdfStandardFonts, PdfFont>();
-
-		public static PdfFont GetFont(FontPath path) {
-			if (registry.TryGetValue(path, out PdfFont? existing)) {
-				return existing;
-			}
-
-			PdfFont font = CIDFontFactory.CreateFont(path.Path);
-			registry.Add(path, font);
-			return font;
-		}
-
-		public static PdfFont GetFont(PdfStandardFonts standardFont) {
-			if (standardRegistry.TryGetValue(standardFont, out PdfFont? existing)) {
-				return existing;
-			}
-
-			PdfFont font = new PdfStandardFont(standardFont, new GeboPdf.Objects.PdfName("WinAnsiEncoding")); // TODO Encoding???
-			standardRegistry.Add(standardFont, font);
-			return font;
-		}
-
-	}
-
-	public class GeboFontPathGrouping {
-
-		private (FontPath? path, PdfFont font) regular;
-		private (FontPath? path, PdfFont font)? bold;
-		private (FontPath? path, PdfFont font)? italic;
-		private (FontPath? path, PdfFont font)? bolditalic;
-
-		public PdfFont GetPdfFont(TextFormat format) {
-			if (format == TextFormat.REGULAR) {
-				return regular.font;
-			}
-			else if (format == TextFormat.BOLD) {
-				return bold?.font ?? regular.font;
-			}
-			else if (format == TextFormat.ITALIC) {
-				return italic?.font ?? regular.font;
-			}
-			else { // format == TextFormat.BOLDITALIC
-				return bolditalic?.font ?? regular.font;
-			}
-		}
-
-		private void SetFont(TextFormat format, FontPath? origin, PdfFont font) {
-			(FontPath?, PdfFont) info = (origin, font);
-			if (format == TextFormat.REGULAR) {
-				regular = info;
-			}
-			else if (format == TextFormat.BOLD) {
-				bold = info;
-			}
-			else if (format == TextFormat.ITALIC) {
-				italic = info;
-			}
-			else { // format == TextFormat.BOLDITALIC
-				bolditalic = info;
-			}
-		}
-
-		public void SetFont(TextFormat format, FontPath origin) {
-			PdfFont pdfFont = SharpGeboFonts.GetFont(origin);
-			SetFont(format, origin, pdfFont);
-		}
-
-		public void SetFont(TextFormat format, PdfStandardFonts standardFont) {
-			PdfFont pdfFont = SharpGeboFonts.GetFont(standardFont);
-			SetFont(format, null, pdfFont);
-		}
-
-		public void SetNull(TextFormat format) {
-			if (format == TextFormat.REGULAR) {
-				//regular = null; // Throw error?
-				SetFont(TextFormat.REGULAR, PdfStandardFonts.Helvetica); // Better?
-			}
-			else if (format == TextFormat.BOLD) {
-				bold = null;
-			}
-			else if (format == TextFormat.ITALIC) {
-				italic = null;
-			}
-			else { // format == TextFormat.BOLDITALIC
-				bolditalic = null;
-			}
-		}
-
-		public FontPathGrouping GetFonts() {
-			return new FontPathGrouping(regular.path, bold?.path, italic?.path, bolditalic?.path);
-		}
-
-		public GeboFontPathGrouping() {
-			SetFont(TextFormat.REGULAR, PdfStandardFonts.Helvetica);
-			SetFont(TextFormat.BOLD, PdfStandardFonts.HelveticaBold);
-			SetFont(TextFormat.ITALIC, PdfStandardFonts.HelveticaOblique);
-			SetFont(TextFormat.BOLDITALIC, PdfStandardFonts.HelveticaBoldOblique);
-		}
-
-		public GeboFontPathGrouping(GeboFontPathGrouping source) {
-			this.regular = source.regular;
-			this.bold = source.bold;
-			this.italic = source.italic;
-			this.bolditalic = source.bolditalic;
 		}
 	}
 
@@ -728,7 +618,7 @@ namespace SharpSheets.PDFs {
 		}
 
 
-		public FontPathGrouping GetFonts() => state.fonts.GetFonts();
+		public FontSettingGrouping GetFonts() => state.fonts.GetFonts();
 		public float GetTextSize() => state.fontsize;
 		public TextFormat GetTextFormat() => state.textFormat;
 
@@ -745,7 +635,7 @@ namespace SharpSheets.PDFs {
 			return this;
 		}
 
-		public ISharpGraphicsState SetFont(TextFormat format, FontPath? font) {
+		public ISharpGraphicsState SetFont(TextFormat format, FontSetting? font) {
 			if (font?.Path != null) {
 				state.fonts.SetFont(format, font);
 			}
@@ -776,7 +666,7 @@ namespace SharpSheets.PDFs {
 			SetFillColor(GetTextColor());
 			canvas.BeginText()
 				.MoveToStart(x, y)
-				.ShowText(text)
+				.ShowTextCalculateKerning(text)
 				.EndText();
 			canvas.RestoreState();
 

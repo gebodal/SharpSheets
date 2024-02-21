@@ -1,4 +1,5 @@
-﻿using GeboPdf.IO;
+﻿using GeboPdf.Fonts;
+using GeboPdf.IO;
 using GeboPdf.Objects;
 using GeboPdf.Utilities;
 using System;
@@ -13,8 +14,6 @@ using System.Text;
 namespace GeboPdf.Documents {
 
 	public class PdfDocumentWriter {
-
-		private delegate int PdfReferenceEvaluator(PdfObject subject);
 
 		private readonly PdfStreamWriter _stream;
 
@@ -42,7 +41,7 @@ namespace GeboPdf.Documents {
 			}
 		}
 
-		private void WriteArray(AbstractPdfArray values, PdfReferenceEvaluator evaluator) { // Special type?
+		private void WriteArray(AbstractPdfArray values, DocumentObjectCollection evaluator) { // Special type?
 			_stream.WriteASCII("[");
 
 			for(int i=0; i<values.Length; i++) {
@@ -55,7 +54,7 @@ namespace GeboPdf.Documents {
 			_stream.WriteASCII("]");
 		}
 
-		private void WriteDictionaryEntry(KeyValuePair<PdfName, PdfObject> entry, PdfReferenceEvaluator evaluator, bool useEOL) {
+		private void WriteDictionaryEntry(KeyValuePair<PdfName, PdfObject> entry, DocumentObjectCollection evaluator, bool useEOL) {
 			_stream.WriteName(entry.Key);
 			_stream.WriteSpace();
 			WriteObject(entry.Value, evaluator);
@@ -67,7 +66,7 @@ namespace GeboPdf.Documents {
 			}
 		}
 
-		private void WriteDictionary(AbstractPdfDictionary values, PdfReferenceEvaluator evaluator, bool useEOL, params KeyValuePair<PdfName, PdfObject>[] additionalValues) { // Special type?
+		private void WriteDictionary(AbstractPdfDictionary values, DocumentObjectCollection evaluator, bool useEOL, params KeyValuePair<PdfName, PdfObject>[] additionalValues) { // Special type?
 			if(additionalValues.Length == 0 && values.Count == 0) {
 				_stream.WriteASCII("<< >>");
 				return;
@@ -91,13 +90,19 @@ namespace GeboPdf.Documents {
 			_stream.WriteASCII(">>");
 		}
 
-		private void WriteIndirectReference(PdfIndirectReference reference, PdfReferenceEvaluator evaluator) {
-			int referenceIndex = evaluator(reference.Subject);
+		private void WriteIndirectReference(PdfIndirectReference reference, DocumentObjectCollection evaluator) {
+			int referenceIndex = evaluator.ReferenceEvaluator(reference.Subject);
 
 			_stream.WriteASCII($"{referenceIndex} 0 R");
 		}
 
-		private void WriteObject(PdfObject value, PdfReferenceEvaluator evaluator) {
+		private void WriteIndirectFontReference(PdfIndirectFontReference reference, DocumentObjectCollection evaluator) {
+			int referenceIndex = evaluator.FontReferenceEvaluator(reference.Subject);
+
+			_stream.WriteASCII($"{referenceIndex} 0 R");
+		}
+
+		private void WriteObject(PdfObject value, DocumentObjectCollection evaluator) {
 			if (value is PdfBoolean boolVal) {
 				_stream.WriteBool(boolVal.Value);
 			}
@@ -128,6 +133,9 @@ namespace GeboPdf.Documents {
 			else if (value is PdfIndirectReference referenceVal) {
 				WriteIndirectReference(referenceVal, evaluator);
 			}
+			else if (value is PdfIndirectFontReference fontReferenceVal) {
+				WriteIndirectFontReference(fontReferenceVal, evaluator);
+			}
 			else if (value is PdfProxyObject proxyVal) {
 				WriteObject(proxyVal.Content, evaluator);
 			}
@@ -136,41 +144,43 @@ namespace GeboPdf.Documents {
 			}
 		}
 
-		private void WriteStream(AbstractPdfStream stream, PdfReferenceEvaluator evaluator) {
+		private void WriteStream(AbstractPdfStream stream, DocumentObjectCollection evaluator) {
 			//AbstractPdfDictionary streamDictionary = stream.GetDictionary();
 
 			MemoryStream originalStreamData = stream.GetStream();
-			MemoryStream streamData;
-			if (CompressStreams && stream.AllowEncoding) {
-				streamData = Deflate1950.Compress(originalStreamData);
+			lock (originalStreamData) { // Crude thread safety attempt
+				MemoryStream streamData;
+				if (CompressStreams && stream.AllowEncoding) {
+					streamData = Deflate1950.Compress(originalStreamData);
+				}
+				else {
+					streamData = originalStreamData;
+				}
+
+				KeyValuePair<PdfName, PdfObject>[] streamEntries = new KeyValuePair<PdfName, PdfObject>[(CompressStreams && stream.AllowEncoding) ? 2 : 1];
+				streamEntries[0] = new KeyValuePair<PdfName, PdfObject>(PdfNames.Length, new PdfInt(streamData.Length));
+				if (CompressStreams && stream.AllowEncoding) {
+					streamEntries[1] = new KeyValuePair<PdfName, PdfObject>(PdfNames.Filter, PdfNames.FlateDecode);
+				}
+
+				WriteDictionary(stream, evaluator, true, streamEntries);
+				_stream.WriteEOL();
+
+				_stream.WriteASCII("stream");
+				_stream.WriteEOL();
+
+				_stream.Write(streamData);
+
+				_stream.WriteEOL();
+				_stream.WriteASCII("endstream");
+				//WriteEOL();
 			}
-			else {
-				streamData = originalStreamData;
-			}
-
-			KeyValuePair<PdfName, PdfObject>[] streamEntries = new KeyValuePair<PdfName, PdfObject>[(CompressStreams && stream.AllowEncoding) ? 2 : 1];
-			streamEntries[0] = new KeyValuePair<PdfName, PdfObject>(PdfNames.Length, new PdfInt(streamData.Length));
-			if (CompressStreams && stream.AllowEncoding) {
-				streamEntries[1] = new KeyValuePair<PdfName, PdfObject>(PdfNames.Filter, PdfNames.FlateDecode);
-			}
-
-			WriteDictionary(stream, evaluator, true, streamEntries);
-			_stream.WriteEOL();
-
-			_stream.WriteASCII("stream");
-			_stream.WriteEOL();
-
-			_stream.Write(streamData);
-
-			_stream.WriteEOL();
-			_stream.WriteASCII("endstream");
-			//WriteEOL();
 		}
 
-		private long WriteIndirectObject(PdfObject indirectObject, PdfReferenceEvaluator evaluator) {
+		private long WriteIndirectObject(PdfObject indirectObject, DocumentObjectCollection evaluator) {
 			long objectPosition = _stream.bytesWritten;
 
-			int objectIndex = evaluator(indirectObject);
+			int objectIndex = evaluator.ReferenceEvaluator(indirectObject);
 
 			_stream.WriteASCII($"{objectIndex} 0 obj");
 			_stream.WriteEOL();
@@ -233,7 +243,7 @@ namespace GeboPdf.Documents {
 			return xrefPosition;
 		}
 
-		private void WriteTrailer(AbstractPdfDictionary root, PdfMetadataDictionary infoDictionary, long[] xrefByteOffsets, PdfReferenceEvaluator evaluator) {
+		private void WriteTrailer(AbstractPdfDictionary root, PdfMetadataDictionary infoDictionary, long[] xrefByteOffsets, DocumentObjectCollection evaluator) {
 			long startXref = WriteXrefTable(xrefByteOffsets);
 
 			PdfDictionary trailerDictionary = new PdfDictionary() {
@@ -274,40 +284,64 @@ namespace GeboPdf.Documents {
 		private class DocumentObjectCollection : IEqualityComparer<PdfObject> {
 
 			private readonly Dictionary<PdfObject, int> collection;
+			private readonly Dictionary<PdfFont, PdfObject> fontReferenceObjects;
 			public readonly PdfObject[] indirectObjects;
 
 			public bool Equals(PdfObject? x, PdfObject? y) {
+				// Use object references as hashcodes, rather than overriden implementations
 				return RuntimeHelpers.GetHashCode(x) == RuntimeHelpers.GetHashCode(y);
 			}
 			public int GetHashCode(PdfObject obj) {
+				// Use object references as hashcodes, rather than overriden implementations
 				return RuntimeHelpers.GetHashCode(obj);
 			}
 
 			public DocumentObjectCollection(IEnumerable<PdfObject> docObjs) {
 				collection = new Dictionary<PdfObject, int>(this);
+				fontReferenceObjects = new Dictionary<PdfFont, PdfObject>();
 
 				IEqualityComparer<PdfObject> comparer = EqualityComparer<PdfObject>.Default;
 
+				FontList fontProxies = new FontList();
+
 				List<PdfObject> indirectObjects = new List<PdfObject>();
 				List<int> hashCodes = new List<int>();
+
+				void PerformAppend(PdfObject obj) {
+					int objHashCode = comparer.GetHashCode(obj);
+					int index = -1;
+
+					for (int i = 0; i < indirectObjects.Count; i++) {
+						if (objHashCode == hashCodes[i] && comparer.Equals(indirectObjects[i], obj)) {
+							index = i;
+							break;
+						}
+					}
+
+					if (index < 0) {
+						index = indirectObjects.Count;
+						indirectObjects.Add(obj);
+						hashCodes.Add(objHashCode);
+					}
+					collection.Add(obj, index + 1);
+				}
+
 				foreach (PdfObject obj in docObjs) {
-					if (!collection.ContainsKey(obj)) {
-						int objHashCode = comparer.GetHashCode(obj);
-						int index = -1;
+					if(obj is PdfFontProxyObject fontProxy) {
+						fontProxies.AddFont(fontProxy);
+					}
+					else if (!collection.ContainsKey(obj)) {
+						PerformAppend(obj);
+					}
+				}
 
-						for (int i = 0; i < indirectObjects.Count; i++) {
-							if (objHashCode == hashCodes[i] && comparer.Equals(indirectObjects[i], obj)) {
-								index = i;
-								break;
-							}
+				foreach(PdfFontProxyObject fontProxy in fontProxies) {
+					IEnumerable<PdfObject> fontDocObjs = fontProxy.CollectObjects(out PdfIndirectReference fontRef);
+					fontReferenceObjects[fontProxy.Font] = fontRef.Subject;
+					foreach (PdfObject obj in fontDocObjs) {
+						if (!collection.ContainsKey(obj)) {
+							PerformAppend(obj);
 						}
-
-						if (index < 0) {
-							index = indirectObjects.Count;
-							indirectObjects.Add(obj);
-							hashCodes.Add(objHashCode);
-						}
-						collection.Add(obj, index + 1);
 					}
 				}
 
@@ -315,10 +349,32 @@ namespace GeboPdf.Documents {
 			}
 
 			public int ReferenceEvaluator(PdfObject pdfObj) {
+				/*
 				if (!collection.ContainsKey(pdfObj)) {
 					Console.WriteLine("PROBLEM");
 				}
+				*/
 				return collection[pdfObj];
+			}
+
+			public int FontReferenceEvaluator(PdfFont font) {
+				return collection[fontReferenceObjects[font]];
+			}
+
+			public class FontList : List<PdfFontProxyObject> {
+
+				public FontList() : base() { }
+
+				public void AddFont(PdfFontProxyObject item) {
+					for (int i = 0; i < Count; i++) {
+						if (this[i].CanCombine(item)) {
+							this[i] = this[i].Combine(item);
+							return;
+						}
+					}
+					Add(item);
+				}
+
 			}
 		}
 
@@ -340,11 +396,68 @@ namespace GeboPdf.Documents {
 			List<long> xrefs = new List<long>();
 
 			foreach (PdfObject obj in documentObjects.indirectObjects) {
-				long objOffset = WriteIndirectObject(obj, documentObjects.ReferenceEvaluator);
+				long objOffset = WriteIndirectObject(obj, documentObjects);
 				xrefs.Add(objOffset);
 			}
 
-			WriteTrailer(document.catalogueDict, document.metadataDict, xrefs.ToArray(), documentObjects.ReferenceEvaluator);
+			WriteTrailer(document.catalogueDict, document.metadataDict, xrefs.ToArray(), documentObjects);
+		}
+
+	}
+
+	public class PdfFontProxyObject : PdfObject {
+
+		public readonly PdfFont Font;
+		public readonly FontGlyphUsage FontUsage;
+
+		public PdfFontProxyObject(PdfFont font, FontGlyphUsage fontUsage) {
+			Font = font;
+			FontUsage = fontUsage;
+		}
+
+		public bool CanCombine(PdfFontProxyObject other) {
+			return this.Font.Equals(other.Font);
+		}
+
+		public PdfFontProxyObject Combine(PdfFontProxyObject other) {
+			if (Font.Equals(other.Font)) {
+				FontGlyphUsage combinedUsage = FontGlyphUsage.Combine(FontUsage, other.FontUsage);
+				return new PdfFontProxyObject(Font, combinedUsage);
+			}
+			else {
+				throw new InvalidOperationException($"Cannot combine font proxies with different fonts.");
+			}
+		}
+
+		public IEnumerable<PdfObject> CollectObjects(out PdfIndirectReference fontReference) {
+			return Font.CollectObjects(FontUsage, out fontReference);
+		}
+
+	}
+
+	public sealed class PdfIndirectFontReference : PdfObject {
+
+		public PdfFont Subject { get; }
+
+		private PdfIndirectFontReference(PdfFont subject) {
+			this.Subject = subject ?? throw new ArgumentNullException(nameof(subject));
+		}
+
+		public static PdfIndirectFontReference Create(PdfFont subject) {
+			return new PdfIndirectFontReference(subject);
+		}
+
+		public override int GetHashCode() => Subject.GetHashCode();
+
+		public override bool Equals(object? obj) {
+			if (obj is PdfIndirectFontReference fontRef) {
+				return Subject.Equals(fontRef.Subject);
+			}
+			return false;
+		}
+
+		public override string ToString() {
+			return $"FONT_REFERENCE";
 		}
 
 	}

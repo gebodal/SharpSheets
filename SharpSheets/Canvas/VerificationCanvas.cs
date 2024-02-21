@@ -92,10 +92,10 @@ namespace SharpSheets.Canvas {
 
 	public class VerificationFontPathGrouping {
 
-		private (FontPath? path, PdfFont font) regular;
-		private (FontPath? path, PdfFont font)? bold;
-		private (FontPath? path, PdfFont font)? italic;
-		private (FontPath? path, PdfFont font)? bolditalic;
+		private (FontSetting? setting, PdfFont font) regular;
+		private (FontSetting? setting, PdfFont font)? bold;
+		private (FontSetting? setting, PdfFont font)? italic;
+		private (FontSetting? setting, PdfFont font)? bolditalic;
 
 		public PdfFont GetPdfFont(TextFormat format) {
 			if (format == TextFormat.REGULAR) {
@@ -112,8 +112,8 @@ namespace SharpSheets.Canvas {
 			}
 		}
 
-		private void SetFont(TextFormat format, FontPath? origin, PdfFont font) {
-			(FontPath?, PdfFont) info = (origin, font);
+		private void SetFont(TextFormat format, FontSetting? origin, PdfFont font) {
+			(FontSetting?, PdfFont) info = (origin, font);
 			if (format == TextFormat.REGULAR) {
 				regular = info;
 			}
@@ -128,8 +128,8 @@ namespace SharpSheets.Canvas {
 			}
 		}
 
-		public void SetFont(TextFormat format, FontPath origin) {
-			PdfFont pdfFont = FontGraphicsRegistry.GetPdfFont(origin, format);
+		public void SetFont(TextFormat format, FontSetting origin) {
+			PdfFont pdfFont = FontGraphicsRegistry.GetPdfFont(origin);
 			SetFont(format, origin, pdfFont);
 		}
 
@@ -149,8 +149,8 @@ namespace SharpSheets.Canvas {
 			}
 		}
 
-		public FontPathGrouping GetFonts() {
-			return new FontPathGrouping(regular.path, bold?.path, italic?.path, bolditalic?.path);
+		public FontSettingGrouping GetFonts() {
+			return new FontSettingGrouping(regular.setting, bold?.setting, italic?.setting, bolditalic?.setting);
 		}
 
 		public VerificationFontPathGrouping() {
@@ -384,7 +384,7 @@ namespace SharpSheets.Canvas {
 		}
 
 
-		public FontPathGrouping GetFonts() => state.fonts.GetFonts();
+		public FontSettingGrouping GetFonts() => state.fonts.GetFonts();
 		public float GetTextSize() => state.fontsize;
 		public TextFormat GetTextFormat() => state.textFormat;
 
@@ -399,7 +399,7 @@ namespace SharpSheets.Canvas {
 			return this;
 		}
 
-		public ISharpGraphicsState SetFont(TextFormat format, FontPath? font) {
+		public ISharpGraphicsState SetFont(TextFormat format, FontSetting? font) {
 			if (font?.Path != null) {
 				state.fonts.SetFont(format, font);
 			}

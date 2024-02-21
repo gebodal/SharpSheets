@@ -13,12 +13,12 @@ namespace SharpEditor {
 
 	public class TypefaceGrouping {
 
-		private struct TypefaceInfo {
-			public readonly Typeface typeface;
-			public readonly PdfFont pdfFont;
-			public readonly FontPath? origin;
+		private readonly struct TypefaceInfo {
+			public readonly GlyphTypeface typeface;
+			public readonly PdfGlyphFont pdfFont;
+			public readonly FontSetting? origin;
 
-			public TypefaceInfo(Typeface typeface, PdfFont pdfFont, FontPath? origin) {
+			public TypefaceInfo(GlyphTypeface typeface, PdfGlyphFont pdfFont, FontSetting? origin) {
 				this.typeface = typeface;
 				this.pdfFont = pdfFont;
 				this.origin = origin;
@@ -42,7 +42,7 @@ namespace SharpEditor {
 		}
 		*/
 
-		public Typeface GetTypeface(TextFormat format) {
+		public GlyphTypeface GetTypeface(TextFormat format) {
 			if (format == TextFormat.REGULAR) {
 				return regular.typeface;
 			}
@@ -57,7 +57,7 @@ namespace SharpEditor {
 			}
 		}
 
-		private PdfFont GetPdfFont(TextFormat format) {
+		public PdfGlyphFont GetPdfFont(TextFormat format) {
 			if (format == TextFormat.REGULAR) {
 				return regular.pdfFont;
 			}
@@ -72,7 +72,7 @@ namespace SharpEditor {
 			}
 		}
 
-		private void SetFont(TextFormat format, Typeface typeface, PdfFont pdfFont, FontPath? origin) {
+		private void SetFont(TextFormat format, GlyphTypeface typeface, PdfGlyphFont pdfFont, FontSetting? origin) {
 			TypefaceInfo typefaceInfo = new TypefaceInfo(typeface, pdfFont, origin);
 			if (format == TextFormat.REGULAR) {
 				regular = typefaceInfo;
@@ -88,12 +88,10 @@ namespace SharpEditor {
 			}
 		}
 
-		public void SetFont(TextFormat format, FontPath origin) {
-			GlyphTypeface glyphs = new GlyphTypeface(new Uri(origin.Path));
-			FontFamily family = new FontFamily(origin.Path + "#" + glyphs.FamilyNames.First().Value);
-			Typeface typeface = new Typeface(family, glyphs.Style, glyphs.Weight, glyphs.Stretch);
-			PdfFont pdfFont = FontGraphicsRegistry.GetPdfFont(origin); // PdfEncodings.WINANSI
-			SetFont(format, typeface, pdfFont, origin);
+		public void SetFont(TextFormat format, FontSetting origin) {
+			GlyphTypeface glyphs = new GlyphTypeface(new Uri(origin.Path.Path));
+			PdfGlyphFont pdfFont = FontGraphicsRegistry.GetPdfFont(origin); // PdfEncodings.WINANSI
+			SetFont(format, glyphs, pdfFont, origin);
 		}
 
 		// For opening a font from a Stream?
@@ -127,8 +125,8 @@ namespace SharpEditor {
 		}
 		*/
 
-		public FontPathGrouping GetFonts() {
-			return new FontPathGrouping(regular.origin, bold?.origin, italic?.origin, bolditalic?.origin);
+		public FontSettingGrouping GetFonts() {
+			return new FontSettingGrouping(regular.origin, bold?.origin, italic?.origin, bolditalic?.origin);
 		}
 
 		/*
@@ -152,30 +150,37 @@ namespace SharpEditor {
 			return GetPdfFont(format).GetWidth(text, fontsize);
 		}
 
+		public float GetWidth(char c, TextFormat format, float fontsize) {
+			return GetPdfFont(format).GetWidth(c.ToString(), fontsize);
+		}
+		/*
+		public float GetKerning(char left, char right, TextFormat format, float fontsize) {
+			return GetPdfFont(format).GetKerning(left, right, fontsize);
+		}
+		*/
+
+		private static readonly GlyphTypeface regularGlyphs;
+		private static readonly GlyphTypeface boldGlyphs;
+		private static readonly GlyphTypeface italicGlyphs;
+		private static readonly GlyphTypeface bolditalicGlyphs;
+
+		static TypefaceGrouping() {
+			regularGlyphs = new GlyphTypeface(FontGraphicsRegistry.GetRegularDefaultUri());
+			boldGlyphs = new GlyphTypeface(FontGraphicsRegistry.GetBoldDefaultUri());
+			italicGlyphs = new GlyphTypeface(FontGraphicsRegistry.GetItalicDefaultUri());
+			bolditalicGlyphs = new GlyphTypeface(FontGraphicsRegistry.GetBoldItalicDefaultUri());
+		}
+
 		public TypefaceGrouping() {
-			FontFamily defaultFontFamily = new FontFamily("Arial");
+			PdfGlyphFont regularDefault = FontGraphicsRegistry.GetRegularDefault();
+			PdfGlyphFont boldDefault = FontGraphicsRegistry.GetBoldDefault();
+			PdfGlyphFont italicDefault = FontGraphicsRegistry.GetItalicDefault();
+			PdfGlyphFont boldItalicDefault = FontGraphicsRegistry.GetBoldItalicDefault();
 
-			PdfFont regularDefault = FontGraphicsRegistry.GetRegularDefault();
-			PdfFont boldDefault = FontGraphicsRegistry.GetBoldDefault();
-			PdfFont italicDefault = FontGraphicsRegistry.GetItalicDefault();
-			PdfFont boldItalicDefault = FontGraphicsRegistry.GetBoldItalicDefault();
-
-			this.SetFont(
-				TextFormat.REGULAR,
-				new Typeface(defaultFontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal),
-				regularDefault, null);
-			this.SetFont(
-				TextFormat.BOLD,
-				new Typeface(defaultFontFamily, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
-				boldDefault, null);
-			this.SetFont(
-				TextFormat.ITALIC,
-				new Typeface(defaultFontFamily, FontStyles.Italic, FontWeights.Normal, FontStretches.Normal),
-				italicDefault, null);
-			this.SetFont(
-				TextFormat.BOLDITALIC,
-				new Typeface(defaultFontFamily, FontStyles.Italic, FontWeights.Bold, FontStretches.Normal),
-				boldItalicDefault, null);
+			this.SetFont(TextFormat.REGULAR, regularGlyphs, regularDefault, null);
+			this.SetFont(TextFormat.BOLD, boldGlyphs, boldDefault, null);
+			this.SetFont(TextFormat.ITALIC, italicGlyphs, italicDefault, null);
+			this.SetFont(TextFormat.BOLDITALIC, bolditalicGlyphs, boldItalicDefault, null);
 		}
 
 		public TypefaceGrouping(TypefaceGrouping source) {

@@ -17,6 +17,12 @@ namespace GeboPDF.Utilities {
 			}
 		}
 
+		public static void InsertCount<T>(this IList<T> list, int index, T value, int count) {
+			for (int i = 0; i < count; i++) {
+				list.Insert(index, value);
+			}
+		}
+
 	}
 
 }

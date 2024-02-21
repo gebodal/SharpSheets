@@ -36,7 +36,7 @@ namespace SharpSheets.Canvas {
 		float GetTextSize();
 		TextFormat GetTextFormat();
 
-		FontPathGrouping GetFonts();
+		FontSettingGrouping GetFonts();
 
 		float GetWidth(string text, TextFormat format, float fontsize);
 		float GetAscent(string text, TextFormat format, float fontsize);
@@ -70,7 +70,7 @@ namespace SharpSheets.Canvas {
 		public static readonly LineJoinStyle LineJoinStyle = LineJoinStyle.MITER;
 		public static readonly float MitreLimit = 10.0f;
 
-		public static readonly FontPathGrouping Fonts = new FontPathGrouping((FontPath?)null, (FontPath?)null, (FontPath?)null, (FontPath?)null);
+		public static readonly FontSettingGrouping Fonts = new FontSettingGrouping((FontSetting?)null, (FontSetting?)null, (FontSetting?)null, (FontSetting?)null);
 		public static readonly TextFormat TextFormat = TextFormat.REGULAR;
 		public static readonly float Fontsize = 0f;
 		public static readonly TextRenderingMode TextRenderingMode = TextRenderingMode.FILL;
@@ -122,7 +122,7 @@ namespace SharpSheets.Canvas {
 		ISharpGraphicsState SetTextFormatAndSize(TextFormat font, float size);
 		ISharpGraphicsState SetTextSize(float size);
 
-		ISharpGraphicsState SetFont(TextFormat format, FontPath? font); // TODO Nullable correct here?
+		ISharpGraphicsState SetFont(TextFormat format, FontSetting? font); // TODO Nullable correct here?
 
 		ISharpGraphicsState SetFieldsEnabled(bool enabled);
 
@@ -228,7 +228,7 @@ namespace SharpSheets.Canvas {
 
 		public float TextSize { get; }
 		public TextFormat TextFormat { get; }
-		public FontPathGrouping Fonts { get; }
+		public FontSettingGrouping Fonts { get; }
 
 		public bool FieldsEnabled { get; }
 		public string FieldPrefix { get; }
@@ -285,7 +285,7 @@ namespace SharpSheets.Canvas {
 			StrokeDash? strokeDash,
 			float textSize,
 			TextFormat textFormat,
-			FontPathGrouping fonts,
+			FontSettingGrouping fonts,
 			bool fieldsEnabled,
 			string fieldPrefix,
 			Transform transform,
