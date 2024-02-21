@@ -141,9 +141,10 @@ namespace SharpSheets.Markup.Elements {
 				if (StyleSheet.StrokeLineJoin != null) { canvas.SetLineJoinStyle(StyleSheet.StrokeLineJoin); }
 				if (StyleSheet.StrokeMiterLimit != null) { canvas.SetMiterLimit(StyleSheet.StrokeMiterLimit); }
 				if (StyleSheet.StrokeWidth != null) { canvas.SetLineWidth(StyleSheet.StrokeWidth); }
+
+				if(StyleSheet.StrokeDashArray is not null) { canvas.SetStrokeDash(StyleSheet.StrokeDashArray, StyleSheet.StrokeDashOffset); }
 			}
 
-			
 		}
 
 		/// <summary></summary>

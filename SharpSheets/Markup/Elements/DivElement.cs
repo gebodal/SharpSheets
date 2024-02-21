@@ -70,7 +70,7 @@ namespace SharpSheets.Markup.Elements {
 		/// the pattern. Note that such repetitions will each individually repeat any <paramref name="_for_each"/>
 		/// attributes which may be specified.</param>
 		/// <param name="_for_each">Specifies that the element should be repeated a number of times
-		/// based on some collection of elements, which one repetition for each element in that collection.
+		/// based on some collection of elements, with one repetition for each element in that collection.
 		/// Note that if a value is specified for <paramref name="_repeat"/>, then this for-each statement
 		/// will be repeated as a whole <paramref name="_repeat"/> times.</param>
 		public DivSetup(
@@ -124,81 +124,6 @@ namespace SharpSheets.Markup.Elements {
 			else {
 				return VariableBoxes.Empty;
 			}
-		}
-	}
-
-	public class ForEachExpression {
-
-		public EnvironmentVariableInfo Variable { get; }
-		public EvaluationType ReturnType { get; }
-		readonly EvaluationNode arrayExpr;
-
-		/// <summary></summary>
-		/// <exception cref="EvaluationTypeException"></exception>
-		public ForEachExpression(EvaluationName variable, EvaluationNode arrayExpr) {
-			if (!(arrayExpr.ReturnType.IsArray || arrayExpr.ReturnType.IsTuple)) {
-				throw new EvaluationTypeException("Expression must produce an array or tuple.");
-			}
-
-			this.arrayExpr = arrayExpr;
-			this.ReturnType = this.arrayExpr.ReturnType.ElementType;
-			this.Variable = new EnvironmentVariableInfo(variable, ReturnType, null);
-		}
-
-		/// <summary></summary>
-		/// <exception cref="EvaluationCalculationException"></exception>
-		/// <exception cref="EvaluationTypeException"></exception>
-		public IEnumerable<object> Evaluate(IEnvironment environment) {
-			object? eval = arrayExpr.Evaluate(environment);
-			if (EvaluationTypes.TryGetArray(eval, out Array? values)) {
-				foreach (object value in values) {
-					yield return value;
-				}
-			}
-			else {
-				throw new EvaluationCalculationException("Invalid type received from for-each expression: " + (eval?.GetType()?.Name ?? "null"));
-			}
-		}
-
-		/// <summary>
-		/// Evaluate the environments produced by this for-each expression, optionally concatenating each result to the original environment.
-		/// </summary>
-		/// <param name="environment"> The original environment, using which the for-each expression will be evaluated. </param>
-		/// <param name="includeOriginal"> Flag indicating if the original environment should be concatenated onto the returned environments.
-		/// Concatenating each result to the original environment if true, otherwise returning each resulting item as a IEnvironment with a single value. </param>
-		/// <returns></returns>
-		/// <exception cref="EvaluationCalculationException"></exception>
-		/// <exception cref="EvaluationTypeException"></exception>
-		public IEnumerable<IEnvironment> EvaluateEnvironments(IEnvironment environment, bool includeOriginal) {
-			Array values = (Array)(arrayExpr.Evaluate(environment) ?? throw new EvaluationCalculationException("Could not resolve for-each expression."));
-			foreach (object value in values) {
-				IEnvironment variableEnv = SimpleEnvironments.Single(Variable, value);
-				if (includeOriginal) {
-					yield return variableEnv.AppendEnvironment(environment);
-				}
-				else {
-					yield return variableEnv;
-				}
-			}
-		}
-
-		private static readonly Regex forEachRegex = new Regex(@"^(?<variable>[a-z][a-z0-9]*)\s+in\s+(?<expr>.+)$", RegexOptions.IgnoreCase);
-
-		/// <summary></summary>
-		/// <exception cref="FormatException"></exception>
-		/// <exception cref="EvaluationException"></exception>
-		public static ForEachExpression Parse(string text, IVariableBox variables) {
-			Match match = forEachRegex.Match(text.Trim());
-			if (!match.Success) {
-				throw new FormatException("Invalid for-each expression.");
-			}
-
-			string variable = match.Groups["variable"].Value;
-
-			string exprText = match.Groups["expr"].Value;
-			EvaluationNode expr = Evaluation.Parse(exprText, variables);
-
-			return new ForEachExpression(variable, expr);
 		}
 	}
 
@@ -640,7 +565,12 @@ namespace SharpSheets.Markup.Elements {
 					try {
 						markupCanvas = MarkupCanvas.Open(canvas, drawingRect, pattern.setup.canvasArea, slicingValues, environment, diagnostic);
 						//if (pattern.setup.drawingCoords != null) markupCanvas.SetDrawingCoords(pattern.setup.drawingCoords);
-						drawable.Draw(markupCanvas);
+						foreach(IEnvironment forEachEnv in drawable.StyleSheet.GetForEachEnvironments(markupCanvas.Environment)) {
+							markupCanvas.SaveEnvironment();
+							markupCanvas.ApplyEnvironment(forEachEnv);
+							drawable.Draw(markupCanvas);
+							markupCanvas.RestoreEnvironment();
+						}
 						markupCanvas.Close(out SharpDrawingException[] errors);
 						foreach(SharpDrawingException ex in errors) { canvas.LogError(drawable, ex.Message, ex); }
 					}
@@ -727,7 +657,7 @@ namespace SharpSheets.Markup.Elements {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		private NSliceScaling? GetSlicing(ISharpCanvas canvas, Rectangle fullRect) {
 			Rectangle rect = ApplyAspect(fullRect);
-			MarkupGeometry markupGeometry = MarkupGeometry.CreateGeometry(canvas.GetSnapshot(), rect, pattern.setup.canvasArea, slicingValues, environment);
+			MarkupGeometry markupGeometry = MarkupGeometry.CreateGeometry(canvas.GetSnapshot(), rect, pattern.setup.canvasArea, slicingValues, environment, out _);
 			NSliceScaling? slicing = markupGeometry.Slicing;
 
 			return slicing;
@@ -759,13 +689,13 @@ namespace SharpSheets.Markup.Elements {
 				return marginedRect;
 			}
 			else if (rectExpression != null) {
-				MarkupGeometry markupGeometry = MarkupGeometry.CreateGeometry(graphicsState.GetSnapshot(), availableRect, pattern.setup.canvasArea, slicingValues, environment);
+				MarkupGeometry markupGeometry = MarkupGeometry.CreateGeometry(graphicsState.GetSnapshot(), availableRect, pattern.setup.canvasArea, slicingValues, environment, out IEnvironment geometryEnv);
 				
 				//AreaRect evaluatedAreaRect = rectExpression.Evaluate(markupGeometry.Environment);
-				Rectangle evaluatedRect = (rectExpression.Rect ?? MarkupEnvironments.WholeAreaRectExpression).Evaluate(markupGeometry.Environment);
-				Margins evaluatedMargins = rectExpression.Margins?.Evaluate(markupGeometry.Environment) ?? Margins.Zero;
+				Rectangle evaluatedRect = (rectExpression.Rect ?? MarkupEnvironments.WholeAreaRectExpression).Evaluate(geometryEnv);
+				Margins evaluatedMargins = rectExpression.Margins?.Evaluate(geometryEnv) ?? Margins.Zero;
 
-				Rectangle transformedRect = markupGeometry.TransformRectangle(evaluatedRect);
+				Rectangle transformedRect = markupGeometry.TransformRectangle(evaluatedRect, geometryEnv);
 				Rectangle positionedRect = new Rectangle(availableRect.X + transformedRect.X, availableRect.Y + transformedRect.Y, transformedRect.Width, transformedRect.Height);
 				Rectangle marginedRect = positionedRect.Margins(evaluatedMargins, false);
 
@@ -793,11 +723,11 @@ namespace SharpSheets.Markup.Elements {
 					return InvertApplyAspect(marginedRect.Margins(Margins, true));
 				}
 				else if (canvasArea != null && remainingRectExpr.CanCompute(AreaFullComputeVariables)) {
-					MarkupGeometry markupGeometry = MarkupGeometry.CreateGeometry(graphicsState.GetSnapshot(), (Rectangle)canvasArea, canvasArea, slicingValues, environment);
+					MarkupGeometry markupGeometry = MarkupGeometry.CreateGeometry(graphicsState.GetSnapshot(), (Rectangle)canvasArea, canvasArea, slicingValues, environment, out IEnvironment geometryEnv);
 
 					//AreaRect remainingAreaRect = remainingRectExpr.Evaluate(markupGeometry.Environment);
-					Rectangle remainingRect = (remainingRectExpr.Rect ?? MarkupEnvironments.WholeAreaRectExpression).Evaluate(markupGeometry.Environment);
-					Margins remainingMargins = remainingRectExpr.Margins?.Evaluate(markupGeometry.Environment) ?? Margins.Zero;
+					Rectangle remainingRect = (remainingRectExpr.Rect ?? MarkupEnvironments.WholeAreaRectExpression).Evaluate(geometryEnv);
+					Margins remainingMargins = remainingRectExpr.Margins?.Evaluate(geometryEnv) ?? Margins.Zero;
 
 					Rectangle marginedRect = availableRect.Margins(remainingMargins, true);
 					Rectangle fullRect = markupGeometry.InferCanvasArea(remainingRect, marginedRect);

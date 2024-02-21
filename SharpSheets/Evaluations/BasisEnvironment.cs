@@ -35,6 +35,7 @@ namespace SharpSheets.Evaluations {
 			MinVarFunction.Instance, MaxVarFunction.Instance,
 			SumFunction.Instance,
 			FloorFunction.Instance, CeilingFunction.Instance,
+			AbsoluteFunction.Instance,
 			SquareRootFunction.Instance,
 			SinFunction.Instance, CosFunction.Instance, TanFunction.Instance,
 			AsinFunction.Instance, AcosFunction.Instance, AtanFunction.Instance, Atan2Function.Instance,

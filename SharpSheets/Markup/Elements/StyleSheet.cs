@@ -2,6 +2,7 @@
 using SharpSheets.Evaluations;
 using SharpSheets.Markup.Canvas;
 using SharpSheets.Canvas.Text;
+using SharpSheets.Utilities;
 
 namespace SharpSheets.Markup.Elements {
 
@@ -50,6 +51,8 @@ namespace SharpSheets.Markup.Elements {
 		public EnumExpression<DrawingCoords>? DrawingCoords { get; } // TODO Should this be removed?
 		public BoolExpression Enabled { get; } = true;
 
+		public ForEachExpression? ForEach { get; } = null;
+
 		public StyleSheet() { }
 
 		/// <summary>
@@ -97,8 +100,11 @@ namespace SharpSheets.Markup.Elements {
 		/// is the Identity transformation.</param>
 		/// <param name="drawing_coords">[Experimental Feature] Affects the drawing coordinates
 		/// used for this element.</param>
-		/// <param name="enabled" default="true">A flag to indicate whether this element should be
+		/// <param name="_enabled" default="true">A flag to indicate whether this element should be
 		/// rendered and included in layouts.</param>
+		/// <param name="_for_each">Specifies that the element should be repeated a number of times
+		/// based on some collection, with one repetition for each entry in that collection, with that
+		/// entry being available as an environment variable to the element.</param>
 		public StyleSheet(
 			ClipPath? _clip_path,
 			EnumExpression<AreaRule>? clip_rule,
@@ -121,7 +127,8 @@ namespace SharpSheets.Markup.Elements {
 			ColorExpression? text_color,
 			TransformExpression? _transform,
 			EnumExpression<DrawingCoords>? drawing_coords,
-			BoolExpression enabled
+			BoolExpression _enabled,
+			ForEachExpression? _for_each
 			) {
 
 			ClipPath = _clip_path;
@@ -147,7 +154,9 @@ namespace SharpSheets.Markup.Elements {
 			Transform = _transform;
 
 			DrawingCoords = drawing_coords;
-			Enabled = enabled;
+			Enabled = _enabled;
+
+			ForEach = _for_each;
 		}
 
 		public StyleSheet Update(
@@ -170,7 +179,8 @@ namespace SharpSheets.Markup.Elements {
 			ColorExpression? text_color = null,
 			TransformExpression? transform = null,
 			EnumExpression<DrawingCoords>? drawing_coords = null,
-			BoolExpression? enabled = null
+			BoolExpression? enabled = null,
+			ForEachExpression? for_each = null
 			) {
 
 			return new StyleSheet(
@@ -193,7 +203,52 @@ namespace SharpSheets.Markup.Elements {
 				text_color: text_color ?? TextColor,
 				_transform: transform ?? Transform,
 				drawing_coords: drawing_coords ?? DrawingCoords,
-				enabled: enabled ?? Enabled
+				_enabled: enabled ?? Enabled,
+				_for_each: for_each ?? ForEach
+			);
+		}
+
+		public IEnumerable<IEnvironment> GetForEachEnvironments(IEnvironment outerEnvironment) {
+			if (ForEach != null) {
+				return ForEach.EvaluateEnvironments(outerEnvironment, false);
+			}
+			else {
+				return Environments.Empty.Yield();
+			}
+		}
+
+		public IVariableBox GetVariables(IVariableBox outerVariables) {
+			if (ForEach != null) {
+				return outerVariables.AppendVariables(SimpleVariableBoxes.Single(ForEach.Variable));
+			}
+			else {
+				return outerVariables;
+			}
+		}
+
+		public StyleSheet WithoutForEach() {
+			return new StyleSheet(
+				_clip_path: ClipPath,
+				clip_rule: ClipRule,
+				fill: Fill,
+				fill_opacity: FillOpacity,
+				fill_rule: FillRule,
+				font_size: FontSize,
+				font_style: FontStyle,
+				stroke: Stroke,
+				stroke_dasharray: StrokeDashArray,
+				stroke_dashoffset: StrokeDashOffset,
+				stroke_linecap: StrokeLineCap,
+				stroke_linejoin: StrokeLineJoin,
+				stroke_miterlimit: StrokeMiterLimit,
+				stroke_opacity: StrokeOpacity,
+				stroke_width: StrokeWidth,
+				text_anchor: TextAnchor,
+				text_color: TextColor,
+				_transform: Transform,
+				drawing_coords: DrawingCoords,
+				_enabled: Enabled,
+				_for_each: null
 			);
 		}
 	}

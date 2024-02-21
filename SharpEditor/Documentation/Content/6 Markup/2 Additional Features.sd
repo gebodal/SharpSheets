@@ -34,6 +34,18 @@ The `<clipPath>` element can be used to collect a series of geometries to use as
 The contents of a `<clipPath>` element must all be shape elements (e.g. `<circle>`, `<path>`, etc.), and will be applied sequentially -- this means that only areas in the overlap of all child elements of the `<clipPath>` will available for painting.
 
 
+## For Each
+
+Various Markup elements can make use of a `for-each` attribute, which must have a value of the form: `"[loopVar] in [arrayExpr]"`, where "[loopVar]" is replaced with a variable name, and "[arrayExpr]" is replaced with an expression whose return type is an array.
+
+An element with such a for-each attribute will be repeated, once for each entry in the provided array expression. Each such entry will be available to each repetition of the element via the provided loop variable name.
+
+This setup allows you to repeat elements programatically, such that each element can change its content or properties based on a value in an array.
+
+Graphical elements (i.e. `<line>`, or `<rect>`) will be repeated within the same canvas area, whereas `<div>` elements will cause additional divisions to be included in the grid layout calculations.
+
+Additionally, `<div>` elements have a `repeat` attribute, which accepts an integer value. The entire element, including any `for-each` attributes, will be repeated this many times, adding divisions to the grid layout calculations.
+
 ## Div Canvas Areas
 
 You can change the coordinate system of a `<div>` [elements](Markup::div) by specifying a `canvas` attribute for that `<div>`.
