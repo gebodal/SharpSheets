@@ -19,24 +19,15 @@
     - Creating skin system for user-controlled colours
         - Bind brush colours to DependencyProperties
         - Create some kind of ItemsPresenter for this, to avoid overly verbose code
-- CardDefinition documentation
-    - Layout and explainability
-- Use pipe character ("|") for card table separator
 
 - The environment variables used when parsing certain MarkupDiv properties don't match those used when actually evaluating them
     - Could there be more explicit type management here? Some kind of MarkupLayoutEnvironment vs MarkupCanvasEnvironment types?
 - Implement Shapes being able to create examples with pre-set example values (like Widget examples)
 - CardSubject tooltip format
 - Need some way to account for the fact in `IBox.FullRect` that the incoming rect may be zero in one axis (as it can be more an abstract representation of a size)
-- It would be good to get "unused attribute" warnings for Markup files
 - Markup textRect doesn't allow for tspans to have different font-size values
-- "use" node also needs to propagate errors back to the original better
-- Would be great to put "for-each" attributes on drawable elements (IDrawableElement)
-    - The elements aren't evaluated until draw-time anyway, so this shouldn't mess with Div element parsing/construction
-    - It will mess with the order of construction for other elements, though, as the for-each variable will need to be known before the rest of the element properties can be parsed
-- The SharpSheets.Fonts file/class structure should be improved
-- "Section" and "Box" should be merged into one abstract superclass, with subclasses that only differ by whether or not the field area is multiline
-- "SlotsBar" "labels" argument should probably be a 2-tuple of string
+- `Section` and `Box` widgets should be merged into one abstract superclass, with subclasses that only differ by whether or not the field area is multiline
+- `SlotsBar` `labels` argument should probably be a 2-tuple of string
 - Remove NotImplementedException throw statements from code (replace with NotSupportedException)
 - Consider removing a lot of the ArgumentException throw statements, as they are not very expressive
 - SharpEditor tries to find `source` directories in several places, with potentially dangerous results - check such cases.
@@ -58,13 +49,10 @@
     - Currently `text-color` can only be a solid color
 - It would also be good to allow the notes/labels on `Bars`/`UsageBars` to be placed on any side of the bar (TOP, RIGHT, BOTTOM, LEFT) to allow for funky bar styles
     - This also opens the possibility of better using the `IEntriedArea` instead of specifically `IUsageBar`
-- There really should be a way to `repeat` or `for-each` non-`<div>` elements in Markup
-    - Add to StyleSheet?
 
 - It would be great to clean up the environments, such that they are typed to better help distinguish
     - This might also help document them better?
     - Is it a good idea to have a base environment, that contains the "built-in" functions? (Then it can self-document too)
-- PI Should be defined in the evaluations environments
 
 
 ### Non-Critical
@@ -122,10 +110,6 @@
             - But it does make the whole system more robust, and exploitable for other uses
             - How do we cope with arrays of these dictionary style objects?
                 - Just don't expand them, and treat these as separate entities to be parsed?
-- Implement user-defined functions for CardDefinitions
-    - `func calculate(arg: int, arg2: float): arg+2 /// Description`, and similar
-- Add `<entries>` (?) tags to Markup?
-    - `<entries>` tags are just a more explicit way of defining entry-based arguments?
 - Can `FullRect(ISharpGraphicsState, Rectangle)` be converted to just `FullSize(ISharpGraphicsState, Size)`?
     - Looks like all the downstream tasks only care about the overall size, rather than the positioning?
         - Other than the MarkupExamplesDocument, but that's not important
@@ -142,7 +126,6 @@
         - `var name|...: int = ...` maybe?
      - All of these arguments would need default values (or an error when a required argument is missing?)
 - Should registries by locked somehow while changing template directory?
-- Allow for arrays of custom enum types in Markup
 - Improve text handling in SharpSheets (specifically from ISharpCanvas)
     - Use something more akin to "BeginText"/"EndText" pattern from PDF?
 - Better SVG integration for Markup (for copy-pasting)
@@ -159,9 +142,6 @@
     - For PDF, this could be faked using XObjects for each listed z-index, which can then just be printed in z-order
     - Would need a way of inserting XObjects into the GraphicsStream (which would require editing the GraphicsStream, or "closing" the ISharpCanvas so they can be drawn at the end)
     - This would mean that single widgets/shapes could draw "background" information that didn't overdraw neighbours
-- Work needs to be done speeding up the `DynamicCardFactory` methods
-    - Integrate pre-computed `InterpolatedContext` into `CardSetDefinition` structure
-        - Hopefully this will save on computation, as it will aid with caching the MakeWidget results for outlines and headers
 - Switch to AvaloniaUI and AvaloniaEdit?
 - What if, instead of using `float` values, we have a `Length` type that could be used for distances?
     - It could accept values with different units, but default to `pt`?
@@ -171,15 +151,13 @@
 - Can we add `<data>` child entities to `<path>` entities? (So we can use `enabled` with them)
 - Need to properly implement fill patterns in PDF and Designer, for use with Markup
     - This will probably require some kind of sub-canvas on which to draw the pattern unit
-- WPF might be using ligatures automatically in the Designer? (That will not be used by PDF readers)
 - Need to directly check characters requested from font, to catch character codes with no matching glyph
     - Currently the designer may display backup characters that PDF does not have access to
     - Need to check characters and provide warning, and possibly replace character code with "unknown character" code
-- Rename `CardSetDefinition` to `Card(s)Configuration`?
 - It might be good to be able to specify config properties for specific widget types
     - i.e. `section.field.format: BOLD`
     - In this case should we avoid having fields with the same names as widgets?
-- Should ShapeFactory actually return a `null` if no `style` value is provided?
+- Should `ShapeFactory` actually return a `null` if no `style` value is provided?
     - Currently there is no way for a widget to actually provide a custom "default" value for a shape, as it will always be overriden by ShapeFactory
 - Could child divs be inheritable?
     - This would necessitate a rewrite of the Named Child code
@@ -217,7 +195,6 @@
     - Would it be better to implement an `IEqualityComparer<PdfObject>`?
         - Perhap relying on making a bunch of the PdfObject subclasses `IEquatable<>`?
 - Cleanup `PdfStreamReader` (the overlap between static and non-static methods is very confusing)
-- Make use of font kerning data
 - Is it possible to provide `TextRenderingMode` or fill opacity values to editable form fields?
 
 - Extend `GraphicsStream` to make `PageGraphicsStream`, which can be used to create structured content sequences
