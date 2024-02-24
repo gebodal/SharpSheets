@@ -195,7 +195,6 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="_name"></param>
 		/// <param name="_description"></param>
 		/// <param name="font"></param>
-		/// <param name="font_"></param>
 		/// <param name="minFontSize"></param>
 		/// <param name="maxFontSize"></param>
 		/// <param name="fontEpsilon"></param>
@@ -211,8 +210,9 @@ namespace SharpSheets.Cards.CardConfigs {
 			CardSetConfig cardSetConfig,
 			string? _name = null,
 			List<string>? _description = null,
-			WidgetSetup.FontGrouping? font = null,
-			WidgetSetup.FontSettingCollection? font_ = null,
+			FontArgument? font = null,
+			//FontArguments.FontGrouping? font = null,
+			//FontArguments.FontSettingCollection? font_ = null,
 			float minFontSize = 7.5f,
 			float maxFontSize = 8.5f,
 			float fontEpsilon = 0.5f,
@@ -231,13 +231,8 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			this.cardSetConfig = cardSetConfig;
 
-			WidgetSetup.FontSettingCollection fontOverrides = font_ ?? new WidgetSetup.FontSettingCollection();
-			this.fonts = new FontSettingGrouping(
-				fontOverrides.regular ?? font?.Regular,
-				fontOverrides.bold ?? font?.Bold,
-				fontOverrides.italic ?? font?.Italic,
-				fontOverrides.bolditalic ?? font?.BoldItalic
-				);
+			//this.fonts = FontArguments.FinalFonts(font, font_);
+			this.fonts = font?.Fonts ?? new FontSettingGrouping();
 
 			this.paragraphSpec = new ParagraphSpecification(lineSpacing, paragraphSpacing, 0f, 0f);
 			this.fontParams = new FontSizeSearchParams(minFontSize, maxFontSize, fontEpsilon);

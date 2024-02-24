@@ -235,7 +235,7 @@ namespace SharpSheets.Parsing {
 					out bool defaultUsedForFirst);
 				errors.AddRange(firstParamErrors);
 
-				if (!defaultUsedForFirst) {
+				if(!defaultUsedForFirst || parameterList[0].IsOptional) {
 					IContext supplementaryContext = new NamedContext(context, parameterName, forceLocal: useLocal);
 					object result = Construct(
 						constructor, supplementaryContext,
@@ -492,7 +492,7 @@ namespace SharpSheets.Parsing {
 
 	/// <summary>
 	/// Implementing this interface indicates that this object is to be interpreted as a primary value with supplementary
-	/// nested arguments by SharpFactory. The first parameter of the primary constructor may not be nullable.
+	/// nested arguments by SharpFactory.
 	/// </summary>
 	public interface ISharpArgSupplemented { }
 

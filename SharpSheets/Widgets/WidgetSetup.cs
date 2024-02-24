@@ -11,56 +11,6 @@ namespace SharpSheets.Widgets {
 
 	public readonly struct WidgetSetup {
 
-		public class FontSettingCollection : ISharpArgsGrouping {
-			public readonly FontSetting? regular;
-			public readonly FontSetting? bold;
-			public readonly FontSetting? italic;
-			public readonly FontSetting? bolditalic;
-
-			/// <summary>
-			/// Constructor for FontCollection.
-			/// </summary>
-			/// <param name="regular">Standard font to use for text without formatting.</param>
-			/// <param name="bold">Font to use for bold text.</param>
-			/// <param name="italic">Font to use for italic text.</param>
-			/// <param name="bolditalic">Font to use for bold-italic text.</param>
-			public FontSettingCollection(FontSetting? regular = null, FontSetting? bold = null, FontSetting? italic = null, FontSetting? bolditalic = null) {
-				this.regular = regular;
-				this.bold = bold;
-				this.italic = italic;
-				this.bolditalic = bolditalic;
-			}
-		}
-
-		public class FontGrouping : ISharpArgSupplemented {
-
-			public FontSetting? Regular => GetSetting(fontPaths?.Regular);
-			public FontSetting? Bold => GetSetting(fontPaths?.Bold);
-			public FontSetting? Italic => GetSetting(fontPaths?.Italic);
-			public FontSetting? BoldItalic => GetSetting(fontPaths?.BoldItalic);
-
-			public readonly FontPathGrouping? fontPaths;
-			public readonly FontTags? tags;
-
-			/// <summary>
-			/// Constructor for FontGroupingWithSetting.
-			/// </summary>
-			/// <param name="fonts">Font paths for this grouping.</param>
-			/// <param name="tags">Font tags to use for this font grouping. This can include script,
-			/// language system, and feature tags (if they are supported by the font
-			/// specified).</param>
-			public FontGrouping(FontPathGrouping? fonts = null, FontTags? tags = null) {
-				this.fontPaths = fonts;
-				this.tags = tags;
-			}
-
-			private FontSetting? GetSetting(FontPath? path) {
-				if (path is null) { return null; }
-				else { return new FontSetting(path, tags); }
-			}
-
-		}
-
 		public static readonly float defaultLinewidth = 1f;
 		public static readonly float defaultGutter = 0f;
 		//public static readonly Dimension defaultSize = Dimension.Single;
@@ -76,8 +26,8 @@ namespace SharpSheets.Widgets {
 		public readonly Color backgroundColor;
 		public readonly Color midtoneColor;
 		public readonly Color textColor;
-		private readonly FontGrouping? fonts;
-		private readonly FontSettingCollection fontOverrides;
+		//private readonly FontGrouping? fonts;
+		//private readonly FontSettingCollection fontOverrides;
 		public readonly FontSettingGrouping finalFonts;
 		public readonly float gutter;
 		public readonly IDetail? gutterStyle;
@@ -110,8 +60,6 @@ namespace SharpSheets.Widgets {
 		/// font names or paths, specifying Regular, Bold, Italic, and Bold Italic font styles.
 		/// Fonts are identified by name or path, searching first in the current directory,
 		/// and then in the system font directory.</param>
-		/// <param name="font_">FontCollection object for overriding specific font styles for
-		/// this widget and its children.</param>
 		/// <param name="gutter">Spacing between this widget's children, measured in points.</param>
 		/// <param name="gutter_">Gutter style for this widget and its children.
 		/// This style is used to draw detailing in the spaces between child widgets.</param>
@@ -138,8 +86,9 @@ namespace SharpSheets.Widgets {
 					Color? background = null,
 					Color? midtone = null,
 					Color? textColor = null,
-					FontGrouping? font = null,
-					FontSettingCollection? font_ = null,
+					FontArgument? font = null,
+					//FontArguments.FontGrouping? font = null,
+					//FontArguments.FontSettingCollection? font_ = null,
 					float gutter = 0f,
 					IDetail? gutter_ = null, // gutter_
 					Dimension? _size = null,
@@ -156,14 +105,8 @@ namespace SharpSheets.Widgets {
 			this.midtoneColor = midtone ?? defaultMidtoneColor;
 			this.textColor = textColor ?? defaultTextColor;
 
-			this.fonts = font;
-			this.fontOverrides = font_ ?? new FontSettingCollection();
-			this.finalFonts = new FontSettingGrouping(
-				fontOverrides.regular ?? fonts?.Regular,
-				fontOverrides.bold ?? fonts?.Bold,
-				fontOverrides.italic ?? fonts?.Italic,
-				fontOverrides.bolditalic ?? fonts?.BoldItalic
-				);
+			//this.finalFonts = FontArguments.FinalFonts(font, font_);
+			this.finalFonts = font?.Fonts ?? new FontSettingGrouping();
 
 			this.gutter = gutter;
 			this.gutterStyle = gutter_;

@@ -77,6 +77,8 @@ namespace SharpSheets.Fonts {
 			BoldItalic = source.BoldItalic;
 		}
 
+		public FontSettingGrouping() : this(null, null, null, null) { }
+
 		public bool Equals(FontSettingGrouping? other) {
 			if (other is null) { return false; }
 			return FontSetting.Equals(this.Regular, other.Regular)
