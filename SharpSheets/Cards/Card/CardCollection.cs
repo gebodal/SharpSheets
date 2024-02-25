@@ -132,9 +132,9 @@ namespace SharpSheets.Cards.Card
 
 		public override float Gutter { get { return 0f; } }
 
-		public override void DrawHeader(ISharpCanvas canvas, Rectangle rect, int card, int totalCards) { }
+		public override void DrawOutline(ISharpCanvas canvas, Rectangle rect, int card, int totalCards) { }
 
-		public override void DrawOutline(ISharpCanvas canvas, Rectangle[] rects, out IEnumerable<Rectangle> outlineRects) {
+		public override void DrawBackground(ISharpCanvas canvas, Rectangle[] rects, out IEnumerable<Rectangle> outlineRects) {
 			canvas.SaveState();
 			canvas.SetStrokeColor(Color.Red).SetFillColor(Color.Red);
 			foreach (Rectangle rect in rects) {

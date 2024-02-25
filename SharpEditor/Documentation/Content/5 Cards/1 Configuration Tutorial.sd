@@ -22,16 +22,16 @@ configProperty2: value2
 def value1: int
 def value2 = value1 + 5
 
-# Card outlines and headers
+# Card backgrounds and outlines
+background:
+	condition: expression
+	# Contents...
+
 outline:
 	condition: expression
 	# Contents...
 
-header:
-	condition: expression
-	# Contents...
-
-header:
+outline:
 	condition: otherexpression
 	# Contents...
 

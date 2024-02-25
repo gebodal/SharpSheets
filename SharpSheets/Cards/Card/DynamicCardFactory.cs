@@ -27,7 +27,7 @@ namespace SharpSheets.Cards.Card
 
 			errors = new List<SharpParsingException>();
 
-			(ArrangementCollection<IWidget> headerCollection, ArrangementCollection<IWidget> outlineCollection) = GetCardOutlineCollections(subject, widgetFactory, errors);
+			(ArrangementCollection<IWidget> outlineCollection, ArrangementCollection<IWidget> backgroundCollection) = GetCardOutlineCollections(subject, widgetFactory, errors);
 
 			List<IFixedCardSegmentRect> segmentRects = new List<IFixedCardSegmentRect>();
 			foreach (CardSegment segment in subject) {
@@ -51,17 +51,17 @@ namespace SharpSheets.Cards.Card
 				orderedSegments = OrderRects(orderedSegments);
 			}
 
-			DynamicCard dynamicCard = new DynamicCard(subject, cardConfig.gutter, cardConfig.joinSplitCards, cardConfig.cropOnFinalCard, outlineCollection, cardConfig.gutterStyle, headerCollection, orderedSegments);
+			DynamicCard dynamicCard = new DynamicCard(subject, cardConfig.gutter, cardConfig.joinSplitCards, cardConfig.cropOnFinalCard, backgroundCollection, cardConfig.gutterStyle, outlineCollection, orderedSegments);
 			if (origins != null) { origins.Add(dynamicCard, subject); }
 			return dynamicCard;
 		}
 
-		private static (ArrangementCollection<IWidget> headers, ArrangementCollection<IWidget> outlines) GetCardOutlineCollections(CardSubject subject, WidgetFactory widgetFactory, List<SharpParsingException> errors) {
+		private static (ArrangementCollection<IWidget> outlines, ArrangementCollection<IWidget> backgrounds) GetCardOutlineCollections(CardSubject subject, WidgetFactory widgetFactory, List<SharpParsingException> errors) {
 			CardSetConfig cardSetConfig = subject.CardConfig.cardSetConfig;
 			CardConfig cardConfig = subject.CardConfig;
 
-			ArrangementCollection<IWidget> headerCollection = new ArrangementCollection<IWidget>(subject.CardConfig.MaxCards, new Div(new WidgetSetup()));
 			ArrangementCollection<IWidget> outlineCollection = new ArrangementCollection<IWidget>(subject.CardConfig.MaxCards, new Div(new WidgetSetup()));
+			ArrangementCollection<IWidget> backgroundCollection = new ArrangementCollection<IWidget>(subject.CardConfig.MaxCards, new Div(new WidgetSetup()));
 
 			// Only the card number/total can vary, so just enumerate all possibilities and store them
 			for (int cardCount = 1; cardCount <= subject.CardConfig.MaxCards; cardCount++) {
@@ -72,17 +72,17 @@ namespace SharpSheets.Cards.Card
 						BasisEnvironment.Instance
 						);
 
-					if(ProcessCardArrangementOutline(subject, cardConfig.headers, cardConfig.cardSetConfig.headers, cardOutlinesEnvironment, cardSetConfig.Source, widgetFactory, errors, "header", out IWidget? headerRect)) {
-						headerCollection[card, cardCount] = headerRect;
+					if(ProcessCardArrangementOutline(subject, cardConfig.outlines, cardConfig.cardSetConfig.outlines, cardOutlinesEnvironment, cardSetConfig.Source, widgetFactory, errors, "outline", out IWidget? outlineRect)) {
+						outlineCollection[card, cardCount] = outlineRect;
 					}
 
-					if (ProcessCardArrangementOutline(subject, cardConfig.outlines, cardConfig.cardSetConfig.outlines, cardOutlinesEnvironment, cardSetConfig.Source, widgetFactory, errors, "outline", out IWidget? outlineRect)) {
-						outlineCollection[card, cardCount] = outlineRect;
+					if (ProcessCardArrangementOutline(subject, cardConfig.backgrounds, cardConfig.cardSetConfig.backgrounds, cardOutlinesEnvironment, cardSetConfig.Source, widgetFactory, errors, "background", out IWidget? backgroundRect)) {
+						backgroundCollection[card, cardCount] = backgroundRect;
 					}
 				}
 			}
 
-			return (headerCollection, outlineCollection);
+			return (outlineCollection, backgroundCollection);
 		}
 
 		private static bool ProcessCardArrangementOutline(CardSubject subject, ConditionalCollection<InterpolatedContext> primary, ConditionalCollection<InterpolatedContext> fallback, IEnvironment environment, DirectoryPath source, WidgetFactory widgetFactory, List<SharpParsingException> errors, string typeName, [MaybeNullWhen(false)] out IWidget result) {

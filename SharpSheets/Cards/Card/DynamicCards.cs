@@ -20,20 +20,20 @@ namespace SharpSheets.Cards.Card
 
 		public readonly CardSubject subject;
 		public readonly IDetail? gutterStyle;
+		public readonly ArrangementCollection<IWidget> backgrounds;
 		public readonly ArrangementCollection<IWidget> outlines;
-		public readonly ArrangementCollection<IWidget> headers;
 
 		public readonly bool joinSplitCards;
 
 		public override bool CropOnFinalCard { get; }
 
-		public DynamicCard(CardSubject subject, float gutter, bool joinSplitCards, bool cropOnFinalCard, ArrangementCollection<IWidget> outlines, IDetail? gutterStyle, ArrangementCollection<IWidget> headers, IFixedCardSegmentRect[] segments) {
+		public DynamicCard(CardSubject subject, float gutter, bool joinSplitCards, bool cropOnFinalCard, ArrangementCollection<IWidget> backgrounds, IDetail? gutterStyle, ArrangementCollection<IWidget> outlines, IFixedCardSegmentRect[] segments) {
 			this.subject = subject;
 			this.Gutter = gutter;
 			this.joinSplitCards = joinSplitCards;
-			this.outlines = outlines;
+			this.backgrounds = backgrounds;
 			this.gutterStyle = gutterStyle;
-			this.headers = headers;
+			this.outlines = outlines;
 			this.Segments = segments;
 			this.CropOnFinalCard = cropOnFinalCard;
 		}
@@ -42,7 +42,7 @@ namespace SharpSheets.Cards.Card
 
 		public override float Gutter { get; }
 
-		protected IWidget GetFrom(ArrangementCollection<IWidget> collection, int card, int totalCards) {
+		protected static IWidget GetFrom(ArrangementCollection<IWidget> collection, int card, int totalCards) {
 			//IWidget rect = collection.GetValue(DynamicCardEnvironments.CardNumberEnvironment(subject.Environment, card, totalCards));
 			/*
 			IWidget rect = collection.GetValue(subject.Environment.AppendDefinitionEnvironment(CardOutlinesEnvironments.GetEnvironment(card, totalCards)));
@@ -58,34 +58,34 @@ namespace SharpSheets.Cards.Card
 			return rect;
 		}
 
-		protected IWidget GetHeader(int card, int totalCards) {
-			return GetFrom(headers, card, totalCards);
-		}
-
 		protected IWidget GetOutline(int card, int totalCards) {
 			return GetFrom(outlines, card, totalCards);
 		}
 
-		public override void DrawHeader(ISharpCanvas canvas, Rectangle rect, int card, int totalCards) {
-			IWidget header = GetHeader(card, totalCards);
-			IWidget outline = GetOutline(card, totalCards);
-			Rectangle headerRect = outline.RemainingRect(canvas, rect) ?? rect; // TODO Yes? Should we not draw the header instead?
-			header.Draw(canvas, headerRect, default);
+		protected IWidget GetBackground(int card, int totalCards) {
+			return GetFrom(backgrounds, card, totalCards);
 		}
 
-		public override void DrawOutline(ISharpCanvas canvas, Rectangle[] rects, out IEnumerable<Rectangle> outlineRects) {
+		public override void DrawOutline(ISharpCanvas canvas, Rectangle rect, int card, int totalCards) {
+			IWidget outline = GetOutline(card, totalCards);
+			IWidget background = GetBackground(card, totalCards);
+			Rectangle outlineRect = background.RemainingRect(canvas, rect) ?? rect; // TODO Yes? Should we not draw the outline instead?
+			outline.Draw(canvas, outlineRect, default);
+		}
+
+		public override void DrawBackground(ISharpCanvas canvas, Rectangle[] rects, out IEnumerable<Rectangle> backgroundRects) {
 			if (joinSplitCards) {
-				IWidget outline = GetOutline(0, 1);
+				IWidget background = GetBackground(0, 1);
 				Rectangle overallRect = Rectangle.GetCommonRectangle(rects);
-				outline.Draw(canvas, overallRect, default);
-				outlineRects = overallRect.Yield();
+				background.Draw(canvas, overallRect, default);
+				backgroundRects = overallRect.Yield();
 			}
 			else {
 				for (int i = 0; i < rects.Length; i++) {
-					IWidget outline = GetOutline(i, rects.Length);
-					outline.Draw(canvas, rects[i], default);
+					IWidget background = GetBackground(i, rects.Length);
+					background.Draw(canvas, rects[i], default);
 				}
-				outlineRects = rects;
+				backgroundRects = rects;
 			}
 		}
 
@@ -97,13 +97,13 @@ namespace SharpSheets.Cards.Card
 		}
 
 		public override Rectangle RemainingRect(ISharpGraphicsState graphicsState, Rectangle rect, int card, int totalCards) {
+			IWidget background = GetBackground(card, totalCards);
 			IWidget outline = GetOutline(card, totalCards);
-			IWidget header = GetHeader(card, totalCards);
-			if (header != null) {
-				if (outline != null) {
-					rect = outline.RemainingRect(graphicsState, rect) ?? rect; // TODO Yes? Is this the right fallback?
+			if (outline != null) {
+				if (background != null) {
+					rect = background.RemainingRect(graphicsState, rect) ?? rect; // TODO Yes? Is this the right fallback?
 				}
-				return header.RemainingRect(graphicsState, rect) ?? rect; // TODO How about this one?
+				return outline.RemainingRect(graphicsState, rect) ?? rect; // TODO How about this one?
 			}
 			else {
 				return rect;

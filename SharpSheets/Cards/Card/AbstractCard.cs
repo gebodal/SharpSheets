@@ -17,13 +17,13 @@ namespace SharpSheets.Cards.Card
 		/// <exception cref="Exceptions.SharpDrawingException"></exception>
 		/// <exception cref="InvalidRectangleException"></exception>
 		/// <exception cref="InvalidOperationException"></exception>
-		public abstract void DrawHeader(ISharpCanvas canvas, Rectangle rect, int card, int totalCards);
+		public abstract void DrawOutline(ISharpCanvas canvas, Rectangle rect, int card, int totalCards);
 
 		/// <summary></summary>
 		/// <exception cref="Exceptions.SharpDrawingException"></exception>
 		/// <exception cref="InvalidRectangleException"></exception>
 		/// <exception cref="InvalidOperationException"></exception>
-		public abstract void DrawOutline(ISharpCanvas canvas, Rectangle[] rects, out IEnumerable<Rectangle> outlineRects);
+		public abstract void DrawBackground(ISharpCanvas canvas, Rectangle[] rects, out IEnumerable<Rectangle> outlineRects);
 
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
