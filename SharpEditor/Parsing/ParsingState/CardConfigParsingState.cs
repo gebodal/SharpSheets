@@ -166,52 +166,60 @@ namespace SharpEditor {
 		}
 
 		public CardConfigEditorResult ParseContent(FilePath origin, DirectoryPath source, string config, out CompilationResult results) {
-			CardSetConfig? cardSetConfig = parser.ParseContent(origin, source, config, out CompilationResult configResult);
+			CardSetConfig? cardSetConfig = parser.ParseContent(origin, source, config, out CompilationResult configCompResults);
 			CardCollection? examplesDocument;
 
 			if (cardSetConfig != null && cardSetConfig.Examples.Count > 0) {
 
 				Dictionary<object, IDocumentEntity> origins = new Dictionary<object, IDocumentEntity>(new IdentityEqualityComparer<object>());
+				Dictionary<object, ICardConfigComponent> configOrigins = new Dictionary<object, ICardConfigComponent>(new IdentityEqualityComparer<object>());
 				WidgetFactory trackedFactory = SharpEditorRegistries.WidgetFactoryInstance.TrackOrigins(origins);
-				examplesDocument = CardCollectionParser.MakeCollection(cardSetConfig.Examples, trackedFactory, origins, out _);
+				examplesDocument = CardCollectionParser.MakeCollection(cardSetConfig.Examples, trackedFactory, origins, configOrigins, out _);
 
 				//Console.WriteLine($"Start number: {origins.Count}, reduced: {new HashSet<object>(origins.Values).Count}");
 
-				if (configResult.origins is not null) {
+				if (configCompResults.origins is not null) {
 					Dictionary<object, IDocumentEntity> procOrigins = new Dictionary<object, IDocumentEntity>(new IdentityEqualityComparer<object>()); // cardDrawing -> configEntry
 
-					foreach (KeyValuePair<object, IDocumentEntity> entry in origins) { // cardRect -> cardSubject / cardWidget -> configEntry
-						if (entry.Value is IContext context) {
-							procOrigins.Add(entry.Key, context);
+					// How much of this first loop is still necessary now? (With the ICardConfigComponent tracking, that is)
+					foreach ((object drawnObj, IDocumentEntity docEntity)  in origins) { // cardRect -> cardSubject / cardWidget -> configEntry
+						if (docEntity is IContext context) {
+							procOrigins.Add(drawnObj, context);
 						}
 						else {
 							object? configObject = null;
-							if (entry.Value is CardSubject subject) {
+							if (docEntity is CardSubject subject) {
 								configObject = subject.CardConfig;
 							}
-							else if (entry.Value is CardSegment section) {
+							else if (docEntity is CardSegment section) {
 								configObject = section.SegmentConfig;
 							}
-							else if (entry.Value is CardFeature feature) {
+							else if (docEntity is CardFeature feature) {
 								configObject = feature.FeatureConfig;
 							}
 
-							if (configObject is not null && configResult.origins.TryGetValue(configObject, out IDocumentEntity? entity) && entity is IContext entryContext) {
-								procOrigins.Add(entry.Key, entryContext);
+							if (configObject is not null && configCompResults.origins.TryGetValue(configObject, out IDocumentEntity? entity) && entity is IContext entryContext) {
+								procOrigins.Add(drawnObj, entryContext);
 							}
 						}
 					}
 
-					results = configResult.WithOrigins(procOrigins);
+					foreach((object drawnObj, ICardConfigComponent configComp) in configOrigins) {
+						if (configCompResults.origins.TryGetValue(configComp, out IDocumentEntity? configEntity) && configEntity is IContext configContext) {
+							procOrigins[drawnObj] = configContext;
+						}
+					}
+
+					results = configCompResults.WithOrigins(procOrigins);
 				}
 				else {
 					// Default origins			
-					results = configResult;
+					results = configCompResults;
 				}
 			}
 			else {
 				examplesDocument = null;
-				results = configResult;
+				results = configCompResults;
 			}
 
 			return new CardConfigEditorResult(cardSetConfig, examplesDocument);

@@ -16,12 +16,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Xml.Linq;
 using SharpSheets.Cards.Card.SegmentRects;
 
-namespace SharpSheets.Cards.Card
-{
+namespace SharpSheets.Cards.Card {
 
-    public static class DynamicCardFactory {
+	public static class DynamicCardFactory {
 
-		public static DynamicCard CreateCard(CardSubject subject, Dictionary<object, IDocumentEntity>? origins, WidgetFactory widgetFactory, out List<SharpParsingException> errors) {
+		public static DynamicCard CreateCard(CardSubject subject, Dictionary<object, IDocumentEntity>? origins, Dictionary<object, ICardConfigComponent>? configOrigins, WidgetFactory widgetFactory, out List<SharpParsingException> errors) {
 			CardSetConfig cardSetConfig = subject.CardConfig.cardSetConfig;
 			CardConfig cardConfig = subject.CardConfig;
 
@@ -31,7 +30,7 @@ namespace SharpSheets.Cards.Card
 
 			List<IFixedCardSegmentRect> segmentRects = new List<IFixedCardSegmentRect>();
 			foreach (CardSegment segment in subject) {
-				segmentRects.Add(CreateRect(segment, errors, origins, widgetFactory));
+				segmentRects.Add(CreateRect(segment, errors, origins, configOrigins, widgetFactory));
 			}
 
 			IEnumerable<DynamicCardSegmentConfig> alwaysIncluded = cardConfig
@@ -41,7 +40,7 @@ namespace SharpSheets.Cards.Card
 				.Select(c => (DynamicCardSegmentConfig)c.Value); // .Reverse();
 			bool hasAlwaysIncluded = false;
 			foreach (DynamicCardSegmentConfig segmentConfig in alwaysIncluded) {
-				IFixedCardSegmentRect segment = CreateDefaultRect(segmentConfig, subject.CardConfig, subject, errors, origins, widgetFactory);
+				IFixedCardSegmentRect segment = CreateDefaultRect(segmentConfig, subject.CardConfig, subject, errors, origins, configOrigins, widgetFactory);
 				segmentRects.Add(segment);
 				hasAlwaysIncluded = true;
 			}
@@ -53,6 +52,7 @@ namespace SharpSheets.Cards.Card
 
 			DynamicCard dynamicCard = new DynamicCard(subject, cardConfig.gutter, cardConfig.joinSplitCards, cardConfig.cropOnFinalCard, backgroundCollection, cardConfig.gutterStyle, outlineCollection, orderedSegments);
 			if (origins != null) { origins.Add(dynamicCard, subject); }
+			if (configOrigins != null) { configOrigins.Add(dynamicCard, subject.CardConfig); }
 			return dynamicCard;
 		}
 
@@ -208,22 +208,22 @@ namespace SharpSheets.Cards.Card
 
 		}
 
-		private static IFixedCardSegmentRect CreateRect(CardSegment segment, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, WidgetFactory widgetFactory) {
+		private static IFixedCardSegmentRect CreateRect(CardSegment segment, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, Dictionary<object, ICardConfigComponent>? configOrigins, WidgetFactory widgetFactory) {
 			AbstractCardSegmentConfig segmentConfig = segment.SegmentConfig;
 
 			IFixedCardSegmentRect rect;
 			try {
 				if (segmentConfig is TextCardSegmentConfig textSegment) {
-					rect = CreateTextRect(segment, textSegment, segment.Subject.CardConfig, errors, origins, widgetFactory);
+					rect = CreateTextRect(segment, textSegment, segment.Subject.CardConfig, errors, origins, configOrigins, widgetFactory);
 				}
 				else if (segmentConfig is ParagraphCardSegmentConfig paragraphSegment) {
-					rect = CreateParagraphRect(segment, paragraphSegment, segment.Subject.CardConfig, errors, origins, widgetFactory);
+					rect = CreateParagraphRect(segment, paragraphSegment, segment.Subject.CardConfig, errors, origins, configOrigins, widgetFactory);
 				}
 				else if (segmentConfig is TableCardSegmentConfig tableSegment) {
-					rect = CreateTableRect(segment, tableSegment, segment.Subject.CardConfig, errors, origins, widgetFactory);
+					rect = CreateTableRect(segment, tableSegment, segment.Subject.CardConfig, errors, origins, configOrigins, widgetFactory);
 				}
 				else if (segmentConfig is DynamicCardSegmentConfig dynamicSegment) {
-					rect = CreateDynamicRect(segment, dynamicSegment, segment.Subject.CardConfig, errors, origins, widgetFactory);
+					rect = CreateDynamicRect(segment, dynamicSegment, segment.Subject.CardConfig, errors, origins, configOrigins, widgetFactory);
 				}
 				else {
 					throw new SharpParsingException(segment.Location, "Unknown segment type.");
@@ -232,13 +232,14 @@ namespace SharpSheets.Cards.Card
 			catch (SharpParsingException e) {
 				rect = new CardErrorSegmentRect(e.Message);
 				if (origins != null) { origins.Add(rect, segment); }
+				if (configOrigins != null) { configOrigins.Add(rect, segment.SegmentConfig); }
 				errors.Add(e);
 			}
 
 			return rect;
 		}
 
-		private static DynamicSegmentRect CreateDynamicRect(CardSegment segment, DynamicCardSegmentConfig segmentConfig, CardConfig cardConfig, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, WidgetFactory widgetFactory) {
+		private static DynamicSegmentRect CreateDynamicRect(CardSegment segment, DynamicCardSegmentConfig segmentConfig, CardConfig cardConfig, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, Dictionary<object, ICardConfigComponent>? configOrigins, WidgetFactory widgetFactory) {
 
 			List<WidgetCardRect> entries = new List<WidgetCardRect>();
 			foreach (CardFeature feature in segment) {
@@ -259,6 +260,7 @@ namespace SharpSheets.Cards.Card
 					entries.Add(featureRect);
 
 					if (origins != null) { origins.Add(featureRect, feature); }
+					if (configOrigins != null) { configOrigins.Add(featureRect, featureConfig); }
 				}
 				else {
 					errors.Add(new SharpParsingException(feature.Location, "No feature configuration found for dynamic segment feature."));
@@ -270,12 +272,13 @@ namespace SharpSheets.Cards.Card
 			DynamicSegmentRect rect = new DynamicSegmentRect(segmentConfig, segmentOutlines, entries.ToArray(), segmentConfig.gutter, segmentConfig.splittable, segmentConfig.acceptRemaining, segmentConfig.equalSizeFeatures, segmentConfig.spaceFeatures);
 
 			if (origins != null) { origins.Add(rect, segment); }
+			if (configOrigins != null) { configOrigins.Add(rect, segmentConfig); }
 			return rect;
 		}
 
 		/// <summary></summary>
 		/// <exception cref="SharpParsingException"></exception>
-		private static CardTextSegmentRect CreateTextRect(CardSegment segment, TextCardSegmentConfig segmentConfig, CardConfig cardConfig, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, WidgetFactory widgetFactory) {
+		private static CardTextSegmentRect CreateTextRect(CardSegment segment, TextCardSegmentConfig segmentConfig, CardConfig cardConfig, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, Dictionary<object, ICardConfigComponent>? configOrigins, WidgetFactory widgetFactory) {
 
 			RichString delimiter = EvaluateText(segmentConfig.delimiter, segment.Environment, segment.Location, segmentConfig.regexFormats);
 			RichString prefix = EvaluateText(segmentConfig.prefix, segment.Environment, segment.Location, segmentConfig.regexFormats);
@@ -290,12 +293,13 @@ namespace SharpSheets.Cards.Card
 			CardTextSegmentRect rect = new CardTextSegmentRect(segmentConfig, segmentOutlines, segmentText, segmentConfig.splittable);
 
 			if (origins != null) { origins.Add(rect, segment); }
+			if (configOrigins != null) { configOrigins.Add(rect, segmentConfig); }
 			return rect;
 		}
 
 		/// <summary></summary>
 		/// <exception cref="SharpParsingException"></exception>
-		private static CardParagraphSegmentRect CreateParagraphRect(CardSegment segment, ParagraphCardSegmentConfig segmentConfig, CardConfig cardConfig, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, WidgetFactory widgetFactory) {
+		private static CardParagraphSegmentRect CreateParagraphRect(CardSegment segment, ParagraphCardSegmentConfig segmentConfig, CardConfig cardConfig, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, Dictionary<object, ICardConfigComponent>? configOrigins, WidgetFactory widgetFactory) {
 
 			CardFeatureText[] featuresTexts = segment.Select(f => GetCardFeatureText(segment, segmentConfig, f)).ToArray();
 			if (origins != null) {
@@ -309,12 +313,13 @@ namespace SharpSheets.Cards.Card
 			CardParagraphSegmentRect rect = new CardParagraphSegmentRect(segmentConfig, segmentOutlines, featuresTexts, segmentConfig.splittable);
 
 			if (origins != null) { origins.Add(rect, segment); }
+			if (configOrigins != null) { configOrigins.Add(rect, segmentConfig); }
 			return rect;
 		}
 
 		/// <summary></summary>
 		/// <exception cref="SharpParsingException"></exception>
-		private static IFixedCardSegmentRect CreateTableRect(CardSegment segment, TableCardSegmentConfig segmentConfig, CardConfig cardConfig, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, WidgetFactory widgetFactory) {
+		private static IFixedCardSegmentRect CreateTableRect(CardSegment segment, TableCardSegmentConfig segmentConfig, CardConfig cardConfig, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, Dictionary<object, ICardConfigComponent>? configOrigins, WidgetFactory widgetFactory) {
 			IFixedCardSegmentRect rect;
 
 			// TODO This logic needs correcting. Won't work properly with string escaping.
@@ -333,6 +338,7 @@ namespace SharpSheets.Cards.Card
 			rect = new SimpleCardTableSegmentRect(segmentConfig, segmentOutlines, tableTitle, tableEntriesMatrix, segmentConfig.tableSpacing, segmentConfig.edgeOffset, segmentConfig.tableColors, segmentConfig.splittable, segmentConfig.acceptRemaining);
 
 			if (origins != null) { origins.Add(rect, segment); }
+			if (configOrigins != null) { configOrigins.Add(rect, segmentConfig); }
 			return rect;
 		}
 
@@ -362,9 +368,10 @@ namespace SharpSheets.Cards.Card
 		/// <param name="subject"></param>
 		/// <param name="errors"></param>
 		/// <param name="origins"></param>
+		/// <param name="configOrigins"></param>
 		/// <param name="widgetFactory"></param>
 		/// <returns></returns>
-		private static IFixedCardSegmentRect CreateDefaultRect(DynamicCardSegmentConfig segmentConfig, CardConfig cardConfig, CardSubject subject, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, WidgetFactory widgetFactory) {
+		private static IFixedCardSegmentRect CreateDefaultRect(DynamicCardSegmentConfig segmentConfig, CardConfig cardConfig, CardSubject subject, List<SharpParsingException> errors, Dictionary<object, IDocumentEntity>? origins, Dictionary<object, ICardConfigComponent>? configOrigins, WidgetFactory widgetFactory) {
 
 			List<WidgetCardRect> entries = new List<WidgetCardRect>();
 
@@ -390,12 +397,14 @@ namespace SharpSheets.Cards.Card
 				entries.Add(featureRect);
 
 				if (origins != null) { origins.Add(featureRect, subject); }
+				if (configOrigins != null) { configOrigins.Add(featureRect, featureConfig); }
 			}
 
 			ArrangementCollection<IWidget> segmentOutlines = GetOutlines(subject.Environment, subject.Location, segmentConfig, cardConfig, errors, widgetFactory);
 
 			DynamicSegmentRect rect = new DynamicSegmentRect(segmentConfig, segmentOutlines, entries.ToArray(), segmentConfig.gutter, segmentConfig.splittable, segmentConfig.acceptRemaining, segmentConfig.equalSizeFeatures, segmentConfig.spaceFeatures);
 			if (origins != null) { origins.Add(rect, subject); }
+			if (configOrigins != null) { configOrigins.Add(rect, segmentConfig); }
 			return rect;
 		}
 

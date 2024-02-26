@@ -157,7 +157,9 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	public class CardConfig : ICardSegmentParent {
+	public interface ICardConfigComponent { }
+
+	public class CardConfig : ICardSegmentParent, ICardConfigComponent {
 
 		public readonly string? name;
 		public readonly string? description;
@@ -259,7 +261,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	public abstract class AbstractCardSegmentConfig : IHasVariableDefinitionBox {
+	public abstract class AbstractCardSegmentConfig : IHasVariableDefinitionBox, ICardConfigComponent {
 
 		//public readonly CardConfig cardConfig;
 		public readonly ICardSegmentParent parent;
@@ -553,7 +555,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	public class CardFeatureConfig : IHasVariableDefinitionBox {
+	public class CardFeatureConfig : IHasVariableDefinitionBox, ICardConfigComponent {
 
 		public readonly AbstractCardSegmentConfig cardSegmentConfig;
 
