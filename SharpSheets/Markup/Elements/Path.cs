@@ -223,6 +223,7 @@ namespace SharpSheets.Markup.Elements {
 			List<(int index, int length, Exception ex)> parseErrors = new List<(int, int, Exception)>();
 
 			if (data != null) {
+				DrawPointExpression? currentStart = null;
 				DrawPointExpression? currentPoint = null;
 
 				foreach (Match commandMatch in commandRegex.Matches(data)) {
@@ -241,37 +242,43 @@ namespace SharpSheets.Markup.Elements {
 
 						if (IsCommand('M')) {
 							DrawPointExpression[] points = GetDrawPoints(values);
-							currentPoint = MovePoint(currentPoint, points[0], relative);
-							operations.Add(new MoveOperation(currentPoint));
+							currentStart = MovePoint(currentStart, currentPoint, points[0], relative);
+							operations.Add(new MoveOperation(currentStart));
+							currentPoint = currentStart;
 							for (int i = 1; i < points.Length; i++) {
-								currentPoint = MovePoint(currentPoint, points[i], relative);
+								currentPoint = MovePoint(currentStart, currentPoint, points[i], relative);
 								operations.Add(new LineOperation(currentPoint));
 							}
 						}
 						else if (IsCommand('L')) {
 							DrawPointExpression[] points = GetDrawPoints(values);
-							currentPoint = MovePoint(currentPoint, points[0], relative);
+							currentPoint = MovePoint(currentStart, currentPoint, points[0], relative);
+							currentStart ??= currentPoint;
 							operations.Add(new LineOperation(currentPoint));
 							for (int i = 1; i < points.Length; i++) {
-								currentPoint = MovePoint(currentPoint, points[i], relative);
+								currentPoint = MovePoint(currentStart, currentPoint, points[i], relative);
 								operations.Add(new LineOperation(currentPoint));
 							}
 						}
 						else if (IsCommand('H')) {
-							if(currentPoint is null) { throw new FormatException("No start location defined."); }
-							currentPoint = new DrawPointExpression(relative ? currentPoint.X + values[0] : values[0], currentPoint.Y);
+							DrawPointExpression? referencePoint = currentPoint ?? currentStart;
+							if(referencePoint is null) { throw new FormatException("No start location defined."); }
+							currentPoint = new DrawPointExpression(relative ? referencePoint.X + values[0] : values[0], referencePoint.Y);
+							currentStart ??= currentPoint;
 							operations.Add(new LineOperation(currentPoint));
 							for (int i = 1; i < values.Length; i++) {
-								currentPoint = new DrawPointExpression(relative ? currentPoint.X + values[0] : values[0], currentPoint.Y);
+								currentPoint = new DrawPointExpression(relative ? currentPoint.X + values[i] : values[i], currentPoint.Y);
 								operations.Add(new LineOperation(currentPoint));
 							}
 						}
 						else if (IsCommand('V')) {
-							if (currentPoint is null) { throw new FormatException("No start location defined."); }
-							currentPoint = new DrawPointExpression(currentPoint.X, relative ? currentPoint.Y + values[0] : values[0]);
+							DrawPointExpression? referencePoint = currentPoint ?? currentStart;
+							if (referencePoint is null) { throw new FormatException("No start location defined."); }
+							currentPoint = new DrawPointExpression(referencePoint.X, relative ? referencePoint.Y + values[0] : values[0]);
+							currentStart ??= currentPoint;
 							operations.Add(new LineOperation(currentPoint));
 							for (int i = 1; i < values.Length; i++) {
-								currentPoint = new DrawPointExpression(currentPoint.X, relative ? currentPoint.Y + values[0] : values[0]);
+								currentPoint = new DrawPointExpression(currentPoint.X, relative ? currentPoint.Y + values[i] : values[i]);
 								operations.Add(new LineOperation(currentPoint));
 							}
 						}
@@ -280,19 +287,21 @@ namespace SharpSheets.Markup.Elements {
 							if (points.Length % 3 != 0) {
 								throw new FormatException($"Cubic bezier curve requires points to be a multiple of 3 (got {points.Length}).");
 							}
-							DrawPointExpression control1 = MovePoint(currentPoint, points[0], relative);
-							DrawPointExpression control2 = MovePoint(currentPoint, points[1], relative);
-							currentPoint = MovePoint(currentPoint, points[2], relative);
+							DrawPointExpression control1 = MovePoint(currentStart, currentPoint, points[0], relative);
+							DrawPointExpression control2 = MovePoint(currentStart, currentPoint, points[1], relative);
+							currentPoint = MovePoint(currentStart, currentPoint, points[2], relative);
+							currentStart ??= currentPoint;
 							operations.Add(new CubicOperation(control1, control2, currentPoint));
 							for (int i = 3; i < points.Length; i += 3) {
-								control1 = MovePoint(currentPoint, points[i], relative);
-								control2 = MovePoint(currentPoint, points[i + 1], relative);
-								currentPoint = MovePoint(currentPoint, points[i + 2], relative);
+								control1 = MovePoint(currentStart, currentPoint, points[i], relative);
+								control2 = MovePoint(currentStart, currentPoint, points[i + 1], relative);
+								currentPoint = MovePoint(currentStart, currentPoint, points[i + 2], relative);
 								operations.Add(new CubicOperation(control1, control2, currentPoint));
 							}
 						}
 						else if (IsCommand('S')) {
-							if (currentPoint is null) { throw new FormatException("No start location defined."); }
+							DrawPointExpression? referencePoint = currentPoint ?? currentStart;
+							if (referencePoint is null) { throw new FormatException("No start location defined."); }
 
 							DrawPointExpression[] points = GetDrawPoints(values);
 
@@ -300,18 +309,19 @@ namespace SharpSheets.Markup.Elements {
 								throw new FormatException($"Sequential bezier curves require points to be a multiple of 2 (got {points.Length}).");
 							}
 
-							DrawPointExpression control1 = currentPoint;
+							DrawPointExpression control1 = referencePoint;
 							if (operations.LastOrDefault() is CubicOperation previous) {
-								control1 = Reflect(previous.controlPoint2, currentPoint);
+								control1 = Reflect(previous.controlPoint2, referencePoint);
 							}
 
-							DrawPointExpression control2 = MovePoint(currentPoint, points[0], relative);
-							currentPoint = MovePoint(currentPoint, points[1], relative);
+							DrawPointExpression control2 = MovePoint(currentStart, currentPoint, points[0], relative);
+							currentPoint = MovePoint(currentStart, currentPoint, points[1], relative);
+							currentStart ??= currentPoint;
 							operations.Add(new CubicOperation(control1, control2, currentPoint));
 							for (int i = 2; i < points.Length; i += 2) {
 								control1 = Reflect(control2, currentPoint);
-								control2 = MovePoint(currentPoint, points[i], relative);
-								currentPoint = MovePoint(currentPoint, points[i + 1], relative);
+								control2 = MovePoint(currentStart, currentPoint, points[i], relative);
+								currentPoint = MovePoint(currentStart, currentPoint, points[i + 1], relative);
 								operations.Add(new CubicOperation(control1, control2, currentPoint));
 							}
 						}
@@ -320,30 +330,33 @@ namespace SharpSheets.Markup.Elements {
 							if (points.Length % 2 != 0) {
 								throw new FormatException($"Quadratic bezier curve requires points to be a multiple of 2 (got {points.Length}).");
 							}
-							DrawPointExpression control = MovePoint(currentPoint, points[0], relative);
-							currentPoint = MovePoint(currentPoint, points[1], relative);
+							DrawPointExpression control = MovePoint(currentStart, currentPoint, points[0], relative);
+							currentPoint = MovePoint(currentStart, currentPoint, points[1], relative);
+							currentStart ??= currentPoint;
 							operations.Add(new QuadraticOperation(control, currentPoint));
 							for (int i = 2; i < points.Length; i += 2) {
-								control = MovePoint(currentPoint, points[i], relative);
-								currentPoint = MovePoint(currentPoint, points[i + 1], relative);
+								control = MovePoint(currentStart, currentPoint, points[i], relative);
+								currentPoint = MovePoint(currentStart, currentPoint, points[i + 1], relative);
 								operations.Add(new QuadraticOperation(control, currentPoint));
 							}
 						}
 						else if (IsCommand('T')) {
-							if (currentPoint is null) { throw new FormatException("No start location defined."); }
+							DrawPointExpression? referencePoint = currentPoint ?? currentStart;
+							if (referencePoint is null) { throw new FormatException("No start location defined."); }
 
 							DrawPointExpression[] points = GetDrawPoints(values);
 
-							DrawPointExpression control = currentPoint;
+							DrawPointExpression control = referencePoint;
 							if (operations.LastOrDefault() is QuadraticOperation previous) {
-								control = Reflect(previous.controlPoint, currentPoint);
+								control = Reflect(previous.controlPoint, referencePoint);
 							}
 
-							currentPoint = MovePoint(currentPoint, points[0], relative);
+							currentPoint = MovePoint(currentStart, currentPoint, points[0], relative);
+							currentStart ??= currentPoint;
 							operations.Add(new QuadraticOperation(control, currentPoint));
 							for (int i = 1; i < points.Length; i++) {
 								control = Reflect(control, currentPoint);
-								currentPoint = MovePoint(currentPoint, points[i], relative);
+								currentPoint = MovePoint(currentStart, currentPoint, points[i], relative);
 								operations.Add(new QuadraticOperation(control, currentPoint));
 							}
 						}
@@ -357,7 +370,8 @@ namespace SharpSheets.Markup.Elements {
 							FloatExpression angle = values[2] * ((float)Math.PI / 180f);
 							BoolExpression largeArc = BoolExpression.IsNonZero(values[3]);
 							BoolExpression sweep = BoolExpression.IsNonZero(values[4]);
-							currentPoint = MovePoint(currentPoint, new DrawPointExpression(values[5], values[6]), relative);
+							currentPoint = MovePoint(currentStart, currentPoint, new DrawPointExpression(values[5], values[6]), relative);
+							currentStart ??= currentPoint;
 							operations.Add(new ArcOperation(rx, ry, angle, largeArc, sweep, currentPoint));
 							for (int i = 7; i < values.Length; i += 7) {
 								//startPoint = currentPoint;
@@ -366,7 +380,7 @@ namespace SharpSheets.Markup.Elements {
 								angle = values[i + 2];
 								largeArc = BoolExpression.IsNonZero(values[i + 3]);
 								sweep = BoolExpression.IsNonZero(values[i + 4]);
-								currentPoint = MovePoint(currentPoint, new DrawPointExpression(values[i + 5], values[i + 6]), relative);
+								currentPoint = MovePoint(currentStart, currentPoint, new DrawPointExpression(values[i + 5], values[i + 6]), relative);
 								operations.Add(new ArcOperation(rx, ry, angle, largeArc, sweep, currentPoint));
 							}
 						}
@@ -376,6 +390,8 @@ namespace SharpSheets.Markup.Elements {
 							}
 							else {
 								operations.Add(new CloseOperation());
+								currentPoint = currentStart;
+								currentStart = null;
 							}
 						}
 						else {
@@ -398,9 +414,9 @@ namespace SharpSheets.Markup.Elements {
 			return new Path(styleSheet, id, operations.ToArray());
 		}
 
-		private static DrawPointExpression MovePoint(DrawPointExpression? current, DrawPointExpression move, bool relative) {
-			if (relative && current is not null) {
-				return current + move;
+		private static DrawPointExpression MovePoint(DrawPointExpression? start, DrawPointExpression? current, DrawPointExpression move, bool relative) {
+			if (relative && (current ?? start) is DrawPointExpression referencePoint) {
+				return referencePoint + move;
 			}
 			else {
 				return move;
