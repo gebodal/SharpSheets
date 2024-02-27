@@ -103,7 +103,7 @@
 		</Rule>
 
 		<Rule color="Dimension">
-			(?i) \b ([0-9]+(\.[0-9]+)? | \.[0-9]+) (pt | cm | mm | in | pc | \%) \b
+			(?i) \b ([0-9]+(\.[0-9]+)? | \.[0-9]+) (pt\b | cm\b | mm\b | in\b | pc\b | \%)
 		</Rule>
 
 		<Rule color="Number">
