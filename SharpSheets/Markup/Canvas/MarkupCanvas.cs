@@ -572,6 +572,14 @@ namespace SharpSheets.Markup.Canvas {
 		/// <summary></summary>
 		/// <returns> This MarkupCanvas instance. </returns>
 		/// <exception cref="MarkupCanvasStateException"> If the canvas has an unclosed child canvas. </exception>
+		public MarkupCanvas RegisterArea(object owner, Rectangle rect) {
+			if (Canvas is null) { throw new MarkupCanvasStateException(); }
+			return this.RegisterArea(owner, rect, null, Array.Empty<Rectangle>());
+		}
+
+		/// <summary></summary>
+		/// <returns> This MarkupCanvas instance. </returns>
+		/// <exception cref="MarkupCanvasStateException"> If the canvas has an unclosed child canvas. </exception>
 		/// <exception cref="EvaluationCalculationException"></exception>
 		public MarkupCanvas RegisterArea(object owner, RectangleExpression rect, MarginsExpression margins) {
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
