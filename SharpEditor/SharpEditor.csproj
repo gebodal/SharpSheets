@@ -40,7 +40,10 @@
     <None Remove="Documentation\Content\4 Shapes\6 Usage Bars.sd" />
     <None Remove="Documentation\Content\4 Shapes\7 Details.sd" />
     <None Remove="Documentation\Content\4 Shapes\Main.sd" />
-    <None Remove="Documentation\Content\5 Cards\Environments.sd" />
+    <None Remove="Documentation\Content\5 Cards\1 Configuration Tutorial.sd" />
+    <None Remove="Documentation\Content\5 Cards\2 Subjects Tutorial.sd" />
+    <None Remove="Documentation\Content\5 Cards\3 Configuration Elements.sd" />
+    <None Remove="Documentation\Content\5 Cards\4 Environments.sd" />
     <None Remove="Documentation\Content\6 Markup\1 Paths.sd" />
     <None Remove="Documentation\Content\6 Markup\2 Additional Features.sd" />
     <None Remove="Documentation\Content\6 Markup\7 Environments.sd" />
@@ -143,7 +146,10 @@
     <EmbeddedResource Include="Documentation\Content\4 Shapes\6 Usage Bars.sd" />
     <EmbeddedResource Include="Documentation\Content\4 Shapes\7 Details.sd" />
     <EmbeddedResource Include="Documentation\Content\4 Shapes\Main.sd" />
-    <EmbeddedResource Include="Documentation\Content\5 Cards\Environments.sd" />
+    <EmbeddedResource Include="Documentation\Content\5 Cards\1 Configuration Tutorial.sd" />
+    <EmbeddedResource Include="Documentation\Content\5 Cards\2 Subjects Tutorial.sd" />
+    <EmbeddedResource Include="Documentation\Content\5 Cards\3 Configuration Elements.sd" />
+    <EmbeddedResource Include="Documentation\Content\5 Cards\4 Environments.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\1 Paths.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\2 Additional Features.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\7 Environments.sd" />

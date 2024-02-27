@@ -197,7 +197,7 @@ namespace SharpEditor.DataManagers {
 			HighlightingSpan rectSetupSpanRule = new HighlightingSpan {
 				StartColor = colors["RectSetup"],
 				SpanColorIncludesStart = true,
-				StartExpression = new Regex(string.Format(@"^\s*\@?({0})\s*(?=:)", string.Join("|", rectSetupList)), RegexOptions.IgnoreCase),
+				StartExpression = new Regex(string.Format(@"^\s*\@?({0})\s*(?=:\s*(?!\s|\#|$))", string.Join("|", rectSetupList)), RegexOptions.IgnoreCase),
 				EndExpression = new Regex(@"$"),
 				RuleSet = propertyRules
 			};

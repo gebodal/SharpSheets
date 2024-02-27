@@ -1,0 +1,75 @@
+# Card Configurations Tutorial
+
+SharpSheets allows for the creation of "card" templates, which can have different contents drawn to them, and be reused for many different card lists.
+
+Here "card" is a loose term, simply meaning the division of a page into areas which will have templated contents drawn to them. In practice, these may only very loosely resemble cards, but the system is designed to work best with card-like designs.
+
+The templates are described using card configuration files, which use the same basic syntax as the configuration files described in [this tutorial](Tutorial). There are some additional structures used in the card configurations for describing different elements of the card design, a full list of which can be found [here](Cards/Configuration Elements).
+
+This tutorial will cover the basic usage of these configuration files, and how they define a pattern for corresponding card subject files, which contain the data which will populate the card templates for drawing to the page.
+
+
+## Basic Configuration Structure
+
+The configuration files follow a basic structure like so:
+
+```CardConfig
+# Configuration properties
+configProperty1: value1
+configProperty2: value2
+
+# Configuration definitions
+def value1: int
+def value2 = value1 + 5
+
+# Card backgrounds and outlines
+background:
+	condition: expression
+	# Contents...
+
+outline:
+	condition: expression
+	# Contents...
+
+outline:
+	condition: otherexpression
+	# Contents...
+
+# Individual card style configurations
+card:
+	condition: expression
+
+	# Card properties
+	cardProperty: value
+
+	# Card definitions
+	def cardValue: int
+
+	# Card segments
+	segment:
+		condition: expression
+
+		# Segment definitions
+		def segmentValue: int
+
+		# Segment features
+		feature:
+			condition: expression
+
+			# Properties and definitions...
+			featureProperty: value
+			def featureValue: int
+
+			# Contents...
+
+	segment:
+		# Contents...
+
+card:
+	# Contents...
+
+# Universal card segments
+segment:
+	# Contents
+```
+

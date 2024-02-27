@@ -1,4 +1,5 @@
-﻿using SharpSheets.Cards.CardSubjects;
+﻿using SharpSheets.Cards.CardConfigs;
+using SharpSheets.Cards.CardSubjects;
 using SharpSheets.Exceptions;
 using SharpSheets.Parsing;
 using SharpSheets.Shapes;
@@ -29,7 +30,7 @@ namespace SharpSheets.Cards.Card {
 			foreach (CardSubjectSet subjectSet in subjectsDocument) {
 				List<DynamicCard> cardSet = new List<DynamicCard>();
 				foreach (CardSubject subject in subjectSet) {
-					DynamicCard card = DynamicCardFactory.CreateCard(subject, origins, widgetFactory, out List<SharpParsingException> cardErrors);
+					DynamicCard card = DynamicCardFactory.CreateCard(subject, origins, null, widgetFactory, out List<SharpParsingException> cardErrors);
 					cardSet.Add(card);
 					errors.AddRange(cardErrors);
 				}
@@ -60,11 +61,11 @@ namespace SharpSheets.Cards.Card {
 			return result;
 		}
 
-		public static CardCollection MakeCollection(IEnumerable<CardSubject> subjects, WidgetFactory widgetFactory, Dictionary<object, IDocumentEntity>? origins, out SharpParsingException[] errors) {
+		public static CardCollection MakeCollection(IEnumerable<CardSubject> subjects, WidgetFactory widgetFactory, Dictionary<object, IDocumentEntity>? origins, Dictionary<object, ICardConfigComponent>? configOrigins, out SharpParsingException[] errors) {
 			List<SharpParsingException> dynamicCardErrors = new List<SharpParsingException>();
 			List<DynamicCard> cardSet = new List<DynamicCard>();
 			foreach (CardSubject subject in subjects) {
-				DynamicCard card = DynamicCardFactory.CreateCard(subject, origins, widgetFactory, out List<SharpParsingException> cardErrors);
+				DynamicCard card = DynamicCardFactory.CreateCard(subject, origins, configOrigins, widgetFactory, out List<SharpParsingException> cardErrors);
 				cardSet.Add(card);
 				dynamicCardErrors.AddRange(cardErrors);
 			}

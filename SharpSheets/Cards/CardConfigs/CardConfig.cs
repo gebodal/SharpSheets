@@ -63,8 +63,8 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		public readonly ConditionalCollection<CardConfig> cardConfigs;
 
+		public readonly ConditionalCollection<InterpolatedContext> backgrounds;
 		public readonly ConditionalCollection<InterpolatedContext> outlines;
-		public readonly ConditionalCollection<InterpolatedContext> headers;
 		public readonly ConditionalCollection<AbstractCardSegmentConfig> cardSetSegments;
 
 		public readonly List<FilePath> archivePaths;
@@ -127,8 +127,8 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			this.cardConfigs = new ConditionalCollection<CardConfig>();
 
+			this.backgrounds = new ConditionalCollection<InterpolatedContext>();
 			this.outlines = new ConditionalCollection<InterpolatedContext>();
-			this.headers = new ConditionalCollection<InterpolatedContext>();
 			this.cardSetSegments = new ConditionalCollection<AbstractCardSegmentConfig>();
 
 			this.archivePaths = new List<FilePath>();
@@ -157,7 +157,9 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	public class CardConfig : ICardSegmentParent {
+	public interface ICardConfigComponent { }
+
+	public class CardConfig : ICardSegmentParent, ICardConfigComponent {
 
 		public readonly string? name;
 		public readonly string? description;
@@ -175,8 +177,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly bool joinSplitCards;
 		
 		public readonly DefinitionGroup definitions;
+		public readonly ConditionalCollection<InterpolatedContext> backgrounds;
 		public readonly ConditionalCollection<InterpolatedContext> outlines;
-		public readonly ConditionalCollection<InterpolatedContext> headers;
 
 		public readonly ConditionalCollection<AbstractCardSegmentConfig> cardSegments;
 		public IEnumerable<Conditional<AbstractCardSegmentConfig>> AllCardSegments => cardSegments.Concat(cardSetConfig.cardSetSegments);
@@ -246,8 +248,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.joinSplitCards = joinSplitCards;
 
 			this.definitions = new DefinitionGroup(cardSetConfig.definitions); // Combined with card set definitions here
+			this.backgrounds = new ConditionalCollection<InterpolatedContext>();
 			this.outlines = new ConditionalCollection<InterpolatedContext>();
-			this.headers = new ConditionalCollection<InterpolatedContext>();
 			this.cardSegments = new ConditionalCollection<AbstractCardSegmentConfig>();
 
 			this.variableBox = new VariableDefinitionBox(CardConfigEnvironments.BaseDefinitions, this.definitions, cardSetConfig.Variables);
@@ -259,7 +261,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	public abstract class AbstractCardSegmentConfig : IHasVariableDefinitionBox {
+	public abstract class AbstractCardSegmentConfig : IHasVariableDefinitionBox, ICardConfigComponent {
 
 		//public readonly CardConfig cardConfig;
 		public readonly ICardSegmentParent parent;
@@ -553,7 +555,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	public class CardFeatureConfig : IHasVariableDefinitionBox {
+	public class CardFeatureConfig : IHasVariableDefinitionBox, ICardConfigComponent {
 
 		public readonly AbstractCardSegmentConfig cardSegmentConfig;
 

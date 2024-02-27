@@ -121,7 +121,7 @@ namespace SharpSheets.Cards.Layouts
 				throw new ArgumentException($"Provided rects are not all same dimensions as layout sample size.");
 			}
 
-			card.DrawOutline(canvas, rects, out IEnumerable<Rectangle> outlineRects);
+			card.DrawBackground(canvas, rects, out IEnumerable<Rectangle> outlineRects);
 
 			foreach (Rectangle rect in outlineRects) {
 				canvas.RegisterAreas(card, rect, null, Array.Empty<Rectangle>());
@@ -136,7 +136,7 @@ namespace SharpSheets.Cards.Layouts
 				Rectangle fullRect = rects[cardIdx];
 				bool lastCard = cardIdx == (arrangement.Length - 1);
 
-				card.DrawHeader(canvas, fullRect, cardIdx, arrangement.Length);
+				card.DrawOutline(canvas, fullRect, cardIdx, arrangement.Length);
 				Rectangle featuresFullRect = card.RemainingRect(canvas, fullRect, cardIdx, arrangement.Length);
 
 				Rectangle?[] segmentRects = GetSegmentRects(card, layout, featuresFullRect, lastCard, out Rectangle?[] segmentGutters);
@@ -346,7 +346,7 @@ namespace SharpSheets.Cards.Layouts
 			Rectangle[] featureRects = new Rectangle[arrangement.Length];
 			for (int i = 0; i < arrangement.Length; i++) {
 				featureRects[i] = card.RemainingRect(graphicsState, sampleRect, i, arrangement.Length);
-				// TODO This doesn't account for variable sized headers!
+				// TODO This doesn't account for variable sized outlines!
 			}
 
 			graphicsState.SaveState();
