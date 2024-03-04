@@ -669,6 +669,10 @@ namespace SharpEditor.CodeHelpers {
 					if (descriptionGrouping.Select(a => a.ArgumentType.DisplayType).First() is Type argType && argType.IsEnum && SharpDocumentation.GetEnumDoc(argType) is EnumDoc enumDoc) {
 						yield return TooltipBuilder.MakeEnumOptionsBlock(enumDoc, true);
 					}
+
+					if (descriptionGrouping.Select(a => a.UseLocal).First()) {
+						yield return TooltipBuilder.MakeIndentedBlock("(Local)");
+					}
 				}
 			}
 		}

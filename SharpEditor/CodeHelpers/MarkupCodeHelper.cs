@@ -174,6 +174,10 @@ namespace SharpEditor.CodeHelpers {
 						if (XMLContentBuilder.GetAttributeType(attrArg.Type) is Type attrType && attrType.IsEnum && SharpDocumentation.GetEnumDoc(attrType) is EnumDoc enumDoc) {
 							contents.Add(TooltipBuilder.MakeEnumOptionsBlock(enumDoc, true));
 						}
+
+						if (attrArg.UseLocal) {
+							contents.Add(TooltipBuilder.MakeIndentedBlock("(Local)"));
+						}
 					}
 				}
 			}

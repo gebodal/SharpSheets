@@ -15,6 +15,7 @@ using System.Windows.Media;
 using SharpEditor.DataManagers;
 using SharpSheets.Widgets;
 using SharpSheets.Parsing;
+using System.Windows;
 
 namespace SharpEditor.ContentBuilders {
 
@@ -58,9 +59,9 @@ namespace SharpEditor.ContentBuilders {
 		}
 
 		private static IEnumerable<Inline> GetXMLArgumentInlines(ArgumentDetails attributeArg, XMLElement element) {
-			yield return GetTypeRun(attributeArg.Type);
+			yield return GetTypeRun(attributeArg);
 			yield return new Run(SharpValueHandler.NO_BREAK_CHAR + ":" + SharpValueHandler.NO_BREAK_CHAR + ":" + SharpValueHandler.NO_BREAK_CHAR) { Foreground = SharpEditorPalette.MarkupPunctuationBrush };
-			yield return MakeXMLRun(attributeArg.Name, SharpEditorPalette.MarkupAttributeBrush, !attributeArg.IsOptional); // TODO Underline should represent non-optional arguments
+			yield return MakeXMLRun(attributeArg.Name, SharpEditorPalette.MarkupAttributeBrush, attributeArg.UseLocal); // TODO Underline should represent non-optional arguments
 			yield return new Run(SharpValueHandler.NO_BREAK_CHAR + "=" + SharpValueHandler.NO_BREAK_CHAR) { Foreground = SharpEditorPalette.MarkupPunctuationBrush };
 
 			object attrValue;
@@ -203,7 +204,9 @@ namespace SharpEditor.ContentBuilders {
 			return GetTypeName(type.DisplayType, out concrete);
 		}
 
-		private static Run GetTypeRun(ArgumentType type) {
+		private static Run GetTypeRun(ArgumentDetails arg) {
+			ArgumentType type = arg.Type;
+
 			string typeStr = GetTypeName(type, out bool concrete);
 
 			Run typeRun = new Run(typeStr) { Foreground = SharpEditorPalette.MarkupPunctuationBrush };
@@ -211,6 +214,9 @@ namespace SharpEditor.ContentBuilders {
 				//typeRun.TextDecorations = System.Windows.TextDecorations.Underline;
 				typeRun.FontStyle = System.Windows.FontStyles.Italic;
 				typeRun.FontWeight = System.Windows.FontWeights.Bold;
+			}
+			if(!arg.IsOptional) {
+				typeRun.TextDecorations = TextDecorations.Underline;
 			}
 
 			return typeRun;

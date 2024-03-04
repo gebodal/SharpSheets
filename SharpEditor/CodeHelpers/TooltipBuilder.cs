@@ -91,6 +91,16 @@ namespace SharpEditor.CodeHelpers {
 			}
 		}
 
+		public static Inline GetArgumentNameInline(ArgumentDetails argument) {
+			string name = argument.Name;
+			if(argument.Implied is not null) {
+				name += "." + argument.Implied;
+			}
+			Run run = new Run(name);
+			if (argument.UseLocal) { run.TextDecorations = TextDecorations.Underline; }
+			return run;
+		}
+
 		public static IEnumerable<Inline> GetArgumentListInlines(ArgumentDetails[] arguments, IContext? context) {
 			for (int i = 0; i < arguments.Length; i++) {
 				ArgumentDetails arg = arguments[i];
@@ -98,10 +108,8 @@ namespace SharpEditor.CodeHelpers {
 				if (i > 0) { yield return new Run(", "); }
 
 				yield return new Run(SharpValueHandler.GetTypeName(arg.Type)) { Foreground = SharpEditorPalette.TypeBrush };
-				yield return new Run(SharpValueHandler.NO_BREAK_SPACE + arg.Name);
-				if (arg.Implied != null) {
-					yield return new Run("." + arg.Implied);
-				}
+				yield return new Run(SharpValueHandler.NO_BREAK_SPACE.ToString());
+				yield return GetArgumentNameInline(arg);
 
 				foreach(Inline defaultInline in ConstructorContentBuilder.GetArgumentDefaultInlines(arg, context)) {
 					yield return defaultInline;
@@ -119,13 +127,10 @@ namespace SharpEditor.CodeHelpers {
 			argumentBlock.Inlines.Add(new Run(SharpValueHandler.NO_BREAK_SPACE + argument.ConstructorName) { Foreground = SharpEditorPalette.GetTypeBrush(argument.DeclaringType) });
 
 			ArgumentDetails arg = argument.Argument;
-			while (arg != null && arg is PrefixedArgumentDetails prefixed) { arg = prefixed.Basis; }
+			while (arg is PrefixedArgumentDetails prefixed) { arg = prefixed.Basis; }
 
-			argumentBlock.Inlines.Add(new Run("." + arg!.Name) { });
-
-			if (argument.Implied != null) {
-				argumentBlock.Inlines.Add(new Run("." + argument.Implied));
-			}
+			argumentBlock.Inlines.Add(new Run("."));
+			argumentBlock.Inlines.Add(GetArgumentNameInline(arg));
 
 			argumentBlock.Inlines.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(argument.Argument, context));
 
@@ -138,6 +143,10 @@ namespace SharpEditor.CodeHelpers {
 			if (BaseContentBuilder.MakeDescriptionTextBlock(argument.ArgumentDescription, IndentedMargin) is TextBlock descriptionBlock) {
 				//yield return BaseContentBuilder.GetContentTextBlock(argument.ArgumentDescription, IndentedMargin);
 				yield return descriptionBlock;
+			}
+
+			if (argument.UseLocal) {
+				yield return BaseContentBuilder.GetContentTextBlock("(Local)", IndentedMargin);
 			}
 		}
 
