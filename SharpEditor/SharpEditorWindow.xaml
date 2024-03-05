@@ -248,7 +248,7 @@
 						<ColumnDefinition Width="35"/>
 						<ColumnDefinition Width="*" SharedSizeGroup="MenuItemHeaderSize"/>
 						<ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemGestureTextSize"/>
-						<ColumnDefinition Width="20"/>
+						<ColumnDefinition Width="*"/>
 					</Grid.ColumnDefinitions>
 					<Border
 						x:Name="IconPanel" Grid.Column="0"
