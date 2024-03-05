@@ -1979,11 +1979,11 @@ namespace SharpSheets.Widgets {
 		/// <size>0 0</size>
 		public Image(
 				WidgetSetup setup,
-				CanvasImageData? _file = null, // Should be requirement?
+				CanvasImageData _file, // Should be requirement?
 				float? _aspect = null
 			) : base(setup) {
 
-			filename = _file ?? throw new ArgumentNullException(nameof(_file));
+			filename = _file ?? throw new ArgumentNullException(nameof(_file), "No image provided.");
 			imageAspect = _aspect;
 		}
 
