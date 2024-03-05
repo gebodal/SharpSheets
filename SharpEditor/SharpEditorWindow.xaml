@@ -555,7 +555,7 @@
 						</Style>
 					</MenuItem.ItemContainerStyle>
 					<MenuItem.ItemTemplate>
-						<HierarchicalDataTemplate DataType="{x:Type local:TemplateMenuItem2}" ItemsSource="{Binding Path=MenuItems}">
+						<HierarchicalDataTemplate DataType="{x:Type local:TemplateMenuItem}" ItemsSource="{Binding Path=MenuItems}">
 							<TextBlock Text="{Binding Name}"/>
 						</HierarchicalDataTemplate>
 					</MenuItem.ItemTemplate>

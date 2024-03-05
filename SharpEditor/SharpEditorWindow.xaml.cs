@@ -825,15 +825,8 @@ namespace SharpEditor {
 			});
 		}
 
-		private List<TemplateMenuItem> GetTemplateMenuItemsOld() {
-			return SharpEditorRegistries.TemplateRegistry.Registered
-				.Select(r => new TemplateMenuItem(string.Join(".", r.Value), r.Key))
-				.OrderBy(t => t.Name)
-				.ToList();
-		}
-
 		private void TemplateMenuItemClick(object? sender, RoutedEventArgs args) {
-			if (sender is MenuItem menuItem && menuItem.DataContext is TemplateMenuItem2 templateData && templateData.Path is not null) {
+			if (sender is MenuItem menuItem && menuItem.DataContext is TemplateMenuItem templateData && templateData.Path is not null) {
 				Console.WriteLine(templateData.Name + " -> " + templateData.Path);
 				try {
 					DocumentType templateType = SharpEditorFileInfo.GetDocumentType(templateData.Path);
@@ -846,31 +839,31 @@ namespace SharpEditor {
 			}
 		}
 
-		private static ObservableCollection<TemplateMenuItem2> GetTemplateMenuItems() {
-			ObservableCollection<TemplateMenuItem2> items = new ObservableCollection<TemplateMenuItem2>();
+		private static ObservableCollection<TemplateMenuItem> GetTemplateMenuItems() {
+			ObservableCollection<TemplateMenuItem> items = new ObservableCollection<TemplateMenuItem>();
 
 			foreach ((string path, string[] parts) in SharpEditorRegistries.TemplateRegistry.Registered) {
-				TemplateMenuItem2? parent = null;
-				ObservableCollection<TemplateMenuItem2> levelItems = items;
+				TemplateMenuItem? parent = null;
+				ObservableCollection<TemplateMenuItem> levelItems = items;
 				for (int i = 0; i < parts.Length; i++) {
-					TemplateMenuItem2 menuItem;
-					if (levelItems.FirstOrDefault(m => m.Name == parts[i]) is TemplateMenuItem2 existing) {
+					TemplateMenuItem menuItem;
+					if (levelItems.FirstOrDefault(m => m.Name == parts[i]) is TemplateMenuItem existing) {
 						menuItem = existing;
 					}
 					else {
 						if (parent is not null && parent.Path is not null) {
-							TemplateMenuItem2 defaultItem = new TemplateMenuItem2("(Default)") { Path = parent.Path };
+							TemplateMenuItem defaultItem = new TemplateMenuItem("(Default)") { Path = parent.Path };
 							parent.Path = null;
 							levelItems.Add(defaultItem);
 						}
-						menuItem = new TemplateMenuItem2(parts[i]);
+						menuItem = new TemplateMenuItem(parts[i]);
 						levelItems.Add(menuItem);
 					}
 					parent = menuItem;
 					levelItems = menuItem.MenuItems;
 					if (i == parts.Length - 1) { // If we're at the last one
 						if(menuItem.MenuItems.Count > 0) {
-							TemplateMenuItem2 defaultItem = new TemplateMenuItem2("(Default)") { Path = path };
+							TemplateMenuItem defaultItem = new TemplateMenuItem("(Default)") { Path = path };
 							menuItem.MenuItems.Add(defaultItem);
 						}
 						else {
@@ -880,7 +873,16 @@ namespace SharpEditor {
 				}
 			}
 
+			SortTemplateMenuItems(items);
+
 			return items;
+		}
+
+		private static void SortTemplateMenuItems(ObservableCollection<TemplateMenuItem> templateMenuItems) {
+			templateMenuItems.Sort();
+			foreach(TemplateMenuItem item in templateMenuItems) {
+				SortTemplateMenuItems(item.MenuItems);
+			}
 		}
 
 		#endregion
@@ -1112,33 +1114,40 @@ namespace SharpEditor {
 
 	}
 
-	public class TemplateMenuItem {
-		
-		public string Name { get; }
-		public string Path { get; }
-
-		public TemplateMenuItem(string name, string path) {
-			Name = name;
-			Path = path;
-		}
-
-	}
-
-	public class TemplateMenuItem2 {
+	public class TemplateMenuItem : IComparable<TemplateMenuItem> {
 
 		public string Name { get; set; }
 		public string? Path { get; set; }
 
 		public bool HasPath { get { return Path is not null; } }
 
-		public ObservableCollection<TemplateMenuItem2> MenuItems { get; set; }
+		public ObservableCollection<TemplateMenuItem> MenuItems { get; set; }
 
-		public TemplateMenuItem2(string name) {
+		public TemplateMenuItem(string name) {
 			Name = name;
 			Path = null;
-			MenuItems = new ObservableCollection<TemplateMenuItem2>();
+			MenuItems = new ObservableCollection<TemplateMenuItem>();
 		}
 
+		public int CompareTo(TemplateMenuItem? other) {
+			if(other == null) { return 1; }
+
+			if (MenuItems.Count == 0 ^ other.MenuItems.Count == 0) {
+				return other.MenuItems.Count.CompareTo(MenuItems.Count);
+			}
+			else {
+				return Name.CompareTo(other.Name);
+			}
+		}
+	}
+
+	public static class ObservableCollectionUtils {
+		public static void Sort<T>(this ObservableCollection<T> collection) where T : IComparable<T> {
+			List<T> sorted = collection.OrderBy(x => x).ToList();
+			for (int i = 0; i < sorted.Count; i++) {
+				collection.Move(collection.IndexOf(sorted[i]), i);
+			}
+		}
 	}
 
 }
