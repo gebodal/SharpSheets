@@ -548,12 +548,17 @@
 				</MenuItem>
 				<MenuItem x:Name="TemplatesMenuItem" Header="New From Template" IsEnabled="{Binding HasItems, RelativeSource={RelativeSource Self}}" Template="{DynamicResource SharpMenuDropdownItem}">
 					<MenuItem.ItemContainerStyle>
-						<Style>
-							<Setter Property="MenuItem.Header" Value="{Binding Name}"/>
+						<Style TargetType="{x:Type MenuItem}">
+							<!--<Setter Property="MenuItem.Header" Value="testing 2"/>-->
 							<Setter Property="MenuItem.Template" Value="{DynamicResource SharpMenuDropdownItem}"/>
 							<EventSetter Event="MenuItem.Click" Handler="TemplateMenuItemClick"/>
 						</Style>
 					</MenuItem.ItemContainerStyle>
+					<MenuItem.ItemTemplate>
+						<HierarchicalDataTemplate DataType="{x:Type local:TemplateMenuItem2}" ItemsSource="{Binding Path=MenuItems}">
+							<TextBlock Text="{Binding Name}"/>
+						</HierarchicalDataTemplate>
+					</MenuItem.ItemTemplate>
 				</MenuItem>
 				<MenuItem Header="_Open..." Command="Open" Template="{DynamicResource SharpMenuDropdownItem}">
 					<MenuItem.Icon>

@@ -825,7 +825,7 @@ namespace SharpEditor {
 			});
 		}
 
-		private List<TemplateMenuItem> GetTemplateMenuItems() {
+		private List<TemplateMenuItem> GetTemplateMenuItemsOld() {
 			return SharpEditorRegistries.TemplateRegistry.Registered
 				.Select(r => new TemplateMenuItem(string.Join(".", r.Value), r.Key))
 				.OrderBy(t => t.Name)
@@ -833,7 +833,7 @@ namespace SharpEditor {
 		}
 
 		private void TemplateMenuItemClick(object? sender, RoutedEventArgs args) {
-			if (sender is MenuItem menuItem && menuItem.DataContext is TemplateMenuItem templateData) {
+			if (sender is MenuItem menuItem && menuItem.DataContext is TemplateMenuItem2 templateData && templateData.Path is not null) {
 				Console.WriteLine(templateData.Name + " -> " + templateData.Path);
 				try {
 					DocumentType templateType = SharpEditorFileInfo.GetDocumentType(templateData.Path);
@@ -844,6 +844,43 @@ namespace SharpEditor {
 					MessageBox.Show($"There was an error opening template {templateData.Name}: {e.Message ?? "Unknown error"}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 				}
 			}
+		}
+
+		private static ObservableCollection<TemplateMenuItem2> GetTemplateMenuItems() {
+			ObservableCollection<TemplateMenuItem2> items = new ObservableCollection<TemplateMenuItem2>();
+
+			foreach ((string path, string[] parts) in SharpEditorRegistries.TemplateRegistry.Registered) {
+				TemplateMenuItem2? parent = null;
+				ObservableCollection<TemplateMenuItem2> levelItems = items;
+				for (int i = 0; i < parts.Length; i++) {
+					TemplateMenuItem2 menuItem;
+					if (levelItems.FirstOrDefault(m => m.Name == parts[i]) is TemplateMenuItem2 existing) {
+						menuItem = existing;
+					}
+					else {
+						if (parent is not null && parent.Path is not null) {
+							TemplateMenuItem2 defaultItem = new TemplateMenuItem2("(Default)") { Path = parent.Path };
+							parent.Path = null;
+							levelItems.Add(defaultItem);
+						}
+						menuItem = new TemplateMenuItem2(parts[i]);
+						levelItems.Add(menuItem);
+					}
+					parent = menuItem;
+					levelItems = menuItem.MenuItems;
+					if (i == parts.Length - 1) { // If we're at the last one
+						if(menuItem.MenuItems.Count > 0) {
+							TemplateMenuItem2 defaultItem = new TemplateMenuItem2("(Default)") { Path = path };
+							menuItem.MenuItems.Add(defaultItem);
+						}
+						else {
+							menuItem.Path = path;
+						}
+					}
+				}
+			}
+
+			return items;
 		}
 
 		#endregion
@@ -1083,6 +1120,23 @@ namespace SharpEditor {
 		public TemplateMenuItem(string name, string path) {
 			Name = name;
 			Path = path;
+		}
+
+	}
+
+	public class TemplateMenuItem2 {
+
+		public string Name { get; set; }
+		public string? Path { get; set; }
+
+		public bool HasPath { get { return Path is not null; } }
+
+		public ObservableCollection<TemplateMenuItem2> MenuItems { get; set; }
+
+		public TemplateMenuItem2(string name) {
+			Name = name;
+			Path = null;
+			MenuItems = new ObservableCollection<TemplateMenuItem2>();
 		}
 
 	}

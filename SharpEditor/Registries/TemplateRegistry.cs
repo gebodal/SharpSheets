@@ -107,10 +107,10 @@ namespace SharpEditor.Registries {
 			origins.Clear();
 		}
 
-		private static readonly Regex nameSplitRegex = new Regex(@"^\#\=\s*(?<name>[a-z0-9]+(\.[a-z0-9]+))*", RegexOptions.IgnoreCase);
+		private static readonly Regex nameSplitRegex = new Regex(@"^\#\=\s*(?<name>[a-z0-9]+(\.[a-z0-9]+)*)", RegexOptions.IgnoreCase);
 		private static readonly char[] nameSeparators = new char[] { '.' };
 
-		private static readonly Regex nameRemoveRegex = new Regex(@"^\#\=\s*(?<name>[a-z0-9]+(\.[a-z0-9]+))*\s*", RegexOptions.IgnoreCase);
+		private static readonly Regex nameRemoveRegex = new Regex(@"^\#\=\s*(?<name>[a-z0-9]+(\.[a-z0-9]+)*)\s*", RegexOptions.IgnoreCase);
 		private static readonly Regex pathSeparatorReplaceRegex = new Regex(@"\\"); // new Regex(@"(?<!\\)\\\\|(?<!\\)\\");
 
 		private void LoadFileIntoRegistry(string filepath) {
