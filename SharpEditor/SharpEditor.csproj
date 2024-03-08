@@ -51,8 +51,10 @@
     <None Remove="Documentation\Content\6 Markup\9 Markup Elements.sd" />
     <None Remove="Documentation\Content\6 Markup\Main.sd" />
     <None Remove="Documentation\Content\5 Cards\Main.sd" />
+    <None Remove="Documentation\Content\7 Fonts\Main.sd" />
     <None Remove="Documentation\Content\Main.sd" />
     <None Remove="Documentation\Content\Usage Notes.sd" />
+    <None Remove="Documentation\DocumentationBuilders\resources\Unicode\UnicodeData15-1-0.txt" />
     <None Remove="Highlighting\CardDefinitionHighlighting.xshd" />
     <None Remove="Highlighting\CardSubjectHighlighting.xshd" />
     <None Remove="Highlighting\CharacterSheetHighlighting.xshd" />
@@ -157,7 +159,9 @@
     <EmbeddedResource Include="Documentation\Content\6 Markup\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\5 Cards\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\9 Markup Elements.sd" />
+    <EmbeddedResource Include="Documentation\Content\7 Fonts\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\Main.sd" />
+    <EmbeddedResource Include="Documentation\DocumentationBuilders\resources\Unicode\UnicodeData15-1-0.txt" />
     <EmbeddedResource Include="Highlighting\CardDefinitionHighlighting.xshd" />
     <EmbeddedResource Include="Highlighting\CardSubjectHighlighting.xshd" />
     <EmbeddedResource Include="Highlighting\CharacterSheetHighlighting.xshd" />

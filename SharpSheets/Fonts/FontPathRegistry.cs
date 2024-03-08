@@ -102,6 +102,8 @@ namespace SharpSheets.Fonts {
 							continue;
 						}
 
+						//Console.WriteLine($"Family name:    {familyName}");
+
 						if (!FamilyRegistry.ContainsKey(familyName)) {
 							FamilyRegistry.Add(familyName, new Dictionary<TextFormat, FontPath>());
 						}
@@ -121,12 +123,14 @@ namespace SharpSheets.Fonts {
 
 						string? fullName = GetFullName(fontFile);
 						if (fullName is not null && !FontRegistry.ContainsKey(fullName)) {
+							//Console.WriteLine($"Full name:      {fullName}");
 							FontRegistry.Add(fullName, fontPath);
 						}
 
 						string? faceName = GetFaceName(fontFile);
 						if (faceName is not null) {
 							string singletonName = (familyName + " " + faceName).Trim();
+							//Console.WriteLine($"Singleton name: {singletonName}");
 							if (!FontRegistry.ContainsKey(singletonName)) {
 								FontRegistry.Add(singletonName, fontPath);
 							}
@@ -171,6 +175,20 @@ namespace SharpSheets.Fonts {
 			return fontFiles;
 		}
 
+		public static TrueTypeFontFileData OpenFontFile(FontPath path) {
+			TrueTypeFontFileData fontFile;
+
+			if (path.FontIndex >= 0) {
+				TrueTypeFontFileData[] collectionFiles = TrueTypeCollectionData.Open(path.Path).fonts;
+				fontFile = collectionFiles[path.FontIndex];
+			}
+			else {
+				fontFile = TrueTypeFontFileData.Open(path.Path);
+			}
+
+			return fontFile;
+		}
+
 		#endregion FontPath Registry
 
 		#region FontFile Utils
@@ -178,18 +196,28 @@ namespace SharpSheets.Fonts {
 		private static string? GetFamilyName(TrueTypeFontFileData fontFile) {
 			////return glyphs.FamilyNames.Select(kv => kv.Value).Distinct().FirstOrDefault();
 			//return fontFile.name.nameRecords[NameID.FontFamily].FirstOrDefault()?.name;
-			return GetFontName(fontFile.name.nameRecords[NameID.FontFamily]);
+			return GetFontText(fontFile, NameID.FontFamily);
 		}
 
 		private static string? GetFaceName(TrueTypeFontFileData fontFile) {
-			return GetFontName(fontFile.name.nameRecords[NameID.FontSubfamily]);
+			return GetFontText(fontFile, NameID.FontSubfamily);
 		}
 
 		private static string? GetFullName(TrueTypeFontFileData fontFile) {
-			return GetFontName(fontFile.name.nameRecords[NameID.FullName]);
+			return GetFontText(fontFile, NameID.FullName);
+		}
+
+		private static string? GetFontText(TrueTypeFontFileData fontData, NameID nameID) {
+			if (fontData.name.nameRecords.TryGetValue(nameID, out TrueTypeName[]? nameRecords)) {
+				return GetFontName(nameRecords);
+			}
+			else {
+				return null;
+			}
 		}
 
 		private static string? GetFontName(TrueTypeName[] names) {
+			// TODO This approach can cause issues if SharpSheets is loaded on a non-English system
 			string? name = names.Where(n => n.cultureInfo != null && n.cultureInfo.TwoLetterISOLanguageName == CultureInfo.CurrentCulture.TwoLetterISOLanguageName).FirstOrDefault()?.name;
 			if (name is null) {
 				name = names.FirstOrDefault()?.name;

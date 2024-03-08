@@ -231,6 +231,9 @@ namespace SharpEditor.Documentation {
 		public MouseButtonEventHandler MakeNavigationDelegate(CardSetConfig cardSetConfig, Func<CardSetConfig?>? refreshAction) {
 			return delegate { NavigateTo(CardConfigPageBuilder.GetCardSetConfigPage(cardSetConfig, this, refreshAction)); };
 		}
+		public MouseButtonEventHandler MakeNavigationDelegate(FontName fontName) {
+			return delegate { NavigateTo(FontPageBuilder.GetFontPage(fontName, this)); };
+		}
 		public MouseButtonEventHandler MakeNavigationDelegate(DocumentationFile documentationFile) {
 			return delegate { NavigateTo(DocumentationPageBuilder.CreateDocumentationPage(documentationFile, this)); };
 		}

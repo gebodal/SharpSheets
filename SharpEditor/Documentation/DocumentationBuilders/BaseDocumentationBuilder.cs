@@ -50,7 +50,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			TextBlock titleBlock = new TextBlock() { TextWrapping = textWrapping, Margin = TitleMargin };
 			titleBlock.Inlines.AddRange(inlines);
 
-			MakeFontSizeRelative(titleBlock, level switch {
+			titleBlock.MakeFontSizeRelative(level switch {
 				int i when i <= 0 => 3.0,
 				1 => 2.5,
 				2 => 2.0,

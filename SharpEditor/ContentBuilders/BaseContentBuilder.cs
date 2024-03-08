@@ -26,20 +26,39 @@ namespace SharpEditor.ContentBuilders {
 			return block;
 		}
 
+		public static TextBlock GetContentTextBlock(string? text, Thickness margin, double sizeRatio) {
+			TextBlock block = GetContentTextBlock(margin);
+			if (text is not null) { block.Text = text; }
+			MakeFontSizeRelative(block, sizeRatio);
+			return block;
+		}
+
 		public static TextBlock GetContentTextBlock(IEnumerable<Inline> inlines, Thickness margin) {
 			TextBlock block = GetContentTextBlock(margin);
 			block.Inlines.AddRange(inlines);
 			return block;
 		}
 
-		public static void MakeFontSizeRelative(TextBlock block, double ratio) {
+		public static T MakeFontSizeRelative<T>(this T block, double ratio) where T : TextBlock {
 			block.LayoutTransform = new ScaleTransform(ratio, ratio);
+			return block;
 		}
 
-		public static void AddIndent(FrameworkElement element, double indent) {
+		public static T AddMargin<T>(this T element, Thickness margin) where T : FrameworkElement {
+			Thickness initial = element.Margin;
+			initial.Left += margin.Left;
+			initial.Right += margin.Right;
+			initial.Top += margin.Top;
+			initial.Bottom += margin.Bottom;
+			element.Margin = initial;
+			return element;
+		}
+
+		public static T AddIndent<T>(this T element, double indent) where T : FrameworkElement {
 			Thickness margin = element.Margin;
 			margin.Left += indent;
 			element.Margin = margin;
+			return element;
 		}
 
 		private static Color ConvertColor(SharpSheets.Colors.Color color) {

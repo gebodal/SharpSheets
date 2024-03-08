@@ -587,7 +587,8 @@ namespace SharpEditor.Documentation {
 		CardSegmentEnvironmentVariables,
 		CardSegmentOutlineEnvironmentVariables,
 		CardFeatureEnvironmentVariables,
-		CardConfigs, CardStructures
+		CardConfigs, CardStructures,
+		FontFamilies, Fonts
 	}
 	
 	public class DocumentationContents : IDocumentationSegment {

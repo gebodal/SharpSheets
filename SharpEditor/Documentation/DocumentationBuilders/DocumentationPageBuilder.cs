@@ -46,7 +46,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				stack.Children.Add(contentsTitleBlock);
 
 				contentsElement.Margin = SectionMargin;
-				AddIndent(contentsElement, 45);
+				contentsElement.AddIndent(45);
 				stack.Children.Add(contentsElement);
 			}
 
@@ -122,7 +122,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			foreach (IDocumentationSegment segment in documentationSection.segments) {
 				FrameworkElement segmentElement = CreateDocumentationSegment(segment, window);
-				AddIndent(segmentElement, 10);
+				segmentElement.AddIndent(10);
 				stack.Children.Add(segmentElement);
 			}
 
@@ -161,6 +161,9 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					DocumentationSectionContents.CardSegmentEnvironmentVariables => EnvironmentPageBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardSegmentEnvironments.BaseDefinitions, window),
 					DocumentationSectionContents.CardSegmentOutlineEnvironmentVariables => EnvironmentPageBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardSegmentOutlineEnvironments.BaseDefinitions, window),
 					DocumentationSectionContents.CardFeatureEnvironmentVariables => EnvironmentPageBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardFeatureEnvironments.BaseDefinitions, window),
+					// Fonts
+					DocumentationSectionContents.FontFamilies => FontPageBuilder.GetFontFamiliesContents(window),
+					DocumentationSectionContents.Fonts => FontPageBuilder.GetFontsContents(window),
 					_ => throw new InvalidOperationException("Unknown DocumentationSectionContents value.")
 				};
 			}
@@ -223,7 +226,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				StackPanel groupStack = new StackPanel() { Margin = ParagraphMargin };
 				if (!string.IsNullOrWhiteSpace(constructorGroup.Key)) {
 					contentsStack.Children.Add(new TextBlock() { Text = constructorGroup.Key, Margin = TextBlockMargin });
-					AddIndent(groupStack, 10);
+					groupStack.AddIndent(10);
 				}
 				foreach (ConstructorDetails constructor in constructorGroup.OrderBy(c => c.Name)) {
 					ClickableRun constructorClickable = new ClickableRun(GetConstructorPrintedName(constructor));

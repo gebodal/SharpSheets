@@ -70,7 +70,17 @@ namespace SharpSheets.Fonts {
 
 		private static OpenTypeLayoutTags GetOpenTypeTags(FontTags? tags) {
 			if (tags is null) { tags = FontTags.Default; }
-			return new OpenTypeLayoutTags(tags.ScriptTag, tags.LangSysTag, tags.FeatureTags);
+			return new OpenTypeLayoutTags(MakeTag(tags.ScriptTag), MakeTag(tags.LangSysTag), tags.FeatureTags.Select(t => MakeTag(t)));
+		}
+
+		[return: NotNullIfNotNull(nameof(tag))]
+		private static string? MakeTag(string? tag) {
+			if (tag is not null && tag.Length < 4) {
+				return tag + "    "[..(4 - tag.Length)];
+			}
+			else {
+				return tag;
+			}
 		}
 
 		public static PdfGlyphFont GetRegularDefault() {

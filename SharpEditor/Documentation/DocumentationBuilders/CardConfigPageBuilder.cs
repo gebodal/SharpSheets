@@ -88,7 +88,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					List<Definition> cardOnlyDefs = card.Value.definitions.GetLocalDefinitions().ToList();
 					if (cardOnlyDefs.Count > 0) {
 						FrameworkElement cardDefsElem = GetConfigDefinitionList(cardOnlyDefs, 5).AddMargin(TextBlockMargin);
-						AddIndent(cardDefsElem, 10);
+						cardDefsElem.AddIndent(10);
 						stack.Children.Add(cardDefsElem);
 					}
 
@@ -185,7 +185,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 			if (segment.Value.definitions.Count > 0) {
 				FrameworkElement defElem = GetConfigDefinitionList(segment.Value.definitions, titleLevel+2).AddMargin(TextBlockMargin);
-				AddIndent(defElem, 10);
+				defElem.AddIndent(10);
 				segmentPanel.Children.Add(defElem);
 			}
 
@@ -225,7 +225,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			if (feature.Value.definitions.Count > 0) {
 				FrameworkElement defElem = GetConfigDefinitionList(feature.Value.definitions, titleLevel + 1).AddMargin(TextBlockMargin);
-				AddIndent(defElem, 10);
+				defElem.AddIndent(10);
 				featurePanel.Children.Add(defElem);
 			}
 
@@ -270,7 +270,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 				foreach (ConstantDefinition definition in required) {
 					FrameworkElement defElem = MakeValueDefinitionElement(definition);
-					AddIndent(defElem, 10);
+					defElem.AddIndent(10);
 					stack.Children.Add(defElem);
 				}
 			}
@@ -281,7 +281,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 				foreach (FallbackDefinition definition in optional) {
 					FrameworkElement defElem = MakeValueDefinitionElement(definition);
-					AddIndent(defElem, 10);
+					defElem.AddIndent(10);
 					stack.Children.Add(defElem);
 				}
 			}
@@ -292,7 +292,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 				foreach (ValueDefinition definition in available) {
 					FrameworkElement defElem = MakeValueDefinitionElement(definition);
-					AddIndent(defElem, 10);
+					defElem.AddIndent(10);
 					stack.Children.Add(defElem);
 				}
 			}
@@ -303,7 +303,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 				foreach (FunctionDefinition definition in functions) {
 					FrameworkElement defElem = MakeFunctionDefinitionElement(definition);
-					AddIndent(defElem, 10);
+					defElem.AddIndent(10);
 					stack.Children.Add(defElem);
 				}
 			}

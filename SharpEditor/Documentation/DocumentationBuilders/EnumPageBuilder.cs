@@ -29,7 +29,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			TextBlock headerBlock = GetContentTextBlock(TextBlockMargin);
 			headerBlock.Text = enumDoc.type;
 			headerBlock.Foreground = SharpEditorPalette.TypeBrush;
-			MakeFontSizeRelative(headerBlock, 2.0);
+			headerBlock.MakeFontSizeRelative(2.0);
 			stack.Children.Add(headerBlock);
 
 			if (MakeDescriptionTextBlock(enumDoc.description, window) is TextBlock descriptionBlock) {

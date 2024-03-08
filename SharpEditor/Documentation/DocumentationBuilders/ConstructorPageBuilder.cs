@@ -38,7 +38,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
 			TextBlock headerBlock = GetContentTextBlock(ConstructorContentBuilder.MakeConstructorHeaderBlock(constructor), TextBlockMargin);
-			MakeFontSizeRelative(headerBlock, 2.0);
+			headerBlock.MakeFontSizeRelative(2.0);
 
 			if (constructor is MarkupConstructorDetails markupConstructor) {
 				Grid headerGrid = MakeExternalLinkHeader(headerBlock, "Open Pattern File...", out Button patternSourceButton, window);

@@ -105,7 +105,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			titleBlock.Inlines.Add(new Run(")"));
 
-			MakeFontSizeRelative(titleBlock, 1.1);
+			titleBlock.MakeFontSizeRelative(1.1);
 
 			argPanel.Children.Add(titleBlock);
 
@@ -155,7 +155,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				titleBlock.Inlines.Add(new Run(")"));
 			}
 
-			MakeFontSizeRelative(titleBlock, 1.1);
+			titleBlock.MakeFontSizeRelative(1.1);
 
 			argPanel.Children.Add(titleBlock);
 

@@ -29,7 +29,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
 			TextBlock headerBlock = GetContentTextBlock(XMLContentBuilder.MakeMarkupTypeHeader(constructor), TextBlockMargin);
-			MakeFontSizeRelative(headerBlock, 2.0);
+			headerBlock.MakeFontSizeRelative(2.0);
 			stack.Children.Add(headerBlock);
 
 			if (MakeDescriptionTextBlock(constructor.Description, window) is TextBlock descriptionBlock) {
