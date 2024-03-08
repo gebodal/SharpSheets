@@ -26,7 +26,16 @@
 	  <None Remove="Fonts\resources\afm\Times-Roman.afm" />
 	  <None Remove="Fonts\resources\afm\ZapfDingbats.afm" />
 	  <None Remove="Fonts\resources\mustRead.html" />
+	  <None Remove="Fonts\TrueType\resources\OpenType\featureTags.txt" />
+	  <None Remove="Fonts\TrueType\resources\OpenType\languageTags.txt" />
+	  <None Remove="Fonts\TrueType\resources\OpenType\scriptTags.txt" />
+	  <None Remove="Fonts\TrueType\resources\TrueType\postv1glyphs.txt" />
 	  <None Remove="Text\resources\PdfEncodings.csv" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="Fonts\TrueType\resources\OpenType\featureTags.txt" />
+	  <EmbeddedResource Include="Fonts\TrueType\resources\OpenType\scriptTags.txt" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -46,6 +55,8 @@
 	  <EmbeddedResource Include="Fonts\resources\afm\Times-Roman.afm" />
 	  <EmbeddedResource Include="Fonts\resources\afm\ZapfDingbats.afm" />
 	  <EmbeddedResource Include="Fonts\resources\mustRead.html" />
+	  <EmbeddedResource Include="Fonts\TrueType\resources\OpenType\languageTags.txt" />
+	  <EmbeddedResource Include="Fonts\TrueType\resources\TrueType\postv1glyphs.txt" />
 	  <EmbeddedResource Include="Text\resources\PdfEncodings.csv" />
 	</ItemGroup>
 

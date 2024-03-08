@@ -85,9 +85,9 @@ namespace GeboPdf.Fonts.TrueType {
 		public readonly uint subtableOffset;
 		public readonly ushort format;
 		public readonly ushort language;
-		public readonly Dictionary<uint, ushort> cidMap;
+		public readonly IReadOnlyDictionary<uint, ushort> cidMap;
 
-		internal TrueTypeCMapSubtable(ushort platformID, ushort encodingID, uint subtableOffset, ushort format, ushort language, Dictionary<uint, ushort> cidMap) {
+		internal TrueTypeCMapSubtable(ushort platformID, ushort encodingID, uint subtableOffset, ushort format, ushort language, IReadOnlyDictionary<uint, ushort> cidMap) {
 			this.platformID = platformID;
 			this.encodingID = encodingID;
 			this.subtableOffset = subtableOffset;

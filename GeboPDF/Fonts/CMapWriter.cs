@@ -337,7 +337,7 @@ namespace GeboPdf.Fonts {
 
 		}
 
-		private static SortedDictionary<ushort, uint> GetGIDToUnicodeMap(IReadOnlyDictionary<uint, ushort> unicodeToGID) {
+		public static SortedDictionary<ushort, uint> GetGIDToUnicodeMap(IReadOnlyDictionary<uint, ushort> unicodeToGID) {
 			SortedDictionary<ushort, uint> sortedGIDToUnicode = new SortedDictionary<ushort, uint>();
 
 			foreach(KeyValuePair<uint, ushort> entry in unicodeToGID) {

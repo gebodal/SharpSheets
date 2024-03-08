@@ -1,17 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace GeboPdf.Fonts.TrueType {
+
+	public enum GlyphOutlineLayout { Unknown, TrueType, OpenType }
 
 	public class TrueTypeFontFile {
 
 		public readonly uint scalerType;
-
-		public readonly ushort numTables;
-		public readonly ushort searchRange;
-		public readonly ushort entrySelector;
-		public readonly ushort rangeShift;
 
 		public readonly IReadOnlyDictionary<string, TrueTypeFontTable> tables;
 
@@ -25,6 +23,7 @@ namespace GeboPdf.Fonts.TrueType {
 		public readonly TrueTypeHorizontalMetricsTable hmtx;
 		public readonly TrueTypeCMapTable cmap;
 		public readonly TrueTypeOS2Table? os2;
+		public readonly TrueTypePostTable? post;
 
 		public readonly TrueTypeKerningTable? kern;
 
@@ -35,8 +34,10 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public ushort UnitsPerEm => head.unitsPerEm;
 
+		public GlyphOutlineLayout OutlineLayout { get; }
+
 		private TrueTypeFontFile(
-				uint scalerType, ushort numTables, ushort searchRange, ushort entrySelector, ushort rangeShift,
+				uint scalerType,
 				IReadOnlyDictionary<string, TrueTypeFontTable> tables,
 				ushort numGlyphs,
 				TrueTypeHeadTable head,
@@ -47,16 +48,14 @@ namespace GeboPdf.Fonts.TrueType {
 				TrueTypeHorizontalMetricsTable hmtx,
 				TrueTypeCMapTable cmap,
 				TrueTypeOS2Table? os2,
+				TrueTypePostTable? post,
 				TrueTypeKerningTable? kern,
 				OpenTypeGlyphSubstitutionTable? gsub,
-				OpenTypeGlyphPositioningTable? gpos
+				OpenTypeGlyphPositioningTable? gpos,
+				GlyphOutlineLayout glyphOutlineLayout
 			) {
 
 			this.scalerType = scalerType;
-			this.numTables = numTables;
-			this.searchRange = searchRange;
-			this.entrySelector = entrySelector;
-			this.rangeShift = rangeShift;
 			this.tables = tables;
 
 			this.numGlyphs = numGlyphs;
@@ -69,11 +68,14 @@ namespace GeboPdf.Fonts.TrueType {
 			this.hmtx = hmtx;
 			this.cmap = cmap;
 			this.os2 = os2;
+			this.post = post;
 
 			this.kern = kern;
 
 			this.gsub = gsub;
 			this.gpos = gpos;
+
+			this.OutlineLayout = glyphOutlineLayout;
 		}
 
 		public static TrueTypeFontFile Open(string fontProgramPath) {
@@ -83,14 +85,15 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 		}
 
-		public static TrueTypeFontFile Open(FontFileReader reader) {
+		public static IReadOnlyDictionary<string, TrueTypeFontTable> ReadHeader(FontFileReader reader,
+			out uint scalerType, out ushort searchRange, out ushort entrySelector, out ushort rangeShift) {
 
-			uint scalerType = reader.ReadUInt32();
+			scalerType = reader.ReadUInt32();
 
 			ushort numTables = reader.ReadUInt16();
-			ushort searchRange = reader.ReadUInt16();
-			ushort entrySelector = reader.ReadUInt16();
-			ushort rangeShift = reader.ReadUInt16();
+			searchRange = reader.ReadUInt16();
+			entrySelector = reader.ReadUInt16();
+			rangeShift = reader.ReadUInt16();
 
 			Dictionary<string, TrueTypeFontTable> tables = new Dictionary<string, TrueTypeFontTable>();
 
@@ -129,6 +132,14 @@ namespace GeboPdf.Fonts.TrueType {
 
 				tables.Add(tag, new TrueTypeFontTable(tag, checksum, offset, length));
 			}
+
+			return tables;
+		}
+
+		public static TrueTypeFontFile Open(FontFileReader reader) {
+
+			IReadOnlyDictionary<string, TrueTypeFontTable> tables = ReadHeader(reader,
+				out uint scalerType, out _, out _, out _);
 
 			///////////// Head table
 			if (!tables.TryGetValue("head", out TrueTypeFontTable? headTable)) {
@@ -194,6 +205,15 @@ namespace GeboPdf.Fonts.TrueType {
 				os2 = null;
 			}
 
+			///////////// PostScript table
+			TrueTypePostTable? post;
+			if (tables.TryGetValue("post", out TrueTypeFontTable? postTable)) {
+				post = TrueTypePostTable.Read(reader, postTable.offset);
+			}
+			else {
+				post = null;
+			}
+
 			///////////// Kerning table
 			TrueTypeKerningTable? kern = null;
 			if (tables.TryGetValue("kern", out TrueTypeFontTable? kernTable)) {
@@ -212,13 +232,86 @@ namespace GeboPdf.Fonts.TrueType {
 				gpos = OpenTypeGlyphPositioningTable.Read(reader, gposTable.offset);
 			}
 
+			GlyphOutlineLayout outlineLayout = GetGlyphOutlineLayout(tables);
+
 			return new TrueTypeFontFile(
-				scalerType, numTables, searchRange, entrySelector, rangeShift,
+				scalerType,
 				tables,
 				numGlyphs,
-				head, name, hhea, loca, glyf, hmtx, cmap, os2,
+				head, name, hhea, loca, glyf, hmtx, cmap, os2, post,
 				kern,
-				gsub, gpos);
+				gsub, gpos,
+				outlineLayout);
+		}
+
+		public static GlyphOutlineLayout GetGlyphOutlineLayout(IReadOnlyDictionary<string, TrueTypeFontTable> tables) {
+			if(tables.ContainsKey("CFF ")) {
+				return GlyphOutlineLayout.OpenType;
+			}
+			else if (tables.ContainsKey("glyf")) {
+				return GlyphOutlineLayout.TrueType;
+			}
+			else {
+				return GlyphOutlineLayout.Unknown;
+			}
+		}
+
+		internal static T? OpenTable<T>(string fontProgramPath, string tableLabel, Func<FontFileReader, long, T> parser) where T : class {
+			using (FileStream fontFileStream = new FileStream(fontProgramPath, FileMode.Open, FileAccess.Read)) {
+				FontFileReader fontReader = new FontFileReader(fontFileStream);
+				return OpenTable(fontReader, tableLabel, parser);
+			}
+		}
+
+		internal static T? OpenTable<T>(FontFileReader reader, string tableLabel, Func<FontFileReader, long, T> parser) where T : class {
+			IReadOnlyDictionary<string, TrueTypeFontTable> tables = ReadHeader(reader,
+				out _, out _, out _, out _);
+
+			if (tables.TryGetValue(tableLabel, out TrueTypeFontTable? table)) {
+				return parser(reader, table.offset);
+			}
+			else {
+				return null;
+			}
+		}
+
+		public static TrueTypeCMapTable? OpenCmap(string fontProgramPath) {
+			return OpenTable(fontProgramPath, "cmap", TrueTypeCMapTable.Read);
+		}
+		public static TrueTypeCMapTable? OpenCmap(FontFileReader reader) {
+			return OpenTable(reader, "cmap", TrueTypeCMapTable.Read);
+		}
+
+		public static TrueTypePostTable? OpenPost(string fontProgramPath) {
+			return OpenTable(fontProgramPath, "post", TrueTypePostTable.Read);
+		}
+		public static TrueTypePostTable? OpenPost(FontFileReader reader) {
+			return OpenTable(reader, "post", TrueTypePostTable.Read);
+		}
+
+		public static OpenTypeLayoutTagSet ReadOpenTypeTags(string fontProgramPath) {
+			using (FileStream fontFileStream = new FileStream(fontProgramPath, FileMode.Open, FileAccess.Read)) {
+				FontFileReader fontReader = new FontFileReader(fontFileStream);
+				return ReadOpenTypeTags(fontReader);
+			}
+		}
+
+		public static OpenTypeLayoutTagSet ReadOpenTypeTags(FontFileReader reader) {
+			IReadOnlyDictionary<string, TrueTypeFontTable> tables = ReadHeader(reader,
+				out _, out _, out _, out _);
+
+			OpenTypeLayoutTagSet tags = OpenTypeLayoutTagSet.Empty();
+
+			if (tables.TryGetValue("GSUB", out TrueTypeFontTable? gsub)) {
+				OpenTypeLayoutTagSet gsubTags = OpenTypeGlyphSubstitutionTable.ReadTags(reader, gsub.offset);
+				tags.UnionWith(gsubTags);
+			}
+			if (tables.TryGetValue("GPOS", out TrueTypeFontTable? gpos)) {
+				OpenTypeLayoutTagSet gposTags = OpenTypeGlyphPositioningTable.ReadTags(reader, gpos.offset);
+				tags.UnionWith(gposTags);
+			}
+
+			return tags;
 		}
 
 	}
@@ -247,12 +340,14 @@ namespace GeboPdf.Fonts.TrueType {
 		public readonly TrueTypeOS2Table? os2;
 
 		public EmbeddingFlags EmbeddingFlags => os2?.fsType ?? EmbeddingFlags.EditableEmbedding;
+		public GlyphOutlineLayout OutlineLayout { get; }
 
-		public TrueTypeFontFileData(ushort numGlyphs, TrueTypeHeadTable head, TrueTypeNameTable name, TrueTypeOS2Table? os2) {
+		public TrueTypeFontFileData(ushort numGlyphs, TrueTypeHeadTable head, TrueTypeNameTable name, TrueTypeOS2Table? os2, GlyphOutlineLayout glyphOutlineLayout) {
 			this.numGlyphs = numGlyphs;
 			this.head = head;
 			this.name = name;
 			this.os2 = os2;
+			this.OutlineLayout = glyphOutlineLayout;
 		}
 
 		public static TrueTypeFontFileData Open(string fontProgramPath) {
@@ -264,20 +359,8 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public static TrueTypeFontFileData Open(FontFileReader reader) {
 
-			reader.SkipUInt32(1); // scalerType
-			ushort numTables = reader.ReadUInt16();
-			reader.SkipUInt16(3); // searchRange, entrySelector, rangeShift
-
-			Dictionary<string, TrueTypeFontTable> tables = new Dictionary<string, TrueTypeFontTable>();
-
-			for (ushort i = 0; i < numTables; i++) {
-				string tag = reader.ReadASCIIString(4);
-				uint checksum = reader.ReadUInt32();
-				uint offset = reader.ReadUInt32();
-				uint length = reader.ReadUInt32();
-
-				tables.Add(tag, new TrueTypeFontTable(tag, checksum, offset, length));
-			}
+			IReadOnlyDictionary<string, TrueTypeFontTable> tables = TrueTypeFontFile.ReadHeader(reader,
+				out _, out _, out _, out _);
 
 			///////////// Head table
 			if (!tables.TryGetValue("head", out TrueTypeFontTable? headTable)) {
@@ -309,9 +392,12 @@ namespace GeboPdf.Fonts.TrueType {
 				os2 = null;
 			}
 
+			GlyphOutlineLayout outlineLayout = TrueTypeFontFile.GetGlyphOutlineLayout(tables);
+
 			return new TrueTypeFontFileData(
 				numGlyphs,
-				head, name, os2);
+				head, name, os2,
+				outlineLayout);
 		}
 	}
 

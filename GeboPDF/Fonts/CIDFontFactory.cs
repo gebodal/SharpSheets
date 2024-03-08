@@ -36,13 +36,7 @@ namespace GeboPdf.Fonts {
 
 			TrueTypeFontFile fontFile = ReadFontFile(memoryStream);
 
-			TrueTypeCMapSubtable cmapSubtable = GetCmap(fontFile);
-			Dictionary<uint, ushort> cmap = cmapSubtable.cidMap;
-			if (cmapSubtable.platformID == 3 && cmapSubtable.encodingID == 0) { // Windows Symbol table
-				if (cmap.All(kv => kv.Key >= 0xF000)) {
-					cmap = cmap.ToDictionary(kv => (uint)(kv.Key - 0xF000), kv => kv.Value);
-				}
-			}
+			IReadOnlyDictionary<uint, ushort> cmap = GetCmapDict(fontFile.cmap);
 
 			//OpenTypeLayoutTags layoutTags = new OpenTypeLayoutTags("latn", null, new HashSet<string>() { "liga", "kern", "dlig" });
 
@@ -68,13 +62,7 @@ namespace GeboPdf.Fonts {
 
 			string fontName = GetFontName(fontFile);
 
-			TrueTypeCMapSubtable cmapSubtable = GetCmap(fontFile);
-			Dictionary<uint, ushort> cmap = cmapSubtable.cidMap;
-			if (cmapSubtable.platformID == 3 && cmapSubtable.encodingID == 0) { // Windows Symbol table
-				if (cmap.All(kv => kv.Key >= 0xF000)) {
-					cmap = cmap.ToDictionary(kv => (uint)(kv.Key - 0xF000), kv => kv.Value);
-				}
-			}
+			IReadOnlyDictionary<uint, ushort> cmap = GetCmapDict(fontFile.cmap);
 
 			TrueTypeFontProgramStream fontProgram = new TrueTypeFontProgramStream(memoryStream, openType);
 
@@ -137,16 +125,27 @@ namespace GeboPdf.Fonts {
 			return Regex.Replace(name, @"\s+", "");
 		}
 
-		public static TrueTypeCMapSubtable GetCmap(TrueTypeFontFile fontFile) {
-			if (fontFile.cmap.subtables.FirstOrDefault(kv => kv.Key.platformID == 0 && (kv.Key.encodingID == 3 || kv.Key.encodingID == 4)) is KeyValuePair<CMapTableIdentifier, TrueTypeCMapSubtable> unicode && unicode.Value != null) {
+		public static TrueTypeCMapSubtable GetCmap(TrueTypeCMapTable cmap) {
+			if (cmap.subtables.FirstOrDefault(kv => kv.Key.platformID == 0 && (kv.Key.encodingID == 3 || kv.Key.encodingID == 4)) is KeyValuePair<CMapTableIdentifier, TrueTypeCMapSubtable> unicode && unicode.Value != null) {
 				return unicode.Value;
 			}
-			else if (fontFile.cmap.subtables.FirstOrDefault(kv => kv.Key.platformID == 3 && (kv.Key.encodingID == 0 || kv.Key.encodingID == 1)) is KeyValuePair<CMapTableIdentifier, TrueTypeCMapSubtable> windows && windows.Value != null) {
+			else if (cmap.subtables.FirstOrDefault(kv => kv.Key.platformID == 3 && (kv.Key.encodingID == 0 || kv.Key.encodingID == 1)) is KeyValuePair<CMapTableIdentifier, TrueTypeCMapSubtable> windows && windows.Value != null) {
 				return windows.Value;
 			}
 			else {
 				throw new ArgumentException("Could not find valid cmap table.");
 			}
+		}
+
+		public static IReadOnlyDictionary<uint, ushort> GetCmapDict(TrueTypeCMapTable cmap) {
+			TrueTypeCMapSubtable cmapSubtable = GetCmap(cmap);
+			IReadOnlyDictionary<uint, ushort> cmapDict = cmapSubtable.cidMap;
+			if (cmapSubtable.platformID == 3 && cmapSubtable.encodingID == 0) { // Windows Symbol table
+				if (cmapDict.All(kv => kv.Key >= 0xF000)) {
+					cmapDict = cmapDict.ToDictionary(kv => (uint)(kv.Key - 0xF000), kv => kv.Value);
+				}
+			}
+			return cmapDict;
 		}
 
 		public static TrueTypeName GetName(TrueTypeName[] names) {

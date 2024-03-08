@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 
 namespace GeboPdf.Fonts.TrueType {
 
@@ -840,10 +841,10 @@ namespace GeboPdf.Fonts.TrueType {
 
 			// Below this point, the values may not actually be present
 			this.sTypoAscender = sTypoAscender;
-			this.sTypoDescender =sTypoDescender;
-			this.sTypoLineGap =sTypoLineGap;
-			this.usWinAscent =usWinAscent;
-			this.usWinDescent =usWinDescent;
+			this.sTypoDescender = sTypoDescender;
+			this.sTypoLineGap = sTypoLineGap;
+			this.usWinAscent = usWinAscent;
+			this.usWinDescent = usWinDescent;
 		}
 
 		internal static TrueTypeOS2Table Read(FontFileReader reader, long offset, long length) {
@@ -879,7 +880,7 @@ namespace GeboPdf.Fonts.TrueType {
 			short? sTypoLineGap = null;
 			ushort? usWinAscent = null;
 			ushort? usWinDescent = null;
-			if(length > 68L) {
+			if (length > 68L) {
 				sTypoAscender = reader.ReadInt16();
 				sTypoDescender = reader.ReadInt16();
 				sTypoLineGap = reader.ReadInt16();
@@ -935,7 +936,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 			TrueTypeGlyphData[] glyphs = new TrueTypeGlyphData[loca.lengths.Length];
 
-			for (int i=0; i<loca.offsets.Length; i++) {
+			for (int i = 0; i < loca.offsets.Length; i++) {
 				reader.Position = offset + loca.offsets[i];
 
 				reader.SkipInt16(1);// numberOfContours
@@ -1018,7 +1019,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 			ushort version = reader.ReadUInt16();
 
-			if(version == 0) {
+			if (version == 0) {
 
 				List<TrueTypeKerningSubtable> subtables = new List<TrueTypeKerningSubtable>();
 
@@ -1164,4 +1165,106 @@ namespace GeboPdf.Fonts.TrueType {
 
 	}
 
+	public class TrueTypePostTable {
+
+		public readonly float italicAngle;
+		public readonly short underlinePosition;
+		public readonly short underlineThickness;
+		public readonly uint isFixedPitch;
+		public readonly IReadOnlyDictionary<ushort, string> glyphNames;
+
+		internal TrueTypePostTable(float italicAngle, short underlinePosition, short underlineThickness, uint isFixedPitch, IReadOnlyDictionary<ushort, string> glyphNames) {
+			this.italicAngle = italicAngle;
+			this.underlinePosition = underlinePosition;
+			this.underlineThickness = underlineThickness;
+			this.isFixedPitch = isFixedPitch;
+			this.glyphNames = glyphNames;
+		}
+
+		private static readonly IReadOnlyDictionary<ushort, string> Format1Names;
+
+		static TrueTypePostTable() {
+			string[][] format1GlyphsData = ResourceFileReading.ReadResourceFile("postv1glyphs.txt");
+			Format1Names = format1GlyphsData.ToDictionary(r => ushort.Parse(r[0]), r => r[1]);
+		}
+
+		internal static TrueTypePostTable Read(FontFileReader reader, long offset) {
+
+			reader.Position = offset;
+
+			uint version = reader.ReadUInt32();
+
+			float italicAngle = reader.ReadFixed();
+			short underlinePosition = reader.ReadFWord();
+			short underlineThickness = reader.ReadFWord();
+			uint isFixedPitch = reader.ReadUInt32();
+
+			reader.SkipUInt32(4); // Memory usage values
+
+			IReadOnlyDictionary<ushort, string> glyphNames;
+
+			if (version == 0x00010000) { // Version 1.0
+				glyphNames = Format1Names;
+			}
+			else if (version == 0x00020000) { // Version 2.0
+				ushort numGlyphs = reader.ReadUInt16();
+				ushort[] glyphNameIndexes = reader.ReadUInt16(numGlyphs);
+
+				Dictionary<ushort, string> names = new Dictionary<ushort, string>();
+
+				Dictionary<ushort, int> stringIdxs = new Dictionary<ushort, int>();
+
+				for (ushort i = 0; i < glyphNameIndexes.Length; i++) {
+					ushort nameIdx = glyphNameIndexes[i];
+					if (nameIdx < 258) {
+						names[i] = Format1Names[nameIdx];
+					}
+					else {
+						stringIdxs[i] = nameIdx - 258;
+					}
+				}
+
+				if (stringIdxs.Count > 0) {
+					int maxStringIdx = stringIdxs.Values.Max();
+					string[] stringData = new string[maxStringIdx + 1];
+					for (int i = 0; i < stringData.Length; i++) {
+						byte length = reader.ReadUInt8();
+						byte[] bytes = reader.ReadUInt8(length);
+						string name = Encoding.ASCII.GetString(bytes);
+
+						stringData[i] = name;
+					}
+
+					foreach ((ushort i, int stringIdx) in stringIdxs) {
+						names[i] = stringData[stringIdx];
+					}
+				}
+
+				glyphNames = names;
+			}
+			else if (version == 0x00025000) { // Version 2.5 (deprecated)
+				ushort numGlyphs = reader.ReadUInt16();
+				sbyte[] offsets = reader.ReadInt8(numGlyphs);
+
+				Dictionary<ushort, string> names = new Dictionary<ushort, string>();
+
+				for (ushort i = 0; i < numGlyphs; i++) {
+					names[i] = Format1Names.GetValueOrDefault((ushort)(i + offsets[i]), Format1Names[0]);
+				}
+
+				glyphNames = names;
+			}
+			else if (version == 0x00030000) { // Version 3.0
+				glyphNames = new Dictionary<ushort, string>();
+			}
+			else if (version == 0x00040000) { // Version 4.0 ("should be avoided")
+				glyphNames = new Dictionary<ushort, string>();
+			}
+			else {
+				glyphNames = new Dictionary<ushort, string>();
+			}
+
+			return new TrueTypePostTable(italicAngle, underlinePosition, underlineThickness, isFixedPitch, glyphNames);
+		}
+	}
 }

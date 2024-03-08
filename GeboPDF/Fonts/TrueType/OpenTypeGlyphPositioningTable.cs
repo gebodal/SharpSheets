@@ -57,6 +57,30 @@ namespace GeboPdf.Fonts.TrueType {
 			LookupList = lookupList;
 		}
 
+		internal static OpenTypeLayoutTagSet ReadTags(FontFileReader reader, long offset) {
+
+			reader.Position = offset;
+
+			ushort majorVersion = reader.ReadUInt16();
+			if (majorVersion != 1) { throw new FormatException($"Unknown glyph positioning table major version: {majorVersion}"); }
+
+			ushort minorVersion = reader.ReadUInt16();
+
+			ushort scriptListOffset = reader.ReadUInt16();
+			ushort featureListOffset = reader.ReadUInt16();
+			/*ushort lookupListOffset*/ _ = reader.ReadUInt16();
+
+			uint? featureVariationsOffset;
+			if (minorVersion == 1) { featureVariationsOffset = reader.ReadOffset32(); }
+			else if (minorVersion == 0) { featureVariationsOffset = null; }
+			else { throw new FormatException($"Unknown glyph positioning table minor version: {minorVersion}"); }
+
+			IReadOnlyDictionary<string, IReadOnlySet<string>> scriptTags = OpenTypeScriptListTable.ReadTags(reader, offset + scriptListOffset);
+			IReadOnlySet<string> featureTags = OpenTypeFeatureListTable.ReadTags(reader, offset + featureListOffset);
+
+			return new OpenTypeLayoutTagSet(scriptTags, featureTags);
+		}
+
 		internal static OpenTypeGlyphPositioningTable Read(FontFileReader reader, long offset) {
 
 			reader.Position = offset;

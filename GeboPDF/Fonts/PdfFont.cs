@@ -275,7 +275,7 @@ namespace GeboPdf.Fonts {
 		private readonly string origin;
 		private readonly MemoryStream fontStream;
 
-		private readonly Dictionary<uint, ushort> unicodeToGID;
+		private readonly IReadOnlyDictionary<uint, ushort> unicodeToGID;
 
 		private readonly int[] advanceWidths;
 		private readonly int[] ascents;
@@ -287,7 +287,7 @@ namespace GeboPdf.Fonts {
 
 		public PdfType0Font(
 			string origin, MemoryStream fontStream,
-			Dictionary<uint,ushort> unicodeToGID,
+			IReadOnlyDictionary<uint,ushort> unicodeToGID,
 			int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, short>? kerning,
 			GlyphSubstitutionLookupSet? gsub, GlyphPositioningLookupSet? gpos, ushort unitsPerEm) {
 

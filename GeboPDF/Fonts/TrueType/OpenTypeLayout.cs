@@ -50,10 +50,10 @@ namespace GeboPdf.Fonts.TrueType {
 		public readonly string? LangSysTag;
 		public readonly IReadOnlySet<string> FeatureTags;
 
-		public OpenTypeLayoutTags(string scriptTag, string? langSysTag, IReadOnlySet<string> featureTags) {
+		public OpenTypeLayoutTags(string scriptTag, string? langSysTag, IEnumerable<string> featureTags) {
 			ScriptTag = scriptTag;
 			LangSysTag = langSysTag;
-			FeatureTags = featureTags;
+			FeatureTags = new HashSet<string>(featureTags);
 		}
 
 		public static IReadOnlySet<string> GetDefaults(string scriptTag, string? langSysTag) {
@@ -66,6 +66,71 @@ namespace GeboPdf.Fonts.TrueType {
 				// "valt", "vert", "vkrn", "vrt2" // Active by default for vertical text
 			};
 			return defaults;
+		}
+
+		/// <summary>
+		/// Keys are script tags, and values are script names.
+		/// </summary>
+		public static IReadOnlyDictionary<string, string> ScriptTagsRegistry { get; } // Tag -> Script name
+		/// <summary>
+		/// Keys are langSys tags, and values are language system names.
+		/// </summary>
+		public static IReadOnlyDictionary<string, string> LangSysTagsRegistry { get; } // Tag -> Language system name
+		/// <summary>
+		/// Keys are feature tags, and values are friendly feature names.
+		/// </summary>
+		public static IReadOnlyDictionary<string, string> FeatureTagsRegistry { get; } // Tag -> Friendly feature name
+
+
+		static OpenTypeLayoutTags() {
+
+			string[][] scriptTagsData = ResourceFileReading.ReadResourceFile("scriptTags.txt");
+			string[][] langSysTagsData = ResourceFileReading.ReadResourceFile("languageTags.txt");
+			string[][] featureTagsData = ResourceFileReading.ReadResourceFile("featureTags.txt");
+
+			ScriptTagsRegistry = scriptTagsData.ToDictionary(r => r[1], r => r[0]);
+			LangSysTagsRegistry = langSysTagsData.ToDictionary(r => r[1], r => r[0]);
+			FeatureTagsRegistry = featureTagsData.ToDictionary(r => r[0], r => r[1]);
+
+		}
+
+	}
+
+	public class OpenTypeLayoutTagSet {
+
+		public IReadOnlyDictionary<string, IReadOnlySet<string>> ScriptTags { get; private set; }
+		public IReadOnlySet<string> FeatureTags { get; private set; }
+
+		public OpenTypeLayoutTagSet(IReadOnlyDictionary<string, IReadOnlySet<string>> scriptTags, IReadOnlySet<string> featureTags) {
+			ScriptTags = scriptTags;
+			FeatureTags = featureTags;
+		}
+
+		public void UnionWith(OpenTypeLayoutTagSet other) {
+			Dictionary<string, HashSet<string>> scriptTags = new Dictionary<string, HashSet<string>>();
+
+			void AddScriptTags(IReadOnlyDictionary<string, IReadOnlySet<string>> sTags) {
+				foreach ((string sTag, IReadOnlySet<string> langSysTags) in sTags) {
+					if (!scriptTags.ContainsKey(sTag)) {
+						scriptTags[sTag] = new HashSet<string>();
+					}
+					scriptTags[sTag].UnionWith(langSysTags);
+				}
+			}
+			AddScriptTags(this.ScriptTags);
+			AddScriptTags(other.ScriptTags);
+
+			this.ScriptTags = scriptTags.ToDictionary(kv => kv.Key, kv => (IReadOnlySet<string>)kv.Value);
+
+			HashSet<string> featureTags = new HashSet<string>();
+			featureTags.UnionWith(this.FeatureTags);
+			featureTags.UnionWith(other.FeatureTags);
+
+			this.FeatureTags = featureTags;
+		}
+
+		public static OpenTypeLayoutTagSet Empty() {
+			return new OpenTypeLayoutTagSet(new Dictionary<string, IReadOnlySet<string>>(), new HashSet<string>());
 		}
 
 	}
@@ -96,6 +161,26 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			return new OpenTypeScriptListTable(scriptRecords);
+		}
+
+		internal static IReadOnlyDictionary<string, IReadOnlySet<string>> ReadTags(FontFileReader reader, long offset) {
+
+			reader.Position = offset;
+
+			ushort scriptCount = reader.ReadUInt16();
+
+			Dictionary<string, IReadOnlySet<string>> scriptTags = new Dictionary<string, IReadOnlySet<string>>();
+
+			for (int i = 0; i < scriptCount; i++) {
+				string scriptTag = reader.ReadASCIIString(4);
+				ushort scriptOffset = reader.ReadUInt16(); // From beginning of script list (i.e. offset)
+
+				IReadOnlySet<string> langSysTags = reader.ReadFrom(offset + scriptOffset, OpenTypeScriptTable.ReadTags);
+
+				scriptTags.Add(scriptTag, langSysTags);
+			}
+
+			return scriptTags;
 		}
 
 	}
@@ -131,6 +216,26 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			return new OpenTypeScriptTable(defaultLangSysTable, langSysRecords);
+		}
+
+		internal static IReadOnlySet<string> ReadTags(FontFileReader reader, long offset) {
+
+			reader.Position = offset;
+
+			/*ushort? defaultLangSysOffset*/ _ = reader.ReadOffset16();
+
+			ushort langSysCount = reader.ReadUInt16();
+
+			HashSet<string> langSysTags = new HashSet<string>();
+
+			for (int i = 0; i < langSysCount; i++) {
+				string langSysTag = reader.ReadASCIIString(4);
+				/*ushort langSysOffset*/ _ = reader.ReadUInt16(); // From beginning of script table (i.e. offset)
+
+				langSysTags.Add(langSysTag);
+			}
+
+			return langSysTags;
 		}
 
 		public OpenTypeLanguageSystemTable? GetLangSysTable(string? langSysTag) {
@@ -200,14 +305,35 @@ namespace GeboPdf.Fonts.TrueType {
 			return new OpenTypeFeatureListTable(featureRecords);
 		}
 
+		internal static IReadOnlySet<string> ReadTags(FontFileReader reader, long offset) {
+
+			reader.Position = offset;
+
+			ushort featureCount = reader.ReadUInt16();
+
+			HashSet<string> featureTags = new HashSet<string>();
+
+			for (int i = 0; i < featureCount; i++) {
+				string featureTag = reader.ReadASCIIString(4);
+				/*ushort featureOffset*/ _ = reader.ReadUInt16(); // From beginning of feature list (i.e. offset)
+
+				featureTags.Add(featureTag);
+			}
+
+			return featureTags;
+		}
+
 	}
 
 	public class OpenTypeFeatureTable {
 
-		public readonly ushort? FeatureParamsOffset;
+		/// <summary>
+		/// Offset to Feature Parameters Table relative to start of font file.
+		/// </summary>
+		public readonly long? FeatureParamsOffset;
 		public readonly ushort[] LookupListIndices;
 
-		internal OpenTypeFeatureTable(ushort? featureParamsOffset, ushort[] lookupListIndices) {
+		internal OpenTypeFeatureTable(long? featureParamsOffset, ushort[] lookupListIndices) {
 			FeatureParamsOffset = featureParamsOffset;
 			LookupListIndices = lookupListIndices;
 		}
@@ -221,7 +347,9 @@ namespace GeboPdf.Fonts.TrueType {
 
 			ushort[] lookupListIndices = reader.ReadUInt16(lookupIndexCount);
 
-			return new OpenTypeFeatureTable(featureParamsOffset, lookupListIndices);
+			long? fullFeatureParamsOffset = offset + featureParamsOffset;
+
+			return new OpenTypeFeatureTable(fullFeatureParamsOffset, lookupListIndices);
 		}
 
 	}
