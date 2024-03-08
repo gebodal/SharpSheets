@@ -10,6 +10,8 @@ namespace SharpEditor {
 
 		public App() {
 			InitializeComponent();
+
+			this.Dispatcher.UnhandledException += OnDispatcherUnhandledException;
 		}
 
 		protected override void OnStartup(StartupEventArgs e) {
@@ -55,6 +57,10 @@ namespace SharpEditor {
 			log.Error(ex.Message + "\n" + ex.StackTrace);
 		}
 		*/
+
+		void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e) {
+			MessageBox.Show("Unhandled exception occurred: \n" + e.Exception.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+		}
 
 	}
 }
