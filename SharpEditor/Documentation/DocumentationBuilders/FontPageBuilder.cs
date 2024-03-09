@@ -73,16 +73,40 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 
 			TrueTypeFontFileData fontData;
+			TrueTypePostTable? postTable;
+			OpenTypeLayoutTagSet layoutTags;
+			IReadOnlyDictionary<uint, ushort> cidMap;
+			Uri fontUri;
 
 			try {
 				fontData = FontPathRegistry.OpenFontFile(path);
+
+				TrueTypeCMapTable? cmap;
+
+				if (path.FontIndex >= 0) {
+					postTable = TrueTypeCollection.OpenPost(path.Path, path.FontIndex);
+					layoutTags = TrueTypeCollection.ReadOpenTypeTags(path.Path, path.FontIndex);
+
+					cmap = TrueTypeCollection.OpenCmap(path.Path, path.FontIndex);
+
+					fontUri = new Uri("file://" + path.Path + (path.FontIndex >= 0 ? $"#{path.FontIndex}" : ""));
+				}
+				else {
+					postTable = TrueTypeFontFile.OpenPost(path.Path);
+					layoutTags = TrueTypeFontFile.ReadOpenTypeTags(path.Path);
+
+					cmap = TrueTypeFontFile.OpenCmap(path.Path);
+
+					fontUri = new Uri(path.Path);
+				}
+
+				cidMap = cmap is null ? new Dictionary<uint, ushort>() : CIDFontFactory.GetCmapDict(cmap);
 			}
 			catch (FormatException) {
 				return MakeErrorContent("Could not read font file.");
 			}
 
-			IReadOnlyDictionary<ushort, string> glyphNames = TrueTypeFontFile.OpenPost(path.Path)?.glyphNames ?? new Dictionary<ushort, string>();
-			OpenTypeLayoutTagSet layoutTags = TrueTypeFontFile.ReadOpenTypeTags(path.Path);
+			IReadOnlyDictionary<ushort, string> glyphNames = postTable?.glyphNames ?? new Dictionary<ushort, string>();
 
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
@@ -138,7 +162,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			stack.Children.Add(MakeSeparator());
 
-			stack.Children.Add(MakeGlyphPanel(fontData, path, glyphNames).AddMargin(ParagraphMargin));
+			stack.Children.Add(MakeGlyphPanel(fontData, cidMap, fontUri, glyphNames).AddMargin(ParagraphMargin));
 
 			if (layoutTags.ScriptTags.Count > 0 || layoutTags.FeatureTags.Count > 0) {
 				stack.Children.Add(MakeSeparator());
@@ -244,22 +268,14 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		private static readonly double GlyphElementSize = 50;
 		private static readonly double GlyphFontSize = 30;
 
-		private static FrameworkElement MakeGlyphPanel(TrueTypeFontFileData fontData, FontPath path, IReadOnlyDictionary<ushort, string> glyphNames) {
+		private static FrameworkElement MakeGlyphPanel(TrueTypeFontFileData fontData, IReadOnlyDictionary<uint, ushort> cidMap, Uri fontUri, IReadOnlyDictionary<ushort, string> glyphNames) {
 			try {
 				WrapPanel panel = new WrapPanel() { Orientation = Orientation.Horizontal };
 
-				IReadOnlyDictionary<uint, ushort> cidMap;
-				try {
-					TrueTypeCMapTable cmap = TrueTypeFontFile.OpenCmap(path.Path) ?? throw new FormatException();
-					cidMap = CIDFontFactory.GetCmapDict(cmap);
-				}
-				catch (Exception) {
-					cidMap = new Dictionary<uint, ushort>();
-				}
 				SortedDictionary<ushort, uint> gidToUnicode = CMapWriter.GetGIDToUnicodeMap(cidMap);
 				HashSet<ushort> unicodeKnown = new HashSet<ushort>(gidToUnicode.Keys);
 
-				GlyphTypeface glyphTypeface = new GlyphTypeface(new Uri(path.Path));
+				GlyphTypeface glyphTypeface = new GlyphTypeface(fontUri);
 				double glyphHeight = GlyphFontSize * glyphTypeface.Baseline;
 				//double baseline = GlyphFontSize * glyphTypeface.Baseline;
 

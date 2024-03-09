@@ -85,7 +85,7 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 		}
 
-		public static IReadOnlyDictionary<string, TrueTypeFontTable> ReadHeader(FontFileReader reader,
+		internal static IReadOnlyDictionary<string, TrueTypeFontTable> ReadHeader(FontFileReader reader,
 			out uint scalerType, out ushort searchRange, out ushort entrySelector, out ushort rangeShift) {
 
 			scalerType = reader.ReadUInt32();
