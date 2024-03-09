@@ -88,19 +88,16 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					layoutTags = TrueTypeCollection.ReadOpenTypeTags(path.Path, path.FontIndex);
 
 					cmap = TrueTypeCollection.OpenCmap(path.Path, path.FontIndex);
-
-					fontUri = new Uri("file://" + path.Path + (path.FontIndex >= 0 ? $"#{path.FontIndex}" : ""));
 				}
 				else {
 					postTable = TrueTypeFontFile.OpenPost(path.Path);
 					layoutTags = TrueTypeFontFile.ReadOpenTypeTags(path.Path);
 
 					cmap = TrueTypeFontFile.OpenCmap(path.Path);
-
-					fontUri = new Uri(path.Path);
 				}
 
 				cidMap = cmap is null ? new Dictionary<uint, ushort>() : CIDFontFactory.GetCmapDict(cmap);
+				fontUri = TypefaceGrouping.GetFontUri(path);
 			}
 			catch (FormatException) {
 				return MakeErrorContent("Could not read font file.");

@@ -88,8 +88,12 @@ namespace SharpEditor {
 			}
 		}
 
+		public static Uri GetFontUri(FontPath path) {
+			return new Uri("file://" + path.Path + (path.FontIndex >= 0 ? $"#{path.FontIndex}" : ""));
+		}
+
 		public void SetFont(TextFormat format, FontSetting origin) {
-			GlyphTypeface glyphs = new GlyphTypeface(new Uri(origin.Path.Path));
+			GlyphTypeface glyphs = new GlyphTypeface(GetFontUri(origin.Path));
 			PdfGlyphFont pdfFont = FontGraphicsRegistry.GetPdfFont(origin); // PdfEncodings.WINANSI
 			SetFont(format, glyphs, pdfFont, origin);
 		}
