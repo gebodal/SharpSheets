@@ -357,6 +357,64 @@
 			</Style.Triggers>
 		</Style>
 
+		<Style TargetType="{x:Type ListBoxItem}" x:Key="SharpErrorListBoxItem">
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="ListBoxItem">
+						<Border 
+							Padding="{TemplateBinding Control.Padding}"
+							BorderBrush="Transparent"
+							BorderThickness="0"
+							Background="Transparent"
+							Name="Bd"
+							SnapsToDevicePixels="True">
+							<ContentPresenter Content="{TemplateBinding ContentControl.Content}"
+								ContentTemplate="{TemplateBinding ContentControl.ContentTemplate}"
+								ContentStringFormat="{TemplateBinding ContentControl.ContentStringFormat}"
+								HorizontalAlignment="{TemplateBinding Control.HorizontalContentAlignment}"
+								VerticalAlignment="{TemplateBinding Control.VerticalContentAlignment}"
+								SnapsToDevicePixels="{TemplateBinding UIElement.SnapsToDevicePixels}" />
+						</Border>
+						<ControlTemplate.Triggers>
+							<MultiTrigger>
+								<MultiTrigger.Conditions>
+									<Condition Property="Selector.IsSelectionActive" Value="False"/>
+									<Condition Property="Selector.IsSelected" Value="True"/>
+								</MultiTrigger.Conditions>
+								<Setter Property="Panel.Background" TargetName="Bd">
+									<Setter.Value>
+										<SolidColorBrush Color="White" Opacity="0.25"/>
+									</Setter.Value>
+								</Setter>
+							</MultiTrigger>
+							<MultiTrigger>
+								<MultiTrigger.Conditions>
+									<Condition Property="Selector.IsSelectionActive" Value="True"/>
+									<Condition Property="Selector.IsSelected" Value="True"/>
+								</MultiTrigger.Conditions>
+								<Setter Property="Panel.Background" TargetName="Bd">
+									<Setter.Value>
+										<SolidColorBrush Color="White" Opacity="0.5"/>
+									</Setter.Value>
+								</Setter>
+							</MultiTrigger>
+							<Trigger Property="UIElement.IsMouseOver" Value="True">
+								<Setter Property="Panel.Background" TargetName="Bd">
+									<Setter.Value>
+										<SolidColorBrush Color="White" Opacity="0.4"/>
+									</Setter.Value>
+								</Setter>
+							</Trigger>
+							<!--<Trigger Property="UIElement.IsEnabled" Value="False">
+								<Setter Property="TextElement.Foreground" TargetName="Bd" Value="Blue"/>
+							</Trigger>-->
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+
 	</UserControl.Resources>
 
 	<DockPanel Background="#2d2d30" GotFocus="EditorGotFocus">
@@ -405,7 +463,71 @@
 			<StatusBarItem Grid.Column="4" Name="ErrorStatus" MouseDown="ErrorStatusClick" Background="#c00000" Foreground="Black" Visibility="Collapsed">
 				<StackPanel Orientation="Horizontal" Margin="20,0">
 					<Image Source="Images/Exclamation.png" Height="16" Margin="0,0,3,0"/>
-					<TextBlock Name="ErrorCount" Margin="10,0"/>
+					<TextBlock Name="ErrorCount" Margin="10,0,5,0"/>
+					<ToggleButton x:Name="ErrorPopupToggleButton" Click="ErrorPopupClick">
+						<ToggleButton.Template>
+							<ControlTemplate TargetType="ToggleButton">
+								<Border x:Name="BBd" Background="Transparent" BorderThickness="0" Padding="4,5">
+									<Path VerticalAlignment="Center" Fill="Black" Opacity="1"
+										Data="M 0 6 L 6 0 L 12 6 Z"/>
+								</Border>
+								<ControlTemplate.Triggers>
+									<Trigger Property="IsMouseOver" Value="True">
+										<Setter TargetName="BBd" Property="Background">
+											<Setter.Value>
+												<SolidColorBrush Color="Black" Opacity="0.2"/>
+											</Setter.Value>
+										</Setter>
+									</Trigger>
+									<Trigger Property="IsChecked" Value="True">
+										<Setter TargetName="BBd" Property="Background">
+											<Setter.Value>
+												<SolidColorBrush Color="Black" Opacity="0.2"/>
+											</Setter.Value>
+										</Setter>
+									</Trigger>
+								</ControlTemplate.Triggers>
+							</ControlTemplate>
+						</ToggleButton.Template>
+					</ToggleButton>
+					<Popup x:Name="ErrorPopup"
+						   PlacementTarget="{Binding ElementName=ErrorStatus}"
+						   Placement="Top"
+						   StaysOpen="False" IsOpen="False"
+						   Closed="ErrorPopupClosed">
+						<Border Background="#2d2d30" MaxWidth="400" MaxHeight="500">
+							<ListBox Name="ErrorPopupListBox"
+									ScrollViewer.VerticalScrollBarVisibility="Auto"
+									ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+									 Background="#2d2d30">
+								<ListBox.ItemTemplate>
+									<DataTemplate>
+										<Grid Background="Transparent">
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition MinWidth="30" Width="Auto" />
+												<ColumnDefinition Width="*" />
+											</Grid.ColumnDefinitions>
+											<TextBlock Grid.Column="0"
+												Text="{Binding Line, Mode=OneWay}"
+												Margin="5"
+												HorizontalAlignment="Center"
+												Foreground="LightGray"/>
+											<TextBlock Grid.Column="1"
+												Text="{Binding Message, Mode=OneWay}"
+												Margin="5"
+												Foreground="LightGray"
+												TextWrapping="Wrap"/>
+										</Grid>
+									</DataTemplate>
+								</ListBox.ItemTemplate>
+								<ListBox.ItemContainerStyle>
+									<Style TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource SharpErrorListBoxItem}">
+										<EventSetter Event="MouseDoubleClick" Handler="ErrorPopupItemMouseDoubleClick"/>
+									</Style>
+								</ListBox.ItemContainerStyle>
+							</ListBox>
+						</Border>
+					</Popup>
 				</StackPanel>
 			</StatusBarItem>
 		</StatusBar>

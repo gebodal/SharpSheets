@@ -38,6 +38,7 @@ using SharpSheets.Exceptions;
 using System.IO;
 using System.Diagnostics.CodeAnalysis;
 using ICSharpCode.AvalonEdit.Editing;
+using System.Collections.ObjectModel;
 
 namespace SharpEditor {
 
@@ -172,7 +173,7 @@ namespace SharpEditor {
 			textEditor.InvalidateMeasure();
 			textEditor.TextArea.TextView.Redraw();
 		}
-		#endregion
+		#endregion UIElement Helpers
 
 		#region TextEditor Dependency Properties
 
@@ -208,7 +209,7 @@ namespace SharpEditor {
 			this.textEditor.Options.ShowEndOfLine = SharpDataManager.Instance.ShowEndOfLine;
 		}
 
-		#endregion
+		#endregion TextEditor Dependency Properties
 
 		#region Track User Changes
 		public bool HasUnsavedProgress { get; private set; }
@@ -234,7 +235,7 @@ namespace SharpEditor {
 			CursorColText.Text = "Col " + column;
 			textEditor.TextArea.TextView.Redraw();
 		}
-		#endregion
+		#endregion Track User Changes
 
 		#region Text Zoom
 		//IVisualLineTransformer zoomTransformer;
@@ -332,7 +333,7 @@ namespace SharpEditor {
 			this.StepTextZoom(e.Delta > 0);
 			e.Handled = true;
 		}
-		#endregion
+		#endregion Text Zoom
 
 		#region Background Messages
 		private DispatcherTimer backgroundMessageTimer;
@@ -406,7 +407,7 @@ namespace SharpEditor {
 				}
 			}
 		}
-		#endregion
+		#endregion Background Messages
 
 		#region Files
 
@@ -562,7 +563,7 @@ namespace SharpEditor {
 			return true;
 		}
 
-		#endregion
+		#endregion Files
 
 		#region CodeHelper
 		private ICodeHelper? codeHelper = null;
@@ -597,7 +598,7 @@ namespace SharpEditor {
 			}
 		}
 
-		#endregion
+		#endregion CodeHelper
 
 		#region Completion Window
 
@@ -691,7 +692,7 @@ namespace SharpEditor {
 				}
 			}
 		}
-		#endregion
+		#endregion Completion Window
 
 		#region Text Context Menu
 
@@ -773,7 +774,7 @@ namespace SharpEditor {
 			//e.Handled = true;
 		}
 
-		#endregion
+		#endregion Text Context Menu
 
 		#region Tooltip
 
@@ -827,7 +828,7 @@ namespace SharpEditor {
 		private void TextAreaTextEnteredTooptipClose(object? sender, TextCompositionEventArgs e) {
 			TextEditorToolTip.IsOpen = false;
 		}
-		#endregion
+		#endregion Tooltip
 
 		#region Folding
 		FoldingManager foldingManager;
@@ -862,7 +863,7 @@ namespace SharpEditor {
 				foldingStrategy.UpdateFoldings(foldingManager, textEditor.Document);
 			}
 		}
-		#endregion
+		#endregion Folding
 
 		#region Parsing Manager
 		public ParsingManager parsingManager;
@@ -925,23 +926,93 @@ namespace SharpEditor {
 				}
 			}
 		}
-		#endregion
+		#endregion Parsing Manager
 
 		#region Error Markers
+
+		private ObservableCollection<ErrorPopupEntry> ErrorPopupEntries { get; } = new ObservableCollection<ErrorPopupEntry>();
+
 		void InitializeErrorMarkers() {
 			parsingManager.ParseStateChanged += UpdateErrorDisplay;
 			SharpDataManager.Instance.WarnFontLicensingChanged += UpdateErrorDisplay;
+
+			ErrorPopupListBox.ItemsSource = ErrorPopupEntries;
 		}
 
 		void UninstallErrorMarkers() {
 			parsingManager.ParseStateChanged -= UpdateErrorDisplay;
 			SharpDataManager.Instance.WarnFontLicensingChanged -= UpdateErrorDisplay;
+
+			ErrorPopupListBox.ItemsSource = null;
 		}
 
 		void UpdateErrorDisplay(object? sender, EventArgs args) {
-			int numErrors = parsingManager.GetParsingState()?.ErrorCount ?? 0;
+			IParsingState? parsingState = parsingManager.GetParsingState();
+			ErrorComparer errorComparer = new ErrorComparer(parsingState);
+
+			int numErrors = parsingState?.GetErrors().Distinct(errorComparer).Count() ?? 0; // parsingState?.ErrorCount ?? 0;
 			ErrorStatus.Visibility = numErrors > 0 ? Visibility.Visible : Visibility.Collapsed;
 			ErrorCount.Text = $"{numErrors} Error{(numErrors == 1 ? "" : "s")} Found";
+
+			ErrorPopupEntries.Clear();
+			if (parsingState is not null) {
+				ErrorPopupEntries.AddRange(parsingState.GetErrors()
+					.Distinct(errorComparer)
+					.Select(e => {
+						string message = e.Message;
+						DocumentSpan? location = null;
+						if (e is SharpParsingException spe && spe.Location is DocumentSpan parseLocation) {
+							location = parseLocation;
+						}
+						else if (e is SharpDrawingException sde && parsingState.DrawingMapper?.GetDrawnObjectLocation(sde.Origin) is DocumentSpan drawLocation) {
+							location = drawLocation;
+						}
+						return new ErrorPopupEntry(location, message);
+					}) ?? Enumerable.Empty<ErrorPopupEntry>());
+			}
+		}
+
+		private class ErrorComparer : IEqualityComparer<SharpSheetsException> {
+
+			private readonly IParsingState? parsingState;
+
+			public ErrorComparer(IParsingState? parsingState) {
+				this.parsingState = parsingState;
+			}
+
+			public bool Equals(SharpSheetsException? x, SharpSheetsException? y) {
+				if (x is null || y is null) { return x is null & y is null; }
+				else if (x is SharpParsingException xp && y is SharpParsingException yp) {
+					if(xp.Location.HasValue && yp.Location.HasValue) {
+						return DocumentSpan.Equals(xp.Location, yp.Location) && xp.Message == yp.Message;
+					}
+					else {
+						return xp.Message == yp.Message;
+					}
+				}
+				else if (x is SharpDrawingException xd && y is SharpDrawingException yd
+					&& parsingState is not null
+					&& parsingState.DrawingMapper?.GetDrawnObjectLocation(xd.Origin) is DocumentSpan xl
+					&& parsingState.DrawingMapper?.GetDrawnObjectLocation(yd.Origin) is DocumentSpan yl) {
+					return DocumentSpan.Equals(xl, yl) && xd.Message == yd.Message;
+				}
+				else {
+					return x.Equals(y);
+				}
+			}
+
+			public int GetHashCode([DisallowNull] SharpSheetsException e) {
+				if (e is SharpParsingException ep) {
+					return HashCode.Combine(ep.Location, ep.Message);
+				}
+				else if (e is SharpDrawingException ed) {
+					return HashCode.Combine(parsingState?.DrawingMapper?.GetDrawnObjectLocation(ed.Origin), ed.Message);
+				}
+				else {
+					return e.GetHashCode();
+				}
+			}
+
 		}
 
 		public void ErrorStatusClick(object? sender, MouseButtonEventArgs e) {
@@ -975,7 +1046,42 @@ namespace SharpEditor {
 				}
 			}
 		}
-		#endregion
+
+		private void ErrorPopupClick(object sender, RoutedEventArgs e) {
+			ErrorPopup.IsOpen = true;
+		}
+
+		private class ErrorPopupEntry {
+
+			public string Line => Location?.Line.ToString() ?? "-";
+			public DocumentSpan? Location { get; }
+			public string Message { get; }
+
+			public ErrorPopupEntry(DocumentSpan? location, string message) {
+				Location = location;
+				Message = message;
+			}
+
+		}
+
+		private void ErrorPopupItemMouseDoubleClick(object sender, MouseButtonEventArgs e) {
+			if (sender is ListBoxItem listItem && listItem.DataContext is ErrorPopupEntry errorData) {
+				if(errorData.Location is DocumentSpan location && location.Offset > 0 && location.Offset < textEditor.Document.TextLength) {
+					ScrollTo(location.Offset);
+					this.Dispatcher.BeginInvoke(() => {
+						if (FocusEditor()) {
+							ErrorPopup.IsOpen = false;
+						}
+					});
+				}
+			}
+		}
+
+		private void ErrorPopupClosed(object sender, EventArgs e) {
+			ErrorPopupToggleButton.IsChecked = false;
+		}
+
+		#endregion Error Markers
 
 		#region Designer Area
 
@@ -1243,7 +1349,7 @@ namespace SharpEditor {
 			}
 		}
 
-		#endregion
+		#endregion Designer Area
 
 	}
 

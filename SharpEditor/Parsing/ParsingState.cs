@@ -48,6 +48,7 @@ namespace SharpEditor {
 		int ErrorCount { get; }
 		int[] ErrorOffsets { get; }
 
+		IEnumerable<SharpSheetsException> GetErrors();
 		IEnumerable<SharpSheetsException> GetErrors(ISegment segment);
 		IEnumerable<SharpSheetsException> GetErrors(int offset);
 		IEnumerable<SharpDrawingException> GetDrawingErrors();
@@ -184,13 +185,24 @@ namespace SharpEditor {
 			}
 		}
 
+		protected abstract IEnumerable<SharpSheetsException> GetAdditionalErrors();
+
+		public IEnumerable<SharpSheetsException> GetErrors() {
+			if (spans == null) {
+				return GetAdditionalErrors();
+			}
+			else {
+				return ParsingState<TSpan>.GetErrors(spans).Concat(GetAdditionalErrors());
+			}
+		}
+
 		public IEnumerable<SharpSheetsException> GetErrors(ISegment segment) {
 			if (spans == null) {
 				return Enumerable.Empty<SharpSheetsException>();
 			}
 			else {
 				//return spans.FindOverlappingSegments(segment).Where(s => s.Exceptions != null).SelectMany(s => s.Exceptions);
-				return GetErrors(spans.FindOverlappingSegments(segment));
+				return ParsingState<TSpan>.GetErrors(spans.FindOverlappingSegments(segment));
 			}
 		}
 
@@ -200,11 +212,11 @@ namespace SharpEditor {
 			}
 			else {
 				//return spans.FindSegmentsContaining(offset).Where(s => s.Exceptions != null).SelectMany(s => s.Exceptions);
-				return GetErrors(spans.FindSegmentsContaining(offset));
+				return ParsingState<TSpan>.GetErrors(spans.FindSegmentsContaining(offset));
 			}
 		}
 
-		private IEnumerable<SharpSheetsException> GetErrors(ReadOnlyCollection<TSpan> errorSpans) {
+		private static IEnumerable<SharpSheetsException> GetErrors(IEnumerable<TSpan> errorSpans) {
 			foreach(TSpan span in errorSpans) {
 				if (span.ParsingExceptions != null) {
 					foreach (SharpParsingException parsingError in span.ParsingExceptions) {

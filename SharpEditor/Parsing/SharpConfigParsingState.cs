@@ -22,6 +22,7 @@ namespace SharpEditor {
 		protected List<FilePath>? ConfigDependencies { get; set; }
 		//protected HashSet<int> UnusedLines { get; set; }
 		protected HashSet<int>? UsedLines { get; set; }
+		protected List<SharpParsingException>? NoLocationErrors { get; set; }
 
 		public override IDrawingMapper? DrawingMapper { get { return Origins; } }
 
@@ -40,6 +41,11 @@ namespace SharpEditor {
 			ConfigDependencies = null;
 			//UnusedLines = null;
 			UsedLines = null;
+			NoLocationErrors = null;
+		}
+
+		protected override IEnumerable<SharpSheetsException> GetAdditionalErrors() {
+			return NoLocationErrors ?? Enumerable.Empty<SharpSheetsException>();
 		}
 
 		#region Drawing Errors
@@ -234,6 +240,9 @@ namespace SharpEditor {
 					}
 					catch (ArgumentOutOfRangeException) { }
 				}
+
+				// Collect errors which have no location information
+				NoLocationErrors = result.results.errors.Where(e => e.Location is null).ToList();
 
 				// Allow subclasses to create any additional spans as they see fit
 				CreateAdditionalSpans();

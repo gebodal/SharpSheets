@@ -46,6 +46,8 @@ namespace SharpEditor {
 		public override IDocumentContent? DrawableContent { get { return Cards; } }
 		public override IDrawingMapper? DrawingMapper { get { return Origins; } }
 
+		protected List<SharpParsingException>? NoLocationErrors { get; set; }
+
 		public override IEnumerable<FilePath>? Dependencies => CardDependencies;
 
 		public override IEnumerable<IVisualLineTransformer> GetLineTransformers() {
@@ -56,6 +58,11 @@ namespace SharpEditor {
 
 		protected override void ResetData() {
 			Origins = null;
+			NoLocationErrors = null;
+		}
+
+		protected override IEnumerable<SharpSheetsException> GetAdditionalErrors() {
+			return NoLocationErrors ?? Enumerable.Empty<SharpSheetsException>();
 		}
 
 		#region Drawing Errors
@@ -286,6 +293,9 @@ namespace SharpEditor {
 					}
 					catch (ArgumentOutOfRangeException) { }
 				}
+
+				// Collect errors which have no location information
+				NoLocationErrors = result.results.errors.Where(e => e.Location is null).ToList();
 
 				// Update spans to reflect any changes in the document
 				UpdateSpansFromSnapshot(result.snapshot.Version);

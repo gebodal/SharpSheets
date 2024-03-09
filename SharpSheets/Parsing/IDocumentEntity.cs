@@ -58,7 +58,7 @@ namespace SharpSheets.Parsing {
 		}
 	}
 
-	public readonly struct DocumentSpan {
+	public readonly struct DocumentSpan : IEquatable<DocumentSpan> {
 		/// <summary> Offset (zero-index) of the starting character for this span in the document. A value of less than 0 indicates that this span is imaginary.</summary>
 		public int Offset { get; }
 		/// <summary> Line index of this span in the document. A value of less than 0 indicates that this span is imaginary.</summary>
@@ -81,18 +81,17 @@ namespace SharpSheets.Parsing {
 		public DocumentSpan(int offset, int line) : this(offset, line, -1, -1) { }
 
 		public override int GetHashCode() {
-			unchecked {
-				int hash = 17;
-				hash = hash * 31 + Offset.GetHashCode();
-				hash = hash * 31 + Line.GetHashCode();
-				hash = hash * 31 + Column.GetHashCode();
-				hash = hash * 31 + Length.GetHashCode();
-				return hash;
-			}
+			return HashCode.Combine(Offset, Line, Column, Length);
 		}
+
+		public static bool Equals(DocumentSpan? x, DocumentSpan? y) {
+			if (x is null || y is null) { return x is null && y is null; }
+			else { return x.Equals(y); }
+		}
+
 		public override bool Equals(object? obj) {
 			if (obj is DocumentSpan span) {
-				return Offset == span.Offset && Line == span.Line && Column == span.Column && Length == span.Length;
+				return this.Equals(span);
 			}
 			else {
 				return false;
@@ -100,6 +99,10 @@ namespace SharpSheets.Parsing {
 		}
 		public override string ToString() {
 			return $"DocumentSpan({Offset}, {Line}, {Column}, {Length})";
+		}
+
+		public bool Equals(DocumentSpan other) {
+			return Offset == other.Offset && Line == other.Line && Column == other.Column && Length == other.Length;
 		}
 
 		public static bool operator ==(DocumentSpan a, DocumentSpan b) {
