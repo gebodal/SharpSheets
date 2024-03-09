@@ -36,7 +36,15 @@ namespace SharpSheets.Widgets {
 
 				ISharpCanvas canvas = document.AddNewPage(page.pageSize);
 
-				page.Draw(canvas, canvas.CanvasRect, cancellationToken);
+				try {
+					page.Draw(canvas, canvas.CanvasRect, cancellationToken);
+				}
+				catch (SharpDrawingException e) {
+					errorList.Add(e);
+				}
+				catch (Exception e) {
+					errorList.Add(new SharpDrawingException(page, "Drawing error: " + e.Message, e));
+				}
 
 				if (cancellationToken.IsCancellationRequested) {
 					errors = errorList.ToArray();
