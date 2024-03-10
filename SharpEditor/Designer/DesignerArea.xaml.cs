@@ -202,6 +202,19 @@ namespace SharpEditor {
 			IncrementPage(1);
 		}
 
+		// Navigation commands
+		void BrowseBackExecuted(object target, ExecutedRoutedEventArgs e) {
+			IncrementPage(-1);
+			e.Handled = true;
+		}
+		void BrowseForwardExecuted(object target, ExecutedRoutedEventArgs e) {
+			IncrementPage(1);
+			e.Handled = true;
+		}
+		void NavigationCommandCanExecute(object? sender, CanExecuteRoutedEventArgs e) {
+			e.CanExecute = true;
+		}
+
 		private void OnPreviewMouseWheel(object? sender, MouseWheelEventArgs e) {
 			if (Keyboard.Modifiers == ModifierKeys.None) { // Only try and scroll if no modifiers are pressed
 				//Console.WriteLine($"Hello {e.Handled} ({e.Delta}) {DesignerViewer.CanvasView.VerticalOffset} / {DesignerViewer.CanvasView.ScrollableHeight}");

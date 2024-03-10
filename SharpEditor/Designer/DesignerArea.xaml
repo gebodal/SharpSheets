@@ -9,6 +9,15 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
 
+	<UserControl.CommandBindings>
+		<CommandBinding Command="NavigationCommands.BrowseBack"
+                  Executed="BrowseBackExecuted"
+                  CanExecute="NavigationCommandCanExecute"/>
+		<CommandBinding Command="NavigationCommands.BrowseForward"
+                  Executed="BrowseForwardExecuted"
+                  CanExecute="NavigationCommandCanExecute"/>
+	</UserControl.CommandBindings>
+	
 	<UserControl.Resources>
 		<Style TargetType="Button" x:Key="SubtleButton" >
 			<Setter Property="Background" Value="Transparent"/>
