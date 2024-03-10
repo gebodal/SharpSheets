@@ -40,7 +40,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			return contentsStack;
 		}
-		
+
 		public static DocumentationPage GetFontPage(FontName fontName, DocumentationWindow window) {
 			if (fontName is null) {
 				return MakeErrorPage("Invalid font name.");
@@ -147,7 +147,9 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			stack.Children.Add(MakeSeparator());
 
-			stack.Children.Add(MakeGlyphPanel(fontData, cidMap, fontUri, glyphNames).AddMargin(ParagraphMargin));
+			WrapPanel panel = new WrapPanel() { Orientation = Orientation.Horizontal }.AddMargin(ParagraphMargin);
+			PopulateGlyphPanel(panel, fontData, cidMap, fontUri, glyphNames);
+			stack.Children.Add(panel);
 
 			if (layoutTags.ScriptTags.Count > 0 || layoutTags.FeatureTags.Count > 0) {
 				stack.Children.Add(MakeSeparator());
@@ -331,71 +333,84 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		private static readonly double GlyphElementSize = 50;
 		private static readonly double GlyphFontSize = 30;
 
-		private static FrameworkElement MakeGlyphPanel(TrueTypeFontFileData fontData, IReadOnlyDictionary<uint, ushort> cidMap, Uri fontUri, IReadOnlyDictionary<ushort, string> glyphNames) {
-			try {
-				WrapPanel panel = new WrapPanel() { Orientation = Orientation.Horizontal };
+		private static readonly int MaxGlyphCount = 8000;
+		private static readonly int GlyphLoadChunkSize = 100;
 
-				SortedDictionary<ushort, uint> gidToUnicode = CMapWriter.GetGIDToUnicodeMap(cidMap);
-				HashSet<ushort> unicodeKnown = new HashSet<ushort>(gidToUnicode.Keys);
+		private async static void PopulateGlyphPanel(WrapPanel panel, TrueTypeFontFileData fontData, IReadOnlyDictionary<uint, ushort> cidMap, Uri fontUri, IReadOnlyDictionary<ushort, string> glyphNames) {
+			SortedDictionary<ushort, uint> gidToUnicode = CMapWriter.GetGIDToUnicodeMap(cidMap);
+			HashSet<ushort> unicodeKnown = new HashSet<ushort>(gidToUnicode.Keys);
 
-				GlyphTypeface glyphTypeface = new GlyphTypeface(fontUri);
-				double glyphHeight = GlyphFontSize * glyphTypeface.Baseline;
-				//double baseline = GlyphFontSize * glyphTypeface.Baseline;
+			GlyphTypeface glyphTypeface = new GlyphTypeface(fontUri);
+			double glyphHeight = GlyphFontSize * glyphTypeface.Baseline;
+			//double baseline = GlyphFontSize * glyphTypeface.Baseline;
 
-				int panelCount = 0;
-				foreach (ushort glyphIdx in unicodeKnown.OrderBy(i => gidToUnicode[i]).Concat(Range(fontData.numGlyphs).Where(i => !unicodeKnown.Contains(i)))) {
+			List<UIElement> elementsToAdd = new List<UIElement>();
 
-					Border border = new Border {
-						Width = GlyphElementSize,
-						Height = GlyphElementSize,
-						BorderBrush = Brushes.White,
-						Background = Brushes.White,
-						//BorderThickness = new Thickness(1),
-						Margin = new Thickness(1)
-					};
+			int panelCount = 0;
+			foreach (ushort glyphIdx in unicodeKnown.OrderBy(i => gidToUnicode[i]).Concat(Range(fontData.numGlyphs).Where(i => !unicodeKnown.Contains(i)))) {
 
-					double glyphWidth = GlyphFontSize * (glyphTypeface.AdvanceWidths.TryGetValue(glyphIdx, out double val) ? val : 0.0);
+				Border border = new Border {
+					Width = GlyphElementSize,
+					Height = GlyphElementSize,
+					BorderBrush = Brushes.White,
+					Background = Brushes.White,
+					//BorderThickness = new Thickness(1),
+					Margin = new Thickness(1)
+				};
 
-					// Calculate the margin to center the Path within the Border
-					double horizontalMargin = (border.Width - glyphWidth) / 2;
-					double verticalMargin = (border.Height - glyphHeight) / 2;
+				double glyphWidth = GlyphFontSize * (glyphTypeface.AdvanceWidths.TryGetValue(glyphIdx, out double val) ? val : 0.0);
 
-					Geometry geometry = glyphTypeface.GetGlyphOutline(glyphIdx, GlyphFontSize, GlyphFontSize);
-					geometry.Transform = new TranslateTransform(horizontalMargin, border.Height - verticalMargin);
-					border.Child = new Path() { Data = geometry, Fill = Brushes.Black };
+				// Calculate the margin to center the Path within the Border
+				double horizontalOffset = (border.Width - glyphWidth) / 2;
+				double verticalOffset = (border.Height + glyphHeight) / 2;
 
-					string tooltip = $"Glyph {glyphIdx}";
-					if (gidToUnicode.TryGetValue(glyphIdx, out uint unicode)) {
-						tooltip += $"\nUnicode U+{unicode.ToString(unicode <= 0xFFFF ? "X4" : "X8")}";
-						if (TryGetUnicodeName(unicode, out string? unicodeName)) {
-							tooltip += $"\nUnicode name: {unicodeName}";
-						}
-					}
-					if (glyphNames.TryGetValue(glyphIdx, out string? glyphName) && glyphName.Trim() is string trimmedGlyphName && !string.IsNullOrWhiteSpace(trimmedGlyphName)) {
-						tooltip += $"\nName: {trimmedGlyphName}";
-					}
+				Geometry geometry = glyphTypeface.GetGlyphOutline(glyphIdx, GlyphFontSize, GlyphFontSize);
+				geometry.Transform = new TranslateTransform(horizontalOffset, verticalOffset);
+				border.Child = new Path() { Data = geometry, Fill = Brushes.Black };
 
-					border.ToolTip = tooltip;
-
-					panel.Children.Add(border);
-
-					panelCount++;
-
-					if (panelCount >= 8000) {
-						TextBlock warningBlock = new TextBlock() {
-							Text = $"... and {fontData.numGlyphs - panelCount} more glyphs."
-						};
-						panel.Children.Add(warningBlock);
-						break;
+				string tooltip = $"Glyph {glyphIdx}";
+				if (gidToUnicode.TryGetValue(glyphIdx, out uint unicode)) {
+					tooltip += $"\nUnicode U+{unicode.ToString(unicode <= 0xFFFF ? "X4" : "X8")}";
+					if (TryGetUnicodeName(unicode, out string? unicodeName)) {
+						tooltip += $"\nUnicode name: {unicodeName}";
 					}
 				}
+				if (glyphNames.TryGetValue(glyphIdx, out string? glyphName) && glyphName.Trim() is string trimmedGlyphName && !string.IsNullOrWhiteSpace(trimmedGlyphName)) {
+					tooltip += $"\nName: {trimmedGlyphName}";
+				}
 
-				return panel;
+				border.ToolTip = tooltip;
+
+				elementsToAdd.Add(border);
+
+				if (elementsToAdd.Count > GlyphLoadChunkSize) {
+					await panel.Dispatcher.InvokeAsync(() => {
+						foreach (UIElement element in elementsToAdd) {
+							panel.Children.Add(element);
+						}
+						elementsToAdd.Clear();
+					}, System.Windows.Threading.DispatcherPriority.Background);
+					elementsToAdd = new List<UIElement>();
+				}
+				
+				panelCount++;
+
+				if (panelCount >= MaxGlyphCount) {
+					TextBlock warningBlock = new TextBlock() {
+						Text = $"... and {fontData.numGlyphs - panelCount} more glyphs.",
+						Margin = new Thickness(10, 10, 0, 0)
+					};
+					elementsToAdd.Add(warningBlock);
+					break;
+				}
 			}
-			catch(Exception ex) {
-				return new TextBlock() {
-					Text = ex.Message + "\n" + (ex.StackTrace ?? "Unknown origin.")
-				};
+
+			if (elementsToAdd.Count > 0) {
+				await panel.Dispatcher.InvokeAsync(() => {
+					foreach (UIElement element in elementsToAdd) {
+						panel.Children.Add(element);
+					}
+				}, System.Windows.Threading.DispatcherPriority.Background);
 			}
 		}
 
