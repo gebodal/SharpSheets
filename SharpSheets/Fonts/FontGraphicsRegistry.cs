@@ -60,9 +60,11 @@ namespace SharpSheets.Fonts {
 
 		private static PdfGlyphFont CreateFont(FontPath fontPath, FontTags? tags) {
 			if (fontPath.FontIndex >= 0) {
-				throw new ArgumentException("Font collections not surrently supported (requested font is part of a font collection file).");
+				return CIDFontFactory.CreateFont(fontPath.Path, fontPath.FontIndex, GetOpenTypeTags(tags));
 			}
-			return CIDFontFactory.CreateFont(fontPath.Path, GetOpenTypeTags(tags));
+			else {
+				return CIDFontFactory.CreateFont(fontPath.Path, GetOpenTypeTags(tags));
+			}
 		}
 		private static PdfGlyphFont CreateFont(string fontUri, Stream fontStream, FontTags? fontTags) {
 			return CIDFontFactory.CreateFont(fontUri, fontStream, GetOpenTypeTags(fontTags));

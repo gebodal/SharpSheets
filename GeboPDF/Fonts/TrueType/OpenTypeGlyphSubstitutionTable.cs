@@ -1,4 +1,4 @@
-﻿using GeboPDF.Utilities;
+﻿using GeboPdf.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -320,7 +320,7 @@ namespace GeboPdf.Fonts.TrueType {
 				for (ushort ci = 0; ci < Coverage.Length; ci++) {
 					ushort glyph = Coverage.GetGlyph(ci);
 					yield return (new ushort[] { glyph }, new ushort[] { SubstituteGlyphIDs[ci] });
-		}
+				}
 			}
 
 		}
@@ -386,9 +386,9 @@ namespace GeboPdf.Fonts.TrueType {
 					ushort glyph = Coverage.GetGlyph(ci);
 					yield return (new ushort[] { glyph }, SubstituteGlyphSequences[ci]);
 				}
-		}
+			}
 
-	}
+		}
 
 	}
 
@@ -450,11 +450,11 @@ namespace GeboPdf.Fonts.TrueType {
 					ushort glyph = Coverage.GetGlyph(ci);
 					for (int i = 0; i < AlternateSets[ci].Length; i++) {
 						yield return (new ushort[] { glyph }, new ushort[] { AlternateSets[ci][i] });
-		}
+					}
 				}
 			}
 
-	}
+		}
 
 	}
 
@@ -554,7 +554,7 @@ namespace GeboPdf.Fonts.TrueType {
 							new ushort[] { firstGlyph }.Concat(Ligatures[t].ComponentGlyphIDs).ToArray(),
 							new ushort[] { Ligatures[t].LigatureGlyph }
 							);
-			}
+					}
 				}
 
 			}
@@ -648,7 +648,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public IEnumerable<(ushort[], ushort[])> GetExamples() {
 			yield break; // TODO Implement
-	}
+		}
 
 	}
 
@@ -700,7 +700,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public IEnumerable<(ushort[], ushort[])> GetExamples() {
 			yield break; // TODO Implement
-	}
+		}
 
 	}
 

@@ -3,7 +3,7 @@ using GeboPdf.Graphics;
 using GeboPdf.Objects;
 using GeboPdf.Patterns;
 using GeboPdf.XObjects;
-using GeboPDF.Utilities;
+using GeboPdf.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;

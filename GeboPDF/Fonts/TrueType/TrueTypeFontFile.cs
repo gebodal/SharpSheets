@@ -85,7 +85,7 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 		}
 
-		internal static IReadOnlyDictionary<string, TrueTypeFontTable> ReadHeader(FontFileReader reader,
+		internal static TrueTypeFontTable[] ReadHeader(FontFileReader reader,
 			out uint scalerType, out ushort searchRange, out ushort entrySelector, out ushort rangeShift) {
 
 			scalerType = reader.ReadUInt32();
@@ -95,7 +95,7 @@ namespace GeboPdf.Fonts.TrueType {
 			entrySelector = reader.ReadUInt16();
 			rangeShift = reader.ReadUInt16();
 
-			Dictionary<string, TrueTypeFontTable> tables = new Dictionary<string, TrueTypeFontTable>();
+			TrueTypeFontTable[] tables = new TrueTypeFontTable[numTables];
 
 			for (ushort i = 0; i < numTables; i++) {
 				string tag = reader.ReadASCIIString(4);
@@ -129,16 +129,24 @@ namespace GeboPdf.Fonts.TrueType {
 					}
 				}
 				*/
-
-				tables.Add(tag, new TrueTypeFontTable(tag, checksum, offset, length));
+				tables[i] = new TrueTypeFontTable(tag, checksum, offset, length);
 			}
 
 			return tables;
 		}
 
+		internal static IReadOnlyDictionary<string, TrueTypeFontTable> ReadHeaderDict(FontFileReader reader,
+			out uint scalerType, out ushort searchRange, out ushort entrySelector, out ushort rangeShift) {
+
+			TrueTypeFontTable[] tables = ReadHeader(reader,
+				out scalerType, out searchRange, out entrySelector, out rangeShift);
+
+			return tables.ToDictionary(t => t.tag);
+		}
+
 		public static TrueTypeFontFile Open(FontFileReader reader) {
 
-			IReadOnlyDictionary<string, TrueTypeFontTable> tables = ReadHeader(reader,
+			IReadOnlyDictionary<string, TrueTypeFontTable> tables = ReadHeaderDict(reader,
 				out uint scalerType, out _, out _, out _);
 
 			///////////// Head table
@@ -264,7 +272,7 @@ namespace GeboPdf.Fonts.TrueType {
 		}
 
 		internal static T? OpenTable<T>(FontFileReader reader, string tableLabel, Func<FontFileReader, long, T> parser) where T : class {
-			IReadOnlyDictionary<string, TrueTypeFontTable> tables = ReadHeader(reader,
+			IReadOnlyDictionary<string, TrueTypeFontTable> tables = ReadHeaderDict(reader,
 				out _, out _, out _, out _);
 
 			if (tables.TryGetValue(tableLabel, out TrueTypeFontTable? table)) {
@@ -304,7 +312,7 @@ namespace GeboPdf.Fonts.TrueType {
 		}
 
 		public static OpenTypeLayoutTagSet ReadOpenTypeTags(FontFileReader reader) {
-			IReadOnlyDictionary<string, TrueTypeFontTable> tables = ReadHeader(reader,
+			IReadOnlyDictionary<string, TrueTypeFontTable> tables = ReadHeaderDict(reader,
 				out _, out _, out _, out _);
 
 			OpenTypeLayoutTagSet tags = OpenTypeLayoutTagSet.Empty();
@@ -366,7 +374,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public static TrueTypeFontFileData Open(FontFileReader reader) {
 
-			IReadOnlyDictionary<string, TrueTypeFontTable> tables = TrueTypeFontFile.ReadHeader(reader,
+			IReadOnlyDictionary<string, TrueTypeFontTable> tables = TrueTypeFontFile.ReadHeaderDict(reader,
 				out _, out _, out _, out _);
 
 			///////////// Head table

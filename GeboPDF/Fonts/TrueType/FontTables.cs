@@ -358,12 +358,17 @@ namespace GeboPdf.Fonts.TrueType {
 			ushort stringOffset = reader.ReadUInt16();
 
 			for (int i = 0; i < count; i++) {
-				ushort[] nameRecord = reader.ReadUInt16(6);
+				ushort platformID = reader.ReadUInt16();
+				ushort platformSpecificID = reader.ReadUInt16();
+				ushort languageID = reader.ReadUInt16();
+				ushort nameID = reader.ReadUInt16();
+				ushort length = reader.ReadUInt16();
+				ushort nameStringOffset = reader.ReadUInt16();
 
 				long old = reader.Position;
-				reader.Position = offset + stringOffset + nameRecord[5];
+				reader.Position = offset + stringOffset + nameStringOffset;
 
-				TrueTypeName name = TrueTypeNameEncodings.Decode(reader, nameRecord[0], nameRecord[1], nameRecord[2], nameRecord[3], nameRecord[4]);
+				TrueTypeName name = TrueTypeNameEncodings.Decode(reader, platformID, platformSpecificID, languageID, nameID, length);
 
 				reader.Position = old;
 
@@ -391,7 +396,12 @@ namespace GeboPdf.Fonts.TrueType {
 
 			CultureInfo? cultureInfo;
 			if (platformID == (ushort)PlatformID.Microsoft) {
-				cultureInfo = new CultureInfo(languageID);
+				try {
+					cultureInfo = new CultureInfo(languageID);
+				}
+				catch (CultureNotFoundException e) {
+					throw new FormatException($"Invalid languageID value: {languageID}", e);
+				}
 			}
 			else {
 				cultureInfo = null;

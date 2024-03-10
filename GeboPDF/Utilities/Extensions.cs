@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GeboPDF.Utilities {
+namespace GeboPdf.Utilities {
 
 	internal static class Extensions {
 

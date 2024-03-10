@@ -32,6 +32,29 @@ namespace GeboPdf.Fonts {
 			return CreateFont(memoryStream, fontUri, layoutTags);
 		}
 
+		public static PdfType0Font CreateFont(string fontPath, int fontIndex, OpenTypeLayoutTags layoutTags) {
+			string fontKey = fontPath + $"#{fontIndex}";
+
+			if (!fontStreams.ContainsKey(fontKey)) {
+				using (FileStream fileStream = new FileStream(fontPath, FileMode.Open, FileAccess.Read)) {
+					MemoryStream fontStream = new MemoryStream();
+					TrueTypeCollection.ExtractFont(fileStream, fontIndex, fontStream);
+
+					fontStreams.Add(fontKey, fontStream);
+				}
+			}
+
+			return CreateFont(fontStreams[fontKey], fontKey, layoutTags);
+		}
+
+		public static PdfType0Font CreateFont(string fontUri, int fontIndex, Stream stream, OpenTypeLayoutTags layoutTags) {
+			MemoryStream memoryStream = new MemoryStream();
+			TrueTypeCollection.ExtractFont(stream, fontIndex, memoryStream);
+			memoryStream.Position = 0;
+
+			return CreateFont(memoryStream, fontUri, layoutTags);
+		}
+
 		private static PdfType0Font CreateFont(MemoryStream memoryStream, string fontUri, OpenTypeLayoutTags layoutTags) {
 
 			TrueTypeFontFile fontFile = ReadFontFile(memoryStream);

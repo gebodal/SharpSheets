@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GeboPdf.Utilities;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -29,7 +30,10 @@ namespace GeboPdf.Fonts.TrueType {
 		internal static uint[] ReadHeader(FontFileReader reader) {
 			// TODO Need a check here that we are actually reading a font collection file
 
-			byte[] ttcTag = reader.ReadUInt8(4);
+			string ttcTag = reader.ReadASCIIString(4); // reader.ReadUInt8(4);
+
+			if(ttcTag != "ttcf") { throw new FormatException($"Invalid font collection tag: {ttcTag}"); }
+
 			ushort majorVersion = reader.ReadUInt16();
 			ushort minorVersion = reader.ReadUInt16();
 			uint numFonts = reader.ReadUInt32();
@@ -39,6 +43,8 @@ namespace GeboPdf.Fonts.TrueType {
 			for (int i = 0; i < numFonts; i++) {
 				tableDirectoryOffsets[i] = reader.ReadUInt32();
 			}
+
+			// Potentially digital signature data here
 
 			return tableDirectoryOffsets;
 		}
@@ -58,6 +64,60 @@ namespace GeboPdf.Fonts.TrueType {
 			return new TrueTypeCollection(fonts);
 		}
 
+		public static void ExtractFont(Stream source, int fontIndex, Stream output) {
+			FontFileReader reader = new FontFileReader(source);
+
+			uint[] tableDirectoryOffsets = ReadHeader(reader);
+
+			reader.Position = tableDirectoryOffsets[fontIndex];
+
+			TrueTypeFontTable[] tables = TrueTypeFontFile.ReadHeader(reader,
+				out _, out _, out _, out _);
+
+			uint[] totalLengths = new uint[tables.Length];
+			for (int i = 0; i < tables.Length; i++) {
+				totalLengths[i] = 4 * (((tables[i].length - 1) / 4) + 1); // Tables must be 4-byte-aligned (long aligned)
+			}
+
+			uint[] newOffsets = new uint[tables.Length];
+			newOffsets[0] = (uint)(12 + 16 * tables.Length); // 12 bytes for the front matter, and 16 bytes per table record
+			for (int i = 1; i < tables.Length; i++) {
+				newOffsets[i] = newOffsets[i - 1] + totalLengths[i - 1];
+			}
+
+			source.Position = tableDirectoryOffsets[fontIndex];
+
+			source.CopyTo(12, output);
+
+			for (int i = 0; i < tables.Length; i++) {
+				//Console.WriteLine($"table {i} {tables[i].tag}, checksum {tables[i].checksum}, offset {newOffsets[i]}, length {tables[i].length} ({totalLengths[i]})");
+				output.Write(FontFileReader.ASCIIToBytes(tables[i].tag));
+				output.Write(FontFileReader.UInt32ToBytes(tables[i].checksum));
+				output.Write(FontFileReader.UInt32ToBytes(newOffsets[i]));
+				output.Write(FontFileReader.UInt32ToBytes(tables[i].length));
+			}
+
+			if (output.Position != newOffsets[0]) {
+				throw new FormatException("Error has occured");
+			}
+
+			/*
+			 * Strong assumption made here that the data in the tables will be contiguous
+			 * and not interleaved. However, as detected such interleaving would require
+			 * a full implementation of all font subtables, this will have to do for now.
+			 */
+
+			for (int i = 0; i < tables.Length; i++) {
+				source.Position = tables[i].offset;
+
+				source.CopyTo((int)tables[i].length, output);
+
+				for (uint j = tables[i].length; j < totalLengths[i]; j++) {
+					output.WriteByte(0); // Pad tables with zeros for 4-byte-alignment
+				}
+			}
+		}
+
 		internal static IReadOnlyDictionary<string, TrueTypeFontTable> ReadFontTables(FontFileReader reader, int fontIndex) {
 			uint[] tableDirectoryOffsets = ReadHeader(reader);
 
@@ -66,7 +126,7 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			reader.Position = tableDirectoryOffsets[fontIndex];
-			IReadOnlyDictionary<string, TrueTypeFontTable> tables = TrueTypeFontFile.ReadHeader(reader,
+			IReadOnlyDictionary<string, TrueTypeFontTable> tables = TrueTypeFontFile.ReadHeaderDict(reader,
 				out _, out _, out _, out _);
 
 			return tables;
