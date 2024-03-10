@@ -30,7 +30,7 @@ namespace SharpSheets.Fonts {
 				return fontPath;
 			}
 			else if (FontPathRegistry.FindFontFamily(proposedPath) is FontPathGrouping grouping) {
-				return grouping.Regular;
+				return grouping.Regular ?? grouping.Bold ?? grouping.Italic ?? grouping.BoldItalic;
 			}
 			else if (TryFontPath(System.IO.Path.Combine(sourceDir, proposedPath), out string? fromSourcePath)) {
 				return GetFontPath(fromSourcePath);
