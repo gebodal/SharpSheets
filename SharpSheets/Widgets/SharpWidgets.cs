@@ -293,7 +293,7 @@ namespace SharpSheets.Widgets {
 		protected override Size GetMinimumContentSize(ISharpGraphicsState graphicsState, Size availableSpace) {
 			Size? contentSize = base.GetMinimumContentSize(graphicsState, (Size)outline.RemainingRect(graphicsState, (Rectangle)availableSpace).Margins(frame, false));
 			Size framedSize = (contentSize ?? new Size(0f, 0f)).Margins(frame, true);
-			return (Size)outline.FullRect(graphicsState, (Rectangle)framedSize);
+			return outline.FullSize(graphicsState, framedSize);
 		}
 
 		protected override Rectangle?[] GetDiagnosticRects(ISharpGraphicsState graphicsState, Rectangle available) {

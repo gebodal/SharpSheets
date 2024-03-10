@@ -37,8 +37,6 @@
 - The documentation page for IFramedContainerArea shapes should automatically determine and report if the full area can be inferred
 - A color list in the documentation would be nice
     - Perhaps with a color picker and hex code, to view colors
-- A font listing, and font pages, showing licensing and embedding options, available characters
-    - And character sets?
 - Need to fully test `Numbered<>`, especially with regard to Markup default and example arguments
 - StyledDivElements should accept graphics state arguments (linewidth, colors, etc) so that box styles can be adjusted
 - Need a way for a markup widget to know if it has children
@@ -52,7 +50,6 @@
 
 - It would be great to clean up the environments, such that they are typed to better help distinguish
     - This might also help document them better?
-    - Is it a good idea to have a base environment, that contains the "built-in" functions? (Then it can self-document too)
 
 
 ### Non-Critical
@@ -63,7 +60,6 @@
     - Is the hard-coded UTF-8 for reading acceptable? Do we want to try and be more permissive? How?
 - Consider changing `ParameterInfo.IsOptional` uses to `ParameterInfo.HasDefaultValue`, as the former is compiler dependent, but the latter is not (apparently)
 - Fix CardTable spacing issue where the bottom cell extends beyond the edge of the area
-- Need some way to indicate for a font collection path which font index is desired
 - What's up with the `provides-remaining` logic in the markup now? Does that still do anything meaningful?
 - What are `StyleSheet` `drawing-coords` actually doing? (End up in `MarkupGeometryState`)
     - Should we just remove `canvas` and `drawing-coords`?
@@ -135,9 +131,6 @@
     - Absence of "canvas" for pattern needs to cause error for "slicing" XML elements
 - Can the `&SOURCE` syntax be improved?
     - Could there be a way for paths to reference some default location (i.e. `&TEMPLATE`), so that we can more easily reference template resources?
-- Could do with improving template file menu (subdivide into separate submenus?)
-- It would be good to get a list of fonts in the help window
-    - With a print out of any licence that the font may have (along with the provided embedding flags)
 - What if we could have z-indexing for drawing operations?
     - For PDF, this could be faked using XObjects for each listed z-index, which can then just be printed in z-order
     - Would need a way of inserting XObjects into the GraphicsStream (which would require editing the GraphicsStream, or "closing" the ISharpCanvas so they can be drawn at the end)
@@ -151,9 +144,6 @@
 - Can we add `<data>` child entities to `<path>` entities? (So we can use `enabled` with them)
 - Need to properly implement fill patterns in PDF and Designer, for use with Markup
     - This will probably require some kind of sub-canvas on which to draw the pattern unit
-- Need to directly check characters requested from font, to catch character codes with no matching glyph
-    - Currently the designer may display backup characters that PDF does not have access to
-    - Need to check characters and provide warning, and possibly replace character code with "unknown character" code
 - It might be good to be able to specify config properties for specific widget types
     - i.e. `section.field.format: BOLD`
     - In this case should we avoid having fields with the same names as widgets?

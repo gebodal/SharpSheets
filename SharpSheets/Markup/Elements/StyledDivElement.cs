@@ -366,7 +366,7 @@ namespace SharpSheets.Markup.Elements {
 			if(shape is IFramedContainerArea framedContainer && namedChildren.TryGetValue("remaining", out DrawableDivElement? remainingDiv)) {
 				Rectangle remainingRect = framedContainer.RemainingRect(graphicsState, (Rectangle)availableSpace);
 				Size minimumContent = remainingDiv.MinimumContentSize(graphicsState, (Size)remainingRect) ?? new Size(0f, 0f);
-				return (Size)framedContainer.FullRect(graphicsState, (Rectangle)minimumContent);
+				return framedContainer.FullSize(graphicsState, minimumContent);
 			}
 			else {
 				Size[] mins = namedChildren.Values.Select(c => c.MinimumContentSize(graphicsState, availableSpace)).WhereNotNull().ToArray();
