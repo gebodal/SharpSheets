@@ -27,6 +27,8 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 		public static Thickness TableCellBlockMargin { get; } = new Thickness(10, 0, 10, 0);
 
+		#region Font Page
+
 		public static FrameworkElement GetFontsContents(DocumentationWindow window) {
 			StackPanel contentsStack = new StackPanel() { Margin = ParagraphMargin };
 
@@ -34,25 +36,11 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				ClickableRun fontClickable = new ClickableRun(fontName);
 				fontClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(new FontName(fontName));
 				contentsStack.Children.Add(new TextBlock(fontClickable) { Margin = new Thickness(0, 1, 0, 1) });
-				//contentsStack.Children.Add(new TextBlock() { Text = fontName, Margin = new Thickness(0, 1, 0, 1) });
 			}
 
 			return contentsStack;
 		}
-
-		public static FrameworkElement GetFontFamiliesContents(DocumentationWindow window) {
-			StackPanel contentsStack = new StackPanel() { Margin = ParagraphMargin };
-
-			foreach (string familyName in FontPathRegistry.GetAllRegisteredFamilies().OrderBy(n => n)) {
-				//ClickableRun familyClickable = new ClickableRun(familyName);
-				//familyClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(constructor, () => refreshAction?.Invoke(constructor.FullName));
-				//contentsStack.Children.Add(new TextBlock(familyClickable) { Margin = new Thickness(0, 1, 0, 1) });
-				contentsStack.Children.Add(new TextBlock() { Text = familyName, Margin = new Thickness(0, 1, 0, 1) });
-			}
-
-			return contentsStack;
-		}
-
+		
 		public static DocumentationPage GetFontPage(FontName fontName, DocumentationWindow window) {
 			if (fontName is null) {
 				return MakeErrorPage("Invalid font name.");
@@ -186,6 +174,84 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			return stack;
 		}
+
+		#endregion Font Page
+
+		#region Font Family Page
+
+		public static FrameworkElement GetFontFamiliesContents(DocumentationWindow window) {
+			StackPanel contentsStack = new StackPanel() { Margin = ParagraphMargin };
+
+			foreach (string familyName in FontPathRegistry.GetAllRegisteredFamilies().OrderBy(n => n)) {
+				ClickableRun familyClickable = new ClickableRun(familyName);
+				familyClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(new FontFamilyName(familyName));
+				contentsStack.Children.Add(new TextBlock(familyClickable) { Margin = new Thickness(0, 1, 0, 1) });
+			}
+
+			return contentsStack;
+		}
+
+		public static DocumentationPage GetFontFamilyPage(FontFamilyName familyName, DocumentationWindow window) {
+			if (familyName is null) {
+				return MakeErrorPage("Invalid font family name.");
+			}
+
+			return MakePage(GetFontFamilyPageContent(familyName, window), familyName.Name, () => GetFontFamilyPageContent(familyName, window));
+		}
+
+		private static UIElement GetFontFamilyPageContent(FontFamilyName familyName, DocumentationWindow window) {
+			if (familyName is null) {
+				return MakeErrorContent("Invalid font family name.");
+			}
+
+			FontPathGrouping? family = FontPathRegistry.FindFontFamily(familyName.Name);
+
+			if (family is null) {
+				return MakeErrorContent("Could not find font family.");
+			}
+
+			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
+
+			TextBlock nameTitleBlock = GetContentTextBlock(familyName.Name, TextBlockMargin, 2.0);
+			stack.Children.Add(nameTitleBlock);
+
+			stack.Children.Add(GetContentTextBlock("The following fonts are available within this family:", ParagraphMargin));
+
+			void ListFont(FontPath? path, string format) {
+
+				if (path is null) {
+					TextBlock missingBlock = GetContentTextBlock($"No {format} font for this family.", new Thickness(0, 1, 0, 1)).AddMargin(IndentedMargin);
+					missingBlock.FontStyle = FontStyles.Italic;
+					stack.Children.Add(missingBlock);
+					return;
+				}
+
+				string? fontName = FontPathRegistry.FindFontName(path);
+
+				if(fontName is null) {
+					TextBlock errorBlock = GetContentTextBlock($"Could not find {format} font name for this family.", new Thickness(0, 1, 0, 1)).AddMargin(IndentedMargin);
+					errorBlock.FontStyle = FontStyles.Italic;
+					stack.Children.Add(errorBlock);
+					return;
+				}
+
+				ClickableRun fontClickable = new ClickableRun(fontName);
+				fontClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(new FontName(fontName));
+				stack.Children.Add(new TextBlock(fontClickable) { Margin = new Thickness(0, 1, 0, 1) }.AddMargin(IndentedMargin));
+
+			}
+
+			ListFont(family.Regular, "Regular");
+			ListFont(family.Bold, "Bold");
+			ListFont(family.Italic, "Italic");
+			ListFont(family.BoldItalic, "Bold Italic");
+
+			return stack;
+		}
+
+		#endregion Font Family Page
+
+		#region Utilities
 
 		private static string? GetFontText(TrueTypeFontFileData fontData, NameID nameID) {
 			if (fontData.name.nameRecords.TryGetValue(nameID, out TrueTypeName[]? nameRecords)) {
@@ -424,6 +490,10 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return false;
 		}
 
+		#endregion Utilities
+
+		#region Unicode Names
+
 		static FontPageBuilder() {
 			Dictionary<uint, string> unicodeNames = new Dictionary<uint, string>();
 			Dictionary<string, uint> firsts = new Dictionary<string, uint>();
@@ -473,6 +543,8 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			UnicodeRangeNames = unicodeRangeNames;
 		}
 
+		#endregion Unicode Names
+
 	}
 
 	public class FontName {
@@ -480,6 +552,16 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		public string Name { get; }
 
 		public FontName(string name) {
+			Name = name;
+		}
+
+	}
+
+	public class FontFamilyName {
+
+		public string Name { get; }
+
+		public FontFamilyName(string name) {
 			Name = name;
 		}
 

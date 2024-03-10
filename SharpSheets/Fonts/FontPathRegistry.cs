@@ -58,6 +58,14 @@ namespace SharpSheets.Fonts {
 			}
 		}
 
+		public static string? FindFontName(FontPath fontpath) {
+			if (!AllRegistered) {
+				RegisterAll(); // Now FamilyRegistry/FontRegistry is definitely not null
+			}
+
+			return FontRegistry.FirstOrDefault(kv => FontPath.Equals(kv.Value, fontpath)).Key;
+		}
+
 		public static IEnumerable<string> GetAllRegisteredFamilies() {
 			if (!AllRegistered) {
 				RegisterAll(); // Now FamilyRegistry/FontRegistry is definitely not null
