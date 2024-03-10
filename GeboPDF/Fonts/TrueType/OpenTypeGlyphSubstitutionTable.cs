@@ -162,6 +162,15 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 		}
 
+		public GlyphSubstitutionLookupSet? GetLookups(string featureTag) {
+			if (OpenTypeLayoutHelpers.GetLookups(featureTag, FeatureListTable) is ushort[] lookupIdxs) {
+				return new GlyphSubstitutionLookupSet(lookupIdxs.Select(i => LookupList[i]).ToArray());
+			}
+			else {
+				return null;
+			}
+		}
+
 	}
 
 	public interface ISubstitutionSubtable {
@@ -181,6 +190,8 @@ namespace GeboPdf.Fonts.TrueType {
 				}
 			}
 		}
+
+		IEnumerable<(ushort[], ushort[])> GetExamples();
 
 	}
 
@@ -215,6 +226,7 @@ namespace GeboPdf.Fonts.TrueType {
 	public class GlyphSubstitutionLookupSet {
 
 		public readonly GlyphSubstitutionLookupTable[] Lookups;
+		public int Count => Lookups.Length;
 
 		public GlyphSubstitutionLookupSet(GlyphSubstitutionLookupTable[] lookups) {
 			this.Lookups = lookups;
@@ -234,6 +246,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public bool Forward => true;
 		public abstract int PerformSubstitution(SubstitutionGlyphRun run, int index);
+		public abstract IEnumerable<(ushort[], ushort[])> GetExamples();
 
 		internal static OpenTypeSingleSubstitutionSubtable Read(FontFileReader reader, long offset) {
 
@@ -277,6 +290,13 @@ namespace GeboPdf.Fonts.TrueType {
 				return 0;
 			}
 
+			public override IEnumerable<(ushort[], ushort[])> GetExamples() {
+				for (ushort ci = 0; ci < Coverage.Length; ci++) {
+					ushort glyph = Coverage.GetGlyph(ci);
+					yield return (new ushort[] { glyph }, new ushort[] { (ushort)(glyph + DeltaGlyphID) });
+				}
+			}
+
 		}
 
 		private class OpenTypeSingleSubstitutionTableFormat2 : OpenTypeSingleSubstitutionSubtable {
@@ -296,6 +316,13 @@ namespace GeboPdf.Fonts.TrueType {
 				return 0;
 			}
 
+			public override IEnumerable<(ushort[], ushort[])> GetExamples() {
+				for (ushort ci = 0; ci < Coverage.Length; ci++) {
+					ushort glyph = Coverage.GetGlyph(ci);
+					yield return (new ushort[] { glyph }, new ushort[] { SubstituteGlyphIDs[ci] });
+		}
+			}
+
 		}
 
 	}
@@ -306,6 +333,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public bool Forward => true;
 		public abstract int PerformSubstitution(SubstitutionGlyphRun run, int index);
+		public abstract IEnumerable<(ushort[], ushort[])> GetExamples();
 
 		internal static OpenTypeMultipleSubstitutionSubtable Read(FontFileReader reader, long offset) {
 
@@ -353,7 +381,14 @@ namespace GeboPdf.Fonts.TrueType {
 				return 0;
 			}
 
+			public override IEnumerable<(ushort[], ushort[])> GetExamples() {
+				for(ushort ci=0; ci<Coverage.Length; ci++) {
+					ushort glyph = Coverage.GetGlyph(ci);
+					yield return (new ushort[] { glyph }, SubstituteGlyphSequences[ci]);
+				}
 		}
+
+	}
 
 	}
 
@@ -363,6 +398,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public bool Forward => true;
 		public abstract int PerformSubstitution(SubstitutionGlyphRun run, int index);
+		public abstract IEnumerable<(ushort[], ushort[])> GetExamples();
 
 		internal static OpenTypeAlternateSubstitutionSubtable Read(FontFileReader reader, long offset) {
 
@@ -409,7 +445,16 @@ namespace GeboPdf.Fonts.TrueType {
 				return 0;
 			}
 
+			public override IEnumerable<(ushort[], ushort[])> GetExamples() {
+				for (ushort ci = 0; ci < Coverage.Length; ci++) {
+					ushort glyph = Coverage.GetGlyph(ci);
+					for (int i = 0; i < AlternateSets[ci].Length; i++) {
+						yield return (new ushort[] { glyph }, new ushort[] { AlternateSets[ci][i] });
 		}
+				}
+			}
+
+	}
 
 	}
 
@@ -419,6 +464,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public bool Forward => true;
 		public abstract int PerformSubstitution(SubstitutionGlyphRun run, int index);
+		public abstract IEnumerable<(ushort[], ushort[])> GetExamples();
 
 		internal static OpenTypeLigatureSubstitutionSubtable Read(FontFileReader reader, long offset) {
 
@@ -462,6 +508,15 @@ namespace GeboPdf.Fonts.TrueType {
 				return 0;
 			}
 
+			public override IEnumerable<(ushort[], ushort[])> GetExamples() {
+				for (ushort ci = 0; ci < Coverage.Length; ci++) {
+					ushort glyph = Coverage.GetGlyph(ci);
+					foreach ((ushort[], ushort[]) example in LigatureSets[ci].GetExamples(glyph)) {
+						yield return example;
+					}
+				}
+			}
+
 			public class LigatureSetTable {
 
 				public readonly LigatureTable[] Ligatures;
@@ -491,6 +546,15 @@ namespace GeboPdf.Fonts.TrueType {
 							return;
 						}
 					}
+				}
+
+				public IEnumerable<(ushort[], ushort[])> GetExamples(ushort firstGlyph) {
+					for (int t = 0; t < Ligatures.Length; t++) {
+						yield return (
+							new ushort[] { firstGlyph }.Concat(Ligatures[t].ComponentGlyphIDs).ToArray(),
+							new ushort[] { Ligatures[t].LigatureGlyph }
+							);
+			}
 				}
 
 			}
@@ -582,6 +646,10 @@ namespace GeboPdf.Fonts.TrueType {
 			return 0; // Yes?
 		}
 
+		public IEnumerable<(ushort[], ushort[])> GetExamples() {
+			yield break; // TODO Implement
+	}
+
 	}
 
 	public sealed class OpenTypeChainedContextsSubstitutionSubtable : ISubstitutionSubtable {
@@ -630,6 +698,10 @@ namespace GeboPdf.Fonts.TrueType {
 			return 0; // Yes?
 		}
 
+		public IEnumerable<(ushort[], ushort[])> GetExamples() {
+			yield break; // TODO Implement
+	}
+
 	}
 
 	public abstract class OpenTypeReverseChainingContextualSingleSubstitutionSubtable : ISubstitutionSubtable {
@@ -638,6 +710,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public bool Forward => false;
 		public abstract int PerformSubstitution(SubstitutionGlyphRun run, int index);
+		public abstract IEnumerable<(ushort[], ushort[])> GetExamples();
 
 		internal static OpenTypeReverseChainingContextualSingleSubstitutionSubtable Read(FontFileReader reader, long offset) {
 
@@ -689,6 +762,19 @@ namespace GeboPdf.Fonts.TrueType {
 					run.Replace(index, SubstituteGlyphIDs[coverageIdx]);
 				}
 				return 0;
+			}
+
+			public override IEnumerable<(ushort[], ushort[])> GetExamples() {
+				ushort[] before = BacktrackCoverages.Select(c => c.GetGlyph(0)).ToArray();
+				ushort[] after = LookaheadCoverages.Select(c => c.GetGlyph(0)).ToArray();
+				for (ushort ci = 0; ci < Coverage.Length; ci++) {
+					ushort glyph = Coverage.GetGlyph(ci);
+					ushort replacement = SubstituteGlyphIDs[ci];
+					yield return (
+						before.Append(glyph).Concat(after).ToArray(),
+						before.Append(replacement).Concat(after).ToArray()
+						);
+				}
 			}
 
 			public bool IsMatch(SubstitutionGlyphRun run, int index) {

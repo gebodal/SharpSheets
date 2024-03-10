@@ -42,6 +42,23 @@ namespace GeboPdf.Fonts.TrueType {
 			return null;
 		}
 
+		public static ushort[]? GetLookups(string featureTag, OpenTypeFeatureListTable featureListTable) {
+			HashSet<ushort> lookupIdxs = new HashSet<ushort>();
+
+			for (int i = 0; i < featureListTable.FeatureRecords.Length; i++) {
+				if (featureListTable.FeatureRecords[i].tag == featureTag) {
+					lookupIdxs.UnionWith(featureListTable.FeatureRecords[i].feature.LookupListIndices);
+				}
+			}
+
+			if (lookupIdxs.Count > 0) {
+				return lookupIdxs.OrderBy(i => i).ToArray();
+			}
+			else {
+				return null;
+			}
+		}
+
 	}
 
 	public class OpenTypeLayoutTags {
@@ -451,6 +468,8 @@ namespace GeboPdf.Fonts.TrueType {
 		public abstract ushort? CoverageIndex(ushort glyph);
 		public abstract bool IsCovered(ushort glyph);
 
+		public abstract ushort GetGlyph(ushort index);
+
 		internal static OpenTypeCoverageTable Read(FontFileReader reader, long offset) {
 
 			reader.Position = offset;
@@ -460,10 +479,10 @@ namespace GeboPdf.Fonts.TrueType {
 			if (coverageFormat == 1) {
 				ushort glyphCount = reader.ReadUInt16();
 
-				Dictionary<ushort, ushort> coverageIndexes = new Dictionary<ushort, ushort>();
+				ushort[] coverageIndexes = new ushort[glyphCount];
 				for (ushort coverageIdx = 0; coverageIdx < glyphCount; coverageIdx++) {
 					ushort glyph = reader.ReadUInt16();
-					coverageIndexes[glyph] = coverageIdx;
+					coverageIndexes[coverageIdx] = glyph;
 				}
 
 				return new OpenTypeCoverageTableFormat1(coverageIndexes);
@@ -488,21 +507,31 @@ namespace GeboPdf.Fonts.TrueType {
 
 		private class OpenTypeCoverageTableFormat1 : OpenTypeCoverageTable {
 
-			public readonly Dictionary<ushort, ushort> CoverageIndexes;
+			public readonly ushort[] CoverageIndexes; // Array of glyphs in coverage table
+			public readonly Dictionary<ushort, ushort> CoverageIndexesMap; // Map glyphs to coverage indexes
 
-			internal OpenTypeCoverageTableFormat1(Dictionary<ushort, ushort> coverageIndexes) : base() {
+			internal OpenTypeCoverageTableFormat1(ushort[] coverageIndexes) : base() {
 				CoverageIndexes = coverageIndexes;
+
+				CoverageIndexesMap = new Dictionary<ushort, ushort>();
+				for (ushort coverageIdx = 0; coverageIdx < CoverageIndexes.Length; coverageIdx++) {
+					CoverageIndexesMap[CoverageIndexes[coverageIdx]] = coverageIdx;
+				}
 			}
 
-			public override int Length => CoverageIndexes.Count;
+			public override int Length => CoverageIndexes.Length;
 
 			public override ushort? CoverageIndex(ushort glyph) {
-				if(CoverageIndexes.TryGetValue(glyph, out ushort index)) { return index; }
+				if(CoverageIndexesMap.TryGetValue(glyph, out ushort index)) { return index; }
 				else { return null; }
 			}
 
 			public override bool IsCovered(ushort glyph) {
-				return CoverageIndexes.ContainsKey(glyph);
+				return CoverageIndexesMap.ContainsKey(glyph);
+			}
+
+			public override ushort GetGlyph(ushort index) {
+				return CoverageIndexes[index];
 			}
 
 		}
@@ -544,6 +573,21 @@ namespace GeboPdf.Fonts.TrueType {
 				}
 
 				return false;
+			}
+
+			public override ushort GetGlyph(ushort index) {
+				ushort count = 0;
+				for (int i = 0; i < RangeRecords.Length; i++) {
+					ushort length = (ushort)(RangeRecords[i].endGlyphID - RangeRecords[i].startGlyphID + 1);
+					if (index < count + length) {
+						return (ushort)(RangeRecords[i].startGlyphID + index - count);
+					}
+					else {
+						count += length;
+					}
+				}
+
+				throw new IndexOutOfRangeException();
 			}
 
 		}

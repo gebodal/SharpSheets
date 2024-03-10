@@ -289,6 +289,13 @@ namespace GeboPdf.Fonts.TrueType {
 			return OpenTable(reader, "post", TrueTypePostTable.Read);
 		}
 
+		public static OpenTypeGlyphSubstitutionTable? OpenGSUB(string fontProgramPath) {
+			return OpenTable(fontProgramPath, "GSUB", OpenTypeGlyphSubstitutionTable.Read);
+		}
+		public static OpenTypeGlyphSubstitutionTable? OpenGSUB(FontFileReader reader) {
+			return OpenTable(reader, "GSUB", OpenTypeGlyphSubstitutionTable.Read);
+		}
+
 		public static OpenTypeLayoutTagSet ReadOpenTypeTags(string fontProgramPath) {
 			using (FileStream fontFileStream = new FileStream(fontProgramPath, FileMode.Open, FileAccess.Read)) {
 				FontFileReader fontReader = new FontFileReader(fontFileStream);
