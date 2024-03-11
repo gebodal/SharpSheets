@@ -34,10 +34,6 @@ namespace GeboPdf.Fonts.TrueType {
 			return Encoding.ASCII.GetString(bytes);
 		}
 
-		public static byte[] ASCIIToBytes(string ascii) {
-			return Encoding.ASCII.GetBytes(ascii);
-		}
-
 		/*** UTF16 Strings ***/
 		public string ReadUTF16BEString(int numBytes) {
 			byte[] bytes = reader.ReadBytes(numBytes);
@@ -55,12 +51,6 @@ namespace GeboPdf.Fonts.TrueType {
 				Array.Reverse(b); // Ensure Big-endian
 			}
 			return b;
-		}
-
-		private static void AdjustBytesForWriting(byte[] bytes) {
-			if (BitConverter.IsLittleEndian) {
-				Array.Reverse(bytes); // Ensure Big-endian
-			}
 		}
 
 		/*** UInt8 ***/
@@ -156,12 +146,6 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public void SkipUInt32(int count) {
 			reader.ReadBytes(count * 4);
-		}
-
-		public static byte[] UInt32ToBytes(uint value) {
-			byte[] bytes = BitConverter.GetBytes(value);
-			AdjustBytesForWriting(bytes);
-			return bytes;
 		}
 
 		/*** Int32 ***/

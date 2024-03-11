@@ -77,6 +77,11 @@ namespace GeboPdf.Fonts {
 			return pdfFont;
 		}
 
+		private static readonly IReadOnlySet<string> reqTabs = new HashSet<string>() {
+			"head", "hhea", "loca", "maxp", "cvt ", "prep", "glyf", "hmtx", "fpgm",
+			"CFF ", "cmap"
+		};
+
 		public static PdfType0FontDictionary CreateFontDictionary(MemoryStream memoryStream, FontGlyphUsage fontUsage) {
 
 			TrueTypeFontFile fontFile = ReadFontFile(memoryStream);
@@ -87,7 +92,17 @@ namespace GeboPdf.Fonts {
 
 			IReadOnlyDictionary<uint, ushort> cmap = GetCmapDict(fontFile.cmap);
 
-			TrueTypeFontProgramStream fontProgram = new TrueTypeFontProgramStream(memoryStream, openType);
+			MemoryStream fontStream;
+			if (fontUsage.All) {
+				fontStream = memoryStream;
+			}
+			else {
+				fontStream = new MemoryStream();
+				TrueTypeFontTable[] tables = fontFile.tables.Values.Where(t => reqTabs.Contains(t.tag)).OrderBy(t => t.offset).ToArray();
+				FontFileWriter.WriteHeaderAndTables(memoryStream, fontFile.scalerType, tables, fontStream);
+			}
+
+			TrueTypeFontProgramStream fontProgram = new TrueTypeFontProgramStream(fontStream, openType);
 
 			FontDescriptorFlags flags = GetFlags(fontFile);
 			PdfRectangle fontBBox = GetBBox(fontFile);

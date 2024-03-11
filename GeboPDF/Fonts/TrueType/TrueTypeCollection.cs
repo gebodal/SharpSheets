@@ -72,50 +72,9 @@ namespace GeboPdf.Fonts.TrueType {
 			reader.Position = tableDirectoryOffsets[fontIndex];
 
 			TrueTypeFontTable[] tables = TrueTypeFontFile.ReadHeader(reader,
-				out _, out _, out _, out _);
+				out uint scalerType, out _, out _, out _);
 
-			uint[] totalLengths = new uint[tables.Length];
-			for (int i = 0; i < tables.Length; i++) {
-				totalLengths[i] = 4 * (((tables[i].length - 1) / 4) + 1); // Tables must be 4-byte-aligned (long aligned)
-			}
-
-			uint[] newOffsets = new uint[tables.Length];
-			newOffsets[0] = (uint)(12 + 16 * tables.Length); // 12 bytes for the front matter, and 16 bytes per table record
-			for (int i = 1; i < tables.Length; i++) {
-				newOffsets[i] = newOffsets[i - 1] + totalLengths[i - 1];
-			}
-
-			source.Position = tableDirectoryOffsets[fontIndex];
-
-			source.CopyTo(12, output);
-
-			for (int i = 0; i < tables.Length; i++) {
-				//Console.WriteLine($"table {i} {tables[i].tag}, checksum {tables[i].checksum}, offset {newOffsets[i]}, length {tables[i].length} ({totalLengths[i]})");
-				output.Write(FontFileReader.ASCIIToBytes(tables[i].tag));
-				output.Write(FontFileReader.UInt32ToBytes(tables[i].checksum));
-				output.Write(FontFileReader.UInt32ToBytes(newOffsets[i]));
-				output.Write(FontFileReader.UInt32ToBytes(tables[i].length));
-			}
-
-			if (output.Position != newOffsets[0]) {
-				throw new FormatException("Error has occured");
-			}
-
-			/*
-			 * Strong assumption made here that the data in the tables will be contiguous
-			 * and not interleaved. However, as detected such interleaving would require
-			 * a full implementation of all font subtables, this will have to do for now.
-			 */
-
-			for (int i = 0; i < tables.Length; i++) {
-				source.Position = tables[i].offset;
-
-				source.CopyTo((int)tables[i].length, output);
-
-				for (uint j = tables[i].length; j < totalLengths[i]; j++) {
-					output.WriteByte(0); // Pad tables with zeros for 4-byte-alignment
-				}
-			}
+			FontFileWriter.WriteHeaderAndTables(source, scalerType, tables, output);
 		}
 
 		internal static IReadOnlyDictionary<string, TrueTypeFontTable> ReadFontTables(FontFileReader reader, int fontIndex) {
