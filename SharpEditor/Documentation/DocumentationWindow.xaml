@@ -64,22 +64,32 @@
 	</Window.Resources>
 
 	<DockPanel>
-		<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#2d2d30">
-			<Button Click="OnBackClick" Style="{StaticResource SubtleButton}" Margin="0,2"
+		<Grid DockPanel.Dock="Top" Background="#2d2d30">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
+			<Button Grid.Column="0" Click="OnBackClick" Style="{StaticResource SubtleButton}" Margin="0,2"
 					IsEnabled="{Binding Path=CanGoBack, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
 				<Image Source="../Images/Previous.png" Height="32" Margin="0,2"/>
 			</Button>
-			<Button Click="OnNextClick" Style="{StaticResource SubtleButton}" Margin="0,2"
+			<Button Grid.Column="1" Click="OnNextClick" Style="{StaticResource SubtleButton}" Margin="0,2"
 					IsEnabled="{Binding Path=CanGoForward, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
 				<Image Source="../Images/Next.png" Height="32"/>
 			</Button>
-			<Button Click="OnHomeClick" Style="{StaticResource SubtleButton}" Margin="4,2">
+			<Button Grid.Column="2" Click="OnHomeClick" Style="{StaticResource SubtleButton}" Margin="4,2">
 				<Image Source="../Images/Home.png" Height="32"/>
 			</Button>
-			<Button Click="OnRefreshClick" Style="{StaticResource SubtleButton}" Margin="0,2">
+			<Button Grid.Column="3" Click="OnRefreshClick" Style="{StaticResource SubtleButton}" Margin="0,2">
 				<Image Source="../Images/Refresh.png" Height="32"/>
 			</Button>
-		</StackPanel>
+			<TextBlock Grid.Column="5" Name="TitleTextBlock"
+				Text="Title" VerticalAlignment="Center" Margin="5,0,20,0"/>
+		</Grid>
 		<Frame x:Name="DocFrame"
 			   NavigationUIVisibility="Hidden"
 			   JournalOwnership="OwnsJournal"

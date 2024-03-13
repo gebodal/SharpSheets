@@ -36,6 +36,7 @@ namespace SharpEditor.Documentation {
 			InitializeComponent();
 
 			this.Title = $"{SharpEditorData.GetEditorName()} Documentation";
+			TitleTextBlock.MakeFontSizeRelative(1.25);
 
 			DocFrame.NavigationService.Navigated += NavigationFinished;
 			DataContext = this;
@@ -151,6 +152,7 @@ namespace SharpEditor.Documentation {
 		private void NavigationFinished(object? sender, System.Windows.Navigation.NavigationEventArgs e) {
 			CanGoBack = DocFrame.NavigationService.CanGoBack;
 			CanGoForward = DocFrame.NavigationService.CanGoForward;
+			TitleTextBlock.Text = (DocFrame.Content as DocumentationPage)?.Title ?? "Documentation";
 			//Console.WriteLine("Navigated: " + CanGoBack + ", " + CanGoForward);
 		}
 
