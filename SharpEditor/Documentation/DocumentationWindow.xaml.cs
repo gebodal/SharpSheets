@@ -239,6 +239,9 @@ namespace SharpEditor.Documentation {
 		public MouseButtonEventHandler MakeNavigationDelegate(FontFamilyName fontFamilyName) {
 			return delegate { NavigateTo(FontPageBuilder.GetFontFamilyPage(fontFamilyName, this)); };
 		}
+		public MouseButtonEventHandler MakeNavigationDelegate(OpenTypeFontSetting fontSetting) {
+			return delegate { NavigateTo(FontPageBuilder.GetOpenTypeFeaturesPage(fontSetting, this)); };
+		}
 		public MouseButtonEventHandler MakeNavigationDelegate(DocumentationFile documentationFile) {
 			return delegate { NavigateTo(DocumentationPageBuilder.CreateDocumentationPage(documentationFile, this)); };
 		}

@@ -59,6 +59,31 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 		}
 
+		public static IReadOnlySet<string>? GetFeatures(string scriptTag, string? langSysTag, OpenTypeScriptListTable scriptListTable, OpenTypeFeatureListTable featureListTable) {
+
+			if (scriptListTable.ScriptRecords.TryGetValue(scriptTag, out OpenTypeScriptTable? scriptTable)) {
+				OpenTypeLanguageSystemTable? langSysTable = scriptTable.GetLangSysTable(langSysTag);
+
+				if (langSysTable is not null) {
+					HashSet<string> featureTags = new HashSet<string>();
+
+					if (langSysTable.RequiredFeatureIndex.HasValue) {
+						featureTags.Add(featureListTable.FeatureRecords[langSysTable.RequiredFeatureIndex.Value].tag);
+					}
+
+					for (int i = 0; i < langSysTable.FeatureIndices.Length; i++) {
+						(string featureTag, _) = featureListTable.FeatureRecords[langSysTable.FeatureIndices[i]];
+						featureTags.Add(featureTag);
+					}
+
+					return featureTags;
+				}
+			}
+
+			return null;
+
+		}
+
 	}
 
 	public class OpenTypeLayoutTags {
@@ -600,6 +625,8 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public abstract ushort GetClass(ushort glyph);
 
+		public abstract IEnumerable<ushort> GetGlyphs(ushort classValue);
+
 		internal static OpenTypeClassDefinitionTable Read(FontFileReader reader, long offset) {
 
 			reader.Position = offset;
@@ -646,12 +673,21 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			public override ushort GetClass(ushort glyph) {
-				int index = StartGlyphID - glyph;
+				int index = glyph - StartGlyphID;
 				if (index >= 0 && index < ClassValueArray.Length) {
 					return ClassValueArray[index];
 				}
 				else {
 					return 0;
+				}
+			}
+
+			public override IEnumerable<ushort> GetGlyphs(ushort classValue) {
+				// This does not account for all the glyphs not included in the table! (i.e. those that default to class 0)
+				for (ushort i = 0; i < ClassValueArray.Length; i++) {
+					if (ClassValueArray[i] == classValue) {
+						yield return (ushort)(StartGlyphID + i);
+					}
 				}
 			}
 
@@ -674,6 +710,17 @@ namespace GeboPdf.Fonts.TrueType {
 				}
 
 				return 0;
+			}
+
+			public override IEnumerable<ushort> GetGlyphs(ushort classValue) {
+				// This does not account for all the glyphs not included in the table! (i.e. those that default to class 0)
+				for (int i = 0; i < ClassRangeRecords.Length; i++) {
+					if (ClassRangeRecords[i].classValue == classValue) {
+						for(ushort g = ClassRangeRecords[i].startGlyphID; g <= ClassRangeRecords[i].endGlyphID; g++) {
+							yield return g;
+						}
+					}
+				}
 			}
 		}
 
@@ -737,6 +784,8 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public abstract SequenceLookupRecord[]?[] FindRecords(GlyphRun run);
 		public abstract SequenceLookupRecord[]? FindRecords(GlyphRun run, int index);
+
+		public abstract IEnumerable<(ushort[] initial, SequenceLookupRecord[] records)> GetExamples();
 
 		internal static OpenTypeSequenceContextTable Read(FontFileReader reader, long offset) {
 
@@ -829,6 +878,17 @@ namespace GeboPdf.Fonts.TrueType {
 				}
 				else {
 					return null;
+				}
+			}
+
+			public override IEnumerable<(ushort[] initial, SequenceLookupRecord[] records)> GetExamples() {
+				for (ushort i = 0; i < Coverage.Length; i++) {
+					if (SeqRuleSets[i] is SequenceRuleSetTable seqRuleSet) {
+						ushort start = Coverage.GetGlyph(i);
+						for (int r = 0; r < seqRuleSet.SeqRules.Length; r++) {
+							yield return (new ushort[] { start }.Concat(seqRuleSet.SeqRules[r].InputSequence).ToArray(), seqRuleSet.SeqRules[r].SeqLookupRecords);
+						}
+					}
 				}
 			}
 
@@ -946,6 +1006,22 @@ namespace GeboPdf.Fonts.TrueType {
 				}
 			}
 
+			public override IEnumerable<(ushort[] initial, SequenceLookupRecord[] records)> GetExamples() {
+				for (ushort i = 0; i < Coverage.Length; i++) {
+					ushort glyph = Coverage.GetGlyph(i);
+					if(ClassDef.GetClass(glyph) is ushort classVal
+						&& classVal < ClassSeqRuleSets.Length
+						&& ClassSeqRuleSets[classVal] is ClassSequenceRuleSetTable classSeqRuleSet) {
+
+						for (int r = 0; r < classSeqRuleSet.ClassSeqRules.Length; r++) {
+							ushort[] initial = new ushort[] { glyph }.Concat(classSeqRuleSet.ClassSeqRules[r].InputSequence.Select(c => ClassDef.GetGlyphs(c).FirstOrDefault<ushort>(0))).ToArray();
+
+							yield return (initial, classSeqRuleSet.ClassSeqRules[r].SeqLookupRecords);
+						}
+					}
+				}
+			}
+
 			public class ClassSequenceRuleSetTable {
 
 				public readonly ClassSequenceRuleTable[] ClassSeqRules;
@@ -1055,6 +1131,15 @@ namespace GeboPdf.Fonts.TrueType {
 				return true;
 			}
 
+			public override IEnumerable<(ushort[] initial, SequenceLookupRecord[] records)> GetExamples() {
+				ushort[] initial = new ushort[CoverageTables.Length];
+				for (int i = 0; i < CoverageTables.Length; i++) {
+					initial[i] = CoverageTables[i].GetGlyph(0);
+				}
+
+				yield return (initial, SeqLookupRecords);
+			}
+
 		}
 
 	}
@@ -1065,6 +1150,8 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public abstract SequenceLookupRecord[]?[] FindRecords(GlyphRun run);
 		public abstract SequenceLookupRecord[]? FindRecords(GlyphRun run, int index);
+
+		public abstract IEnumerable<(ushort[] initial, int idx, SequenceLookupRecord[] records)> GetExamples();
 
 		internal static OpenTypeChainedSequenceContextTable Read(FontFileReader reader, long offset) {
 
@@ -1176,6 +1263,25 @@ namespace GeboPdf.Fonts.TrueType {
 				}
 				else {
 					return null;
+				}
+			}
+
+			public override IEnumerable<(ushort[] initial, int idx, SequenceLookupRecord[] records)> GetExamples() {
+				for (ushort i = 0; i < Coverage.Length; i++) {
+					if (ChainedSeqRuleSets[i] is ChainedSequenceRuleSetTable chainedSeqRuleSet) {
+						ushort start = Coverage.GetGlyph(i);
+						for (int r = 0; r < chainedSeqRuleSet.ChainedSeqRules.Length; r++) {
+							ChainedSequenceRuleTable chainedSeqRule = chainedSeqRuleSet.ChainedSeqRules[r];
+
+							ushort[] initial = chainedSeqRule.BacktrackSequence
+								.Append(start)
+								.Concat(chainedSeqRule.InputSequence)
+								.Concat(chainedSeqRule.LookaheadSequence)
+								.ToArray();
+
+							yield return (initial, chainedSeqRule.BacktrackGlyphCount, chainedSeqRule.SeqLookupRecords);
+						}
+					}
 				}
 			}
 
@@ -1320,6 +1426,28 @@ namespace GeboPdf.Fonts.TrueType {
 				}
 				else {
 					return null;
+				}
+			}
+
+			public override IEnumerable<(ushort[] initial, int idx, SequenceLookupRecord[] records)> GetExamples() {
+				for (ushort i = 0; i < Coverage.Length; i++) {
+					ushort start = Coverage.GetGlyph(i);
+					if (InputClassDef.GetClass(start) is ushort classVal
+						&& classVal < ChainedClassSeqRuleSets.Length
+						&& ChainedClassSeqRuleSets[classVal] is ChainedClassSequenceRuleSetTable chainedClassSeqRuleSet) {
+
+						for (int r = 0; r < chainedClassSeqRuleSet.ChainedClassSeqRules.Length; r++) {
+							ChainedClassSequenceRuleTable chainedClassSeqRule = chainedClassSeqRuleSet.ChainedClassSeqRules[r];
+
+							ushort[] initial = chainedClassSeqRule.BacktrackSequence.Select(c => BacktrackClassDef.GetGlyphs(c).FirstOrDefault<ushort>(0))
+								.Append(start)
+								.Concat(chainedClassSeqRule.InputSequence.Select(c => InputClassDef.GetGlyphs(c).FirstOrDefault<ushort>(0)))
+								.Concat(chainedClassSeqRule.LookaheadSequence.Select(c => LookaheadClassDef.GetGlyphs(c).FirstOrDefault<ushort>(0)))
+								.ToArray();
+
+							yield return (initial, chainedClassSeqRule.BacktrackGlyphCount, chainedClassSeqRule.SeqLookupRecords);
+						}
+					}
 				}
 			}
 
@@ -1478,6 +1606,20 @@ namespace GeboPdf.Fonts.TrueType {
 				}
 
 				return true;
+			}
+
+			public override IEnumerable<(ushort[] initial, int idx, SequenceLookupRecord[] records)> GetExamples() {
+				ushort[] initial = new ushort[BacktrackGlyphCount + InputGlyphCount + LookaheadGlyphCount];
+				for(int i=0; i<BacktrackGlyphCount; i++) {
+					initial[i] = BacktrackCoverageTables[i].GetGlyph(0);
+				}
+				for (int i = 0; i < InputGlyphCount; i++) {
+					initial[BacktrackGlyphCount + i] = InputCoverageTables[i].GetGlyph(0);
+				}
+				for (int i = 0; i < LookaheadGlyphCount; i++) {
+					initial[BacktrackGlyphCount + InputGlyphCount + i] = LookaheadCoverageTables[i].GetGlyph(0);
+				}
+				yield return (initial, BacktrackGlyphCount, SeqLookupRecords);
 			}
 
 		}

@@ -286,6 +286,15 @@ namespace SharpSheets.Utilities {
 			}
 		}
 
+		public static V MaxOrFallback<T, V>(this IEnumerable<T> source, Func<T, V> selector, V defaultValue) {
+			if (source.Any()) {
+				return source.Max(selector) ?? defaultValue;
+			}
+			else {
+				return defaultValue;
+			}
+		}
+
 		public static IEnumerable<(int Index, T Item)> Enumerate<T>(this IEnumerable<T> source) {
 			int counter = 0;
 			foreach (T elem in source) {
