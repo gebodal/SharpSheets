@@ -411,20 +411,10 @@ namespace GeboPdf.Fonts {
 		}
 
 		public override int GetWidth(string text) {
-			/*
-			int width = 0;
-			for (int i = 0; i < text.Length; i++) {
-				// What do we do about kerning here?
-				uint c = (uint)text[i];
-				ushort gid = unicodeToGID.GetValueOrDefault(c, (ushort)0);
-				width += advanceWidths[gid];
-			}
-			return width;
-			*/
 			PositionedGlyphRun positioned = GetGlyphRun(text);
 
 			int width = 0;
-			for(int i=0; i<positioned.Count; i++) {
+			for (int i = 0; i < positioned.Count; i++) {
 				width += advanceWidths[positioned[i]];
 				(short xAdvance, _) = positioned.GetAdvance(i); // Ignoring vertical writing direction for now
 				width += xAdvance;
@@ -437,24 +427,28 @@ namespace GeboPdf.Fonts {
 		}
 
 		public override int GetAscent(string text) {
+			PositionedGlyphRun positioned = GetGlyphRun(text);
+
 			int ascent = 0;
-			for (int i = 0; i < text.Length; i++) {
-				uint c = (uint)text[i];
-				ushort gid = unicodeToGID.GetValueOrDefault(c, (ushort)0);
-				if (i == 0 || ascents[gid] > ascent) {
-					ascent = ascents[gid];
+			for (int i = 0; i < positioned.Count; i++) {
+				(_, short yPlacement) = positioned.GetPlacement(i); // Ignoring vertical writing direction for now
+				int gAscent = ascents[positioned[i]] + yPlacement; // Is this calculation correct?
+				if (i == 0 || gAscent > ascent) {
+					ascent = gAscent;
 				}
 			}
 			return ascent;
 		}
 
 		public override int GetDescent(string text) {
+			PositionedGlyphRun positioned = GetGlyphRun(text);
+
 			int descent = 0;
-			for (int i = 0; i < text.Length; i++) {
-				uint c = (uint)text[i];
-				ushort gid = unicodeToGID.GetValueOrDefault(c, (ushort)0);
-				if (i == 0 || descents[gid] < descent) {
-					descent = descents[gid];
+			for (int i = 0; i < positioned.Count; i++) {
+				(_, short yPlacement) = positioned.GetPlacement(i); // Ignoring vertical writing direction for now
+				int gDescent = descents[positioned[i]] + yPlacement; // Is this calculation correct?
+				if (i == 0 || gDescent < descent) {
+					descent = gDescent;
 				}
 			}
 			return descent;
