@@ -118,32 +118,13 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		}
 
 		public static Inline GetArgumentTypeInline(ConstructorArgumentDetails argument, DocumentationWindow window) {
-			if (IsEnum(argument.ArgumentType, out EnumDoc? enumDoc)) {
+			if (EnumContentBuilder.IsEnum(argument.ArgumentType, out EnumDoc? enumDoc)) {
 				ClickableRun enumClickable = new ClickableRun(SharpValueHandler.GetTypeName(argument.ArgumentType)) { Foreground = SharpEditorPalette.TypeBrush };
 				enumClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(enumDoc, null);
 				return enumClickable;
 			}
 			else {
 				return new Run(SharpValueHandler.GetTypeName(argument.ArgumentType)) { Foreground = SharpEditorPalette.TypeBrush };
-			}
-		}
-
-		private static bool IsEnum(ArgumentType argumentType, [MaybeNullWhen(false)] out EnumDoc enumDoc) {
-			Type? enumType = null;
-			if (argumentType.DisplayType.IsEnum) {
-				enumType = argumentType.DisplayType;
-			}
-			else if (Nullable.GetUnderlyingType(argumentType.DisplayType) is Type nulledType && nulledType.IsEnum) {
-				enumType = nulledType;
-			}
-
-			if (enumType is Type foundType && SharpDocumentation.GetEnumDoc(foundType) is EnumDoc foundDoc) {
-				enumDoc = foundDoc;
-				return true;
-			}
-			else {
-				enumDoc = null;
-				return false;
 			}
 		}
 

@@ -40,6 +40,9 @@ namespace SharpSheets.Fonts {
 					register.GetValueOrFallback(TextFormat.BOLDITALIC, null)
 					);
 			}
+			else if(FontRegistry.TryGetValue(fontName, out FontPath? path)) {
+				return new FontPathGrouping(path, null, null, null);
+			}
 			else {
 				return null;
 			}
@@ -52,6 +55,9 @@ namespace SharpSheets.Fonts {
 
 			if (FontRegistry.TryGetValue(fontName, out FontPath? singleton)) {
 				return singleton;
+			}
+			else if (FindFontFamily(fontName) is FontPathGrouping grouping) {
+				return grouping.Regular ?? grouping.Bold ?? grouping.Italic ?? grouping.BoldItalic;
 			}
 			else {
 				return null;
@@ -252,6 +258,9 @@ namespace SharpSheets.Fonts {
 				*/
 
 				if (string.Equals(name.name, "Italic", StringComparison.OrdinalIgnoreCase)) { // This a sensible choice?
+					italic = true;
+				}
+				else if(string.Equals(name.name, "Oblique", StringComparison.OrdinalIgnoreCase)) {
 					italic = true;
 				}
 			}

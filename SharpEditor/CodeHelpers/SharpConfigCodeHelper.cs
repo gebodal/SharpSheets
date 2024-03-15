@@ -19,6 +19,8 @@ using SharpSheets.Fonts;
 using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Cards.CardConfigs;
 using SharpEditor.DataManagers;
+using SharpEditor.Documentation.DocumentationBuilders;
+using SharpEditor.ContentBuilders;
 
 namespace SharpEditor.CodeHelpers {
 
@@ -215,6 +217,7 @@ namespace SharpEditor.CodeHelpers {
 		protected class ConfigLineInfo {
 			public readonly int line;
 			public readonly string text;
+			public readonly (string name, string? value)? argText;
 			public readonly int indent;
 			public readonly int? caratIndex;
 			public readonly IContext? context;
@@ -222,9 +225,10 @@ namespace SharpEditor.CodeHelpers {
 			public readonly ArgumentDetails? argument;
 			public readonly ConstructorDetails[] applicableConstructors;
 
-			public ConfigLineInfo(int line, string text, int indent, int? caratIndex, IContext? context, ConstructorDetails directParent, ArgumentDetails? argument, ConstructorDetails[] applicableConstructors) {
+			public ConfigLineInfo(int line, string text, (string name, string? value)? argText, int indent, int? caratIndex, IContext? context, ConstructorDetails directParent, ArgumentDetails? argument, ConstructorDetails[] applicableConstructors) {
 				this.line = line;
 				this.text = text;
+				this.argText = argText;
 				this.indent = indent;
 				this.caratIndex = caratIndex;
 				this.context = context;
@@ -245,10 +249,16 @@ namespace SharpEditor.CodeHelpers {
 			return TextUtilities.GetWhitespaceAfter(Document, line.Offset).Length;
 		}
 
-		static readonly Regex argRegex = new Regex(@"^\@?(?<arg>[a-z][a-z0-9\.]+)\s*:", RegexOptions.IgnoreCase);
+		static readonly Regex argNameRegex = new Regex(@"^\@?(?<arg>[a-z][a-z0-9\.]+)\s*:", RegexOptions.IgnoreCase);
+		static readonly Regex lineCommentRegex = new Regex(@"(?<!(?<!\\)\\(?:\\\\)*)#.+$", RegexOptions.IgnoreCase);
 		protected ConfigLineInfo GetLineInfo(DocumentLine line) {
 			int currentIndent = GetLineIndent(line);
 			string currentLineText = Document.GetText(line).Trim();
+
+			Match commentMatch = lineCommentRegex.Match(currentLineText);
+			if (commentMatch.Success) {
+				currentLineText = currentLineText[..commentMatch.Index].TrimEnd();
+			}
 
 			int? caratOffset = textEditor.CaretOffset;
 			if (caratOffset.Value < line.Offset || caratOffset.Value >= line.EndOffset) {
@@ -259,8 +269,17 @@ namespace SharpEditor.CodeHelpers {
 			}
 
 
-			Match argMatch = argRegex.Match(currentLineText);
-			string? argName = argMatch.Success ? argMatch.Groups["arg"].Value : null;
+			Match argMatch = argNameRegex.Match(currentLineText);
+			string? argName = null;
+			string? argValue = null;
+			(string, string?)? argText = null;
+			if (argMatch.Success) {
+				argName = argMatch.Groups["arg"].Value.TrimStart('@').TrimEnd(':').Trim();
+				int valueStart = argMatch.Groups["arg"].Index + argMatch.Groups["arg"].Length + 1;
+				argValue = currentLineText[valueStart..].Trim();
+				argValue = string.IsNullOrWhiteSpace(argValue) ? null : argValue;
+				argText = (argName, argValue);
+			}
 
 			IContext? ownerContext = parsingState.GetContext(line);
 
@@ -321,7 +340,7 @@ namespace SharpEditor.CodeHelpers {
 
 			ConstructorDetails[] allApplicableConstructors = applicableDivConstructors.Concat(applicableImpliedConstructors).ToArray();
 
-			return new ConfigLineInfo(line.LineNumber, currentLineText, currentIndent, caratOffset, ownerContext, ownerConstructor, argumentDetails, allApplicableConstructors);
+			return new ConfigLineInfo(line.LineNumber, currentLineText, argText, currentIndent, caratOffset, ownerContext, ownerConstructor, argumentDetails, allApplicableConstructors);
 		}
 
 		protected ConfigLineInfo GetCurrentLineInfo() {
@@ -684,15 +703,52 @@ namespace SharpEditor.CodeHelpers {
 		public virtual IList<Control> GetContextMenuItems(int offset, string? word) {
 			List<Control> items = new List<Control>();
 
-			ConstructorDetails? contextConstructor = null;
-			if (word != null && impliedConstructors.TryGetValue(word, out ConstructorDetails? implied)) {
-				contextConstructor = implied;
-			}
-			else if (GetLineInfo(Document.GetLineByOffset(offset)) is ConfigLineInfo lineInfo && lineInfo.applicableConstructors.Length > 0) {
-				contextConstructor = lineInfo.applicableConstructors.First();
+			ConfigLineInfo lineInfo = GetLineInfo(Document.GetLineByOffset(offset));
+
+			if (lineInfo.argument is ArgumentDetails arg && !string.IsNullOrWhiteSpace(lineInfo.argText?.value)) {
+				if (typeof(FontPath).IsAssignableFrom(arg.Type.DisplayType)
+					&& FontPathRegistry.FindFontPath(lineInfo.argText.Value.value) is FontPath fontPath) {
+
+					MenuItem item = new MenuItem() { Header = lineInfo.argText.Value.value + " Documentation..." };
+					item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(new FontName(lineInfo.argText.Value.value)); };
+					items.Add(item);
+				}
+				else if (typeof(FontPathGrouping).IsAssignableFrom(arg.Type.DisplayType)
+					&& FontPathRegistry.FindFontFamily(lineInfo.argText.Value.value) is FontPathGrouping fontFamilyPaths) {
+
+					string[] familyParts = lineInfo.argText.Value.value.SplitAndTrim(',');
+
+					if (familyParts.Length == 1) {
+						MenuItem item = new MenuItem() { Header = familyParts[0] + " Documentation..." };
+						item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(new FontFamilyName(familyParts[0])); };
+						items.Add(item);
+					}
+					else {
+						for (int f = 0; f < familyParts.Length; f++) {
+							MenuItem item = new MenuItem() { Header = familyParts[f] + " Documentation..." };
+							item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(new FontFamilyName(familyParts[f])); };
+							items.Add(item);
+						}
+					}
+
+				}
 			}
 
-			if (contextConstructor != null) {
+			if (lineInfo.argument is not null && EnumContentBuilder.IsEnum(lineInfo.argument.Type, out EnumDoc? enumDoc)) {
+				MenuItem item = new MenuItem() { Header = enumDoc.type + " Documentation..." };
+				item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(enumDoc, null); };
+				items.Add(item);
+			}
+
+			List<ConstructorDetails> contextConstructors = new List<ConstructorDetails>();
+			if (word != null && impliedConstructors.TryGetValue(word, out ConstructorDetails? implied)) {
+				contextConstructors.Add(implied);
+			}
+			if (lineInfo.applicableConstructors.Length > 0) {
+				contextConstructors.Add(lineInfo.applicableConstructors.First());
+			}
+
+			foreach(ConstructorDetails contextConstructor in contextConstructors) {
 				MenuItem item = new MenuItem() { Header = contextConstructor.Name + " Documentation..." };
 				item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(contextConstructor, null); };
 				items.Add(item);

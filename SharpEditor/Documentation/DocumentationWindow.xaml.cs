@@ -113,6 +113,17 @@ namespace SharpEditor.Documentation {
 			NavigateTo(CardConfigPageBuilder.GetCardSetConfigPage(cardSetConfig, this, refreshAction));
 		}
 
+		public void NavigateTo(EnumDoc enumDoc, Func<EnumDoc>? refreshAction) {
+			NavigateTo(EnumPageBuilder.GetEnumPage(enumDoc, this, refreshAction));
+		}
+
+		public void NavigateTo(FontName fontName) {
+			NavigateTo(FontPageBuilder.GetFontPage(fontName, this));
+		}
+		public void NavigateTo(FontFamilyName fontFamilyName) {
+			NavigateTo(FontPageBuilder.GetFontFamilyPage(fontFamilyName, this));
+		}
+
 		#region Navigation DependencyProperties
 
 		public static readonly DependencyProperty CanGoBackProperty =

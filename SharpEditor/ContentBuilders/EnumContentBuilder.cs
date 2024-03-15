@@ -6,6 +6,8 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using SharpEditor.DataManagers;
 using SharpEditor.Documentation;
+using System.Diagnostics.CodeAnalysis;
+using System;
 
 namespace SharpEditor.ContentBuilders {
 
@@ -36,6 +38,25 @@ namespace SharpEditor.ContentBuilders {
 			TextBlock optionsBlock = BaseContentBuilder.GetContentTextBlock(margin);
 			optionsBlock.Text = $"Possible values for {enumDoc.type}: " + string.Join(", ", enumDoc.values.Select(v => SharpValueHandler.GetEnumString(v.name)));
 			return optionsBlock;
+		}
+
+		public static bool IsEnum(ArgumentType argumentType, [MaybeNullWhen(false)] out EnumDoc enumDoc) {
+			Type? enumType = null;
+			if (argumentType.DisplayType.IsEnum) {
+				enumType = argumentType.DisplayType;
+			}
+			else if (Nullable.GetUnderlyingType(argumentType.DisplayType) is Type nulledType && nulledType.IsEnum) {
+				enumType = nulledType;
+			}
+
+			if (enumType is Type foundType && SharpDocumentation.GetEnumDoc(foundType) is EnumDoc foundDoc) {
+				enumDoc = foundDoc;
+				return true;
+			}
+			else {
+				enumDoc = null;
+				return false;
+			}
 		}
 
 	}

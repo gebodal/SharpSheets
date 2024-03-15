@@ -667,12 +667,14 @@ namespace SharpEditor {
 					completionWindow.CompletionList.RequestInsertion(e);
 				}
 				*/
+				/*
 				if (char.IsWhiteSpace(e.Text[0])) {
 					// Whenever a whitespace character is typed while the completion window is open,
 					// insert the currently selected element.
 					completionWindow.CompletionList.RequestInsertion(e);
 				}
-				else if (e.Text[0] == ':' || completionWindow.VisibleItemCount == 0) {
+				*/
+				if (e.Text[0] == ':' || completionWindow.VisibleItemCount == 0) {
 					// Whenever a colon character is typed, or there are no more visible completion items,
 					// while the completion window is open, close the completion window with no insertions
 					completionWindow.Close();
