@@ -701,14 +701,21 @@ namespace GeboPdf.Fonts.TrueType {
 			return 0; // Yes?
 		}
 
-		public IEnumerable<(ushort[], ushort[])> GetExamples() {
-			foreach ((ushort[] initial, int idx, SequenceLookupRecord[] records) in table.GetExamples()) {
-				SubstitutionGlyphRun initialRun = new SubstitutionGlyphRun(initial);
+		public IEnumerable<(ushort[] backtrack, ushort[] initial, ushort[] lookahead, ushort[] final)> GetExamples() {
+			foreach ((ushort[] backtrack, ushort[] initial, ushort[] lookahead, SequenceLookupRecord[] records) in table.GetExamples()) {
+				int idx = backtrack.Length; // Start of initial context within full chained context
+				SubstitutionGlyphRun initialRun = new SubstitutionGlyphRun(backtrack.Concat(initial).Concat(lookahead));
 				for (int r = 0; r < records.Length; r++) {
 					GlyphSubstitutionLookupTable action = lookupList[records[r].LookupListIndex];
 					action.PerformSubstitution(initialRun, idx + records[r].SequenceIndex);
 				}
-				yield return (initial, initialRun.ToArray());
+				ushort[] final = initialRun.ToArray();
+				if(final.Length >= backtrack.Length + lookahead.Length) {
+					yield return (backtrack, initial, lookahead, final[backtrack.Length..^lookahead.Length]);
+				}
+				else { // Something went wrong
+					yield return (Array.Empty<ushort>(), backtrack.Concat(initial).Concat(lookahead).ToArray(), Array.Empty<ushort>(), final);
+				}
 			}
 		}
 

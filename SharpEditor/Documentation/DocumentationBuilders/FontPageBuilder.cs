@@ -93,6 +93,9 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			catch (FormatException) {
 				return MakeErrorContent("Could not read font file.");
 			}
+			catch (System.IO.IOException) {
+				return MakeErrorContent("Error while reading font file.");
+			}
 
 			IReadOnlyDictionary<ushort, string> glyphNames = postTable?.glyphNames ?? new Dictionary<ushort, string>();
 
@@ -100,6 +103,14 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			TextBlock nameTitleBlock = GetContentTextBlock(fontName.Name, TextBlockMargin, 2.0);
 			stack.Children.Add(nameTitleBlock);
+
+			if (GetFontText(fontData, NameID.SampleText, NameID.FontFamily) is string sampleText) {
+				GlyphTypeface glyphTypeface = new GlyphTypeface(fontUri);
+				FrameworkElement sampleElem = MakeGlyphsBox(glyphTypeface, Array.Empty<ushort>(), sampleText.Select(c => cidMap.GetValueOrDefault(c, (ushort)0)).ToArray(), Array.Empty<ushort>());
+				sampleElem.HorizontalAlignment = HorizontalAlignment.Left;
+				sampleElem.Margin = IndentedMargin;
+				stack.Children.Add(sampleElem);
+			}
 
 			StackPanel fontProperties = new StackPanel() { Orientation = Orientation.Vertical, Margin = IndentedMargin };
 
@@ -280,7 +291,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 				string? fontName = FontPathRegistry.FindFontName(path);
 
-				if(fontName is null) {
+				if (fontName is null) {
 					TextBlock errorBlock = GetContentTextBlock($"Could not find {format} font name for this family.", new Thickness(0, 1, 0, 1)).AddMargin(IndentedMargin);
 					errorBlock.FontStyle = FontStyles.Italic;
 					stack.Children.Add(errorBlock);
@@ -291,6 +302,35 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				fontClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(new FontName(fontName));
 				stack.Children.Add(new TextBlock(fontClickable) { Margin = new Thickness(0, 1, 0, 1) }.AddMargin(IndentedMargin));
 
+				// Font example graphic
+				TrueTypeFontFileData fontData;
+				IReadOnlyDictionary<uint, ushort> cidMap;
+				Uri fontUri;
+
+				try {
+					fontData = FontPathRegistry.OpenFontFile(path);
+
+					TrueTypeCMapTable? cmap;
+					if (path.FontIndex >= 0) {
+						cmap = TrueTypeCollection.OpenCmap(path.Path, path.FontIndex);
+					}
+					else {
+						cmap = TrueTypeFontFile.OpenCmap(path.Path);
+					}
+					cidMap = cmap is null ? new Dictionary<uint, ushort>() : CIDFontFactory.GetCmapDict(cmap);
+
+					fontUri = TypefaceGrouping.GetFontUri(path);
+				}
+				catch (Exception) {
+					return;
+				}
+
+				GlyphTypeface glyphTypeface = new GlyphTypeface(fontUri);
+				FrameworkElement sampleElem = MakeGlyphsBox(glyphTypeface, Array.Empty<ushort>(), fontName.Select(c => cidMap.GetValueOrDefault(c, (ushort)0)).ToArray(), Array.Empty<ushort>());
+				sampleElem.HorizontalAlignment = HorizontalAlignment.Left;
+				sampleElem.Margin = IndentedMargin;
+				sampleElem.MouseLeftButtonDown += window.MakeNavigationDelegate(new FontName(fontName));
+				stack.Children.Add(sampleElem);
 			}
 
 			ListFont(family.Regular, "Regular");
@@ -555,24 +595,48 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return border;
 		}
 
-		private static FrameworkElement MakeGlyphsBox(GlyphTypeface glyphTypeface, ushort[] glyphIdxs) {
+		private static FrameworkElement MakeGlyphsBox(GlyphTypeface glyphTypeface, ushort[] backtrack, ushort[] glyphIdxs, ushort[] lookahead) {
 			
 			double glyphHeight = GlyphFontSize * glyphTypeface.Baseline;
 
-			GeometryGroup group = new GeometryGroup() { FillRule = FillRule.Nonzero };
 			double runWidth = 0.0;
-			double[] glyphWidths = new double[glyphIdxs.Length];
-			for(int i=0; i<glyphIdxs.Length; i++) {
+			double[] glyphWidths = new double[backtrack.Length + glyphIdxs.Length + lookahead.Length];
 
-				glyphWidths[i] = GlyphFontSize * (glyphTypeface.AdvanceWidths.TryGetValue(glyphIdxs[i], out double val) ? val : 0.0);
+			GeometryGroup beforeGroup = new GeometryGroup() { FillRule = FillRule.Nonzero };
+			for (int b = 0; b < backtrack.Length; b++) {
+				double width = GlyphFontSize * (glyphTypeface.AdvanceWidths.TryGetValue(backtrack[b], out double val) ? val : 0.0);
 
-				Geometry geometry = glyphTypeface.GetGlyphOutline(glyphIdxs[i], GlyphFontSize, GlyphFontSize);
+				Geometry geometry = glyphTypeface.GetGlyphOutline(backtrack[b], GlyphFontSize, GlyphFontSize);
 				geometry.Transform = new TranslateTransform(runWidth, 0.0);
 
-				runWidth += glyphWidths[i];
+				runWidth += width;
+				glyphWidths[b] = width;
 
-				group.Children.Add(geometry);
+				beforeGroup.Children.Add(geometry);
+			}
+			GeometryGroup middleGroup = new GeometryGroup() { FillRule = FillRule.Nonzero };
+			for (int g=0; g<glyphIdxs.Length; g++) {
+				double width = GlyphFontSize * (glyphTypeface.AdvanceWidths.TryGetValue(glyphIdxs[g], out double val) ? val : 0.0);
 
+				Geometry geometry = glyphTypeface.GetGlyphOutline(glyphIdxs[g], GlyphFontSize, GlyphFontSize);
+				geometry.Transform = new TranslateTransform(runWidth, 0.0);
+
+				runWidth += width;
+				glyphWidths[backtrack.Length + g] = width;
+
+				middleGroup.Children.Add(geometry);
+			}
+			GeometryGroup afterGroup = new GeometryGroup() { FillRule = FillRule.Nonzero };
+			for (int a = 0; a < lookahead.Length; a++) {
+				double width = GlyphFontSize * (glyphTypeface.AdvanceWidths.TryGetValue(lookahead[a], out double val) ? val : 0.0);
+
+				Geometry geometry = glyphTypeface.GetGlyphOutline(lookahead[a], GlyphFontSize, GlyphFontSize);
+				geometry.Transform = new TranslateTransform(runWidth, 0.0);
+
+				runWidth += width;
+				glyphWidths[backtrack.Length + glyphIdxs.Length + a] = width;
+
+				afterGroup.Children.Add(geometry);
 			}
 
 			double borderWidth = GlyphElementSize + runWidth - (glyphWidths.Length > 0 ? glyphWidths[0] + glyphWidths[^1] : 0.0) / 2.0;
@@ -580,9 +644,24 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			double horizontalOffset = (GlyphElementSize - (glyphWidths.Length > 0 ? glyphWidths[0] : 0.0)) / 2.0;
 			double verticalOffset = (GlyphElementSize + glyphHeight) / 2;
 
-			group.Transform = new TranslateTransform(horizontalOffset, verticalOffset);
+			beforeGroup.Transform = new TranslateTransform(horizontalOffset, verticalOffset);
+			middleGroup.Transform = new TranslateTransform(horizontalOffset, verticalOffset);
+			afterGroup.Transform = new TranslateTransform(horizontalOffset, verticalOffset);
 
 			string tooltip = $"Glyph{(glyphIdxs.Length != 1 ? "s" : "")} {string.Join(", ", glyphIdxs)}";
+			if (backtrack.Length > 0) {
+				tooltip = $"Backtrack {string.Join(", ", backtrack)}\n" + tooltip;
+			}
+			if (lookahead.Length > 0) {
+				tooltip += $"\nLookahead {string.Join(", ", lookahead)}";
+			}
+
+			DrawingGroup drawings = new DrawingGroup();
+			drawings.Children.Add(new GeometryDrawing(Brushes.Gray, null, beforeGroup));
+			drawings.Children.Add(new GeometryDrawing(Brushes.Gray, null, afterGroup));
+			drawings.Children.Add(new GeometryDrawing(Brushes.Black, null, middleGroup)); // So it's on top
+
+			DrawingElement elem = new DrawingElement(drawings);
 
 			Border border = new Border {
 				Width = borderWidth,
@@ -591,7 +670,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				Background = Brushes.White,
 				//BorderThickness = new Thickness(1),
 				ToolTip = tooltip,
-				Child = new Path() { Data = group, Fill = Brushes.Black }
+				Child = elem
 			};
 
 			return border;
@@ -614,8 +693,12 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			GlyphTypeface glyphTypeface = new GlyphTypeface(fontUri);
 
-			UIElement GetGlyphsBox(ushort[] gids) {
-				return MakeGlyphsBox(glyphTypeface, gids);
+			UIElement GetGlyphsBox(ushort[] before, ushort[] gids, ushort[] after) {
+				return MakeGlyphsBox(glyphTypeface, before, gids, after);
+			}
+
+			UIElement GetGlyphsBoxSingle(ushort[] gids) {
+				return MakeGlyphsBox(glyphTypeface, Array.Empty<ushort>(), gids, Array.Empty<ushort>());
 			}
 
 			UIElement GetContents(UIElement[] initial, UIElement[] final, char connection, string? note) {
@@ -720,19 +803,19 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					else if (subTable is OpenTypeContextualSubstitutionSubtable type5ContextSub) {
 						foreach ((ushort[] initial, ushort[] final) in type5ContextSub.GetExamples()) {
 							//subsPanel.Children.Add(GetGlyphs2(initial, final, "e.g. \u2192"));
-							elementsToAdd.Add(GetContents(new UIElement[] { GetGlyphsBox(initial) }, new UIElement[] { GetGlyphsBox(final) }, '\u2192', "e.g."));
+							elementsToAdd.Add(GetContents(new UIElement[] { GetGlyphsBoxSingle(initial) }, new UIElement[] { GetGlyphsBoxSingle(final) }, '\u2192', "e.g."));
 						}
 					}
 					else if (subTable is OpenTypeChainedContextsSubstitutionSubtable type6ChainContextSub) {
-						foreach ((ushort[] initial, ushort[] final) in type6ChainContextSub.GetExamples()) {
+						foreach ((ushort[] backtrack, ushort[] initial, ushort[] lookahead, ushort[] final) in type6ChainContextSub.GetExamples()) {
 							//subsPanel.Children.Add(GetGlyphs2(initial, final, "e.g. \u2192"));
-							elementsToAdd.Add(GetContents(new UIElement[] { GetGlyphsBox(initial) }, new UIElement[] { GetGlyphsBox(final) }, '\u2192', "e.g."));
+							elementsToAdd.Add(GetContents(new UIElement[] { GetGlyphsBox(backtrack, initial, lookahead) }, new UIElement[] { GetGlyphsBox(backtrack, final, lookahead) }, '\u2192', "e.g."));
 						}
 					}
 					else if (subTable is OpenTypeReverseChainingContextualSingleSubstitutionSubtable type8ReverseChainSub) {
 						foreach ((ushort[] initial, ushort[] final) in type8ReverseChainSub.GetExamples()) {
 							//subsPanel.Children.Add(GetGlyphs2(initial, final, "e.g. \u2192"));
-							elementsToAdd.Add(GetContents(new UIElement[] { GetGlyphsBox(initial) }, new UIElement[] { GetGlyphsBox(final) }, '\u2192', "e.g."));
+							elementsToAdd.Add(GetContents(new UIElement[] { GetGlyphsBoxSingle(initial) }, new UIElement[] { GetGlyphsBoxSingle(final) }, '\u2192', "e.g."));
 						}
 					}
 
