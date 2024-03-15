@@ -707,27 +707,28 @@ namespace SharpEditor.CodeHelpers {
 
 			if (lineInfo.argument is ArgumentDetails arg && !string.IsNullOrWhiteSpace(lineInfo.argText?.value)) {
 				if (typeof(FontPath).IsAssignableFrom(arg.Type.DisplayType)
-					&& FontPathRegistry.FindFontPath(lineInfo.argText.Value.value) is FontPath fontPath) {
+					&& FontPathRegistry.FindFontPath(lineInfo.argText.Value.value) is not null) {
 
 					MenuItem item = new MenuItem() { Header = lineInfo.argText.Value.value + " Documentation..." };
 					item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(new FontName(lineInfo.argText.Value.value)); };
 					items.Add(item);
 				}
-				else if (typeof(FontPathGrouping).IsAssignableFrom(arg.Type.DisplayType)
-					&& FontPathRegistry.FindFontFamily(lineInfo.argText.Value.value) is FontPathGrouping fontFamilyPaths) {
+				else if (typeof(FontPathGrouping).IsAssignableFrom(arg.Type.DisplayType)) {
 
 					string[] familyParts = lineInfo.argText.Value.value.SplitAndTrim(',');
 
-					if (familyParts.Length == 1) {
+					if (familyParts.Length == 1 && FontPathRegistry.FindFontFamily(familyParts[0]) is not null) {
 						MenuItem item = new MenuItem() { Header = familyParts[0] + " Documentation..." };
 						item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(new FontFamilyName(familyParts[0])); };
 						items.Add(item);
 					}
 					else {
 						for (int f = 0; f < familyParts.Length; f++) {
-							MenuItem item = new MenuItem() { Header = familyParts[f] + " Documentation..." };
-							item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(new FontFamilyName(familyParts[f])); };
-							items.Add(item);
+							if (FontPathRegistry.FindFontPath(familyParts[f]) is not null) {
+								MenuItem item = new MenuItem() { Header = familyParts[f] + " Documentation..." };
+								item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(new FontFamilyName(familyParts[f])); };
+								items.Add(item);
+							}
 						}
 					}
 
