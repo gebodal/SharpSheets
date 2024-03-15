@@ -59,7 +59,7 @@ namespace SharpEditor.DataManagers {
 
 		[MemberNotNull(nameof(CardConfigHighlighting))]
 		static void LoadCardConfigHighlightings() {
-			CardConfigHighlighting = LoadSharpConfigHighlighting("CardConfig", 4);
+			CardConfigHighlighting = LoadSharpConfigHighlighting("CardConfig", 5);
 		}
 
 		/*
