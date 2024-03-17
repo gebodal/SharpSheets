@@ -9,6 +9,7 @@ using SharpSheets.Colors;
 using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Exceptions;
 using SharpSheets.Cards.Card.SegmentRects;
+using SharpSheets.Cards.CardSubjects;
 
 namespace SharpSheets.Cards.Card
 {
@@ -121,20 +122,22 @@ namespace SharpSheets.Cards.Card
 	public class ErrorCard : AbstractCard {
 
 		protected readonly string message;
+		protected readonly CardSubject? subject;
 
 		public override IFixedCardSegmentRect[] Segments { get; } = Array.Empty<IFixedCardSegmentRect>();
 
 		public override bool CropOnFinalCard => true;
 
-		public ErrorCard(string message) {
+		public ErrorCard(string message, CardSubject? subject) {
 			this.message = message;
+			this.subject = subject;
 		}
 
 		public override float Gutter { get { return 0f; } }
 
 		public override void DrawOutline(ISharpCanvas canvas, Rectangle rect, int card, int totalCards) { }
 
-		public override void DrawBackground(ISharpCanvas canvas, Rectangle[] rects, out IEnumerable<Rectangle> outlineRects) {
+		public override void DrawBackground(ISharpCanvas canvas, Rectangle[] rects) {
 			canvas.SaveState();
 			canvas.SetStrokeColor(Color.Red).SetFillColor(Color.Red);
 			foreach (Rectangle rect in rects) {
@@ -142,7 +145,11 @@ namespace SharpSheets.Cards.Card
 				canvas.FitRichText(rect, (RichString)message, new ParagraphSpecification(1.35f, 0f, 0f, 0f), new FontSizeSearchParams(1f, 15f, 1f), Justification.LEFT, Alignment.TOP, TextHeightStrategy.LineHeightDescent, true);
 			}
 			canvas.RestoreState();
-			outlineRects = rects;
+
+			foreach (Rectangle outlineRect in rects) {
+				canvas.RegisterAreas(this, outlineRect, null, Array.Empty<Rectangle>());
+				if (subject is not null) { canvas.RegisterAreas(subject, outlineRect, null, Array.Empty<Rectangle>()); }
+			}
 		}
 
 		public override void DrawGutter(ISharpCanvas canvas, Rectangle rect) { }

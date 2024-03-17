@@ -1,7 +1,7 @@
 ﻿using SharpSheets.Fonts;
 using SharpSheets.Canvas.Text;
-using System.Collections.Generic;
 using SharpSheets.Colors;
+using SharpSheets.Layouts;
 
 namespace SharpSheets.Canvas {
 
@@ -34,6 +34,27 @@ namespace SharpSheets.Canvas {
 
 			public bool fieldsEnabled;
 			public string currentPrefix;
+
+			public CanvasStateImageGraphicsState() {
+				this.defaultLineWidth = SharpGraphicsDefaults.LineWidth;
+				this.lineWidth = SharpGraphicsDefaults.LineWidth;
+				this.strokeDash = SharpGraphicsDefaults.StrokeDash;
+				this.foreground = SharpGraphicsDefaults.Foreground;
+				this.background = SharpGraphicsDefaults.Background;
+				this.midtone = SharpGraphicsDefaults.Midtone;
+				this.textColor = SharpGraphicsDefaults.TextColor;
+				this.strokePaint = SharpGraphicsDefaults.StrokePaint;
+				this.fillPaint = SharpGraphicsDefaults.FillPaint;
+				this.lineJoinStyle = SharpGraphicsDefaults.LineJoinStyle;
+				this.mitreLimit = SharpGraphicsDefaults.MitreLimit;
+				this.fonts = SharpGraphicsDefaults.Fonts;
+				this.textFormat = SharpGraphicsDefaults.TextFormat;
+				this.fontsize = SharpGraphicsDefaults.Fontsize;
+				this.textRenderingMode = SharpGraphicsDefaults.TextRenderingMode;
+				this.transform = SharpGraphicsDefaults.Transform;
+				this.fieldsEnabled = SharpGraphicsDefaults.FieldsEnabled;
+				this.currentPrefix = SharpGraphicsDefaults.FieldPrefix;
+			}
 
 			public CanvasStateImageGraphicsState(ISharpGraphicsData graphicsData) {
 				this.defaultLineWidth = graphicsData.GetDefaultLineWidth();
@@ -84,13 +105,19 @@ namespace SharpSheets.Canvas {
 		private readonly Stack<CanvasStateImageGraphicsState> stateStack;
 		private CanvasStateImageGraphicsState gState;
 
-		public CanvasStateImage(ISharpGraphicsData graphicsData) {
+		private CanvasStateImage(Rectangle canvasRect, float userUnits, CanvasStateImageGraphicsState state) {
 			this.stateStack = new Stack<CanvasStateImageGraphicsState>();
-			this.gState = new CanvasStateImageGraphicsState(graphicsData);
+			this.gState = state;
 
-			this.CanvasRect = graphicsData.CanvasRect;
-			this.userUnits = graphicsData.GetUserUnits();
+			this.CanvasRect = canvasRect;
+			this.userUnits = userUnits;
 		}
+
+		public CanvasStateImage(Rectangle canvasRect, float userUnits)
+			: this(canvasRect, userUnits, new CanvasStateImageGraphicsState()) { }
+
+		public CanvasStateImage(ISharpGraphicsData graphicsData)
+			: this(graphicsData.CanvasRect, graphicsData.GetUserUnits(), new CanvasStateImageGraphicsState(graphicsData)) { }
 
 		#region States
 		public ISharpGraphicsState SaveState() {

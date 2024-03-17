@@ -73,19 +73,26 @@ namespace SharpSheets.Cards.Card
 			outline.Draw(canvas, outlineRect, default);
 		}
 
-		public override void DrawBackground(ISharpCanvas canvas, Rectangle[] rects, out IEnumerable<Rectangle> backgroundRects) {
+		public override void DrawBackground(ISharpCanvas canvas, Rectangle[] rects) {
+			List<Rectangle> outlineRects = new List<Rectangle>();
+
 			if (joinSplitCards) {
 				IWidget background = GetBackground(0, 1);
 				Rectangle overallRect = Rectangle.GetCommonRectangle(rects);
 				background.Draw(canvas, overallRect, default);
-				backgroundRects = overallRect.Yield();
+				outlineRects.Add(overallRect);
 			}
 			else {
 				for (int i = 0; i < rects.Length; i++) {
 					IWidget background = GetBackground(i, rects.Length);
 					background.Draw(canvas, rects[i], default);
 				}
-				backgroundRects = rects;
+				outlineRects.AddRange(rects);
+			}
+
+			foreach (Rectangle outlineRect in outlineRects) {
+				canvas.RegisterAreas(this, outlineRect, null, Array.Empty<Rectangle>());
+				canvas.RegisterAreas(subject, outlineRect, null, Array.Empty<Rectangle>());
 			}
 		}
 
@@ -99,15 +106,12 @@ namespace SharpSheets.Cards.Card
 		public override Rectangle RemainingRect(ISharpGraphicsState graphicsState, Rectangle rect, int card, int totalCards) {
 			IWidget background = GetBackground(card, totalCards);
 			IWidget outline = GetOutline(card, totalCards);
-			if (outline != null) {
-				if (background != null) {
-					rect = background.RemainingRect(graphicsState, rect) ?? rect; // TODO Yes? Is this the right fallback?
-				}
-				return outline.RemainingRect(graphicsState, rect) ?? rect; // TODO How about this one?
-			}
-			else {
-				return rect;
-			}
+
+			// TODO Yes? Is this the right setup?
+			rect = background?.RemainingRect(graphicsState, rect) ?? rect;
+			rect = outline?.RemainingRect(graphicsState, rect) ?? rect;
+
+			return rect;
 		}
 
 	}

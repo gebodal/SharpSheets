@@ -36,9 +36,11 @@ namespace SharpSheets.Cards.CardConfigs {
 		DirectoryPath Source { get; }
 	}
 
+	public interface ICardConfigComponent { }
+
 	public enum LayoutStrategy { CARD, SCROLL }
 
-	public class CardSetConfig : ICardSegmentParent {
+	public class CardSetConfig : ICardSegmentParent, ICardConfigComponent {
 		
 		public readonly string name;
 		public readonly FilePath origin;
@@ -156,8 +158,6 @@ namespace SharpSheets.Cards.CardConfigs {
 		}
 
 	}
-
-	public interface ICardConfigComponent { }
 
 	public class CardConfig : ICardSegmentParent, ICardConfigComponent {
 

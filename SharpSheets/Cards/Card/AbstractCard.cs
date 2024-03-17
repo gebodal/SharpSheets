@@ -23,7 +23,7 @@ namespace SharpSheets.Cards.Card
 		/// <exception cref="Exceptions.SharpDrawingException"></exception>
 		/// <exception cref="InvalidRectangleException"></exception>
 		/// <exception cref="InvalidOperationException"></exception>
-		public abstract void DrawBackground(ISharpCanvas canvas, Rectangle[] rects, out IEnumerable<Rectangle> outlineRects);
+		public abstract void DrawBackground(ISharpCanvas canvas, Rectangle[] rects);
 
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>

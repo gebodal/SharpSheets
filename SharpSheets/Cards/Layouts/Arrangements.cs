@@ -9,6 +9,8 @@ namespace SharpSheets.Cards.Layouts {
 
     public class SingleCardLayout {
 
+		public readonly int index;
+
 		public readonly Size sampleFeatureSize;
 
 		public readonly IFixedCardSegmentRect[] boxes;
@@ -19,7 +21,9 @@ namespace SharpSheets.Cards.Layouts {
 
 		public int Length => boxes.Length;
 
-		public SingleCardLayout(Size sampleFeatureRect, IFixedCardSegmentRect[] boxes, Size[] areas, float[] minHeights, float unusedHeight) {
+		public SingleCardLayout(int index, Size sampleFeatureRect, IFixedCardSegmentRect[] boxes, Size[] areas, float[] minHeights, float unusedHeight) {
+			this.index = index;
+			
 			this.sampleFeatureSize = sampleFeatureRect;
 
 			this.boxes = boxes;
@@ -33,7 +37,7 @@ namespace SharpSheets.Cards.Layouts {
 
 	public class CardArrangement {
 
-		public readonly AbstractCard card;
+		public readonly DynamicCard card;
 		public readonly Size sampleSize;
 		public readonly float FontSize;
 		public readonly ParagraphSpecification paragraphSpec;
@@ -46,7 +50,7 @@ namespace SharpSheets.Cards.Layouts {
 
 		public int Length => layouts.Length;
 
-		public CardArrangement(AbstractCard card, Size sampleSize, float fontSize, ParagraphSpecification paragraphSpec, SingleCardLayout[] layouts, int penalisedSplitCount, int calls) {
+		public CardArrangement(DynamicCard card, Size sampleSize, float fontSize, ParagraphSpecification paragraphSpec, SingleCardLayout[] layouts, int penalisedSplitCount, int calls) {
 			this.card = card;
 			this.sampleSize = sampleSize;
 			this.FontSize = fontSize;

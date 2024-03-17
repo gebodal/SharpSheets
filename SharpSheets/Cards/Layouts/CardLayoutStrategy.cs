@@ -13,8 +13,7 @@ using SharpSheets.Exceptions;
 using SharpSheets.Widgets;
 using SharpSheets.Cards.Card.SegmentRects;
 
-namespace SharpSheets.Cards.Layouts
-{
+namespace SharpSheets.Cards.Layouts {
 
     public class CardLayoutStrategy : AbstractLayoutStrategy {
 
@@ -29,17 +28,33 @@ namespace SharpSheets.Cards.Layouts
 			float cardGutter = config.cardGutter;
 			int rows = config.rows;
 			int columns = config.columns;
-			//FontPathGrouping fonts = config.fonts;
-
-			//int maxCards = Math.Min(config.MaxCards, columns); // TODO This should be more fluid. Can we extend to multiple row cards?
-
-			List<DynamicCard> cardList = new List<DynamicCard>(cards);
 
 			Rectangle pageRect = new Rectangle(0, 0, pageSize.Width, pageSize.Height);
 			Rectangle[][] grid = Divisions.Grid(pageRect.Margins(pageMargin, false), rows, columns, cardGutter, cardGutter, out _, out _).ToJaggedArray();
 			Rectangle sampleRect = grid[0][0];
 
-			Dictionary<AbstractCard, CardArrangement?> existingLayouts = new Dictionary<AbstractCard, CardArrangement?>();
+			List<DynamicCard> cardList = new List<DynamicCard>();
+			Dictionary<AbstractCard, CardArrangement> existingLayouts = new Dictionary<AbstractCard, CardArrangement>();
+
+			foreach (DynamicCard card in cards) {
+				CanvasStateImage modelCanvasState = new CanvasStateImage((Rectangle)pageSize, 1f);
+				if (card.subject.CardConfig.fonts != null) { modelCanvasState.SetFonts(card.subject.CardConfig.fonts); }
+
+				CardArrangement? arrangement = GetLayouts(card, modelCanvasState, card.subject.CardConfig.MaxCards, sampleRect, card.subject.CardConfig.paragraphSpec, card.subject.CardConfig.fontParams, cancellationToken);
+				
+				if (arrangement is null) { return; } // Should only happen if cancellation requested
+
+				if (arrangement.Length > card.subject.CardConfig.MaxCards) {
+					errors.Add(new SharpDrawingException(card.subject, "Card cannot be fit into a single row."));
+					errorCards.Add(card);
+				}
+				else {
+					existingLayouts.Add(arrangement.card, arrangement);
+					cardList.Add(arrangement.card);
+				}
+
+				if (cancellationToken.IsCancellationRequested) { return; }
+			}
 
 			while (cardList.Count > 0) {
 				if (cancellationToken.IsCancellationRequested) { return; }
@@ -53,54 +68,32 @@ namespace SharpSheets.Cards.Layouts
 					while (available.Length > 0) {
 						if (cancellationToken.IsCancellationRequested) { return; }
 
-						IEnumerator<DynamicCard> cardEnumerator = cardList.ToList().GetEnumerator();
-
-						DynamicCard? currentCard = null;
-						CardArrangement? nextLayout = null;
+						CardArrangement? nextArrangement = null;
 
 						// Find next card that fits in this row
-						while (nextLayout == null && cardEnumerator.MoveNext()) {
+						for (int c = 0; c < cardList.Count; c++) {
 							if (cancellationToken.IsCancellationRequested) { return; }
 
-							currentCard = cardEnumerator.Current;
+							nextArrangement = existingLayouts[cardList[c]];
 
-							if (currentCard.subject.CardConfig.fonts != null) { canvas.SetFonts(currentCard.subject.CardConfig.fonts); }
-
-							if (!existingLayouts.ContainsKey(currentCard)) {
-								existingLayouts.Add(currentCard, GetLayouts(currentCard, new CanvasStateImage(canvas), currentCard.subject.CardConfig.MaxCards, sampleRect, currentCard.subject.CardConfig.paragraphSpec, currentCard.subject.CardConfig.fontParams, cancellationToken));
+							if (nextArrangement.Length > available.Length) {
+								nextArrangement = null;
 							}
-							if (cancellationToken.IsCancellationRequested) { return; }
-
-							nextLayout = existingLayouts[currentCard];
-
-							if (nextLayout is not null && nextLayout.Length > available.Length) {
-								if (nextLayout.Length > currentCard.subject.CardConfig.MaxCards) {
-									errors.Add(new SharpDrawingException(currentCard.subject, "Card cannot be fit into a single row."));
-									cardList.Remove(currentCard);
-									errorCards.Add(currentCard);
-								}
-
-								nextLayout = null;
+							else {
+								break;
 							}
 						}
 
-						if (nextLayout == null) {
-							break;
-						}
-						else if(currentCard != null) {
-							//Console.WriteLine($"nextLayout.Length = {nextLayout.Length}");
-
-							canvas.SaveState();
-							canvas.SetTextSize(nextLayout.FontSize);
-							Draw(canvas, currentCard, nextLayout, available.Take(nextLayout.Length).ToArray(), cancellationToken);
-							canvas.RestoreState();
-							if (cancellationToken.IsCancellationRequested) { return; }
-
-							available = available.Skip(nextLayout.Length).ToArray();
-							cardList.Remove(currentCard);
+						if (nextArrangement is null) {
+							break; // Could not find a card to fit this row
 						}
 						else {
-							throw new InvalidOperationException("Invalid card drawing state."); // This should never happen
+							//Console.WriteLine($"nextLayout.Length = {nextLayout.Length}");
+
+							Draw(canvas, nextArrangement.card, nextArrangement, available.Take(nextArrangement.Length).ToArray(), cancellationToken);
+
+							available = available.Skip(nextArrangement.Length).ToArray();
+							cardList.Remove(nextArrangement.card);
 						}
 					}
 				}
@@ -121,46 +114,60 @@ namespace SharpSheets.Cards.Layouts
 				throw new ArgumentException($"Provided rects are not all same dimensions as layout sample size.");
 			}
 
-			card.DrawBackground(canvas, rects, out IEnumerable<Rectangle> outlineRects);
+			canvas.SaveState();
 
-			foreach (Rectangle rect in outlineRects) {
-				canvas.RegisterAreas(card, rect, null, Array.Empty<Rectangle>());
-				canvas.RegisterAreas(card.subject, rect, null, Array.Empty<Rectangle>());
-			}
+			if (card.subject.CardConfig.fonts != null) { canvas.SetFonts(card.subject.CardConfig.fonts); }
+			canvas.SetTextSize(arrangement.FontSize);
+
+			card.DrawBackground(canvas, rects);
 
 			for (int cardIdx = 0; cardIdx < arrangement.Length; cardIdx++) {
-				if (cancellationToken.IsCancellationRequested) { return; }
+				if (cancellationToken.IsCancellationRequested) { break; }
 
-				//Console.WriteLine($"Draw layout {i}");
-				SingleCardLayout layout = arrangement.layouts[cardIdx];
-				Rectangle fullRect = rects[cardIdx];
-				bool lastCard = cardIdx == (arrangement.Length - 1);
+				Draw(canvas, card, arrangement, arrangement.layouts[cardIdx], rects[cardIdx], cancellationToken);
+			}
 
-				card.DrawOutline(canvas, fullRect, cardIdx, arrangement.Length);
-				Rectangle featuresFullRect = card.RemainingRect(canvas, fullRect, cardIdx, arrangement.Length);
+			canvas.RestoreState();
+		}
 
-				Rectangle?[] segmentRects = GetSegmentRects(card, layout, featuresFullRect, lastCard, out Rectangle?[] segmentGutters);
+		// Does not draw background (or register background rects)
+		private static void Draw(ISharpCanvas canvas, DynamicCard card, CardArrangement arrangement1, SingleCardLayout cardLayout, Rectangle rect1, CancellationToken cancellationToken) {
 
-				for (int gutterIdx = 0; gutterIdx < segmentGutters.Length; gutterIdx++) {
-					if (segmentGutters[gutterIdx] is not null) {
-						card.DrawGutter(canvas, segmentGutters[gutterIdx]!);
-					}
+			if (cancellationToken.IsCancellationRequested) { return; }
+
+			// TODO Are these checks actually necessary?
+			if (arrangement1.sampleSize.Width != rect1.Width || arrangement1.sampleSize.Height != rect1.Height) {
+				throw new ArgumentException($"Provided rect is not the same dimensions as layout sample size.");
+			}
+
+			SingleCardLayout layout = cardLayout;
+			Rectangle fullRect = rect1;
+			bool lastCard = layout.index == (arrangement1.Length - 1);
+
+			card.DrawOutline(canvas, fullRect, layout.index, arrangement1.Length);
+			Rectangle featuresFullRect = card.RemainingRect(canvas, fullRect, layout.index, arrangement1.Length);
+
+			Rectangle?[] segmentRects = GetSegmentRects(card, layout, featuresFullRect, lastCard, out Rectangle?[] segmentGutters);
+
+			for (int gutterIdx = 0; gutterIdx < segmentGutters.Length; gutterIdx++) {
+				if (segmentGutters[gutterIdx] is not null) {
+					card.DrawGutter(canvas, segmentGutters[gutterIdx]!);
 				}
+			}
 
-				for (int secIdx = 0; secIdx < layout.boxes.Length; secIdx++) {
-					if (cancellationToken.IsCancellationRequested) { return; }
-					if (segmentRects[secIdx] is not null) {
-						try {
-							layout.boxes[secIdx].Draw(canvas, segmentRects[secIdx]!, arrangement.FontSize, arrangement.paragraphSpec);
+			for (int secIdx = 0; secIdx < layout.boxes.Length; secIdx++) {
+				if (cancellationToken.IsCancellationRequested) { return; }
+				if (segmentRects[secIdx] is not null) {
+					try {
+						layout.boxes[secIdx].Draw(canvas, segmentRects[secIdx]!, arrangement1.FontSize, arrangement1.paragraphSpec);
+					}
+					catch (InvalidRectangleException e) {
+						canvas.LogError(new SharpDrawingException(layout.boxes[secIdx], "Invalid rectangle.", e));
+						if (layout.boxes[secIdx].Config is AbstractCardSegmentConfig segmentConfig) {
+							canvas.LogError(new SharpDrawingException(segmentConfig, "Invalid rectangle.", e));
 						}
-						catch(InvalidRectangleException e) {
-							canvas.LogError(new SharpDrawingException(layout.boxes[secIdx], "Invalid rectangle.", e));
-							if (layout.boxes[secIdx].Config is AbstractCardSegmentConfig segmentConfig) {
-								canvas.LogError(new SharpDrawingException(segmentConfig, "Invalid rectangle.", e));
-							}
-							if (segmentRects[secIdx]!.Width > 0 && segmentRects[secIdx]!.Height > 0) {
-								new ErrorWidget(e, new WidgetSetup()).Draw(canvas, segmentRects[secIdx]!, cancellationToken);
-							}
+						if (segmentRects[secIdx]!.Width > 0 && segmentRects[secIdx]!.Height > 0) {
+							new ErrorWidget(e, new WidgetSetup()).Draw(canvas, segmentRects[secIdx]!, cancellationToken);
 						}
 					}
 				}
@@ -206,7 +213,7 @@ namespace SharpSheets.Cards.Layouts
 		#region Card Layouts Behaviour
 
 		/// <summary>Find layouts for subject cards, given a maximum possible number of cards and assuming cards of a fixed size based on the sample provided.</summary>
-		public static CardArrangement? GetLayouts(AbstractCard card, ISharpGraphicsState graphicsState, int maxCards, Rectangle sampleRect, ParagraphSpecification spec, FontSizeSearchParams searchParams, CancellationToken cancellationToken) {
+		public static CardArrangement? GetLayouts(DynamicCard card, ISharpGraphicsState graphicsState, int maxCards, Rectangle sampleRect, ParagraphSpecification spec, FontSizeSearchParams searchParams, CancellationToken cancellationToken) {
 
 			if (cancellationToken.IsCancellationRequested) { return null; }
 
@@ -339,7 +346,7 @@ namespace SharpSheets.Cards.Layouts
 			}
 		}
 
-		private static CardArrangement? LayoutArrangementFontBisectionSearch(AbstractCard card, ISharpGraphicsState graphicsState, CardQueryCache cache, Rectangle sampleRect, ICardSegmentRect[][] arrangement, ParagraphSpecification spec, float maxFontSize, float fontEpsilon) {
+		private static CardArrangement? LayoutArrangementFontBisectionSearch(DynamicCard card, ISharpGraphicsState graphicsState, CardQueryCache cache, Rectangle sampleRect, ICardSegmentRect[][] arrangement, ParagraphSpecification spec, float maxFontSize, float fontEpsilon) {
 
 			int calls = 1;
 
@@ -405,7 +412,7 @@ namespace SharpSheets.Cards.Layouts
 			SingleCardLayout[] layouts = new SingleCardLayout[arrangement.Length];
 			for (int i = 0; i < layouts.Length; i++) {
 				float finalUnusedHeight = featureRects[i].Height - final.totalFixedHeights[i];
-				layouts[i] = new SingleCardLayout((Size)featureRects[i], final.arrangement[i], boxSizes[i], final.boxHeights[i], finalUnusedHeight);
+				layouts[i] = new SingleCardLayout(i, (Size)featureRects[i], final.arrangement[i], boxSizes[i], final.boxHeights[i], finalUnusedHeight);
 			}
 			return new CardArrangement(card, (Size)sampleRect, final.fontSize, final.spec, layouts, final.penalisedSplitCount, calls);
 		}
