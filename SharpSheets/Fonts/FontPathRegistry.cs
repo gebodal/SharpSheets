@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -15,10 +16,47 @@ namespace SharpSheets.Fonts {
 
 	public static class FontPathRegistry {
 
-		public static string GetSystemFontsDir() {
-			// TODO Make more robust (i.e. system agnostic)
-			string? windir = Environment.GetEnvironmentVariable("windir");
-			return windir != null ? Path.Combine(windir, "fonts") : "";
+		public static string[] GetSystemFontsDirs() {
+			List<string> fontsDirs = new List<string>();
+
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+				if (Environment.GetEnvironmentVariable("windir") is string windir) {
+					fontsDirs.Add(Path.Combine(windir, "fonts"));
+				}
+				if (Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) is string localAppData) {
+					// https://superuser.com/questions/1597642/where-are-user-specific-font-files-stored
+					fontsDirs.Add(Path.Combine(localAppData, "Microsoft", "Windows", "Fonts"));
+				}
+			}
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+				// https://support.apple.com/en-gb/guide/font-book/fntbk1004/mac
+				fontsDirs.Add("/Library/Fonts"); // Better way of getting this?
+				if (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) is string homeDir) { // Should get home directory
+					fontsDirs.Add(Path.Combine(homeDir, "Library", "Fonts"));
+				}
+			}
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD)) {
+				// https://www.baeldung.com/linux/find-installed-fonts-command-line
+				fontsDirs.Add("/usr/share/fonts"); // Better way of getting this?
+				fontsDirs.Add("/usr/local/share/fonts"); // Better way of getting this?
+				if (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) is string homeDir) { // Should get home directory
+					fontsDirs.Add(Path.Combine(homeDir, ".local", "share", "fonts"));
+					fontsDirs.Add(Path.Combine(homeDir, ".fonts"));
+				}
+			}
+
+			return fontsDirs.ToArray();
+		}
+
+		private static readonly EnumerationOptions fontFileEnumerateOpt = new EnumerationOptions() {
+			RecurseSubdirectories = true
+		};
+		private static IEnumerable<string> GetSystemFontFiles() {
+			return GetSystemFontsDirs()
+				.Where(d => Directory.Exists(d))
+				.SelectMany(d => Directory.EnumerateFiles(d, "*.???", fontFileEnumerateOpt))
+				.Where(f => f.EndsWith(StringComparison.InvariantCultureIgnoreCase, ".ttf", ".ttc", ".otf", ".otc"))
+				.Distinct();
 		}
 
 		public static bool FontPathIsCollection(string path) {
@@ -96,7 +134,7 @@ namespace SharpSheets.Fonts {
 			FamilyRegistry = new Dictionary<string, Dictionary<TextFormat, FontPath>>();
 			FontRegistry = new Dictionary<string, FontPath>();
 
-			foreach (string filePath in Directory.GetFiles(GetSystemFontsDir()).Where(f => f.EndsWith(StringComparison.InvariantCultureIgnoreCase, ".ttf", ".ttc", ".otf", ".otc"))) {
+			foreach (string filePath in GetSystemFontFiles()) {
 				//Console.WriteLine(filePath);
 				try {
 					TrueTypeFontFileData[] fontFiles = OpenFontFile(filePath, out bool isFontCollection);
@@ -152,10 +190,10 @@ namespace SharpSheets.Fonts {
 					}
 				}
 				catch (FormatException) {
-					//Console.WriteLine("\tBadly formatted file.");
+					//Console.WriteLine("\tBadly formatted font file: " + filePath);
 				}
 				catch (IOException) {
-
+					//Console.WriteLine("\tCould not read font file: " + filePath);
 				}
 			}
 

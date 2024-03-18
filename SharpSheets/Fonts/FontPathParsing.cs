@@ -35,12 +35,14 @@ namespace SharpSheets.Fonts {
 			else if (TryFontPath(System.IO.Path.Combine(sourceDir, proposedPath), out string? fromSourcePath)) {
 				return GetFontPath(fromSourcePath);
 			}
-			else if (TryFontPath(System.IO.Path.Combine(FontPathRegistry.GetSystemFontsDir(), proposedPath), out string? fromFontsDirPath)) {
-				return GetFontPath(fromFontsDirPath);
+
+			foreach(string fontsDir in FontPathRegistry.GetSystemFontsDirs()) {
+				if (TryFontPath(System.IO.Path.Combine(fontsDir, proposedPath), out string? fromFontsDirPath)) {
+					return GetFontPath(fromFontsDirPath);
+				}
 			}
-			else {
-				return null;
-			}
+
+			return null;
 		}
 
 		private static bool TryFontPath(string path, [MaybeNullWhen(false)] out string finalPath) {
