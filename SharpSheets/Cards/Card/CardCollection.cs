@@ -66,15 +66,15 @@ namespace SharpSheets.Cards.Card
 				List<CardSetConfig> configurations = new List<CardSetConfig>();
 				Dictionary<CardSetConfig, List<DynamicCard>> separated = new Dictionary<CardSetConfig, List<DynamicCard>>(ConfigNameComparer.Instance);
 				foreach(DynamicCard card in segment) {
-					if (card.subject.CardConfig == null) {
+					if (card.CardConfig == null) {
 						errorCards.Add(card);
 					}
 					else {
-						if (!separated.ContainsKey(card.subject.CardConfig.cardSetConfig)) {
-							configurations.Add(card.subject.CardConfig.cardSetConfig);
-							separated.Add(card.subject.CardConfig.cardSetConfig, new List<DynamicCard>());
+						if (!separated.ContainsKey(card.CardSetConfig)) {
+							configurations.Add(card.CardSetConfig);
+							separated.Add(card.CardSetConfig, new List<DynamicCard>());
 						}
-						separated[card.subject.CardConfig.cardSetConfig].Add(card);
+						separated[card.CardSetConfig].Add(card);
 					}
 				}
 				foreach(CardSetConfig config in configurations) {
@@ -109,7 +109,7 @@ namespace SharpSheets.Cards.Card
 				try {
 					ISharpCanvas errorCanvas = document.AddNewPage(cardGroupings.LastOrDefault().config?.paper ?? PageSize.A4);
 					errorCanvas.SetTextColor(Color.Red);
-					string errorText = string.Join("\n", allErrorCards.Select(c => $"Error for card \"{c.subject.Name.Value}\""));
+					string errorText = string.Join("\n", allErrorCards.Select(c => $"Error for card \"{c.Subject.Name.Value}\""));
 					errorCanvas.FitText(errorCanvas.CanvasRect.MarginsRel(0.05f, false), errorText, new ParagraphSpecification(1.35f, 0f, default), new FontSizeSearchParams(0.5f, 20f, 0.1f), Justification.LEFT, Alignment.TOP, TextHeightStrategy.LineHeightDescent, false);
 				}
 				catch (InvalidOperationException e) {

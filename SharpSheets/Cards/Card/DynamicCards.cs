@@ -12,13 +12,17 @@ using SharpSheets.Canvas.Text;
 using SharpSheets.Cards.CardSubjects;
 using SharpSheets.Parsing;
 using SharpSheets.Cards.Card.SegmentRects;
+using SharpSheets.Cards.CardConfigs;
 
 namespace SharpSheets.Cards.Card
 {
 
     public class DynamicCard : AbstractCard {
 
-		public readonly CardSubject subject;
+		public CardSubject Subject { get; }
+		public CardSetConfig CardSetConfig => Subject.CardConfig.cardSetConfig;
+		public CardConfig CardConfig => Subject.CardConfig;
+
 		public readonly IDetail? gutterStyle;
 		public readonly ArrangementCollection<IWidget> backgrounds;
 		public readonly ArrangementCollection<IWidget> outlines;
@@ -28,7 +32,7 @@ namespace SharpSheets.Cards.Card
 		public override bool CropOnFinalCard { get; }
 
 		public DynamicCard(CardSubject subject, float gutter, bool joinSplitCards, bool cropOnFinalCard, ArrangementCollection<IWidget> backgrounds, IDetail? gutterStyle, ArrangementCollection<IWidget> outlines, IFixedCardSegmentRect[] segments) {
-			this.subject = subject;
+			this.Subject = subject;
 			this.Gutter = gutter;
 			this.joinSplitCards = joinSplitCards;
 			this.backgrounds = backgrounds;
@@ -92,7 +96,7 @@ namespace SharpSheets.Cards.Card
 
 			foreach (Rectangle outlineRect in outlineRects) {
 				canvas.RegisterAreas(this, outlineRect, null, Array.Empty<Rectangle>());
-				canvas.RegisterAreas(subject, outlineRect, null, Array.Empty<Rectangle>());
+				canvas.RegisterAreas(Subject, outlineRect, null, Array.Empty<Rectangle>());
 			}
 		}
 

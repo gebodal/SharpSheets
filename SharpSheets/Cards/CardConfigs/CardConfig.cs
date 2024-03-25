@@ -82,7 +82,6 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="origin" exclude="true"></param>
 		/// <param name="source" exclude="true"></param>
 		/// <param name="_description"></param>
-		/// <param name="_layoutStrategy"></param>
 		/// <param name="_paper"></param>
 		/// <param name="_pageMargins" default="(20,20,20,20)"></param>
 		/// <param name="_cardGutter"></param>
@@ -97,7 +96,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			FilePath origin,
 			DirectoryPath source,
 			List<string>? _description = null,
-			LayoutStrategy _layoutStrategy = LayoutStrategy.CARD,
+			//LayoutStrategy _layoutStrategy = LayoutStrategy.CARD,
 			PageSize? _paper = null,
 			Margins? _pageMargins = null,
 			float _cardGutter = 20f,
@@ -113,7 +112,8 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			this.description = _description is not null ? string.Join(" ", _description.Select(s=>s.Trim())) : null;
 
-			this.layoutStrategy = _layoutStrategy == LayoutStrategy.CARD ? AbstractLayoutStrategy.Card : AbstractLayoutStrategy.Scroll;
+			//this.layoutStrategy = _layoutStrategy == LayoutStrategy.CARD ? AbstractLayoutStrategy.Card : AbstractLayoutStrategy.Scroll;
+			this.layoutStrategy = AbstractLayoutStrategy.Card;
 
 			this.paper = _paper ?? PageSize.A4;
 			this.pageMargins = _pageMargins ?? new Margins(20f);
@@ -175,7 +175,9 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly IDetail? gutterStyle;
 		public readonly bool cropOnFinalCard;
 		public readonly bool joinSplitCards;
-		
+		public readonly RectangleAllowance multiCardLayout;
+		public readonly bool allowMultipage;
+
 		public readonly DefinitionGroup definitions;
 		public readonly ConditionalCollection<InterpolatedContext> backgrounds;
 		public readonly ConditionalCollection<InterpolatedContext> outlines;
@@ -208,6 +210,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="gutter_"></param>
 		/// <param name="cropOnFinalCard"></param>
 		/// <param name="joinSplitCards"></param>
+		/// <param name="multiCardLayout"></param>
+		/// <param name="allowMultipage"></param>
 		public CardConfig(
 			CardSetConfig cardSetConfig,
 			string? _name = null,
@@ -225,7 +229,9 @@ namespace SharpSheets.Cards.CardConfigs {
 			float gutter = 5f,
 			IDetail? gutter_ = null, // gutter_
 			bool cropOnFinalCard = false,
-			bool joinSplitCards = false
+			bool joinSplitCards = false,
+			RectangleAllowance multiCardLayout = RectangleAllowance.NONE,
+			bool allowMultipage = true
 		) {
 
 			this.name = _name;
@@ -246,6 +252,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.gutterStyle = gutter_;
 			this.cropOnFinalCard = cropOnFinalCard;
 			this.joinSplitCards = joinSplitCards;
+			this.multiCardLayout = multiCardLayout;
+			this.allowMultipage = allowMultipage;
 
 			this.definitions = new DefinitionGroup(cardSetConfig.definitions); // Combined with card set definitions here
 			this.backgrounds = new ConditionalCollection<InterpolatedContext>();

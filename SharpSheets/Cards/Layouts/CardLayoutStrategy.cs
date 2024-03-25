@@ -12,6 +12,7 @@ using SharpSheets.Cards.Card;
 using SharpSheets.Exceptions;
 using SharpSheets.Widgets;
 using SharpSheets.Cards.Card.SegmentRects;
+using System.Diagnostics.CodeAnalysis;
 
 namespace SharpSheets.Cards.Layouts {
 
@@ -29,109 +30,118 @@ namespace SharpSheets.Cards.Layouts {
 			int rows = config.rows;
 			int columns = config.columns;
 
-			Rectangle pageRect = new Rectangle(0, 0, pageSize.Width, pageSize.Height);
-			Rectangle[][] grid = Divisions.Grid(pageRect.Margins(pageMargin, false), rows, columns, cardGutter, cardGutter, out _, out _).ToJaggedArray();
-			Rectangle sampleRect = grid[0][0];
+			AvailableSpace geometry = new AvailableSpace(pageSize, pageMargin, rows, columns, cardGutter);
 
 			List<DynamicCard> cardList = new List<DynamicCard>();
 			Dictionary<AbstractCard, CardArrangement> existingLayouts = new Dictionary<AbstractCard, CardArrangement>();
 
 			foreach (DynamicCard card in cards) {
 				CanvasStateImage modelCanvasState = new CanvasStateImage((Rectangle)pageSize, 1f);
-				if (card.subject.CardConfig.fonts != null) { modelCanvasState.SetFonts(card.subject.CardConfig.fonts); }
+				if (card.CardConfig.fonts != null) { modelCanvasState.SetFonts(card.CardConfig.fonts); }
 
-				CardArrangement? arrangement = GetLayouts(card, modelCanvasState, card.subject.CardConfig.MaxCards, sampleRect, card.subject.CardConfig.paragraphSpec, card.subject.CardConfig.fontParams, cancellationToken);
+				CardArrangement? arrangement = GetLayouts(card, modelCanvasState, card.CardConfig.MaxCards, geometry.SampleRect, card.CardConfig.paragraphSpec, card.CardConfig.fontParams, cancellationToken);
 				
 				if (arrangement is null) { return; } // Should only happen if cancellation requested
 
-				if (arrangement.Length > card.subject.CardConfig.MaxCards) {
-					errors.Add(new SharpDrawingException(card.subject, "Card cannot be fit into a single row."));
+				if (arrangement.Length > card.CardConfig.MaxCards) {
+					errors.Add(new SharpDrawingException(card.Subject, "Card cannot be fit into a single row."));
 					errorCards.Add(card);
 				}
 				else {
-					existingLayouts.Add(arrangement.card, arrangement);
-					cardList.Add(arrangement.card);
+					existingLayouts.Add(arrangement.Card, arrangement);
+					cardList.Add(arrangement.Card);
 				}
 
 				if (cancellationToken.IsCancellationRequested) { return; }
 			}
 
-			while (cardList.Count > 0) {
-				if (cancellationToken.IsCancellationRequested) { return; }
+			List<ISharpCanvas> pages = new List<ISharpCanvas>();
+			ISharpCanvas GetPage(int page) {
+				while (page >= pages.Count) {
+					pages.Add(document.AddNewPage(pageSize));
+					//Console.WriteLine($"Add page ({pages.Count} pages)");
+				}
+				return pages[page];
+			}
 
-				ISharpCanvas canvas = document.AddNewPage(pageSize);
+			while(cardList.Count > 0) {
 
-				for (int row = 0; row < grid.Length; row++) {
+				CardArrangement? nextArrangement = null;
+				CardIndex[][]? cardSpace = null;
+
+				// Find next card that fits in the available space
+				for (int c = 0; c < cardList.Count; c++) {
 					if (cancellationToken.IsCancellationRequested) { return; }
 
-					Rectangle[] available = grid[row];
-					while (available.Length > 0) {
-						if (cancellationToken.IsCancellationRequested) { return; }
+					nextArrangement = existingLayouts[cardList[c]];
+					cardSpace = geometry.GetAvailable(
+						nextArrangement.Length,
+						nextArrangement.CardConfig.MaxCards,
+						nextArrangement.CardConfig.multiCardLayout,
+						nextArrangement.CardConfig.allowMultipage); // TODO Allow user control
 
-						CardArrangement? nextArrangement = null;
-
-						// Find next card that fits in this row
-						for (int c = 0; c < cardList.Count; c++) {
-							if (cancellationToken.IsCancellationRequested) { return; }
-
-							nextArrangement = existingLayouts[cardList[c]];
-
-							if (nextArrangement.Length > available.Length) {
-								nextArrangement = null;
-							}
-							else {
-								break;
-							}
-						}
-
-						if (nextArrangement is null) {
-							break; // Could not find a card to fit this row
-						}
-						else {
-							//Console.WriteLine($"nextLayout.Length = {nextLayout.Length}");
-
-							Draw(canvas, nextArrangement.card, nextArrangement, available.Take(nextArrangement.Length).ToArray(), cancellationToken);
-
-							available = available.Skip(nextArrangement.Length).ToArray();
-							cardList.Remove(nextArrangement.card);
-						}
+					if (cardSpace is null) {
+						nextArrangement = null;
+					}
+					else {
+						break;
 					}
 				}
+
+				if (nextArrangement is null || cardSpace is null) {
+					throw new CardLayoutException("Could not process card layout.");
+				}
+				else {
+					cardList.Remove(nextArrangement.Card);
+					geometry.MarkUsed(cardSpace.SelectMany(idxs => idxs));
+
+					//Console.WriteLine($"Draw arrangement for {nextArrangement.card.subject.Name.Value}: {cardSpace.Length} pages");
+
+					int sectionsDrawn = 0;
+					for (int p = 0; p < cardSpace.Length; p++) {
+						//Console.WriteLine($"Start page ({p}), {cardSpace[p].Length} cards");
+
+						if (cardSpace[p].Length == 0) { continue; }
+
+						if (cancellationToken.IsCancellationRequested) { return; }
+
+						Rectangle[] cardRects = cardSpace[p].Select(i => geometry[i.Row, i.Column]).ToArray();
+						int pageNum = cardSpace[p].Select(i => i.Page).Distinct().Single();
+
+						//Console.WriteLine($"Page {pageNum} ({p}), {cardSpace[p].Length} cards");
+
+						ISharpCanvas canvas = GetPage(pageNum);
+						DynamicCard card = nextArrangement.Card;
+
+						canvas.SaveState();
+
+						if (card.CardConfig.fonts != null) { canvas.SetFonts(card.CardConfig.fonts); }
+						canvas.SetTextSize(nextArrangement.FontSize);
+
+						card.DrawBackground(canvas, cardRects);
+
+						for (int pageCardIdx = 0; pageCardIdx < cardRects.Length; pageCardIdx++) {
+							if (cancellationToken.IsCancellationRequested) { break; }
+
+							int cardIdx = sectionsDrawn + pageCardIdx;
+
+							//Console.WriteLine($"Draw card {pageCardIdx} ({cardIdx}) at {cardRects[pageCardIdx]}");
+
+							Draw(canvas, nextArrangement, nextArrangement.layouts[cardIdx], cardRects[pageCardIdx], cancellationToken);
+						}
+
+						canvas.RestoreState();
+
+						sectionsDrawn += cardRects.Length;
+					}
+					
+				}
 			}
+
 		}
 
-		public static void Draw(ISharpCanvas canvas, DynamicCard card, CardArrangement arrangement, Rectangle[] rects, CancellationToken cancellationToken) {
-
-			//Console.WriteLine($"Draw card from layouts.");
-
-			if (cancellationToken.IsCancellationRequested) { return; }
-
-			// TODO Are these checks actually necessary?
-			if (arrangement.Length != rects.Length) {
-				throw new ArgumentException($"Same number of layouts and rects must be provided. {arrangement.Length} (layouts) != {rects.Length} (rects)");
-			}
-			if (rects.Any(r => arrangement.sampleSize.Width != r.Width || arrangement.sampleSize.Height != r.Height)) {
-				throw new ArgumentException($"Provided rects are not all same dimensions as layout sample size.");
-			}
-
-			canvas.SaveState();
-
-			if (card.subject.CardConfig.fonts != null) { canvas.SetFonts(card.subject.CardConfig.fonts); }
-			canvas.SetTextSize(arrangement.FontSize);
-
-			card.DrawBackground(canvas, rects);
-
-			for (int cardIdx = 0; cardIdx < arrangement.Length; cardIdx++) {
-				if (cancellationToken.IsCancellationRequested) { break; }
-
-				Draw(canvas, card, arrangement, arrangement.layouts[cardIdx], rects[cardIdx], cancellationToken);
-			}
-
-			canvas.RestoreState();
-		}
-
-		// Does not draw background (or register background rects)
-		private static void Draw(ISharpCanvas canvas, DynamicCard card, CardArrangement arrangement1, SingleCardLayout cardLayout, Rectangle rect1, CancellationToken cancellationToken) {
+		// Does not draw background
+		private static void Draw(ISharpCanvas canvas, CardArrangement arrangement1, SingleCardLayout cardLayout, Rectangle rect1, CancellationToken cancellationToken) {
 
 			if (cancellationToken.IsCancellationRequested) { return; }
 
@@ -143,6 +153,8 @@ namespace SharpSheets.Cards.Layouts {
 			SingleCardLayout layout = cardLayout;
 			Rectangle fullRect = rect1;
 			bool lastCard = layout.index == (arrangement1.Length - 1);
+
+			DynamicCard card = arrangement1.Card;
 
 			card.DrawOutline(canvas, fullRect, layout.index, arrangement1.Length);
 			Rectangle featuresFullRect = card.RemainingRect(canvas, fullRect, layout.index, arrangement1.Length);
@@ -549,6 +561,263 @@ namespace SharpSheets.Cards.Layouts {
 		}
 
 		#endregion
+
+		private class CardIndex {
+			public readonly int Page;
+			public readonly int Row;
+			public readonly int Column;
+
+			public CardIndex(int page, int row, int column) {
+				Page = page;
+				Row = row;
+				Column = column;
+			}
+		}
+
+		private class AvailableSpace {
+
+			public int Rows => grid.GetLength(0);
+			public int Columns => grid.GetLength(1);
+
+			public int Count => Rows * Columns;
+
+			public Rectangle SampleRect => grid[0, 0];
+
+			private readonly Rectangle pageRect;
+			private readonly Rectangle[,] grid;
+			
+			private readonly List<bool[,]> used;
+			private int PageCount => used.Count;
+
+			public Rectangle this[int r, int c] => grid[r, c];
+
+			public AvailableSpace(Size pageSize, Margins pageMargin, int rows, int columns, float gutter) {
+				this.pageRect = pageSize.AsRectangle();
+				
+				this.grid = Divisions.Grid(pageRect.Margins(pageMargin, false), rows, columns, gutter, gutter, out _, out _);
+
+				used = new List<bool[,]>();
+			}
+
+			private int GetIndex(int row, int col) => row * Columns + col;
+
+			private void AddPage() {
+				bool[,] newPage = new bool[Rows, Columns];
+				newPage.Fill(false); // Just to be safe
+				used.Add(newPage);
+			}
+
+			public CardIndex[][]? GetAvailable(int count, int max, RectangleAllowance rectangle, bool allowMultipage) {
+				if (rectangle != RectangleAllowance.NONE) {
+					CardIndex[]? rectangular = GetAvailableRectangle(count, max, rectangle);
+					if(rectangular is not null) {
+						return new CardIndex[][] { rectangular };
+					}
+					else {
+						return null;
+					}
+				}
+				else {
+					return GetAvailableSingles(count, allowMultipage);
+				}
+			}
+
+			private CardIndex[][]? GetAvailableSingles(int count, bool allowMultipage) {
+
+				List<CardIndex[]> pages = new List<CardIndex[]>();
+
+				int page = 0;
+				while (count > 0) {
+					List<CardIndex> available = new List<CardIndex>();
+
+					while (page >= PageCount) {
+						AddPage();
+					}
+
+					for (int r = 0; r < Rows; r++) {
+						for (int c = 0; c < Columns; c++) {
+							if (!used[page][r, c]) {
+								available.Add(new CardIndex(page, r, c));
+							}
+							else {
+								available.Clear();
+							}
+
+							if (available.Count >= count) {
+								pages.Add(available.ToArray());
+								return pages.ToArray();
+							}
+						}
+					}
+
+					if (allowMultipage) {
+						pages.Add(available.ToArray());
+						count -= available.Count;
+						page++;
+					}
+				}
+
+				return null;
+			}
+
+			private CardIndex[]? GetAvailableRectangle(int count, int max, RectangleAllowance rectangle) {
+
+				int bestWidth = 0;
+				int bestArea = int.MaxValue;
+				CardIndex[]? best = null;
+
+				for (int p = 0; p < PageCount; p++) {
+					for (int r = 0; r < Rows; r++) {
+						for (int c = 0; c < Columns; c++) {
+							if (!used[p][r, c] && (Rows - r) * (Columns - c) >= count) {
+								if (GetRectAt(p, r, c, count, bestWidth, max, out int width, out int height) is CardIndex[] rect) {
+									if (width * height <= bestArea && rectangle.Allowed(width, height)) {
+										best = rect;
+										bestWidth = width;
+										bestArea = width * height;
+									}
+								}
+							}
+						}
+					}
+				}
+
+				if (best is null) {
+					AddPage();
+					best = GetRectAt(PageCount - 1, 0, 0, count, 0, max, out _, out _);
+				}
+
+				return best;
+			}
+
+			private static IEnumerable<(int width, int height)> GetRects(int width, int height, int count, int max) {
+				for (int h = 1; h <= height; h++) {
+					for (int w = 1; w <= width; w++) {
+						if (w * h >= count && w * h <= max) {
+							yield return (w, h);
+						}
+					}
+				}
+			}
+
+			private CardIndex[]? GetRectAt(int p, int r, int c, int count, int minWidth, int max, out int finalWidth, out int finalHeight) {
+				// How many ways can we make a rectangle here?
+				foreach((int width, int height) in GetRects(Columns - c, Rows - r, count, max)
+					.Where(s => s.width > minWidth)
+					.OrderBy(s => s.height)) {
+
+					if (GetRectWith(p, r, c, width, height) is CardIndex[] rect) {
+						finalWidth = width;
+						finalHeight = height;
+						return rect;
+					}
+				}
+
+				finalWidth = -1;
+				finalHeight = -1;
+				return null;
+			}
+
+			private CardIndex[]? GetRectWith(int p, int r, int c, int w, int h) {
+				List<CardIndex> available = new List<CardIndex>();
+				for (int i = r; i < r + h; i++) {
+					for (int j = c; j < c + w; j++) {
+						if (!used[p][i, j]) {
+							available.Add(new CardIndex(p, i, j));
+						}
+						else {
+							return null;
+						}
+					}
+				}
+				return available.ToArray();
+			}
+
+			public void MarkUsed(IEnumerable<CardIndex> indexes) {
+				foreach (CardIndex index in indexes) {
+					while (index.Page >= PageCount) {
+						AddPage();
+					}
+
+					//Console.WriteLine($"Mark used page {index.Page}, row {index.Row} column {index.Column}");
+					used[index.Page][index.Row, index.Column] = true;
+				}
+			}
+
+			/*
+			public bool IsAvailable(int count) {
+				int? running = null;
+				for (int r = 0; r < Rows; r++) {
+					for (int c = 0; c < Columns; c++) {
+						if (!used[r, c]) {
+							if (running.HasValue) { running = running.Value + 1; }
+							else { running = 1; }
+						}
+						else {
+							running = null;
+						}
+
+						if(running.HasValue && running.Value >= count) {
+							return true;
+						}
+					}
+				}
+
+				return false;
+			}
+			*/
+
+			/*
+			private enum CardAdjacency {
+				None,
+				HorizontalAdjacent,
+				VerticalAdjacent,
+				BlockAdjacent,
+				All
+			}
+			 
+			public static IEnumerable<List<CardIndex>> GroupAdjacents(CardAdjacency adjacency, IEnumerable<CardIndex> source) {
+
+				List<List<CardIndex>> allGroups = new List<List<CardIndex>>();
+
+				foreach (IEnumerable<CardIndex> pageGroup in source.GroupBy(i => i.Page).Select(g => (IEnumerable<CardIndex>)g)) {
+
+					List<CardIndex> cardIndices = pageGroup.OrderBy(i => i.Row).ThenBy(i => i.Column).ToList();
+
+					List<List<CardIndex>> pageGroups = new List<List<CardIndex>>();
+
+					for(int i = 0; i<cardIndices.Count; i++) {
+
+						for(int g=0; g<pageGroups.Count; g++) {
+
+						}
+
+					}
+					
+
+					allGroups.AddRange(pageGroups);
+				}
+			}
+			*/
+
+		}
+
+	}
+
+	public enum RectangleAllowance { NONE, ANY, WIDE, TALL }
+
+	public static class RectangleAllowanceUtils {
+
+		public static bool Allowed(this RectangleAllowance allowance, int width, int height) {
+			return allowance switch {
+				RectangleAllowance.NONE => true,
+				RectangleAllowance.ANY => true,
+				RectangleAllowance.WIDE => width >= height,
+				RectangleAllowance.TALL => height >= width,
+				_ => throw new ArgumentException($"Invalid {nameof(RectangleAllowance)} value.", nameof(allowance))
+			};
+		}
+
 	}
 
 }

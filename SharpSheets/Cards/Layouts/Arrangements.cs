@@ -4,6 +4,8 @@ using SharpSheets.Canvas.Text;
 using System.Collections.Generic;
 using System.Linq;
 using SharpSheets.Cards.Card.SegmentRects;
+using SharpSheets.Cards.CardConfigs;
+using SharpSheets.Cards.CardSubjects;
 
 namespace SharpSheets.Cards.Layouts {
 
@@ -37,7 +39,11 @@ namespace SharpSheets.Cards.Layouts {
 
 	public class CardArrangement {
 
-		public readonly DynamicCard card;
+		public DynamicCard Card { get; }
+		public CardSubject Subject => Card.Subject;
+		public CardSetConfig CardSetConfig => Card.Subject.CardConfig.cardSetConfig;
+		public CardConfig CardConfig => Card.Subject.CardConfig;
+
 		public readonly Size sampleSize;
 		public readonly float FontSize;
 		public readonly ParagraphSpecification paragraphSpec;
@@ -51,7 +57,7 @@ namespace SharpSheets.Cards.Layouts {
 		public int Length => layouts.Length;
 
 		public CardArrangement(DynamicCard card, Size sampleSize, float fontSize, ParagraphSpecification paragraphSpec, SingleCardLayout[] layouts, int penalisedSplitCount, int calls) {
-			this.card = card;
+			this.Card = card;
 			this.sampleSize = sampleSize;
 			this.FontSize = fontSize;
 			this.paragraphSpec = paragraphSpec;
