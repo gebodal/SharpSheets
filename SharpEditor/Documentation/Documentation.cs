@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace SharpEditor.Documentation {
@@ -210,35 +211,41 @@ namespace SharpEditor.Documentation {
 		private static DocumentationParagraph ParseParagraph(string text) {
 			List<DocumentationRun> parts = new List<DocumentationRun>();
 
+			StringBuilder sb = new StringBuilder();
 			TextParseState parseState = TextParseState.TEXT;
 			MarkdownFormat format = MarkdownFormat.REGULAR;
-			int head = 0;
-			int index = 0;
 			bool escaped = false;
 
 			void FinishText() {
-				parts.Add(DocumentationRun.FromText(CleanText(text[head..index]), format));
+				parts.Add(DocumentationRun.FromText(CleanText(sb.ToString()), format));
+				sb.Clear();
 			}
 
+			int index = 0;
 			while (index < text.Length) {
 				if (escaped) {
 					escaped = false;
+					sb.Append(text[index]);
 				}
 				else if (text[index] == '\\') {
 					escaped = true;
 				}
 				else if (parseState == TextParseState.CODE) {
 					if (text[index] == '`') {
-						parts.Add(DocumentationRun.FromCode(text[(head + 1)..index]));
-						head = index + 1;
+						parts.Add(DocumentationRun.FromCode(sb.ToString()));
+						sb.Clear();
 						parseState = TextParseState.TEXT;
 					}
+					else {
+						sb.Append(text[index]);
+				}
 				}
 				else if (parseState == TextParseState.LINKTEXT) {
+					sb.Append(text[index]);
 					if (text[index] == ']') {
 						if (text.Length > index + 1 && text[index + 1] == '(') {
 							parseState = TextParseState.LINKLOCATION;
-							index++;
+							//index++;
 						}
 						else {
 							parseState = TextParseState.TEXT;
@@ -246,26 +253,26 @@ namespace SharpEditor.Documentation {
 					}
 				}
 				else if (parseState == TextParseState.LINKLOCATION) {
+					sb.Append(text[index]);
 					if (text[index] == ')') {
-						parts.Add(ParseLink(text[head..(index + 1)], format));
-						head = index + 1;
+						parts.Add(ParseLink(sb.ToString(), format));
+						sb.Clear();
 						parseState = TextParseState.TEXT;
 					}
 				}
 				else { // parseState == TextParseState.TEXT
 					if (text[index] == '`') {
 						FinishText();
-						head = index;
 						parseState = TextParseState.CODE;
 					}
 					else if (text[index] == '[') {
 						FinishText();
-						head = index;
+						sb.Append(text[index]);
 						parseState = TextParseState.LINKTEXT;
 					}
 					else if (text[index] == '*' && text.Length > index + 1 && text[index + 1] == '*') {
 						FinishText();
-						head = index + 2;
+						index++;
 						if ((format & MarkdownFormat.BOLD) == MarkdownFormat.BOLD) {
 							format ^= MarkdownFormat.BOLD;
 						}
@@ -275,7 +282,7 @@ namespace SharpEditor.Documentation {
 					}
 					else if (text[index] == '_' && text.Length > index + 1 && text[index + 1] == '_') {
 						FinishText();
-						head = index + 2;
+						index++;
 						if ((format & MarkdownFormat.ITALIC) == MarkdownFormat.ITALIC) {
 							format ^= MarkdownFormat.ITALIC;
 						}
@@ -283,13 +290,16 @@ namespace SharpEditor.Documentation {
 							format |= MarkdownFormat.ITALIC;
 						}
 					}
+					else {
+						sb.Append(text[index]);
+				}
 				}
 
 				index++;
 			}
 
-			if(index > head) {
-				parts.Add(DocumentationRun.FromText(CleanText(text[head..]), format));
+			if(sb.Length > 0) {
+				parts.Add(DocumentationRun.FromText(CleanText(sb.ToString()), format));
 			}
 
 			return new DocumentationParagraph(parts.ToArray());
