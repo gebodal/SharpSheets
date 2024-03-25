@@ -562,7 +562,8 @@
 			<DockPanel Name="DesignerHolder" Grid.Column="2">
 				<sharpeditor:DesignerArea
 					x:Name="DesignerArea"
-					CanvasAreaDoubleClick="OnCanvasDoubleClick"/>
+					CanvasAreaDoubleClick="OnCanvasDoubleClick"
+					CanvasMouseMove="OnCanvasMouseMove"/>
 			</DockPanel>
 		</Grid>
 	</DockPanel>

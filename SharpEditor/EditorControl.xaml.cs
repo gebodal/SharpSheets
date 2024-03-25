@@ -1351,6 +1351,24 @@ namespace SharpEditor {
 			}
 		}
 
+		private void OnCanvasMouseMove(object? sender, Dictionary<object, RegisteredAreas> areas) {
+			IDrawingMapper? drawingMapper = designerGenerator?.DrawingMapper;
+			if (drawingMapper != null) {
+				if (areas.Count > 0) {
+					object[] drawnObjects = areas.Where(kv => drawingMapper.GetDrawnObjectDepth(kv.Key).HasValue)
+						.OrderByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1)
+						.ThenBy(kv => kv.Value.Total.Area)
+						.Select(kv => kv.Key)
+						.FirstOrDefault() is object key ? key.Yield().ToArray() : Array.Empty<object>();
+
+					DesignerArea.HighlightMinor(drawnObjects);
+				}
+				else {
+					DesignerArea.HighlightMinor(null);
+				}
+			}
+		}
+
 		#endregion Designer Area
 
 	}

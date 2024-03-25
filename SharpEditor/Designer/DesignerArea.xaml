@@ -170,6 +170,8 @@
 			Background="#1e1e1e"
 			ScaleChanged="OnCanvasScaleChanged"
 			CanvasLeftDoubleClick="OnCanvasDoubleClick"
+			MouseMove="OnDesignerViewerMouseMove"
+			MouseLeave="OnDesignerViewerMouseLeave"
 			PreviewMouseWheel="OnPreviewMouseWheel"
 			PreviewKeyDown="DesignerKeyHandler"
 			Focusable="True"

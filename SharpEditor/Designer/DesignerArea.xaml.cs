@@ -18,6 +18,7 @@ namespace SharpEditor {
 	public partial class DesignerArea : UserControl {
 
 		public readonly double DesignerHighlightStrokeThickness = 2.0; // TODO Turn into property
+		public readonly double DesignerMouseHighlightStrokeThickness = 1.25; // TODO Turn into property
 
 		SharpWPFDrawingDocument? designerDocument;
 		SharpWPFDrawingCanvas? currentPageCanvas;
@@ -31,7 +32,7 @@ namespace SharpEditor {
 
 		public DesignerArea() {
 			InitializeComponent();
-
+			
 			SharpDataManager.Instance.DesignerDisplayFieldsChanged += OnDesignerDisplayFieldsChanged;
 
 			this.DesignerViewer.ScaleChanged += OnCanvasScaleChanged;
@@ -155,9 +156,19 @@ namespace SharpEditor {
 			Canvas.SetLeft(pageHolder.Fields, 0);
 			Canvas.SetTop(pageHolder.Fields, 0);
 
+			pageHolder.MouseHighlights = new Canvas() {
+				Width = page.CanvasRect.Width,
+				Height = page.CanvasRect.Height,
+				IsHitTestVisible = false
+			};
+			pageHolder.PageCanvas.Children.Add(pageHolder.MouseHighlights);
+			Canvas.SetLeft(pageHolder.MouseHighlights, 0);
+			Canvas.SetTop(pageHolder.MouseHighlights, 0);
+
 			pageHolder.Highlights = new Canvas() {
 				Width = page.CanvasRect.Width,
-				Height = page.CanvasRect.Height
+				Height = page.CanvasRect.Height,
+				IsHitTestVisible = false
 			};
 			pageHolder.PageCanvas.Children.Add(pageHolder.Highlights);
 			Canvas.SetLeft(pageHolder.Highlights, 0);
@@ -329,6 +340,11 @@ namespace SharpEditor {
 					shape.StrokeThickness = DesignerHighlightStrokeThickness / DesignerViewer.Scale;
 				}
 			}
+			if (currentPage?.MouseHighlights != null) {
+				foreach (Shape shape in currentPage.MouseHighlights.Children.OfType<Shape>()) {
+					shape.StrokeThickness = DesignerMouseHighlightStrokeThickness / DesignerViewer.Scale;
+				}
+			}
 
 			UpdateCanvasZoomText();
 		}
@@ -350,15 +366,70 @@ namespace SharpEditor {
 			}
 		}
 
+		//private HashSet<object>? currentMouseHighlightedObjects = null;
+
+		/*
+		private void OnDesignerViewerMouseMove(object sender, MouseEventArgs e) {
+			if (currentPageCanvas != null && currentPage?.MouseHighlights is not null && DesignerViewer.CanvasContent is IInputElement) {
+				Point pos = e.GetPosition(DesignerViewer.CanvasContent);
+
+				Dictionary<object, RegisteredAreas> areas = currentPageCanvas.GetAreas(pos);
+
+				if (areas.Count > 0) {
+					HashSet<object> drawnObjects = new HashSet<object>(areas.Keys);
+					if (currentMouseHighlightedObjects is null || !currentMouseHighlightedObjects.SetEquals(drawnObjects)) {
+						currentMouseHighlightedObjects = drawnObjects;
+						Highlight(currentPage?.MouseHighlights, areas.Reverse().OrderBy(kv => kv.Value.Total.Area).Select(kv => kv.Key).First().Yield().ToArray(),
+							Colors.Gray, Colors.Gray, Colors.LightGray, 0.6, DesignerMouseHighlightStrokeThickness, false, false);
+					}
+				}
+				else {
+					currentMouseHighlightedObjects = null;
+					currentPage.MouseHighlights.Visibility = Visibility.Hidden;
+					currentPage.MouseHighlights.Children.Clear();
+				}
+			}
+		}
+		*/
+
+		public event EventHandler<Dictionary<object, RegisteredAreas>>? CanvasMouseMove;
+
+		private void OnDesignerViewerMouseMove(object sender, MouseEventArgs e) {
+			if (currentPageCanvas != null && DesignerViewer.CanvasContent is IInputElement) {
+				//Point pos = e.GetPosition((Canvas)DesignerViewer.CanvasContent);
+				Point pos = e.GetPosition(DesignerViewer.CanvasContent);
+
+				Dictionary<object, RegisteredAreas> areas = currentPageCanvas.GetAreas(pos);
+
+				CanvasMouseMove?.Invoke(sender, areas);
+			}
+		}
+
+		private void OnDesignerViewerMouseLeave(object sender, MouseEventArgs e) {
+			if (currentPage?.MouseHighlights is not null) {
+				//currentMouseHighlightedObjects = null;
+				currentPage.MouseHighlights.Visibility = Visibility.Hidden;
+				currentPage.MouseHighlights.Children.Clear();
+			}
+		}
+
+		public void HighlightMinor(object[]? drawnObjects) {
+			Highlight(currentPage?.MouseHighlights, drawnObjects, Colors.Gray, Colors.Gray, Colors.LightGray, 0.6, DesignerMouseHighlightStrokeThickness, false, false);
+		}
+
 		public void Highlight(object[]? drawnObjects, bool scrollToArea = false, bool zoomToArea = false) {
-			if (Visibility == Visibility.Visible && designerDocument != null && currentPageCanvas != null && currentPage?.Highlights != null && designerDocument.Pages.Count > 0) {
+			Highlight(currentPage?.Highlights, drawnObjects, Colors.Lime, Colors.Orange, Colors.Cyan, 0.75, DesignerHighlightStrokeThickness, scrollToArea: scrollToArea, zoomToArea: zoomToArea);
+		}
+
+		private void Highlight(Canvas? highlightCanvas, object[]? drawnObjects, Color originalColor, Color innerColor, Color adjustedColor, double opacity, double lineThickness, bool scrollToArea = false, bool zoomToArea = false) {
+			if (Visibility == Visibility.Visible && designerDocument != null && currentPageCanvas != null && highlightCanvas != null && designerDocument.Pages.Count > 0) {
 				try {
-					currentPage.Highlights.Children.Clear();
-					currentPage.Highlights.Visibility = Visibility.Hidden;
+					highlightCanvas.Visibility = Visibility.Hidden;
+					highlightCanvas.Children.Clear();
 
 					//object currentDrawnObject = designerGenerator?.DrawingMapper?.GetDrawnObject(textEditor.Document.GetLineByNumber(textEditor.TextArea.Caret.Line));
 					if (drawnObjects != null && drawnObjects.Length > 0) {
-						currentPage.Highlights.Visibility = Visibility.Visible;
+						highlightCanvas.Visibility = Visibility.Visible;
 						//if (currentDesignerPage.Areas.Where(kv => kv.Value == currentDrawnObject).Select(kv => kv.Key).MaxBy(r => r.Area) is Rectangle rectangle) {
 						HashSet<SharpSheets.Layouts.Rectangle> highlightedRects = new HashSet<SharpSheets.Layouts.Rectangle>();
 						foreach (RegisteredAreas areas in drawnObjects.SelectMany(d => currentPageCanvas.GetAreas(d)).OrderBy(r => r.Total.Area)) {
@@ -369,14 +440,15 @@ namespace SharpEditor {
 
 								if (areas.Inner.Length > 0) {
 									foreach (SharpSheets.Layouts.Rectangle innerRect in areas.Inner) {
-										if(innerRect.Width < 0f || innerRect.Height < 0f) { continue; } // Ignore malformed areas
+										if (innerRect.Width < 0f || innerRect.Height < 0f) { continue; } // Ignore malformed areas
 										System.Windows.Shapes.Rectangle adjustedHighlight = new System.Windows.Shapes.Rectangle() {
 											Width = innerRect.Width,
 											Height = innerRect.Height,
-											Stroke = new SolidColorBrush(Colors.Orange) { Opacity = 0.6 },
-											StrokeThickness = DesignerHighlightStrokeThickness / DesignerViewer.Scale
+											Stroke = new SolidColorBrush(innerColor) { Opacity = 0.8 * opacity },
+											StrokeThickness = lineThickness / DesignerViewer.Scale,
+											IsHitTestVisible = false
 										};
-										currentPage.Highlights.Children.Add(adjustedHighlight);
+										highlightCanvas.Children.Add(adjustedHighlight);
 										Canvas.SetLeft(adjustedHighlight, innerRect.Left);
 										Canvas.SetTop(adjustedHighlight, currentPageCanvas.CanvasRect.Height - innerRect.Top);
 									}
@@ -386,10 +458,11 @@ namespace SharpEditor {
 									System.Windows.Shapes.Rectangle adjustedHighlight = new System.Windows.Shapes.Rectangle() {
 										Width = areas.Adjusted.Width,
 										Height = areas.Adjusted.Height,
-										Stroke = new SolidColorBrush(Colors.Cyan) { Opacity = 0.75 },
-										StrokeThickness = DesignerHighlightStrokeThickness / DesignerViewer.Scale
+										Stroke = new SolidColorBrush(adjustedColor) { Opacity = opacity },
+										StrokeThickness = lineThickness / DesignerViewer.Scale,
+										IsHitTestVisible = false
 									};
-									currentPage.Highlights.Children.Add(adjustedHighlight);
+									highlightCanvas.Children.Add(adjustedHighlight);
 									Canvas.SetLeft(adjustedHighlight, areas.Adjusted.Left);
 									Canvas.SetTop(adjustedHighlight, currentPageCanvas.CanvasRect.Height - areas.Adjusted.Top);
 								}
@@ -398,10 +471,11 @@ namespace SharpEditor {
 									System.Windows.Shapes.Rectangle originalHighlight = new System.Windows.Shapes.Rectangle() {
 										Width = areas.Original.Width,
 										Height = areas.Original.Height,
-										Stroke = new SolidColorBrush(Colors.Lime) { Opacity = 0.75 },
-										StrokeThickness = DesignerHighlightStrokeThickness / DesignerViewer.Scale
+										Stroke = new SolidColorBrush(originalColor) { Opacity = opacity },
+										StrokeThickness = lineThickness / DesignerViewer.Scale,
+										IsHitTestVisible = false
 									};
-									currentPage.Highlights.Children.Add(originalHighlight);
+									highlightCanvas.Children.Add(originalHighlight);
 									Canvas.SetLeft(originalHighlight, areas.Original.Left);
 									Canvas.SetTop(originalHighlight, currentPageCanvas.CanvasRect.Height - areas.Original.Top);
 								}
@@ -411,7 +485,7 @@ namespace SharpEditor {
 						if(scrollToArea && highlightedRects.Count > 0) {
 							SharpSheets.Layouts.Rectangle wholeArea = SharpSheets.Layouts.Rectangle.GetCommonRectangle(highlightedRects);
 							float canvasHeight = currentPageCanvas.CanvasRect.Height;
-							Console.WriteLine(currentPageCanvas.CanvasRect);
+							//Console.WriteLine(currentPageCanvas.CanvasRect);
 							DesignerViewer.ShowArea(wholeArea.Left, canvasHeight - wholeArea.Bottom, wholeArea.Right, canvasHeight - wholeArea.Top, zoomToArea);
 						}
 					}
@@ -452,12 +526,13 @@ namespace SharpEditor {
 				};
 		}
 
-		public class DesignerPageHolder {
+		private class DesignerPageHolder {
 			public SharpWPFDrawingCanvas? Page { get; set; }
 
 			public Canvas? PageCanvas { get; set; }
 
 			public Canvas? Highlights { get; set; }
+			public Canvas? MouseHighlights { get; set; }
 			public Canvas? Fields { get; set; }
 		}
 	}
