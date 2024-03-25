@@ -40,3 +40,9 @@ Each font file will be read, and each font saved as an individual font (with its
 ### Specifying Font Files
 
 When specifying fonts in configuration files, they can either be given as font names, font family names, or as paths to font files. As for other paths, it may be an absolute path, or a relative path from the current file.
+
+### Default Fonts
+
+The default font family used in SharpSheets (the font that will be embedded in the document if you do not specify a font setting) is Liberation Sans. This font is released under the SIL Open Font License, and is included in SharpSheets under that license. Thanks are given to the creators of this font for making it available to the community.
+
+This default font is used to ensure that any PDF created with SharpSheets has an embedded font and will (or should) be displayed exactly the same in any PDF viewer, rather than relying on availability of fonts on the host system.

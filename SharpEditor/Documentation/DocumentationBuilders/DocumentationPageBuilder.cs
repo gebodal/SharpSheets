@@ -58,7 +58,9 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		}
 
 		private static TextBlock MakeContentsTextBlock(Inline inline) {
-			TextBlock contentsBlock = new TextBlock(inline) { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 1, 0, 1) };
+			TextBlock contentsBlock = new TextBlock() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 1, 0, 1) };
+			contentsBlock.Inlines.Add(new Run("\u2013\u2002") { Foreground = Brushes.Gray });
+			contentsBlock.Inlines.Add(inline);
 			return contentsBlock;
 		}
 

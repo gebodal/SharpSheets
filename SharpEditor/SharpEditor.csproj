@@ -51,6 +51,8 @@
     <None Remove="Documentation\Content\6 Markup\9 Markup Elements.sd" />
     <None Remove="Documentation\Content\6 Markup\Main.sd" />
     <None Remove="Documentation\Content\5 Cards\Main.sd" />
+    <None Remove="Documentation\Content\7 Fonts\1 Font List.sd" />
+    <None Remove="Documentation\Content\7 Fonts\2 Font Families.sd" />
     <None Remove="Documentation\Content\7 Fonts\Main.sd" />
     <None Remove="Documentation\Content\Main.sd" />
     <None Remove="Documentation\Content\Usage Notes.sd" />
@@ -159,6 +161,8 @@
     <EmbeddedResource Include="Documentation\Content\6 Markup\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\5 Cards\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\9 Markup Elements.sd" />
+    <EmbeddedResource Include="Documentation\Content\7 Fonts\1 Font List.sd" />
+    <EmbeddedResource Include="Documentation\Content\7 Fonts\2 Font Families.sd" />
     <EmbeddedResource Include="Documentation\Content\7 Fonts\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\Main.sd" />
     <EmbeddedResource Include="Documentation\DocumentationBuilders\resources\Unicode\UnicodeData15-1-0.txt" />

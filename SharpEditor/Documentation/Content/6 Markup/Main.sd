@@ -210,7 +210,7 @@ There are also circumstances where you want a value to be one of a specific list
 
 These custom enumeration types obey the same rules as the built-in enumerations, and as such they use case-insensitive comparisons when compared with string values.
 
-In any case where the `name` of an `<arg>` element is a alpabetical string (optionally followed by `[]` to indicate an array) that is not a recognised type, it will be assumed that a custom enumeration type is being defined. The value of `name` will be used as the display name for this type, but otherwise serves no purpose. Each `<option>` element must have a `name` attribute, which is the value of that option (i.e. what is written by the user in the configuration file to specify that option). There may also be a `desc` attribute for an optional description to be displayed to the user.
+In any case where the `type` of an `<arg>` element is a alpabetical string (optionally followed by `[]` to indicate an array) that is not a recognised type, it will be assumed that a custom enumeration type is being defined. The value of `name` will be used as the display name for this type, but otherwise serves no purpose. Each `<option>` element must have a `name` attribute, which is the value of that option (i.e. what is written by the user in the configuration file to specify that option). There may also be a `desc` attribute for an optional description to be displayed to the user.
 
 You can also group arguments together, so that they are better organised for yourself and users. This is done using the `<grouparg>` element:
 
