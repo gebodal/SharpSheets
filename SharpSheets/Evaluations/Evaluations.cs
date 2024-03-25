@@ -27,9 +27,9 @@ namespace SharpSheets.Evaluations {
 			else if (operatorStr == ">=") { return new GreaterThanEqualNode(); }
 			else if (operatorStr == "==") { return new EqualityNode(); }
 			else if (operatorStr == "!=") { return new InequalityNode(); }
-			else if (operatorStr == "&" || operatorStr == "&&") { return new ANDNode(); }
+			else if (operatorStr == "&" || operatorStr == "&&" || operatorStr.ToLowerInvariant() == "and") { return new ANDNode(); }
 			else if (operatorStr == "^") { return new XORNode(); }
-			else if (operatorStr == "|" || operatorStr == "||") { return new ORNode(); }
+			else if (operatorStr == "|" || operatorStr == "||" || operatorStr.ToLowerInvariant() == "or") { return new ORNode(); }
 			else if (operatorStr == "!") { return new NegateOperator(); }
 			else if (operatorStr == "??") { return new NullCoalescingNode(); }
 			else if (operatorStr == "?") { return new ConditionalOperatorNode.ConditionalOpenNode(); }
@@ -173,7 +173,9 @@ namespace SharpSheets.Evaluations {
 		private static readonly RegexChunker tokenRegex = new RegexChunker(new Regex(@"
 			(?<comprehension>for \s+ \$?(?<compvar>[a-z][a-z0-9]*) \s+ in)
 			|
-			(?<if>if) # For use in comprehensions
+			(?<if>(?<=\s|^|\b)if(?=\s|$|\b)) # For use in comprehensions
+			|
+			(?<andor>(?<=\s|^|\b)(?:and|or)(?=\s|$|\b)) # Text versions of Boolean operators
 			|
 			\.(?<accessor>[a-z_][a-z0-9_]*)
 			|
@@ -335,7 +337,7 @@ namespace SharpSheets.Evaluations {
 
 						previousExpression = ParseExpressionState.START;
 					}
-					else if (match.Groups["operator"].Success || match.Groups["accessor"].Success || match.Groups["comprehension"].Success || match.Groups["if"].Success) {
+					else if (match.Groups["operator"].Success || match.Groups["accessor"].Success || match.Groups["comprehension"].Success || match.Groups["if"].Success || match.Groups["andor"].Success) {
 						// Except for the null-coalescing operator, all allowed binary operators are left-associative
 
 						ParseExpressionState nextState = ParseExpressionState.OPERATOR;
@@ -356,7 +358,7 @@ namespace SharpSheets.Evaluations {
 						else if (TryGetUnaryOperator(match.Value, out UnaryOperatorNode? opNode) && (previousExpression == ParseExpressionState.START || previousExpression == ParseExpressionState.OPERATOR)) {
 							operatorNode = opNode;
 						}
-						else {
+						else { // This will cover "andor" group as well
 							operatorNode = GetOperator(match.Value);
 						}
 

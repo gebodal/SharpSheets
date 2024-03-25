@@ -268,6 +268,9 @@ namespace SharpSheets.Evaluations.Nodes {
 				),
 			new EnvironmentFunctionArgList(
 				new EnvironmentFunctionArg("gray", EvaluationType.FLOAT, null)
+				),
+			new EnvironmentFunctionArgList(
+				new EnvironmentFunctionArg("colorStr", EvaluationType.STRING, null)
 				)
 		);
 
@@ -281,6 +284,9 @@ namespace SharpSheets.Evaluations.Nodes {
 					throw new EvaluationTypeException("Color must take 1, 3, or 4 real-valued arguments.");
 				}
 			}
+			else if(args.Length == 1 && args[0].ReturnType == EvaluationType.STRING) {
+				return EvaluationType.COLOR;
+			}
 			else {
 				string s = (args.Length > 1) ? "s" : "";
 				throw new EvaluationTypeException($"Cannot create a color from arguments with type{s}: " + string.Join(", ", args.Select(a => a.ReturnType.ToString())));
@@ -291,38 +297,48 @@ namespace SharpSheets.Evaluations.Nodes {
 			object[] argVals = EvaluationTypes.VerifyArray(args.Select(a => a.Evaluate(environment)).ToArray());
 
 			if (argVals.Length != 1 && argVals.Length != 3 && argVals.Length != 4) {
-				throw new EvaluationCalculationException("Color must take 1, 3, or 4 real-valued arguments.");
+				throw new EvaluationCalculationException("Color must take 1, 3, or 4 real-valued arguments, or a single string.");
 			}
 
 			// TODO Should be able to provide a color name somehow. Should it be in this function, or is that too much overloading?
 
-			bool badTypes = false;
-			float[] values = new float[argVals.Length];
-
-			for (int i = 0; i < argVals.Length; i++) {
-				if (EvaluationTypes.TryGetReal(argVals[i], out float realVal)) {
-					values[i] = realVal.Clamp(0f, 1f);
+			if (argVals.Length == 1 && argVals[0] is string name) {
+				try {
+					return ColorUtils.Parse(name);
 				}
-				else {
-					badTypes = true;
-					break;
+				catch (FormatException e) {
+					throw new EvaluationCalculationException(e.Message, e);
 				}
-			}
-
-			if (badTypes) {
-				Type[] types = argVals.Select(a => a.GetType()).Distinct().ToArray();
-				string s = (types.Length > 1) ? "s" : "";
-				throw new EvaluationTypeException($"Cannot create a color from arguments with type{s}: " + string.Join(", ", types.Select(t => t.Name)));
-			}
-
-			if (values.Length == 1) {
-				return ColorUtils.FromGrayscale(values[0]);
-			}
-			else if (values.Length == 3) {
-				return ColorUtils.FromRGB(values[0], values[1], values[2]);
 			}
 			else {
-				return ColorUtils.FromRGBA(values[1], values[2], values[3], values[0]);
+				bool badTypes = false;
+				float[] values = new float[argVals.Length];
+
+				for (int i = 0; i < argVals.Length; i++) {
+					if (EvaluationTypes.TryGetReal(argVals[i], out float realVal)) {
+						values[i] = realVal.Clamp(0f, 1f);
+					}
+					else {
+						badTypes = true;
+						break;
+					}
+				}
+
+				if (badTypes) {
+					Type[] types = argVals.Select(a => a.GetType()).Distinct().ToArray();
+					string s = (types.Length > 1) ? "s" : "";
+					throw new EvaluationTypeException($"Cannot create a color from arguments with type{s}: " + string.Join(", ", types.Select(t => t.Name)));
+				}
+
+				if (values.Length == 1) {
+					return ColorUtils.FromGrayscale(values[0]);
+				}
+				else if (values.Length == 3) {
+					return ColorUtils.FromRGB(values[0], values[1], values[2]);
+				}
+				else {
+					return ColorUtils.FromRGBA(values[1], values[2], values[3], values[0]);
+				}
 			}
 		}
 
