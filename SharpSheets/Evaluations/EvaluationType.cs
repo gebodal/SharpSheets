@@ -309,7 +309,7 @@ namespace SharpSheets.Evaluations {
 
 		public bool ValidDataType(Type dataType) {
 			// TODO Is this complete?
-			if(this.DataType == dataType) {
+			if(this.DataType == dataType || (this == FLOAT && EvaluationTypes.IsReal(dataType)) || (this == INT && EvaluationTypes.IsIntegral(dataType))) {
 				return true;
 			}
 			else if (this.IsArray && dataType.IsArray && dataType.GetElementType() is Type dataElementType) {
@@ -357,8 +357,16 @@ namespace SharpSheets.Evaluations {
 			return type.DataType == typeof(int) || type.DataType == typeof(uint); ;
 		}
 
+		public static bool IsIntegral(Type dataType) {
+			return dataType == typeof(int) || dataType == typeof(uint); ;
+		}
+
 		public static bool IsReal(this EvaluationType type) {
 			return type.IsIntegral() || type.DataType == typeof(float) || type.DataType == typeof(UFloat);
+		}
+
+		public static bool IsReal(Type dataType) {
+			return IsIntegral(dataType) || dataType == typeof(float) || dataType == typeof(UFloat);
 		}
 
 		public static bool TryGetReal(object? arg, out float value) {

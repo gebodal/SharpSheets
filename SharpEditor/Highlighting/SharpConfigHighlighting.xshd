@@ -118,8 +118,19 @@
 			.
 		</Rule>
 	</RuleSet>
-
+		
 	<RuleSet name="Regex" ignoreCase="true">
+		<Span foreground="Teal">
+			<Begin>(?&lt;!\\)\(</Begin>
+			<End>(?&lt;!\\)\)</End>
+		
+			<RuleSet>
+				<Rule foreground="Teal">
+					.
+				</Rule>
+			</RuleSet>
+		</Span>
+			
 		<Rule foreground="Teal">
 			.
 		</Rule>
@@ -180,9 +191,21 @@
 						</Span>
 						<Span color="DefinitionType">
 							<Begin>(?i:string)\(</Begin>
-							<End>\)\s*(?=\=|\/\/\/|$)</End>
+							<End>\)\s*(?=\=|\/\/\/|$|\[\s*\])</End>
 							<RuleSet>
 								<Import ruleSet="Regex"/>
+							</RuleSet>
+						</Span>
+						<Span color="DefinitionType">
+							<Begin>(?i:intrange|floatrange)\(</Begin>
+							<End>\)\s*(?=\=|\/\/\/|$)</End>
+							<RuleSet>
+								<Rule color="Punctuation">
+									\,
+								</Rule>
+								<Rule color="DefinitionCategory">
+									.
+								</Rule>
 							</RuleSet>
 						</Span>
 						<Rule color="DefinitionType">
@@ -194,7 +217,7 @@
 					[\|]
 				</Rule>
 				<Rule color="DefinitionName">
-					[A-Za-z\s]+
+					[A-Za-z0-9\s]+
 				</Rule>
 			</RuleSet>
 		</Span>

@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using SharpSheets.Parsing;
 using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Exceptions;
+using System.Globalization;
 
 namespace SharpSheets.Cards.Definitions {
 
@@ -129,7 +130,11 @@ namespace SharpSheets.Cards.Definitions {
 					\s*\:\s* # Colon separator
 					(
 						(?<type>
-							(?<typename>int|uint|float|ufloat|bool|string (\s*\((?<regex>(.(?!\/\/\/))+)\))? ) # Main type name
+							(?<typename> # Main type name
+								int|uint|float|ufloat|bool # Basic type
+								|string (\s*\((?<regex>(.(?!\/\/\/))+)\))? # String type (optional regex)
+								|(?<rangetype>float|int)range \s* \( \s* (?<range>[\-\+]?(?:[0-9]+\.[0-9]+|[0-9]+\.|\.[0-9]+|\.[0-9]+|[0-9]+) \s* (?:\, \s* [\-\+]?(?:[0-9]+\.[0-9]+|[0-9]+\.|\.[0-9]+|\.[0-9]+|[0-9]+) )*) \s* \) # Range type
+							)
 							(\s*(?<array>\[\s*\](\s*\[\s*\])*))? # Optional array specification
 						)
 						|
@@ -186,6 +191,32 @@ namespace SharpSheets.Cards.Definitions {
 					}
 					else {
 						definitionType = DefinitionType.Simple(EvaluationType.STRING, arrayRank);
+					}
+				}
+				else if (match.Groups["rangetype"].Success && match.Groups["range"].Success) {
+					string rangeType = match.Groups["rangetype"].Value;
+					string[] rangeVals = match.Groups["range"].Value.SplitAndTrim(',');
+
+					if (rangeVals.Length != 2) {
+						throw new FormatException($"Range definitions must contain exactly two values (start and end).");
+					}
+
+					if (string.Equals(rangeType, "int", StringComparison.OrdinalIgnoreCase)) {
+						try {
+							int[] range = rangeVals.Select(v => int.Parse(v, CultureInfo.InvariantCulture)).ToArray();
+							definitionType = DefinitionType.IntegerRange(range[0], range[1], arrayRank);
+						}
+						catch (FormatException e) { throw new FormatException($"Invalid integer range value.", e); }
+					}
+					else if (string.Equals(rangeType, "float", StringComparison.OrdinalIgnoreCase)) {
+						try {
+							float[] range = rangeVals.Select(v => float.Parse(v, CultureInfo.InvariantCulture)).ToArray();
+							definitionType = DefinitionType.FloatRange(range[0], range[1], arrayRank);
+						}
+						catch (FormatException e) { throw new FormatException($"Invalid integer range value.", e); }
+					}
+					else {
+						throw new FormatException($"Invalid definition range type: {rangeType}");
 					}
 				}
 				else if (typeNameStr == "int") { definitionType = DefinitionType.Simple(EvaluationType.INT, arrayRank); }

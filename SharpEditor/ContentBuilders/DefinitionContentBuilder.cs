@@ -47,6 +47,12 @@ namespace SharpEditor.ContentBuilders {
 			if (definition.Type is RegexType regexType) {
 				definitionPanel.Children.Add(BaseContentBuilder.GetContentTextBlock("Must match: " + regexType.Pattern.ToString(), indentedMargin));
 			}
+			else if (definition.Type is IntegerRange intRangeType) {
+				definitionPanel.Children.Add(BaseContentBuilder.GetContentTextBlock($"Must be in range: {intRangeType.Start}-{intRangeType.End} (inclusive)", indentedMargin));
+			}
+			else if (definition.Type is FloatRange floatRangeType) {
+				definitionPanel.Children.Add(BaseContentBuilder.GetContentTextBlock($"Must be in range: {floatRangeType.Start}-{floatRangeType.End} (inclusive)", indentedMargin));
+			}
 			else if (definition.Type is CategoricalType categorical) {
 				definitionPanel.Children.Add(BaseContentBuilder.GetContentTextBlock("Must be one of the following: " + string.Join(", ", categorical.Categories), indentedMargin));
 			}
