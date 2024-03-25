@@ -723,10 +723,10 @@ namespace SharpEditor.CodeHelpers {
 						items.Add(item);
 					}
 					else {
-						for (int f = 0; f < familyParts.Length; f++) {
-							if (FontPathRegistry.FindFontPath(familyParts[f]) is not null) {
-								MenuItem item = new MenuItem() { Header = familyParts[f] + " Documentation..." };
-								item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(new FontFamilyName(familyParts[f])); };
+						foreach (string fontName in familyParts) {
+							if (FontPathRegistry.FindFontPath(fontName) is not null) {
+								MenuItem item = new MenuItem() { Header = fontName + " Documentation..." };
+								item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(new FontName(fontName)); };
 								items.Add(item);
 							}
 						}

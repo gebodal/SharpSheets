@@ -60,6 +60,10 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				return MakeErrorContent("Could not find font path.");
 			}
 
+			string[] aliases = FontPathRegistry.GetAllRegisteredFonts()
+				.Where(f => f != fontName.Name && path.Equals(FontPathRegistry.FindFontPath(f)))
+				.OrderBy(f => f).ToArray();
+
 			TrueTypeFontFileData fontData;
 			TrueTypePostTable? postTable;
 			OpenTypeGlyphSubstitutionTable? gsubTable;
@@ -114,6 +118,9 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			StackPanel fontProperties = new StackPanel() { Orientation = Orientation.Vertical, Margin = IndentedMargin };
 
+			if (aliases.Length > 0) {
+				fontProperties.Children.Add(GetFontPropertyBlock("Aliases", string.Join(", ", aliases)));
+			}
 			if (GetFontText(fontData, NameID.PreferredFamily, NameID.FontFamily) is string family) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Font Family", family));
 			}
