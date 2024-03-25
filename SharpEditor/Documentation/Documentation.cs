@@ -238,7 +238,7 @@ namespace SharpEditor.Documentation {
 					}
 					else {
 						sb.Append(text[index]);
-				}
+					}
 				}
 				else if (parseState == TextParseState.LINKTEXT) {
 					sb.Append(text[index]);
@@ -292,7 +292,7 @@ namespace SharpEditor.Documentation {
 					}
 					else {
 						sb.Append(text[index]);
-				}
+					}
 				}
 
 				index++;
@@ -503,7 +503,7 @@ namespace SharpEditor.Documentation {
 
 	}
 
-	public enum DocumentationLinkType { UNKNOWN, WIDGET, SHAPE, MARKUP, ENUM }
+	public enum DocumentationLinkType { UNKNOWN, WIDGET, SHAPE, MARKUP, ENUM, CARD }
 	public class DocumentationLink {
 		public readonly DocumentationLinkType linkType;
 		public readonly string location;

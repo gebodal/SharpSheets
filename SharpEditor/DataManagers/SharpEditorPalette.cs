@@ -12,6 +12,7 @@ using System.Xml;
 using SharpSheets.Utilities;
 using SharpEditor.Highlighting;
 using System.Diagnostics.CodeAnalysis;
+using SharpSheets.Cards.CardConfigs;
 
 namespace SharpEditor.DataManagers {
 
@@ -264,6 +265,9 @@ namespace SharpEditor.DataManagers {
 			else if (typeof(IShape).IsAssignableFrom(type)) {
 				return StyleBrush;
 			}
+			else if (typeof(ICardConfigComponent).IsAssignableFrom(type)) {
+				return RectBrush;
+			}
 			else {
 				return TypeBrush; // StyleBrush; // TypeBrush?
 			}
@@ -275,6 +279,9 @@ namespace SharpEditor.DataManagers {
 			}
 			else if (typeof(IShape).IsAssignableFrom(type)) {
 				return StyleBrush;
+			}
+			else if (typeof(ICardConfigComponent).IsAssignableFrom(type)) {
+				return RectBrush;
 			}
 			else {
 				return null;

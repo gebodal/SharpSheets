@@ -284,6 +284,11 @@ namespace SharpEditor.Documentation {
 					return delegate { NavigateTo(EnumPageBuilder.GetEnumPage(enumDoc, this, BuiltInEnumDocFunc(link.location))); };
 				}
 			}
+			else if (link.linkType == DocumentationLinkType.CARD) {
+				if (CardSetConfigFactory.ConfigConstructors.Get(link.location) is ConstructorDetails cardElementConstructor) {
+					return delegate { NavigateTo(ConstructorPageBuilder.GetConstructorPage(cardElementConstructor, this, CardElementConstructorFunc(link.location))); };
+				}
+			}
 
 			// Otherwise, do nothing
 			return delegate { };
@@ -305,6 +310,9 @@ namespace SharpEditor.Documentation {
 				else if(MarkupDocumentation.MarkupConstructors.Get(link) is ConstructorDetails markupConstructor) {
 					NavigateTo(MarkupPageBuilder.GetMarkupElementPage(markupConstructor, this, MarkupConstructorFunc(link)));
 				}
+				else if (CardSetConfigFactory.ConfigConstructors.Get(link) is ConstructorDetails cardElementConstructor) {
+					NavigateTo(ConstructorPageBuilder.GetConstructorPage(cardElementConstructor, this, CardElementConstructorFunc(link)));
+				}
 			};
 		}
 		
@@ -319,11 +327,14 @@ namespace SharpEditor.Documentation {
 		private static Func<ConstructorDetails?> MarkupConstructorFunc(string name) {
 			return () => MarkupDocumentation.MarkupConstructors.Get(name);
 		}
-
+		
 		private static Func<EnumDoc?> BuiltInEnumDocFunc(string name) {
 			return () => SharpDocumentation.GetBuiltInEnumDocFromName(name);
 		}
 
+		private static Func<ConstructorDetails?> CardElementConstructorFunc(string name) {
+			return () => CardSetConfigFactory.ConfigConstructors.Get(name);
+		}
 	}
 
 }
