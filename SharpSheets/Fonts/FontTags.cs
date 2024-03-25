@@ -59,10 +59,10 @@ namespace SharpSheets.Fonts {
 				}
 				else if (components.Length == 2 && !string.IsNullOrWhiteSpace(components[1])) {
 					if (StringComparer.OrdinalIgnoreCase.Equals(components[0], "script")) {
-						scriptTag = components[1];
+						scriptTag = components[1].PadRight(4);
 					}
 					else if(StringComparer.OrdinalIgnoreCase.Equals(components[0], "langsys")) {
-						langSysTag = components[1];
+						langSysTag = components[1].PadRight(4);
 					}
 					else {
 						throw new FormatException($"Unrecognized tag type: {components[0]}");
