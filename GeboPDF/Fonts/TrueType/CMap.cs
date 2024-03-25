@@ -186,8 +186,6 @@ namespace GeboPdf.Fonts.TrueType {
 
 		private static Dictionary<uint, ushort> Read4(FontFileReader reader, out ushort language) {
 
-			/*long offset*/ _ = reader.Position;
-
 			ushort length = reader.ReadUInt16();
 			language = reader.ReadUInt16();
 			ushort segCountX2 = reader.ReadUInt16();
@@ -200,29 +198,14 @@ namespace GeboPdf.Fonts.TrueType {
 			//ushort rangeShift = reader.ReadUInt16();
 			reader.SkipUInt16(3);
 
-			ushort[] endCodes = new ushort[segCount];
-			for (int i = 0; i < segCount; i++) {
-				endCodes[i] = reader.ReadUInt16();
-			}
+			ushort[] endCodes = reader.ReadUInt16(segCount);
+			reader.SkipUInt16(1); // reservedPad - Set to 0.
+			ushort[] startCodes = reader.ReadUInt16(segCount);
+			short[] idDeltas = reader.ReadInt16(segCount);
 
-			reader.SkipUInt16(1); //ushort reservedPad = reader.ReadUInt16();
+			ushort[] idRangeOffsets = reader.ReadUInt16(segCount);
 
-			ushort[] startCodes = new ushort[segCount];
-			for (int i = 0; i < segCount; i++) {
-				startCodes[i] = reader.ReadUInt16();
-			}
-
-			short[] idDeltas = new short[segCount];
-			for (int i = 0; i < segCount; i++) {
-				idDeltas[i] = reader.ReadInt16();
-			}
-
-			ushort[] idRangeOffsets = new ushort[segCount];
-			for (int i = 0; i < segCount; i++) {
-				idRangeOffsets[i] = reader.ReadUInt16();
-			}
-
-			int glyphIndexArrayLength = length - 16 - segCount * 2 * 4;
+			int glyphIndexArrayLength = (length - 16 - segCount * 2 * 4) / 2; // Divide by 2 to account for uint16 byte length
 			ushort[] glyphIndexArray = new ushort[glyphIndexArrayLength];
 			for (int i = 0; i < glyphIndexArrayLength; i++) {
 				glyphIndexArray[i] = reader.ReadUInt16();
