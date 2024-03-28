@@ -194,14 +194,27 @@ namespace GeboPdf.Fonts.TrueType {
 
 	}
 
-	public class PositionedGlyphRun : GlyphRun {
+	public abstract class PositionedGlyphRun : GlyphRun {
+
+		public abstract (short xPlacement, short yPlacement, ushort xAdvanceBase, ushort yAdvanceBase, short xAdvanceDelta, short yAdvanceDelta) GetPosition(int index);
+		public abstract (ushort xAdvanceBase, ushort yAdvanceBase) GetAdvanceBase(int index);
+		public abstract (short xAdvanceDelta, short yAdvanceDelta) GetAdvanceDelta(int index);
+		public abstract (short xAdvance, short yAdvance) GetAdvanceTotal(int index);
+		public abstract (short xPlacement, short yPlacement) GetPlacement(int index);
+
+	}
+
+	public class PositionableGlyphRun : PositionedGlyphRun {
 
 		private readonly ushort[] glyphs;
 
+		protected readonly ushort[] baseXAdvance;
+		protected readonly ushort[] baseYAdvance;
+
 		protected readonly short[] xPlacement;
 		protected readonly short[] yPlacement;
-		protected readonly short[] xAdvance;
-		protected readonly short[] yAdvance;
+		protected readonly short[] xAdvanceDelta;
+		protected readonly short[] yAdvanceDelta;
 
 		public override int Count => glyphs.Length;
 
@@ -209,30 +222,48 @@ namespace GeboPdf.Fonts.TrueType {
 			get => glyphs[index];
 		}
 
-		public PositionedGlyphRun(ushort[] glyphs) {
+		public PositionableGlyphRun(ushort[] glyphs, ushort[] baseXAdvance, ushort[] baseYAdvance) {
+			if (glyphs.Length != baseXAdvance.Length || glyphs.Length != baseYAdvance.Length) {
+				throw new ArgumentException($"Glyphs sequence length ({glyphs.Length}) does not match provided advance sequence lengths ({baseXAdvance.Length}, {baseYAdvance.Length}).");
+			}
 			this.glyphs = glyphs;
+			this.baseXAdvance = baseXAdvance;
+			this.baseYAdvance = baseYAdvance;
 			this.xPlacement = new short[glyphs.Length];
 			this.yPlacement = new short[glyphs.Length];
-			this.xAdvance = new short[glyphs.Length];
-			this.yAdvance = new short[glyphs.Length];
+			this.xAdvanceDelta = new short[glyphs.Length];
+			this.yAdvanceDelta = new short[glyphs.Length];
 		}
 
 		public void AdjustPosition(int index, ValueRecord record) {
 			xPlacement[index] += record.XPlacement ?? 0;
 			yPlacement[index] += record.YPlacement ?? 0;
-			xAdvance[index] += record.XAdvance ?? 0;
-			yAdvance[index] += record.YAdvance ?? 0;
+			xAdvanceDelta[index] += record.XAdvance ?? 0;
+			yAdvanceDelta[index] += record.YAdvance ?? 0;
 		}
 
-		public virtual (short xPlacement, short yPlacement, short xAdvance, short yAdvance) GetPosition(int index) {
-			return (xPlacement[index], yPlacement[index], xAdvance[index], yAdvance[index]);
+		public void AdjustPlacement(int index, short xPlacement, short yPlacement) {
+			this.xPlacement[index] += xPlacement;
+			this.yPlacement[index] += yPlacement;
 		}
 
-		public virtual (short xAdvance, short yAdvance) GetAdvance(int index) {
-			return (xAdvance[index], yAdvance[index]);
+		public override (short xPlacement, short yPlacement, ushort xAdvanceBase, ushort yAdvanceBase, short xAdvanceDelta, short yAdvanceDelta) GetPosition(int index) {
+			return (xPlacement[index], yPlacement[index], baseXAdvance[index], baseYAdvance[index], xAdvanceDelta[index], yAdvanceDelta[index]);
 		}
 
-		public virtual (short xPlacement, short yPlacement) GetPlacement(int index) {
+		public override (ushort xAdvanceBase, ushort yAdvanceBase) GetAdvanceBase(int index) {
+			return (baseXAdvance[index], baseYAdvance[index]);
+		}
+
+		public override (short xAdvanceDelta, short yAdvanceDelta) GetAdvanceDelta(int index) {
+			return (xAdvanceDelta[index], yAdvanceDelta[index]);
+		}
+
+		public override (short xAdvance, short yAdvance) GetAdvanceTotal(int index) {
+			return ((short)(baseXAdvance[index] + xAdvanceDelta[index]), (short)(baseYAdvance[index] + yAdvanceDelta[index]));
+		}
+
+		public override (short xPlacement, short yPlacement) GetPlacement(int index) {
 			return (xPlacement[index], yPlacement[index]);
 		}
 
@@ -244,38 +275,70 @@ namespace GeboPdf.Fonts.TrueType {
 
 	public class PositionedScaledGlyphRun : PositionedGlyphRun {
 
+		protected readonly PositionedGlyphRun basis;
 		protected readonly ushort unitsPerEm;
 
-		public PositionedScaledGlyphRun(ushort[] glyphs, ushort unitsPerEm) : base(glyphs) {
+		public override int Count => basis.Count;
+		public override ushort this[int index] => basis[index];
+
+		public PositionedScaledGlyphRun(PositionedGlyphRun basis, ushort unitsPerEm) {
+			this.basis = basis;
 			this.unitsPerEm = unitsPerEm;
 		}
 
-		public override (short xPlacement, short yPlacement, short xAdvance, short yAdvance) GetPosition(int index) {
+		public override (short xPlacement, short yPlacement, ushort xAdvanceBase, ushort yAdvanceBase, short xAdvanceDelta, short yAdvanceDelta) GetPosition(int index) {
+			(short xPlacement, short yPlacement, ushort xAdvanceBase, ushort yAdvanceBase, short xAdvanceDelta, short yAdvanceDelta) = basis.GetPosition(index);
 			return (
-				ProcessShort(xPlacement[index]),
-				ProcessShort(yPlacement[index]),
-				ProcessShort(xAdvance[index]),
-				ProcessShort(yAdvance[index])
+				ProcessShort(xPlacement),
+				ProcessShort(yPlacement),
+				ProcessUShort(xAdvanceBase),
+				ProcessUShort(yAdvanceBase),
+				ProcessShort(xAdvanceDelta),
+				ProcessShort(yAdvanceDelta)
 				);
 		}
 
-		public override (short xAdvance, short yAdvance) GetAdvance(int index) {
+		public override (ushort xAdvanceBase, ushort yAdvanceBase) GetAdvanceBase(int index) {
+			(ushort xAdvanceBase, ushort yAdvanceBase) = basis.GetAdvanceBase(index);
 			return (
-				ProcessShort(xAdvance[index]),
-				ProcessShort(yAdvance[index])
+				ProcessUShort(xAdvanceBase),
+				ProcessUShort(yAdvanceBase)
+				);
+		}
+
+		public override (short xAdvanceDelta, short yAdvanceDelta) GetAdvanceDelta(int index) {
+			(short xAdvanceDelta, short yAdvanceDelta) = basis.GetAdvanceDelta(index);
+			return (
+				ProcessShort(xAdvanceDelta),
+				ProcessShort(yAdvanceDelta)
+				);
+		}
+
+		public override (short xAdvance, short yAdvance) GetAdvanceTotal(int index) {
+			(short xAdvance, short yAdvance) = basis.GetAdvanceTotal(index);
+			return (
+				ProcessShort(xAdvance),
+				ProcessShort(yAdvance)
 				);
 		}
 
 		public override (short xPlacement, short yPlacement) GetPlacement(int index) {
+			(short xPlacement, short yPlacement) = basis.GetPlacement(index);
 			return (
-				ProcessShort(xPlacement[index]),
-				ProcessShort(yPlacement[index])
+				ProcessShort(xPlacement),
+				ProcessShort(yPlacement)
 				);
 		}
 
 		private short ProcessShort(short value) {
 			return (short)(1000.0 * (value / (double)unitsPerEm));
 		}
+
+		private ushort ProcessUShort(ushort value) {
+			return (ushort)(1000.0 * (value / (double)unitsPerEm));
+		}
+
+		public override ushort[] ToArray() => basis.ToArray();
 
 	}
 

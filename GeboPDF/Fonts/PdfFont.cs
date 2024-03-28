@@ -277,7 +277,7 @@ namespace GeboPdf.Fonts {
 
 		private readonly IReadOnlyDictionary<uint, ushort> unicodeToGID;
 
-		private readonly int[] advanceWidths;
+		private readonly ushort[] advanceWidths;
 		private readonly int[] ascents;
 		private readonly int[] descents;
 		private readonly Dictionary<uint, short>? kerning;
@@ -288,7 +288,7 @@ namespace GeboPdf.Fonts {
 		public PdfType0Font(
 			string origin, MemoryStream fontStream,
 			IReadOnlyDictionary<uint,ushort> unicodeToGID,
-			int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, short>? kerning,
+			ushort[] advanceWidths, short[] ascents, short[] descents, Dictionary<uint, short>? kerning,
 			GlyphSubstitutionLookupSet? gsub, GlyphPositioningLookupSet? gpos, ushort unitsPerEm) {
 
 			this.origin = origin; // TODO This is crude, and needs replacing
@@ -296,13 +296,27 @@ namespace GeboPdf.Fonts {
 
 			this.unicodeToGID = unicodeToGID;
 
+			this.unitsPerEm = unitsPerEm;
 			this.advanceWidths = advanceWidths;
-			this.ascents = ascents;
-			this.descents = descents;
+			this.ascents = ProcessShort(ascents, this.unitsPerEm);
+			this.descents = ProcessShort(descents, this.unitsPerEm);
 			this.kerning = kerning;
 			this.gsub = gsub;
 			this.gpos = gpos;
-			this.unitsPerEm = unitsPerEm;
+		}
+
+		private static int ProcessShort(short value, ushort unitsPerEm) {
+			return (int)(1000 * (value / (double)unitsPerEm));
+		}
+		private static int[] ProcessShort(short[] values, ushort unitsPerEm) {
+			int[] result = new int[values.Length];
+			for(int i=0; i<values.Length; i++) {
+				result[i] = ProcessShort(values[i], unitsPerEm);
+			}
+			return result;
+		}
+		private static int ProcessUShort(ushort value, ushort unitsPerEm) {
+			return (int)(1000 * ((int)value / (double)unitsPerEm));
 		}
 
 		public override IEnumerable<PdfObject> CollectObjects(FontGlyphUsage usage, out PdfIndirectReference fontReference) {
@@ -335,6 +349,21 @@ namespace GeboPdf.Fonts {
 			return glyphs.ToArray();
 		}
 
+		private ushort[] GetWidths(ushort[] gids) {
+			ushort[] advanceWidths = new ushort[gids.Length];
+			for(int i=0; i<gids.Length; i++) {
+				advanceWidths[i] = this.advanceWidths[gids[i]];
+			}
+			return advanceWidths;
+		}
+		private ushort[] GetHeights(ushort[] gids) {
+			ushort[] advanceHeights = new ushort[gids.Length];
+			for (int i = 0; i < gids.Length; i++) {
+				advanceHeights[i] = 0;
+			}
+			return advanceHeights;
+		}
+
 		public override PositionedGlyphRun GetGlyphRun(string text) {
 			ushort[] finalGlyphs = GetGlyphs(text);
 
@@ -365,24 +394,24 @@ namespace GeboPdf.Fonts {
 		}
 
 		private PositionedScaledGlyphRun PerformPositioning(ushort[] finalGlyphs) {
-			PositionedScaledGlyphRun positioned = new PositionedScaledGlyphRun(finalGlyphs, unitsPerEm);
+			PositionableGlyphRun positionable = new PositionableGlyphRun(finalGlyphs, GetWidths(finalGlyphs), GetHeights(finalGlyphs));
 			if (gpos is not null) {
-				gpos.PerformPositioning(positioned);
+				gpos.PerformPositioning(positionable);
 			}
 			else if (kerning is not null) {
-				ApplyKerning(positioned, kerning);
+				ApplyKerning(positionable, kerning);
 			}
-			return positioned;
+			return new PositionedScaledGlyphRun(positionable, unitsPerEm);
 		}
 
-		private static void ApplyKerning(PositionedGlyphRun positioned, Dictionary<uint, short> kerning) {
-			for (int i = 1; i < positioned.Count; i++) {
-				ushort leftGID = positioned[i-1];
-				ushort rightGID = positioned[i];
+		private static void ApplyKerning(PositionableGlyphRun positionable, Dictionary<uint, short> kerning) {
+			for (int i = 1; i < positionable.Count; i++) {
+				ushort leftGID = positionable[i-1];
+				ushort rightGID = positionable[i];
 				uint pair = TrueTypeKerningTable.CombineGlyphs(leftGID, rightGID);
 
 				if(kerning.TryGetValue(pair, out short xAdvAdj)) {
-					positioned.AdjustPosition(i - 1, new ValueRecord(null, null, xAdvAdj, null));
+					positionable.AdjustPosition(i - 1, new ValueRecord(null, null, xAdvAdj, null));
 				}
 			}
 		}
@@ -415,15 +444,14 @@ namespace GeboPdf.Fonts {
 
 			int width = 0;
 			for (int i = 0; i < positioned.Count; i++) {
-				width += advanceWidths[positioned[i]];
-				(short xAdvance, _) = positioned.GetAdvance(i); // Ignoring vertical writing direction for now
+				(short xAdvance, _) = positioned.GetAdvanceTotal(i); // Ignoring vertical writing direction for now
 				width += xAdvance;
 			}
 			return width;
 		}
 
 		public override int GetWidth(ushort glyph) {
-			return advanceWidths[glyph];
+			return ProcessUShort(advanceWidths[glyph], unitsPerEm);
 		}
 
 		public override int GetAscent(string text) {

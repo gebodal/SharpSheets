@@ -66,7 +66,7 @@ namespace GeboPdf.Fonts {
 			GlyphSubstitutionLookupSet? gsubLookups = fontFile.gsub?.GetLookups(layoutTags);
 			GlyphPositioningLookupSet? gposLookups = fontFile.gpos?.GetLookups(layoutTags);
 
-			(int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, short>? kerning) = GetMetrics(fontFile);
+			(ushort[] advanceWidths, short[] ascents, short[] descents, Dictionary<uint, short>? kerning) = GetMetrics(fontFile);
 
 			PdfType0Font pdfFont = new PdfType0Font(
 				fontUri, memoryStream,
@@ -319,15 +319,15 @@ namespace GeboPdf.Fonts {
 			return array;
 		}
 
-		private static (int[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, short>? kerning) GetMetrics(TrueTypeFontFile fontFile) {
+		private static (ushort[] advanceWidths, short[] ascents, short[] descents, Dictionary<uint, short>? kerning) GetMetrics(TrueTypeFontFile fontFile) {
 
-			int[] advanceWidths = new int[fontFile.numGlyphs];
-			int[] ascents = new int[fontFile.numGlyphs];
-			int[] descents = new int[fontFile.numGlyphs];
+			ushort[] advanceWidths = new ushort[fontFile.numGlyphs];
+			short[] ascents = new short[fontFile.numGlyphs];
+			short[] descents = new short[fontFile.numGlyphs];
 
 			for (int i = 0; i < fontFile.numGlyphs; i++) {
 				// Advance width
-				advanceWidths[i] = (int)(1000 * (fontFile.hmtx.advanceWidths[i] / (double)fontFile.UnitsPerEm));
+				advanceWidths[i] = fontFile.hmtx.advanceWidths[i];
 
 				// Ascent & Descent
 				short yMax, yMin;
@@ -343,8 +343,8 @@ namespace GeboPdf.Fonts {
 					yMax = fontFile.head.yMax;
 					yMin = fontFile.head.yMax;
 				}
-				ascents[i] = (int)(1000 * (yMax / (double)fontFile.UnitsPerEm));
-				descents[i] = (int)(1000 * (yMin / (double)fontFile.UnitsPerEm));
+				ascents[i] = yMax;
+				descents[i] = yMin;
 			}
 
 			Dictionary<uint, short>? kerning = null;
@@ -357,6 +357,7 @@ namespace GeboPdf.Fonts {
 
 					for (int s = 0; s < fontFile.kern.Subtables.Length; s++) {
 						TrueTypeKerningSubtable subtable = fontFile.kern.Subtables[s];
+						// TODO Only deals with horizontal writing
 						if(subtable.Coverage.IsKerningValues() && subtable.Coverage.IsHorizontal() && !subtable.Coverage.IsCrossStream()) {
 							if (subtable.Values.TryGetValue(pair, out short value)) {
 								if (subtable.Coverage.IsOverride()) {

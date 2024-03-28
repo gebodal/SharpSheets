@@ -896,12 +896,12 @@ namespace SharpEditor {
 					(short xPlacement, short yPlacement) = glyphRun.GetPlacement(i);
 					float xPlaceSized = PdfFont.ConvertDesignSpaceValue(xPlacement, fontsize);
 					float yPlaceSized = PdfFont.ConvertDesignSpaceValue(yPlacement, fontsize);
-					glyphGeometry.Transform = new TranslateTransform(runningX + xPlaceSized, yPlaceSized);
+					glyphGeometry.Transform = new TranslateTransform(runningX + xPlaceSized, -yPlaceSized);
 					textGeometryGroup.Children.Add(glyphGeometry);
 				}
 
-				runningX += pdfFont.GetWidth(g, fontsize);
-				runningX += PdfFont.ConvertDesignSpaceValue(glyphRun.GetAdvance(i).xAdvance, fontsize);
+				//runningX += pdfFont.GetWidth(g, fontsize);
+				runningX += PdfFont.ConvertDesignSpaceValue(glyphRun.GetAdvanceTotal(i).xAdvance, fontsize);
 			}
 
 			textGeometryGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y) * SharpSheets.Canvas.Transform.Scale(1, -1));

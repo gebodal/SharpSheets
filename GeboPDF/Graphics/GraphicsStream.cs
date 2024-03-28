@@ -817,21 +817,53 @@ namespace GeboPdf.Graphics {
 
 				List<ushort> builder = new List<ushort>();
 
-				for(int i=0; i< positionedGlyphs.Count; i++) {
+				// TODO It might be good to compare against current text rise, and only adjust if different
+				float baseTestRise = state.TextRise;
+				short currentRise = 0;
+
+				for (int i = 0; i < positionedGlyphs.Count; i++) {
+					(short xPlacement, short yPlacement) = positionedGlyphs.GetPlacement(i);
+					if (xPlacement != 0) {
+						if (builder.Count > 0) {
+							positioned.Add((builder.ToArray(), null));
+							builder.Clear();
+						}
+						positioned.Add((Array.Empty<ushort>(), -xPlacement));
+					}
+					if(yPlacement != currentRise) {
+						if (builder.Count > 0) {
+							positioned.Add((builder.ToArray(), null));
+							builder.Clear();
+						}
+						if (positioned.Count > 0) {
+							ShowTextWithPositioning(positioned.ToArray());
+							positioned.Clear();
+						}
+						TextRise(baseTestRise + PdfFont.ConvertDesignSpaceValue(yPlacement, state.Font.size));
+						currentRise = yPlacement;
+					}
+
 					builder.Add(positionedGlyphs[i]);
-					(short xAdvDelta, _) = positionedGlyphs.GetAdvance(i);
-					// TODO Need to make use of placement data here
-					if(xAdvDelta != 0) {
-						positioned.Add((builder.ToArray(), -xAdvDelta));
+					
+					(short xAdvDelta, _) = positionedGlyphs.GetAdvanceDelta(i);
+					if (xAdvDelta != 0 || xPlacement != 0) {
+						positioned.Add((builder.ToArray(), -xAdvDelta + xPlacement));
 						builder.Clear();
 					}
+				}
+
+				if (currentRise != 0) {
+					TextRise(baseTestRise);
 				}
 
 				if (builder.Count > 0) {
 					positioned.Add((builder.ToArray(), null));
 				}
+				if(positioned.Count > 0) {
+					ShowTextWithPositioning(positioned.ToArray());
+				}
 
-				return ShowTextWithPositioning(positioned.ToArray());
+				return this;
 			}
 			else {
 				return ShowText(text);

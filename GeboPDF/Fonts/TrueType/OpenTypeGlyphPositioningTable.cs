@@ -171,9 +171,9 @@ namespace GeboPdf.Fonts.TrueType {
 
 	public interface IPositioningSubtable {
 
-		int PerformPositioning(PositionedGlyphRun run, int index);
+		int PerformPositioning(PositionableGlyphRun run, int index);
 
-		void PerformPositioning(PositionedGlyphRun run) {
+		void PerformPositioning(PositionableGlyphRun run) {
 			for (int i = 0; i < run.Count; i++) {
 				i += PerformPositioning(run, i);
 			}
@@ -195,13 +195,13 @@ namespace GeboPdf.Fonts.TrueType {
 			MarkFilteringSet = markFilteringSet;
 		}
 
-		public void PerformPositioning(PositionedGlyphRun run) {
+		public void PerformPositioning(PositionableGlyphRun run) {
 			for (int i = 0; i < Subtables.Length; i++) {
 				Subtables[i].PerformPositioning(run);
 			}
 		}
 
-		public void PerformPositioning(PositionedGlyphRun run, int index) {
+		public void PerformPositioning(PositionableGlyphRun run, int index) {
 			for (int i = 0; i < Subtables.Length; i++) {
 				Subtables[i].PerformPositioning(run, index);
 			}
@@ -217,7 +217,7 @@ namespace GeboPdf.Fonts.TrueType {
 			this.Lookups = lookups;
 		}
 
-		public void PerformPositioning(PositionedGlyphRun run) {
+		public void PerformPositioning(PositionableGlyphRun run) {
 			for (int i = 0; i < Lookups.Length; i++) {
 				Lookups[i].PerformPositioning(run);
 			}
@@ -229,7 +229,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		private OpenTypeSingleAdjustmentPositioningSubtable() { }
 
-		public abstract int PerformPositioning(PositionedGlyphRun run, int index);
+		public abstract int PerformPositioning(PositionableGlyphRun run, int index);
 
 		internal static OpenTypeSingleAdjustmentPositioningSubtable Read(FontFileReader reader, long offset) {
 
@@ -268,7 +268,7 @@ namespace GeboPdf.Fonts.TrueType {
 				ValueRecord = valueRecord;
 			}
 
-			public override int PerformPositioning(PositionedGlyphRun run, int index) {
+			public override int PerformPositioning(PositionableGlyphRun run, int index) {
 				if (Coverage.IsCovered(run[index])) {
 					run.AdjustPosition(index, ValueRecord);
 				}
@@ -287,7 +287,7 @@ namespace GeboPdf.Fonts.TrueType {
 				ValueRecords = valueRecords;
 			}
 
-			public override int PerformPositioning(PositionedGlyphRun run, int index) {
+			public override int PerformPositioning(PositionableGlyphRun run, int index) {
 				if (Coverage.CoverageIndex(run[index]) is ushort coverageIdx) {
 					run.AdjustPosition(index, ValueRecords[coverageIdx]);
 				}
@@ -302,7 +302,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		private OpenTypePairAdjustmentPositioningSubtable() { }
 
-		public abstract int PerformPositioning(PositionedGlyphRun run, int index);
+		public abstract int PerformPositioning(PositionableGlyphRun run, int index);
 
 		internal static OpenTypePairAdjustmentPositioningSubtable Read(FontFileReader reader, long offset) {
 
@@ -363,7 +363,7 @@ namespace GeboPdf.Fonts.TrueType {
 				PairSets = pairSets;
 			}
 
-			public override int PerformPositioning(PositionedGlyphRun run, int index) {
+			public override int PerformPositioning(PositionableGlyphRun run, int index) {
 				if (index < run.Count - 1 && Coverage.CoverageIndex(run[index]) is ushort coverageIdx) {
 					PairSetTable pairSet = PairSets[coverageIdx];
 
@@ -446,7 +446,7 @@ namespace GeboPdf.Fonts.TrueType {
 				Class1Records = class1Records;
 			}
 
-			public override int PerformPositioning(PositionedGlyphRun run, int index) {
+			public override int PerformPositioning(PositionableGlyphRun run, int index) {
 				if (index < run.Count - 1 && Coverage.IsCovered(run[index])) {
 					ushort classVal1 = ClassDef1.GetClass(run[index]);
 					ushort classVal2 = ClassDef2.GetClass(run[index + 1]);
@@ -513,8 +513,8 @@ namespace GeboPdf.Fonts.TrueType {
 
 		private OpenTypeCursiveAttachmentPositioningSubtable() { }
 
-		public abstract void PerformPositioning(PositionedGlyphRun run);
-		public abstract int PerformPositioning(PositionedGlyphRun run, int index);
+		public abstract void PerformPositioning(PositionableGlyphRun run);
+		public abstract int PerformPositioning(PositionableGlyphRun run, int index);
 
 		internal static OpenTypeCursiveAttachmentPositioningSubtable Read(FontFileReader reader, long offset) {
 
@@ -557,7 +557,7 @@ namespace GeboPdf.Fonts.TrueType {
 				ExtryExitRecords = extryExitRecords;
 			}
 
-			public override void PerformPositioning(PositionedGlyphRun run) {
+			public override void PerformPositioning(PositionableGlyphRun run) {
 				// TODO Need to take account for text direction here, and cross-stream stuff
 				for (int i = 0; i < run.Count - 1; i++) {
 					if (Coverage.CoverageIndex(run[i]) is ushort coverageIdx1 && Coverage.CoverageIndex(run[i + 1]) is ushort coverageIdx2) {
@@ -569,7 +569,7 @@ namespace GeboPdf.Fonts.TrueType {
 				}
 			}
 
-			public override int PerformPositioning(PositionedGlyphRun run, int index) {
+			public override int PerformPositioning(PositionableGlyphRun run, int index) {
 				if (index < run.Count - 1 &&  Coverage.CoverageIndex(run[index]) is ushort coverageIdx1 && Coverage.CoverageIndex(run[index + 1]) is ushort coverageIdx2) {
 					(_, AnchorTable? exitAnchor) = ExtryExitRecords[coverageIdx1];
 					(AnchorTable? entryAnchor, _) = ExtryExitRecords[coverageIdx2];
@@ -587,7 +587,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		private OpenTypeMarkToBaseAttachmentPositioningSubtable() { }
 
-		public abstract int PerformPositioning(PositionedGlyphRun run, int index);
+		public abstract int PerformPositioning(PositionableGlyphRun run, int index);
 
 		internal static OpenTypeMarkToBaseAttachmentPositioningSubtable Read(FontFileReader reader, long offset) {
 
@@ -640,8 +640,25 @@ namespace GeboPdf.Fonts.TrueType {
 				BaseRecords = baseRecords;
 			}
 
-			public override int PerformPositioning(PositionedGlyphRun run, int index) {
-				// TODO What do?
+			public override int PerformPositioning(PositionableGlyphRun run, int index) {
+				if (index > 0
+					&& MarkCoverage.CoverageIndex(run[index]) is ushort markCoverageIdx
+					&& BaseCoverage.CoverageIndex(run[index - 1]) is ushort baseCoverageIdx) {
+
+					(ushort markClass, AnchorTable markAnchor) = MarkArray.MarkRecords[markCoverageIdx];
+					AnchorTable? baseAttachmentAnchor = BaseRecords[baseCoverageIdx][markClass];
+
+					if (baseAttachmentAnchor is not null) {
+						(short xDelta, short yDelta) = AnchorTable.GetDelta(
+							baseAttachmentAnchor,
+							run.GetAdvanceTotal(index - 1),
+							run.GetPlacement(index - 1),
+							markAnchor);
+
+						run.AdjustPlacement(index, xDelta, yDelta);
+					}
+				}
+
 				return 0;
 			}
 
@@ -653,7 +670,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		private OpenTypeMarkToLigatureAttachmentPositioningSubtable() { }
 
-		public abstract int PerformPositioning(PositionedGlyphRun run, int index);
+		public abstract int PerformPositioning(PositionableGlyphRun run, int index);
 
 		internal static OpenTypeMarkToLigatureAttachmentPositioningSubtable Read(FontFileReader reader, long offset) {
 
@@ -704,7 +721,7 @@ namespace GeboPdf.Fonts.TrueType {
 				LigatureAttachTables = ligatureAttachTables;
 			}
 
-			public override int PerformPositioning(PositionedGlyphRun run, int index) {
+			public override int PerformPositioning(PositionableGlyphRun run, int index) {
 				// TODO What do?
 				return 0;
 			}
@@ -742,7 +759,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 		private OpenTypeMarkToMarkAttachmentPositioningSubtable() { }
 
-		public abstract int PerformPositioning(PositionedGlyphRun run, int index);
+		public abstract int PerformPositioning(PositionableGlyphRun run, int index);
 
 		internal static OpenTypeMarkToMarkAttachmentPositioningSubtable Read(FontFileReader reader, long offset) {
 
@@ -795,8 +812,25 @@ namespace GeboPdf.Fonts.TrueType {
 				Mark2Records = mark2Records;
 			}
 
-			public override int PerformPositioning(PositionedGlyphRun run, int index) {
-				// TODO What do?
+			public override int PerformPositioning(PositionableGlyphRun run, int index) {
+				if (index > 0
+					&& Mark1Coverage.CoverageIndex(run[index]) is ushort mark1CoverageIdx
+					&& Mark2Coverage.CoverageIndex(run[index - 1]) is ushort mark2CoverageIdx) {
+
+					(ushort mark1Class, AnchorTable mark1Anchor) = Mark1Array.MarkRecords[mark1CoverageIdx];
+					AnchorTable? mark2AttachmentAnchor = Mark2Records[mark2CoverageIdx][mark1Class];
+
+					if (mark2AttachmentAnchor is not null) {
+						(short xDelta, short yDelta) = AnchorTable.GetDelta(
+							mark2AttachmentAnchor,
+							run.GetAdvanceTotal(index - 1),
+							run.GetPlacement(index - 1),
+							mark1Anchor);
+
+						run.AdjustPlacement(index, xDelta, yDelta);
+					}
+				}
+
 				return 0;
 			}
 
@@ -820,7 +854,7 @@ namespace GeboPdf.Fonts.TrueType {
 			return new OpenTypeContextualPositioningSubtable(table, lookupList);
 		}
 
-		public void PerformPositioning(PositionedGlyphRun run) {
+		public void PerformPositioning(PositionableGlyphRun run) {
 			SequenceLookupRecord[]?[] runRecords = table.FindRecords(run);
 
 			for (int i = 0; i < runRecords.Length; i++) {
@@ -833,7 +867,7 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 		}
 
-		public int PerformPositioning(PositionedGlyphRun run, int index) {
+		public int PerformPositioning(PositionableGlyphRun run, int index) {
 			// TODO This should never actually be called?
 
 			SequenceLookupRecord[]? records = table.FindRecords(run, index);
@@ -866,7 +900,7 @@ namespace GeboPdf.Fonts.TrueType {
 			return new OpenTypeChainedContextsPositioningSubtable(table, lookupList);
 		}
 
-		public void PerformPositioning(PositionedGlyphRun run) {
+		public void PerformPositioning(PositionableGlyphRun run) {
 			SequenceLookupRecord[]?[] runRecords = table.FindRecords(run);
 
 			for (int i = 0; i < runRecords.Length; i++) {
@@ -879,7 +913,7 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 		}
 
-		public int PerformPositioning(PositionedGlyphRun run, int index) {
+		public int PerformPositioning(PositionableGlyphRun run, int index) {
 			// TODO This should never actually be called?
 
 			SequenceLookupRecord[]? records = table.FindRecords(run, index);
@@ -1021,6 +1055,17 @@ namespace GeboPdf.Fonts.TrueType {
 				throw new FormatException($"Unknown anchor table format: {anchorFormat}");
 			}
 
+		}
+
+		public static (short xDelta, short yDelta) GetDelta(AnchorTable baseAnchor, (short x, short y) baseAdvance, (short x, short y) basePlacement, AnchorTable attachAnchor) {
+			// TODO This does not take account of writing direction
+
+			short finalBaseAnchorX = (short)(baseAnchor.XCoordinate + basePlacement.x);
+			short finalBaseAnchorY = (short)(baseAnchor.YCoordinate + basePlacement.y);
+			short xDelta = (short)(-attachAnchor.XCoordinate - baseAdvance.x + finalBaseAnchorX);
+			short yDelta = (short)(-attachAnchor.YCoordinate + finalBaseAnchorY);
+
+			return (xDelta, yDelta);
 		}
 
 	}
