@@ -21,7 +21,16 @@ namespace GeboPdf.Fonts.TrueType {
 		public static TrueTypeCollection Open(string fontProgramPath) {
 			using (FileStream fontFileStream = new FileStream(fontProgramPath, FileMode.Open, FileAccess.Read)) {
 				FontFileReader fontReader = new FontFileReader(fontFileStream);
-				TrueTypeCollection fontFile = TrueTypeCollection.Open(fontReader);
+				TrueTypeCollection fontCollection = Open(fontReader);
+				//fontFileStream.Close();
+				return fontCollection;
+			}
+		}
+
+		public static TrueTypeFontFile Open(string fontProgramPath, int fontIndex) {
+			using (FileStream fontFileStream = new FileStream(fontProgramPath, FileMode.Open, FileAccess.Read)) {
+				FontFileReader fontReader = new FontFileReader(fontFileStream);
+				TrueTypeFontFile fontFile = Open(fontReader, fontIndex);
 				//fontFileStream.Close();
 				return fontFile;
 			}
@@ -62,6 +71,18 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			return new TrueTypeCollection(fonts);
+		}
+
+		public static TrueTypeFontFile Open(FontFileReader reader, int fontIndex) {
+
+			uint[] tableDirectoryOffsets = ReadHeader(reader);
+
+			if (fontIndex < 0 || fontIndex >= tableDirectoryOffsets.Length) {
+				throw new ArgumentOutOfRangeException(nameof(fontIndex), fontIndex, $"This collection contains only {tableDirectoryOffsets.Length} fonts.");
+			}
+
+			reader.Position = tableDirectoryOffsets[fontIndex];
+			return TrueTypeFontFile.Open(reader);
 		}
 
 		public static void ExtractFont(Stream source, int fontIndex, Stream output) {
