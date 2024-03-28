@@ -46,11 +46,11 @@ namespace SharpSheets.Utilities {
 		public static bool StartsWith(this string str, params string[] prefixes) {
 			return prefixes.Where(p => str.StartsWith(p)).Any();
 		}
-		public static bool EndsWith(this string str, StringComparison comparisonType, params string[] prefixes) {
-			return prefixes.Where(p => str.EndsWith(p, comparisonType)).Any();
+		public static bool EndsWith(this string str, StringComparison comparisonType, params string[] suffixes) {
+			return suffixes.Where(p => str.EndsWith(p, comparisonType)).Any();
 		}
-		public static bool EndsWith(this string str, params string[] prefixes) {
-			return prefixes.Where(p => str.EndsWith(p)).Any();
+		public static bool EndsWith(this string str, params string[] suffixes) {
+			return suffixes.Where(p => str.EndsWith(p)).Any();
 		}
 
 		public static string ToTitleCase(this string str) {
