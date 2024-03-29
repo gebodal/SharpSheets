@@ -1,4 +1,5 @@
 ﻿using SharpSheets.Canvas.Text;
+using SharpSheets.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -6,6 +7,10 @@ using System.Text;
 namespace SharpSheets.Parsing {
 
 	public static class StringParsing {
+
+		private static string NormalizeString(string text) {
+			return text.Normalize(NormalizationForm.FormKD); // This form seems to work best, but why?
+		}
 
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
@@ -64,7 +69,7 @@ namespace SharpSheets.Parsing {
 				throw new FormatException("Invalid escape sequence at end of string.");
 			}
 
-			return output.ToString();
+			return NormalizeString(output.ToString());
 		}
 
 		private static readonly int MAX_CHAR_VALUE = 0xFF;
@@ -291,7 +296,17 @@ namespace SharpSheets.Parsing {
 				i++;
 			}
 
-			return new RichString(chars.ToArray(), formats.ToArray());
+			RichString initial = new RichString(chars.ToArray(), formats.ToArray());
+			List<char> finalChars = new List<char>();
+			List<TextFormat> finalFormats = new List<TextFormat>(raw.Length);
+
+			foreach((string segment, TextFormat format) in initial.GetSegments()) {
+				string normalized = NormalizeString(segment);
+				finalChars.AddRange(normalized);
+				finalFormats.AddRange(format.Yield(normalized.Length));
+			}
+
+			return new RichString(finalChars.ToArray(), finalFormats.ToArray());
 		}
 
 		/// <summary></summary>

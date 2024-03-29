@@ -388,6 +388,26 @@ namespace SharpSheets.Canvas.Text {
 
 			return new RichString((char[])chars.Clone(), newFormats, Text);
 		}
+
+		public IEnumerable<(string text, TextFormat format)> GetSegments() {
+			StringBuilder builder = new StringBuilder(Length);
+			TextFormat format = TextFormat.REGULAR;
+
+			for (int i = 0; i < Length; i++) {
+				if (format != formats[i]) {
+					if (builder.Length > 0) {
+						yield return (builder.ToString(), format);
+						builder.Clear();
+					}
+					format = formats[i];
+				}
+				builder.Append(chars[i]);
+			}
+
+			if (builder.Length > 0) {
+				yield return (builder.ToString(), format);
+			}
+		}
 	}
 
 }

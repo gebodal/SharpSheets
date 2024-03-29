@@ -642,21 +642,38 @@ namespace GeboPdf.Fonts.TrueType {
 
 			public override int PerformPositioning(PositionableGlyphRun run, int index) {
 				if (index > 0
-					&& MarkCoverage.CoverageIndex(run[index]) is ushort markCoverageIdx
-					&& BaseCoverage.CoverageIndex(run[index - 1]) is ushort baseCoverageIdx) {
+					&& MarkCoverage.CoverageIndex(run[index]) is ushort markCoverageIdx) {
 
+					ushort baseCoverageIdx = 0;
+					short totalAdvanceX = 0;
+					short totalAdvanceY = 0;
+					int baseIndex;
+					for (baseIndex = index - 1; baseIndex >= 0; baseIndex--) {
+						(short xAdvance, short yAdvance) = run.GetAdvanceTotal(baseIndex);
+						totalAdvanceX += xAdvance;
+						totalAdvanceY += yAdvance;
+
+						if(BaseCoverage.CoverageIndex(run[baseIndex]) is ushort iBaseIdx) {
+							baseCoverageIdx = iBaseIdx;
+							break;
+						}
+					}
+
+					if (baseIndex >= 0) { // Found a base glyph before start of sequence
 					(ushort markClass, AnchorTable markAnchor) = MarkArray.MarkRecords[markCoverageIdx];
 					AnchorTable? baseAttachmentAnchor = BaseRecords[baseCoverageIdx][markClass];
 
 					if (baseAttachmentAnchor is not null) {
 						(short xDelta, short yDelta) = AnchorTable.GetDelta(
 							baseAttachmentAnchor,
-							run.GetAdvanceTotal(index - 1),
-							run.GetPlacement(index - 1),
-							markAnchor);
+								(totalAdvanceX, totalAdvanceY),
+								run.GetPlacement(baseIndex),
+								markAnchor,
+								run.GetPlacement(index));
 
 						run.AdjustPlacement(index, xDelta, yDelta);
 					}
+				}
 				}
 
 				return 0;
@@ -825,7 +842,8 @@ namespace GeboPdf.Fonts.TrueType {
 							mark2AttachmentAnchor,
 							run.GetAdvanceTotal(index - 1),
 							run.GetPlacement(index - 1),
-							mark1Anchor);
+							mark1Anchor,
+							run.GetPlacement(index));
 
 						run.AdjustPlacement(index, xDelta, yDelta);
 					}
@@ -1057,13 +1075,15 @@ namespace GeboPdf.Fonts.TrueType {
 
 		}
 
-		public static (short xDelta, short yDelta) GetDelta(AnchorTable baseAnchor, (short x, short y) baseAdvance, (short x, short y) basePlacement, AnchorTable attachAnchor) {
+		public static (short xDelta, short yDelta) GetDelta(AnchorTable baseAnchor, (short x, short y) baseAdvance, (short x, short y) basePlacement, AnchorTable attachAnchor, (short x, short y) attachPlacement) {
 			// TODO This does not take account of writing direction
 
+			short finalAttachAnchorX = (short)(attachAnchor.XCoordinate + attachPlacement.x);
+			short finalAttachAnchorY = (short)(attachAnchor.YCoordinate + attachPlacement.y);
 			short finalBaseAnchorX = (short)(baseAnchor.XCoordinate + basePlacement.x);
 			short finalBaseAnchorY = (short)(baseAnchor.YCoordinate + basePlacement.y);
-			short xDelta = (short)(-attachAnchor.XCoordinate - baseAdvance.x + finalBaseAnchorX);
-			short yDelta = (short)(-attachAnchor.YCoordinate + finalBaseAnchorY);
+			short xDelta = (short)(-finalAttachAnchorX - baseAdvance.x + finalBaseAnchorX);
+			short yDelta = (short)(-finalAttachAnchorY + finalBaseAnchorY);
 
 			return (xDelta, yDelta);
 		}

@@ -781,7 +781,7 @@ namespace GeboPdf.Graphics {
 			return this;
 		}
 
-		private GraphicsStream ShowTextWithPositioning(params (ushort[] glyphs, float? offset)[] array) {
+		private GraphicsStream ShowTextWithPositioning(params (ushort[] glyphs, short? offset)[] array) {
 			if (streamLevel != GraphicsStreamState.Text) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Text);
 			}
@@ -794,7 +794,7 @@ namespace GeboPdf.Graphics {
 					WriteText(array[i].glyphs);
 					writer.WriteSpace();
 				}
-				if (array[i].offset.HasValue) {
+				if (array[i].offset.HasValue && array[i].offset!.Value != 0) {
 					writer.WriteFloat(array[i].offset!.Value);
 					writer.WriteSpace();
 				}
@@ -813,7 +813,20 @@ namespace GeboPdf.Graphics {
 				PositionedGlyphRun positionedGlyphs = glyphFont.GetGlyphRun(text, out FontGlyphUsage fontUsage);
 				resources.RegisterFontUsage(glyphFont, fontUsage);
 
-				List<(ushort[] glyphs, float? offset)> positioned = new List<(ushort[], float?)>();
+				List<(ushort[] glyphs, short? offset)> positioned1 = new List<(ushort[], short?)>();
+
+				void AddEntry(ushort[] gids, short? offset) {
+					offset = offset.HasValue && offset.Value == 0 ? null : offset;
+					if (gids.Length == 0 && offset.HasValue && positioned1.Count > 0) {
+						positioned1[^1] = (positioned1[^1].glyphs, (short)((positioned1[^1].offset ?? 0) + offset.Value));
+					}
+					else if (gids.Length > 0 && positioned1.Count > 0 && !positioned1[^1].offset.HasValue) {
+						positioned1[^1] = (positioned1[^1].glyphs.Concat(gids).ToArray(), offset);
+					}
+					else if (gids.Length > 0 || offset.HasValue) {
+						positioned1.Add((gids, offset));
+					}
+				}
 
 				List<ushort> builder = new List<ushort>();
 
@@ -825,42 +838,43 @@ namespace GeboPdf.Graphics {
 					(short xPlacement, short yPlacement) = positionedGlyphs.GetPlacement(i);
 					if (xPlacement != 0) {
 						if (builder.Count > 0) {
-							positioned.Add((builder.ToArray(), null));
+							AddEntry(builder.ToArray(), null);
 							builder.Clear();
 						}
-						positioned.Add((Array.Empty<ushort>(), -xPlacement));
+
+						AddEntry(Array.Empty<ushort>(), (short)-xPlacement);
 					}
-					if(yPlacement != currentRise) {
+					if (yPlacement != currentRise) {
 						if (builder.Count > 0) {
-							positioned.Add((builder.ToArray(), null));
+							AddEntry(builder.ToArray(), null);
 							builder.Clear();
 						}
-						if (positioned.Count > 0) {
-							ShowTextWithPositioning(positioned.ToArray());
-							positioned.Clear();
+						if (positioned1.Count > 0) {
+							ShowTextWithPositioning(positioned1.ToArray());
+							positioned1.Clear();
 						}
 						TextRise(baseTestRise + PdfFont.ConvertDesignSpaceValue(yPlacement, state.Font.size));
 						currentRise = yPlacement;
 					}
 
 					builder.Add(positionedGlyphs[i]);
-					
+
 					(short xAdvDelta, _) = positionedGlyphs.GetAdvanceDelta(i);
 					if (xAdvDelta != 0 || xPlacement != 0) {
-						positioned.Add((builder.ToArray(), -xAdvDelta + xPlacement));
+						AddEntry(builder.ToArray(), (short)(-xAdvDelta + xPlacement));
 						builder.Clear();
 					}
 				}
 
-				if (currentRise != 0) {
-					TextRise(baseTestRise);
+				if (builder.Count > 0) {
+					AddEntry(builder.ToArray(), null);
+				}
+				if (positioned1.Count > 0) {
+					ShowTextWithPositioning(positioned1.ToArray());
 				}
 
-				if (builder.Count > 0) {
-					positioned.Add((builder.ToArray(), null));
-				}
-				if(positioned.Count > 0) {
-					ShowTextWithPositioning(positioned.ToArray());
+				if (currentRise != 0) {
+					TextRise(baseTestRise);
 				}
 
 				return this;

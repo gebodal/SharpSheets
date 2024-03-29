@@ -17,29 +17,11 @@ namespace SharpSheets.Canvas.Text {
 
 			float fontSize = canvas.GetTextSize();
 			float xPos = x;
-			StringBuilder builder = new StringBuilder(line.Length);
-			TextFormat format = TextFormat.REGULAR;
 
-			void DrawSegment() {
-				string segment = builder.ToString();
+			foreach((string segment, TextFormat format) in line.GetSegments()) {
 				canvas.SetTextFormatAndSize(format, fontSize);
 				canvas.DrawText(segment, xPos, y);
 				xPos += canvas.GetWidth(segment);
-			}
-
-			for (int i = 0; i < line.Length; i++) {
-				if (format != line.formats[i]) {
-					if (builder.Length > 0) {
-						DrawSegment();
-						builder.Clear();
-					}
-					format = line.formats[i];
-				}
-				builder.Append(line.chars[i]);
-			}
-
-			if (builder.Length > 0) {
-				DrawSegment();
 			}
 
 			canvas.RestoreState();

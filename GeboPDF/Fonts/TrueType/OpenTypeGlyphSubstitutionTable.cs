@@ -612,7 +612,7 @@ namespace GeboPdf.Fonts.TrueType {
 			return new OpenTypeContextualSubstitutionSubtable(table, lookupList);
 		}
 
-		public bool Forward => true;
+		public bool Forward => false;
 
 		public void PerformSubstitution(SubstitutionGlyphRun run) {
 			SequenceLookupRecord[]?[] runRecords = table.FindRecords(run);
@@ -671,7 +671,7 @@ namespace GeboPdf.Fonts.TrueType {
 			return new OpenTypeChainedContextsSubstitutionSubtable(table, lookupList);
 		}
 
-		public bool Forward => true;
+		public bool Forward => false;
 
 		public void PerformSubstitution(SubstitutionGlyphRun run) {
 			SequenceLookupRecord[]?[] runRecords = table.FindRecords(run);
