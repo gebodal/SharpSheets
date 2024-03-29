@@ -1356,8 +1356,8 @@ namespace SharpEditor {
 			if (drawingMapper != null) {
 				if (areas.Count > 0) {
 					object[] drawnObjects = areas.Where(kv => drawingMapper.GetDrawnObjectDepth(kv.Key).HasValue)
-						.OrderByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1)
-						.ThenBy(kv => kv.Value.Total.Area)
+						.OrderBy(kv => kv.Value.Total.Area)
+						.ThenByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1)
 						.Select(kv => kv.Key)
 						.FirstOrDefault() is object key ? key.Yield().ToArray() : Array.Empty<object>();
 
