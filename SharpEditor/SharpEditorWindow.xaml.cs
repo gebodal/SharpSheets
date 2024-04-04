@@ -591,7 +591,7 @@ namespace SharpEditor {
 						else if (TemplateImports.IsKnownTemplateFileType(filepath)) {
 							MessageBoxResult result = MessageBox.Show($"Import {System.IO.Path.GetFileName(filepath)} into templates?", "Import Templates", MessageBoxButton.YesNo, MessageBoxImage.Question);
 							if(result == MessageBoxResult.Yes) {
-								TemplateImports.ImportFile(filepath);
+								ImportTemplateFile(filepath);
 							}
 						}
 					}
@@ -609,21 +609,25 @@ namespace SharpEditor {
 			};
 			if (dlg.ShowDialog() ?? false) {
 				foreach (string filename in dlg.FileNames) {
-					try {
-						TemplateImports.ImportFile(filename);
-					}
-					catch(IOException e) {
-						MessageBox.Show($"There was an error importing {filename}: {e.Message ?? "Unknown error"}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-					}
-					catch (NotImplementedException e) {
-						MessageBox.Show($"Cannot import {filename}: {e.Message ?? "Unknown error"}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-					}
+					ImportTemplateFile(filename);
 				}
 			}
 		}
 
 		private void ImportTemplateFilesClick(object? sender, RoutedEventArgs e) {
 			ImportTemplateFiles(SharpEditorPathInfo.LastFileDirectory);
+		}
+
+		private void ImportTemplateFile(string filepath) {
+			try {
+				TemplateImports.ImportFile(filepath);
+			}
+			catch (IOException e) {
+				MessageBox.Show($"There was an error importing {filepath}: {e.Message ?? "Unknown error"}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+			}
+			catch (NotImplementedException e) {
+				MessageBox.Show($"Cannot import {filepath}: {e.Message ?? "Unknown error"}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+			}
 		}
 
 		#endregion

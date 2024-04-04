@@ -75,7 +75,7 @@ namespace SharpEditor.DataManagers {
 
 		public static void ClearRegistryErrors(string filepath) {
 			string fullFilePath = System.IO.Path.GetFullPath(filepath);
-			_registryErrors.Remove(filepath);
+			_registryErrors.Remove(fullFilePath);
 		}
 
 		public static void RefreshRegistries() {

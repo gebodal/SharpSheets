@@ -21,6 +21,7 @@ namespace SharpEditor {
 
 			// Initialise static variables in data handlers
 			SharpDataManager.Initialise();
+			SharpSheetsStateManager.Initialise();
 			SharpEditorPalette.Initialise();
 			SharpEditorRegistries.Initialise();
 

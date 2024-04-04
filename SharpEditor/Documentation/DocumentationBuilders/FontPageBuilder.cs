@@ -106,6 +106,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
 			TextBlock nameTitleBlock = GetContentTextBlock(fontName.Name, TextBlockMargin, 2.0);
+			nameTitleBlock.ToolTip = path.Path;
 			stack.Children.Add(nameTitleBlock);
 
 			if (GetFontText(fontData, NameID.SampleText, NameID.FontFamily) is string sampleText) {

@@ -3,6 +3,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Threading;
 using SharpEditor.DataManagers;
+using SharpSheets.Fonts;
+using SharpSheets.Utilities;
 
 namespace SharpEditor.Program {
 
@@ -12,7 +14,7 @@ namespace SharpEditor.Program {
 		private static readonly int retryDelay = 100;
 
 		public static bool IsKnownTemplateFileType(string path) {
-			return System.IO.Path.GetExtension(path) == ".zip";
+			return path.EndsWith(StringComparison.OrdinalIgnoreCase, ".zip") || FontPathRegistry.PathIsFontFile(path);
 		}
 
 		public static void ImportFile(string path) {

@@ -45,17 +45,16 @@ namespace SharpSheets.Fonts {
 				}
 			}
 
-			return fontsDirs.ToArray();
+			return fontsDirs.Where(d => Directory.Exists(d)).ToArray();
 		}
 
 		private static readonly EnumerationOptions fontFileEnumerateOpt = new EnumerationOptions() {
 			RecurseSubdirectories = true
 		};
-		private static IEnumerable<string> GetSystemFontFiles() {
-			return GetSystemFontsDirs()
-				.Where(d => Directory.Exists(d))
+		private static IEnumerable<string> GetSourceFontFiles(params string[] sources) {
+			return sources.Where(d => Directory.Exists(d))
 				.SelectMany(d => Directory.EnumerateFiles(d, "*.???", fontFileEnumerateOpt))
-				.Where(f => f.EndsWith(StringComparison.InvariantCultureIgnoreCase, ".ttf", ".ttc", ".otf", ".otc"))
+				.Where(PathIsFontFile)
 				.Distinct();
 		}
 
@@ -63,22 +62,26 @@ namespace SharpSheets.Fonts {
 			return path.EndsWith(StringComparison.InvariantCultureIgnoreCase, ".ttc", ".otc");
 		}
 
+		public static bool PathIsFontFile(string path) {
+			return path.EndsWith(StringComparison.InvariantCultureIgnoreCase, ".ttf", ".ttc", ".otf", ".otc");
+		}
+
+		public static readonly IReadOnlyCollection<string> FontFileExtensions = new string[] { ".ttf", ".ttc", ".otf", ".otc" };
+
 		#region FontPath Registry
 
-		public static FontPathGrouping? FindFontFamily(string fontName) {
+		public static FontPathGrouping? FindFontFamily(string familyName) {
 			if (!AllRegistered) {
 				RegisterAll(); // Now FamilyRegistry/FontRegistry is definitely not null
 			}
 
-			if (FamilyRegistry.TryGetValue(fontName, out Dictionary<TextFormat, FontPath>? register)) {
-				return new FontPathGrouping(
-					register.GetValueOrFallback(TextFormat.REGULAR, null),
-					register.GetValueOrFallback(TextFormat.BOLD, null),
-					register.GetValueOrFallback(TextFormat.ITALIC, null),
-					register.GetValueOrFallback(TextFormat.BOLDITALIC, null)
-					);
+			if(CustomFamilyRegistry.Values.FirstOrDefault(r=>r.ContainsKey(familyName))?.TryGetValue(familyName, out Dictionary<TextFormat, FontPath>? customRegister) ?? false) {
+				return MakeGrouping(customRegister);
 			}
-			else if(FontRegistry.TryGetValue(fontName, out FontPath? path)) {
+			else if (FamilyRegistry.TryGetValue(familyName, out Dictionary<TextFormat, FontPath>? register)) {
+				return MakeGrouping(register);
+			}
+			else if(FontRegistry.TryGetValue(familyName, out FontPath? path)) {
 				return new FontPathGrouping(path, null, null, null);
 			}
 			else {
@@ -86,12 +89,24 @@ namespace SharpSheets.Fonts {
 			}
 		}
 
+		private static FontPathGrouping MakeGrouping(Dictionary<TextFormat, FontPath> register) {
+			return new FontPathGrouping(
+				register.GetValueOrFallback(TextFormat.REGULAR, null),
+				register.GetValueOrFallback(TextFormat.BOLD, null),
+				register.GetValueOrFallback(TextFormat.ITALIC, null),
+				register.GetValueOrFallback(TextFormat.BOLDITALIC, null)
+				);
+		}
+
 		public static FontPath? FindFontPath(string fontName) {
 			if (!AllRegistered) {
 				RegisterAll(); // Now FamilyRegistry/FontRegistry is definitely not null
 			}
 
-			if (FontRegistry.TryGetValue(fontName, out FontPath? singleton)) {
+			if (CustomFontRegistry.Values.FirstOrDefault(r => r.ContainsKey(fontName))?.TryGetValue(fontName, out FontPath? custom) ?? false) {
+				return custom;
+			}
+			else if (FontRegistry.TryGetValue(fontName, out FontPath? singleton)) {
 				return singleton;
 			}
 			else if (FindFontFamily(fontName) is FontPathGrouping grouping) {
@@ -107,20 +122,20 @@ namespace SharpSheets.Fonts {
 				RegisterAll(); // Now FamilyRegistry/FontRegistry is definitely not null
 			}
 
-			return FontRegistry.FirstOrDefault(kv => FontPath.Equals(kv.Value, fontpath)).Key;
+			return CustomFontRegistry.SelectMany(kv => kv.Value).Concat(FontRegistry).FirstOrDefault(kv => FontPath.Equals(kv.Value, fontpath)).Key;
 		}
 
 		public static IEnumerable<string> GetAllRegisteredFamilies() {
 			if (!AllRegistered) {
 				RegisterAll(); // Now FamilyRegistry/FontRegistry is definitely not null
 			}
-			return FamilyRegistry.Keys;
+			return CustomFamilyRegistry.Values.SelectMany(r => r.Keys).Concat(FamilyRegistry.Keys).Distinct();
 		}
 		public static IEnumerable<string> GetAllRegisteredFonts() {
 			if (!AllRegistered) {
 				RegisterAll(); // Now FamilyRegistry/FontRegistry is definitely not null
 			}
-			return FontRegistry.Keys;
+			return CustomFontRegistry.Values.SelectMany(r => r.Keys).Concat(FontRegistry.Keys).Distinct();
 		}
 
 		[MemberNotNullWhen(true, nameof(FamilyRegistry), nameof(FontRegistry))]
@@ -130,11 +145,43 @@ namespace SharpSheets.Fonts {
 
 		[MemberNotNull(nameof(FamilyRegistry), nameof(FontRegistry))]
 		public static void RegisterAll() {
+			(FamilyRegistry, FontRegistry) = ReadFontSources(GetSystemFontsDirs());
+			AllRegistered = true;
+		}
 
-			FamilyRegistry = new Dictionary<string, Dictionary<TextFormat, FontPath>>();
-			FontRegistry = new Dictionary<string, FontPath>();
+		private static readonly Dictionary<string, Dictionary<string, Dictionary<TextFormat, FontPath>>> CustomFamilyRegistry = new Dictionary<string, Dictionary<string, Dictionary<TextFormat, FontPath>>>();
+		private static readonly Dictionary<string, Dictionary<string, FontPath>> CustomFontRegistry = new Dictionary<string, Dictionary<string, FontPath>>();
 
-			foreach (string filePath in GetSystemFontFiles()) {
+		public static bool AddFontSource(string path) {
+			if (!Directory.Exists(path)) { return false; } // Throw exception?
+
+			CustomFamilyRegistry.Remove(path);
+			CustomFontRegistry.Remove(path);
+
+			(Dictionary<string, Dictionary<TextFormat, FontPath>> families, Dictionary<string, FontPath> fonts) = ReadFontSources(path);
+
+			//Console.WriteLine($"Register {fonts.Count} fonts from {path}: {string.Join(", ", fonts.Values)}");
+
+			if(families.Count > 0 || fonts.Count > 0) {
+				CustomFamilyRegistry.Add(path, families);
+				CustomFontRegistry.Add(path, fonts);
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+
+		public static bool RemoveFontSource(string path) {
+			return CustomFamilyRegistry.Remove(path) | CustomFontRegistry.Remove(path);
+		}
+
+		private static (Dictionary<string, Dictionary<TextFormat, FontPath>> families, Dictionary<string, FontPath> fonts) ReadFontSources(params string[] sources) {
+
+			Dictionary<string, Dictionary<TextFormat, FontPath>> families = new Dictionary<string, Dictionary<TextFormat, FontPath>>();
+			Dictionary<string, FontPath> fonts = new Dictionary<string, FontPath>();
+
+			foreach (string filePath in GetSourceFontFiles(sources)) {
 				//Console.WriteLine(filePath);
 				try {
 					TrueTypeFontFileData[] fontFiles = OpenFontFile(filePath, out bool isFontCollection);
@@ -156,13 +203,13 @@ namespace SharpSheets.Fonts {
 
 						//Console.WriteLine($"Family name:    {familyName}");
 
-						if (!FamilyRegistry.ContainsKey(familyName)) {
-							FamilyRegistry.Add(familyName, new Dictionary<TextFormat, FontPath>());
+						if (!families.ContainsKey(familyName)) {
+							families.Add(familyName, new Dictionary<TextFormat, FontPath>());
 						}
 
 						TextFormat? format = GetTextFormat(fontFile);
 						if (format.HasValue) {
-							Dictionary<TextFormat, FontPath> family = FamilyRegistry[familyName];
+							Dictionary<TextFormat, FontPath> family = families[familyName];
 							if (!family.ContainsKey(format.Value)) {
 								family[format.Value] = fontPath;
 							}
@@ -174,17 +221,17 @@ namespace SharpSheets.Fonts {
 						// TODO Does this first one make sense?
 
 						string? fullName = GetFullName(fontFile);
-						if (fullName is not null && !FontRegistry.ContainsKey(fullName)) {
+						if (fullName is not null && !fonts.ContainsKey(fullName)) {
 							//Console.WriteLine($"Full name:      {fullName}");
-							FontRegistry.Add(fullName, fontPath);
+							fonts.Add(fullName, fontPath);
 						}
 
 						string? faceName = GetFaceName(fontFile);
 						if (faceName is not null) {
 							string singletonName = (familyName + " " + faceName).Trim();
 							//Console.WriteLine($"Singleton name: {singletonName}");
-							if (!FontRegistry.ContainsKey(singletonName)) {
-								FontRegistry.Add(singletonName, fontPath);
+							if (!fonts.ContainsKey(singletonName)) {
+								fonts.Add(singletonName, fontPath);
 							}
 						}
 					}
@@ -197,10 +244,10 @@ namespace SharpSheets.Fonts {
 				}
 			}
 
-			string[] registryKeys = FamilyRegistry.Keys.ToArray();
+			string[] registryKeys = families.Keys.ToArray();
 			foreach (string key in registryKeys) {
-				if (FamilyRegistry[key].Count == 0) {
-					FamilyRegistry.Remove(key);
+				if (families[key].Count == 0) {
+					families.Remove(key);
 				}
 				/*
 				else if (!FamilyRegistry[key].ContainsKey(TextFormat.REGULAR)) {
@@ -209,8 +256,12 @@ namespace SharpSheets.Fonts {
 				*/
 			}
 
-			AllRegistered = true;
+			return (families, fonts);
 		}
+
+		#endregion FontPath Registry
+
+		#region FontFile Utils
 
 		public static TrueTypeFontFileData[] OpenFontFile(string path, out bool isFontCollection) {
 			TrueTypeFontFileData[] fontFiles;
@@ -240,10 +291,6 @@ namespace SharpSheets.Fonts {
 
 			return fontFile;
 		}
-
-		#endregion FontPath Registry
-
-		#region FontFile Utils
 
 		private static string? GetFamilyName(TrueTypeFontFileData fontFile) {
 			////return glyphs.FamilyNames.Select(kv => kv.Value).Distinct().FirstOrDefault();
