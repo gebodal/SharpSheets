@@ -58,6 +58,19 @@ namespace SharpSheets.Parsing {
 				else if(raw[i] == '\\') {
 					escaped = true;
 				}
+				else if (raw[i] == '-') {
+					if(i + 2 < raw.Length && raw[i + 1] == '-' && raw[i + 2] == '-') {
+						output.Append('\u2014');
+						i += 2;
+					}
+					else if (i + 1 < raw.Length && raw[i + 1] == '-') {
+						output.Append('\u2013');
+						i += 1;
+					}
+					else {
+						output.Append(raw[i]);
+					}
+				}
 				else {
 					output.Append(raw[i]);
 				}
@@ -244,7 +257,7 @@ namespace SharpSheets.Parsing {
 						string codeStr = raw.Substring(i + 1, 4);
 						string unicode = GetUnicode(codeStr);
 
-						for(int c=0; c<unicode.Length; c++) {
+						for (int c = 0; c < unicode.Length; c++) {
 							AddChar(unicode[c]);
 						}
 
@@ -287,6 +300,19 @@ namespace SharpSheets.Parsing {
 					}
 					else { // Not bold
 						currentFormat |= TextFormat.ITALIC;
+					}
+				}
+				else if (raw[i] == '-') {
+					if (i + 2 < raw.Length && raw[i + 1] == '-' && raw[i + 2] == '-') {
+						AddChar('\u2014');
+						i += 2;
+					}
+					else if (i + 1 < raw.Length && raw[i + 1] == '-') {
+						AddChar('\u2013');
+						i += 1;
+					}
+					else {
+						AddChar(raw[i]);
 					}
 				}
 				else {
