@@ -356,6 +356,27 @@ namespace SharpEditor.CodeHelpers {
 			return textEditor.CaretOffset;
 		}
 
+		private IEnumerable<ConstructorArgumentDetails> ExpandCompletionArguments(IEnumerable<ConstructorArgumentDetails> arguments, IContext? context) {
+			foreach (ConstructorArgumentDetails argument in arguments.Distinct(ArgumentComparer.Instance).Where(a => !a.ArgumentType.IsList)) {
+				yield return argument;
+
+				if (argument.Implied != null && context != null) {
+					string fullArg = $"{argument.ArgumentName.ToLowerInvariant()}.{argument.Implied.ToLowerInvariant()}";
+					string? style = context.GetProperty(fullArg, argument.UseLocal, context, null);
+					
+					if (!impliedConstructors.TryGetValue(style ?? "!", out ConstructorDetails? argConstructor)) {
+						argConstructor = GetConstructor(CodeHelpers.DefaultType(argument.ArgumentType));
+					}
+
+					if (argConstructor != null) {
+						foreach(ConstructorArgumentDetails impliedArg in argConstructor.ConstructorArguments) {
+							yield return new ConstructorArgumentDetails(impliedArg.Constructor, impliedArg.Argument.Prefixed(argument.ArgumentName));
+						}
+					}
+				}
+			}
+		}
+
 		IEnumerable<ICompletionData> GetArgumentNameCompletionEntries(IEnumerable<ConstructorArgumentDetails> arguments, IContext? context, string prefix = "", string? existingText = null) {
 			string prepend = prefix.Length > 0 ? prefix + "." : "";
 
@@ -368,52 +389,58 @@ namespace SharpEditor.CodeHelpers {
 				return final;
 			}
 
-			foreach (ConstructorArgumentDetails argument in arguments.Distinct(ArgumentComparer.Instance)) {
-				if (argument.ArgumentType.IsList) {
-					// Ignore entries arguments for completion
-					continue;
-				}
-				else if (argument.Implied != null) {
-					string fullArg = $"{argument.ArgumentName.ToLowerInvariant()}.{argument.Implied.ToLowerInvariant()}";
+			// No list types, so as to ignore entries arguments for completion
+			foreach (var argGroup in ExpandCompletionArguments(arguments, context).GroupBy(a => new { a.ArgumentName, a.Implied, a.ArgumentType })) {
+				if (argGroup.Key.Implied != null) {
+					string fullArg = $"{argGroup.Key.ArgumentName.ToLowerInvariant()}.{argGroup.Key.Implied.ToLowerInvariant()}";
 					yield return new CompletionEntry(FinalText(fullArg) + ":") {
-						DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context),
+						//DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context),
+						DescriptionElements = TooltipBuilder.MakeMultipleArgumentBlocks(argGroup, context).ToArray(),
 						Append = " "
 					};
 
-					if (context != null) {
-						string? style = context.GetProperty(fullArg, argument.UseLocal, context, null);
-						if (!impliedConstructors.TryGetValue(style ?? "!", out ConstructorDetails? argConstructor)) {
-							argConstructor = GetConstructor(CodeHelpers.DefaultType(argument.ArgumentType));
-						}
-						if (argConstructor!=null) {
-							IContext argContext = new NamedContext(context, argument.ArgumentName.ToLowerInvariant());
-							foreach (ICompletionData completionData in GetArgumentNameCompletionEntries(argConstructor.ConstructorArguments, argContext, prefix: argument.ArgumentName.ToLowerInvariant(), existingText: existingText)) {
-								yield return completionData;
+					/*
+					foreach (ConstructorArgumentDetails argument in argGroup) {
+						if (context != null) {
+							string? style = context.GetProperty(fullArg, argument.UseLocal, context, null);
+							if (!impliedConstructors.TryGetValue(style ?? "!", out ConstructorDetails? argConstructor)) {
+								argConstructor = GetConstructor(CodeHelpers.DefaultType(argument.ArgumentType));
+							}
+							if (argConstructor != null) {
+								IContext argContext = new NamedContext(context, argument.ArgumentName.ToLowerInvariant());
+								foreach (ICompletionData completionData in GetArgumentNameCompletionEntries(argConstructor.ConstructorArguments, argContext, prefix: argument.ArgumentName.ToLowerInvariant(), existingText: existingText)) {
+									yield return completionData;
+								}
 							}
 						}
 					}
+					*/
 				}
-				else if (argument.ArgumentType.DisplayType == typeof(bool)) {
-					yield return new CompletionEntry(FinalText(argument.ArgumentName.ToLowerInvariant())) {
-						DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context)
+				else if (argGroup.Key.ArgumentType.DisplayType == typeof(bool)) {
+					yield return new CompletionEntry(FinalText(argGroup.Key.ArgumentName.ToLowerInvariant())) {
+						//DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context)
+						DescriptionElements = TooltipBuilder.MakeMultipleArgumentBlocks(argGroup, context).ToArray()
 					};
 				}
-				else if (argument.ArgumentType.DisplayType == typeof(Margins) || argument.ArgumentType.DisplayType == typeof(Position)) {
-					yield return new CompletionEntry(FinalText(argument.ArgumentName.ToLowerInvariant()) + ":") {
-						DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context),
+				else if (argGroup.Key.ArgumentType.DisplayType == typeof(Margins) || argGroup.Key.ArgumentType.DisplayType == typeof(Position) || argGroup.Key.ArgumentType.DisplayType == typeof(FontTags)) {
+					yield return new CompletionEntry(FinalText(argGroup.Key.ArgumentName.ToLowerInvariant()) + ":") {
+						//DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context),
+						DescriptionElements = TooltipBuilder.MakeMultipleArgumentBlocks(argGroup, context).ToArray(),
 						Append = " {",
 						AfterCaretAppend = "}"
 					};
 				}
-				else if (argument.ArgumentType.DisplayType == typeof(ChildHolder)) {
-					yield return new CompletionEntry(FinalText(argument.ArgumentName.ToLowerInvariant()) + ":") {
-						DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context),
+				else if (argGroup.Key.ArgumentType.DisplayType == typeof(ChildHolder)) {
+					yield return new CompletionEntry("&" + FinalText(argGroup.Key.ArgumentName.ToLowerInvariant()) + ":") {
+						//DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context),
+						DescriptionElements = TooltipBuilder.MakeMultipleArgumentBlocks(argGroup, context).ToArray(),
 						Append = Environment.NewLine
 					};
 				}
 				else {
-					yield return new CompletionEntry(FinalText(argument.ArgumentName.ToLowerInvariant()) + ":") {
-						DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context),
+					yield return new CompletionEntry(FinalText(argGroup.Key.ArgumentName.ToLowerInvariant()) + ":") {
+						//DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context),
+						DescriptionElements = TooltipBuilder.MakeMultipleArgumentBlocks(argGroup, context).ToArray(),
 						Append = " "
 					};
 				}
@@ -608,6 +635,19 @@ namespace SharpEditor.CodeHelpers {
 			return content;
 		}
 
+		public IList<UIElement> GetFallbackToolTipContent(int offset) {
+			List<UIElement> content = new List<UIElement>();
+
+			TSpan? firstSpan = parsingState.ConfigSpans.Where(s => s.Type == SharpConfigSpanType.DIV).OrderBy(s => s.StartOffset).FirstOrDefault();
+
+			if(firstSpan is not null && offset < firstSpan.StartOffset) {
+				IContext? constructorContext = parsingState.GetContext(offset);
+				content.AddRange(TooltipBuilder.MakeConstructorEntry(fallbackType, constructorContext, true, impliedConstructors));
+			}
+
+			return content;
+		}
+
 		protected ConstructorArgumentDetails? GetNamedChildArg(TSpan span, ConstructorDetails parentConstructor) {
 			if (span.Name is null) {
 				return null;
@@ -670,28 +710,8 @@ namespace SharpEditor.CodeHelpers {
 				}
 			}
 			else {
-				foreach (IGrouping<DocumentationString?, ConstructorArgumentDetails> descriptionGrouping in allArgs.GroupBy(t => t.ArgumentDescription)) {
-					StackPanel argumentList = new StackPanel() {
-						Orientation = Orientation.Vertical,
-						Margin = TooltipBuilder.TextBlockMargin
-					};
-					foreach (ConstructorArgumentDetails constructorArg in descriptionGrouping.GroupBy(t => $"{SharpValueHandler.GetTypeName(t.ArgumentType)} {t.ConstructorName}.{t.ArgumentName}").Select(g => g.First())) {
-						argumentList.Children.Add(TooltipBuilder.MakeArgumentHeaderBlock(constructorArg, context, false));
-					}
-					yield return argumentList;
-
-					if (TooltipBuilder.MakeDescriptionTextBlock(descriptionGrouping.Key) is TextBlock descriptionBlock) {
-						//yield return TooltipBuilder.MakeIndentedBlock(descriptionGrouping.Key);
-						yield return descriptionBlock;
-					}
-
-					if (descriptionGrouping.Select(a => a.ArgumentType.DisplayType).First() is Type argType && argType.IsEnum && SharpDocumentation.GetEnumDoc(argType) is EnumDoc enumDoc) {
-						yield return TooltipBuilder.MakeEnumOptionsBlock(enumDoc, true);
-					}
-
-					if (descriptionGrouping.Select(a => a.UseLocal).First()) {
-						yield return TooltipBuilder.MakeIndentedBlock("(Local)");
-					}
+				foreach(FrameworkElement propertyElem in TooltipBuilder.MakeMultipleArgumentBlocks(allArgs, context)) {
+					yield return propertyElem;
 				}
 			}
 		}

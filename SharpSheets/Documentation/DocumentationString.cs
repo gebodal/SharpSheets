@@ -57,7 +57,7 @@ namespace SharpSheets.Documentation {
 			if (other is null) { return false; }
 			if(Spans.Length != other.Spans.Length) { return false; }
 			for (int i = 0; i < Spans.Length; i++) {
-				if (Spans[i] != other.Spans[i]) { return false; }
+				if (!Spans[i].Equals(other.Spans[i])) { return false; }
 			}
 			return true;
 		}

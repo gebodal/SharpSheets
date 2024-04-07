@@ -796,25 +796,33 @@ namespace SharpEditor {
 			TextViewPosition? pos = textEditor.GetPositionFromPoint(args.GetPosition(textEditor));
 			if (pos == null) return;
 			string? mouseWord = textEditor.Document.GetSharpTermStringFromViewPosition(pos.Value);
-			if (mouseWord == null) return;
 			int posOffset = textEditor.Document.GetOffset(pos.Value);
+			if (mouseWord is not null) {
 
-			ToolTipPanel.Children.Clear();
+				ToolTipPanel.Children.Clear();
 
-			if (codeHelper != null) {
-				foreach (UIElement element in codeHelper.GetToolTipContent(posOffset, mouseWord)) {
-					ToolTipPanel.Children.Add(element);
+				if (codeHelper != null) {
+					foreach (UIElement element in codeHelper.GetToolTipContent(posOffset, mouseWord)) {
+						ToolTipPanel.Children.Add(element);
+					}
+				}
+
+				if (parsingState != null) {
+					bool madeSeparator = false;
+					foreach (string message in parsingState.GetErrors(posOffset).Select(e => e.Message).Distinct()) {
+						if (ToolTipPanel.Children.Count > 0 && !madeSeparator) {
+							ToolTipPanel.Children.Add(TooltipBuilder.MakeSeparator());
+						}
+						madeSeparator = true;
+						ToolTipPanel.Children.Add(TooltipBuilder.GetToolTipTextBlock(message));
+					}
 				}
 			}
+			else if(codeHelper != null) { // No mouse-over word
+				ToolTipPanel.Children.Clear();
 
-			if (parsingState != null) {
-				bool madeSeparator = false;
-				foreach (string message in parsingState.GetErrors(posOffset).Select(e => e.Message).Distinct()) {
-					if(ToolTipPanel.Children.Count > 0 && !madeSeparator) {
-						ToolTipPanel.Children.Add(TooltipBuilder.MakeSeparator());
-					}
-					madeSeparator = true;
-					ToolTipPanel.Children.Add(TooltipBuilder.GetToolTipTextBlock(message));
+				foreach (UIElement element in codeHelper.GetFallbackToolTipContent(posOffset)) {
+					ToolTipPanel.Children.Add(element);
 				}
 			}
 

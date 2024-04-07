@@ -185,6 +185,10 @@ namespace SharpEditor.CodeHelpers {
 			return contents;
 		}
 
+		public IList<UIElement> GetFallbackToolTipContent(int offset) {
+			return Array.Empty<UIElement>();
+		}
+
 		private IEnumerable<MarkupSpan> GetElementSpans(int offset) {
 			foreach(MarkupSpan span in parsingState.GetSpansAtOffset(offset)) {
 				if(span.Type == MarkupSpanType.ELEMENT) {

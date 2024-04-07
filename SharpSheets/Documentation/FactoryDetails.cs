@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace SharpSheets.Documentation {
 
-	public class ArgumentType {
+	public class ArgumentType : IEquatable<ArgumentType> {
 		public Type DisplayType { get; }
 		public Type DataType { get; }
 
@@ -25,6 +25,19 @@ namespace SharpSheets.Documentation {
 
 		public static ArgumentType Simple(Type type) {
 			return new ArgumentType(type, type);
+		}
+
+		public bool Equals(ArgumentType? other) {
+			if (other is null) { return false; }
+			return DisplayType.Equals(other.DisplayType) && DataType.Equals(other.DataType);
+		}
+
+		public override bool Equals(object? obj) {
+			return Equals(obj as ArgumentType);
+		}
+
+		public override int GetHashCode() {
+			return HashCode.Combine(DisplayType, DataType);
 		}
 	}
 
@@ -121,6 +134,10 @@ namespace SharpSheets.Documentation {
 
 		protected virtual ConstructorDetails WithArguments(ArgumentDetails[] arguments) {
 			return new ConstructorDetails(DisplayType, DeclaringType, Name, FullName, arguments, Description, Rect, Canvas);
+		}
+
+		public ConstructorDetails WithAdditionalArguments(IEnumerable<ArgumentDetails> extraArgs) {
+			return WithArguments(Arguments.Concat(extraArgs).ToArray());
 		}
 
 		public ConstructorDetails Prefixed(string prefix) {

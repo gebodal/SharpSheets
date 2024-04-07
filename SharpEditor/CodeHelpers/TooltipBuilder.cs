@@ -127,7 +127,7 @@ namespace SharpEditor.CodeHelpers {
 			argumentBlock.Inlines.Add(new Run(SharpValueHandler.NO_BREAK_SPACE + argument.ConstructorName) { Foreground = SharpEditorPalette.GetTypeBrush(argument.DeclaringType) });
 
 			ArgumentDetails arg = argument.Argument;
-			while (arg is PrefixedArgumentDetails prefixed) { arg = prefixed.Basis; }
+			//while (arg is PrefixedArgumentDetails prefixed) { arg = prefixed.Basis; }
 
 			argumentBlock.Inlines.Add(new Run("."));
 			argumentBlock.Inlines.Add(GetArgumentNameInline(arg));
@@ -149,6 +149,33 @@ namespace SharpEditor.CodeHelpers {
 				yield return BaseContentBuilder.GetContentTextBlock("(Local)", IndentedMargin);
 			}
 		}
+
+		public static IEnumerable<FrameworkElement> MakeMultipleArgumentBlocks(IEnumerable<ConstructorArgumentDetails> allArgs, IContext? context) {
+			foreach (IGrouping<DocumentationString?, ConstructorArgumentDetails> descriptionGrouping in allArgs.GroupBy(t => t.ArgumentDescription)) {
+				StackPanel argumentList = new StackPanel() {
+					Orientation = Orientation.Vertical,
+					Margin = TooltipBuilder.TextBlockMargin
+				};
+				foreach (ConstructorArgumentDetails constructorArg in descriptionGrouping.GroupBy(t => new { Type = SharpValueHandler.GetTypeName(t.ArgumentType), t.ConstructorName, t.ArgumentName, t.Implied }).Select(g => g.First())) {
+					argumentList.Children.Add(TooltipBuilder.MakeArgumentHeaderBlock(constructorArg, context, false));
+				}
+				yield return argumentList;
+
+				if (TooltipBuilder.MakeDescriptionTextBlock(descriptionGrouping.Key) is TextBlock descriptionBlock) {
+					//yield return TooltipBuilder.MakeIndentedBlock(descriptionGrouping.Key);
+					yield return descriptionBlock;
+				}
+
+				if (descriptionGrouping.Select(a => a.ArgumentType.DisplayType).First() is Type argType && argType.IsEnum && SharpDocumentation.GetEnumDoc(argType) is EnumDoc enumDoc) {
+					yield return TooltipBuilder.MakeEnumOptionsBlock(enumDoc, true);
+				}
+
+				if (descriptionGrouping.Select(a => a.UseLocal).First()) {
+					yield return TooltipBuilder.MakeIndentedBlock("(Local)");
+				}
+			}
+		}
+		
 
 		public static IEnumerable<TextBlock> MakeEnumBlocks(EnumDoc enumDoc, EnumValDoc? enumValDoc) {
 			return EnumContentBuilder.MakeEnumBlocks(enumDoc, enumValDoc, TextBlockMargin, IndentedMargin);

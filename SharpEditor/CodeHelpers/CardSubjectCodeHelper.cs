@@ -138,6 +138,10 @@ namespace SharpEditor.CodeHelpers {
 			return contents;
 		}
 
+		public IList<UIElement> GetFallbackToolTipContent(int offset) {
+			return Array.Empty<UIElement>();
+		}
+
 		public static IEnumerable<TextBlock> MakeCardEntityEntries(ICardDocumentEntity cardEntity) {
 			IEnvironment evaluationEnvironment = cardEntity.Environment;
 			DefinitionGroup? definitionList = null;

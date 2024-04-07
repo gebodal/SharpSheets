@@ -22,6 +22,7 @@ namespace SharpEditor.CodeHelpers {
 		void TextEntered(TextCompositionEventArgs e);
 
 		IList<UIElement> GetToolTipContent(int offset, string word);
+		IList<UIElement> GetFallbackToolTipContent(int offset);
 		IList<Control> GetContextMenuItems(int offset, string? word);
 
 		bool SupportsIncrementComment { get; }
