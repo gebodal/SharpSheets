@@ -52,8 +52,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly PageSize paper;
 		public readonly Margins pageMargins;
 		public readonly float cardGutter;
-		public readonly int rows;
-		public readonly int columns;
+		public readonly (uint rows, uint columns) grid;
 
 		public readonly bool allowFeatureFollowOn;
 		public readonly bool requireFormalSetupEnd;
@@ -85,8 +84,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="_paper"></param>
 		/// <param name="_pageMargins" default="(20,20,20,20)"></param>
 		/// <param name="_cardGutter"></param>
-		/// <param name="_rows"></param>
-		/// <param name="_columns"></param>
+		/// <param name="_grid" default="1,1"></param>
 		/// <param name="_allowFeatureFollowOn"></param>
 		/// <param name="_requireFormalSetupEnd"></param>
 		/// <param name="_allowSingleLineFeatures"></param>
@@ -100,8 +98,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			PageSize? _paper = null,
 			Margins? _pageMargins = null,
 			float _cardGutter = 20f,
-			int _rows = 1, // TODO Grid?
-			int _columns = 1, // TODO Grid?
+			(uint rows, uint columns)? _grid = null,
 			bool _allowFeatureFollowOn = false,
 			bool _requireFormalSetupEnd = false,
 			bool _allowSingleLineFeatures = false
@@ -118,8 +115,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.paper = _paper ?? PageSize.A4;
 			this.pageMargins = _pageMargins ?? new Margins(20f);
 			this.cardGutter = _cardGutter;
-			this.rows = _rows;
-			this.columns = _columns;
+			this.grid = (_grid?.rows ?? 1, _grid?.columns ?? 1);
 
 			this.allowFeatureFollowOn = _allowFeatureFollowOn;
 			this.requireFormalSetupEnd = _requireFormalSetupEnd;
@@ -186,8 +182,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		public IEnumerable<Conditional<AbstractCardSegmentConfig>> AllCardSegments => cardSegments.Concat(cardSetConfig.cardSetSegments);
 
 		private readonly bool singles;
-		private readonly int? _maxCards;
-		public int MaxCards { get { return singles ? 1 : (_maxCards ?? cardSetConfig.columns); } } // TODO This should really be left up to the layout strategy
+		private readonly uint? _maxCards;
+		public uint MaxCards { get { return singles ? 1 : (_maxCards ?? cardSetConfig.grid.columns); } } // TODO This should really be left up to the layout strategy
 
 		private readonly VariableDefinitionBox variableBox;
 		public IVariableDefinitionBox Variables => variableBox;
@@ -224,7 +220,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			float fontEpsilon = 0.5f,
 			float lineSpacing = 1.35f,
 			float paragraphSpacing = 3f,
-			int? maxCards = null,
+			uint? maxCards = null,
 			bool singles = false,
 			float gutter = 5f,
 			IDetail? gutter_ = null, // gutter_

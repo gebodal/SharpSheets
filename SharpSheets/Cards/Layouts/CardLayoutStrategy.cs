@@ -27,8 +27,8 @@ namespace SharpSheets.Cards.Layouts {
 			PageSize pageSize = config.paper;
 			Margins pageMargin = config.pageMargins;
 			float cardGutter = config.cardGutter;
-			int rows = config.rows;
-			int columns = config.columns;
+			int rows = (int)config.grid.rows;
+			int columns = (int)config.grid.columns;
 
 			AvailableSpace geometry = new AvailableSpace(pageSize, pageMargin, rows, columns, cardGutter);
 
@@ -39,7 +39,7 @@ namespace SharpSheets.Cards.Layouts {
 				CanvasStateImage modelCanvasState = new CanvasStateImage((Rectangle)pageSize, 1f);
 				if (card.CardConfig.fonts != null) { modelCanvasState.SetFonts(card.CardConfig.fonts); }
 
-				CardArrangement? arrangement = GetLayouts(card, modelCanvasState, card.CardConfig.MaxCards, geometry.SampleRect, card.CardConfig.paragraphSpec, card.CardConfig.fontParams, cancellationToken);
+				CardArrangement? arrangement = GetLayouts(card, modelCanvasState, (int)card.CardConfig.MaxCards, geometry.SampleRect, card.CardConfig.paragraphSpec, card.CardConfig.fontParams, cancellationToken);
 				
 				if (arrangement is null) { return; } // Should only happen if cancellation requested
 
@@ -76,7 +76,7 @@ namespace SharpSheets.Cards.Layouts {
 					nextArrangement = existingLayouts[cardList[c]];
 					cardSpace = geometry.GetAvailable(
 						nextArrangement.Length,
-						nextArrangement.CardConfig.MaxCards,
+						(int)nextArrangement.CardConfig.MaxCards,
 						nextArrangement.CardConfig.multiCardLayout,
 						nextArrangement.CardConfig.allowMultipage); // TODO Allow user control
 

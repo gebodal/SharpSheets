@@ -60,8 +60,8 @@ namespace SharpSheets.Cards.Card {
 			CardSetConfig cardSetConfig = subject.CardConfig.cardSetConfig;
 			CardConfig cardConfig = subject.CardConfig;
 
-			ArrangementCollection<IWidget> outlineCollection = new ArrangementCollection<IWidget>(subject.CardConfig.MaxCards, new Div(new WidgetSetup()));
-			ArrangementCollection<IWidget> backgroundCollection = new ArrangementCollection<IWidget>(subject.CardConfig.MaxCards, new Div(new WidgetSetup()));
+			ArrangementCollection<IWidget> outlineCollection = new ArrangementCollection<IWidget>((int)subject.CardConfig.MaxCards, new Div(new WidgetSetup()));
+			ArrangementCollection<IWidget> backgroundCollection = new ArrangementCollection<IWidget>((int)subject.CardConfig.MaxCards, new Div(new WidgetSetup()));
 
 			// Only the card number/total can vary, so just enumerate all possibilities and store them
 			for (int cardCount = 1; cardCount <= subject.CardConfig.MaxCards; cardCount++) {
@@ -439,7 +439,7 @@ namespace SharpSheets.Cards.Card {
 		}
 
 		private static ArrangementCollection<IWidget> GetOutlines(IEnvironment environment, DocumentSpan location, AbstractCardSegmentConfig segmentConfig, CardConfig cardConfig, List<SharpParsingException> errors, WidgetFactory widgetFactory) {
-			ArrangementCollection<IWidget> outlineCollection = new ArrangementCollection<IWidget>(cardConfig.MaxCards, new Div(new WidgetSetup()));
+			ArrangementCollection<IWidget> outlineCollection = new ArrangementCollection<IWidget>((int)cardConfig.MaxCards, new Div(new WidgetSetup()));
 
 			// Only the part number/total can vary, so just enumerate all possibilities and store them
 			for (int partsCount = 1; partsCount <= cardConfig.MaxCards; partsCount++) {

@@ -21,7 +21,7 @@ namespace SharpSheets.Cards.Layouts {
 			PageSize pageSize = configuration.paper;
 			Margins pageMargin = configuration.pageMargins;
 			float cardGutter = configuration.cardGutter;
-			int columns = configuration.columns;
+			int columns = (int)configuration.grid.columns;
 
 			//FontPathGrouping fonts = configuration.fonts;
 			//int maxScrolls = Math.Min(configuration.MaxCards, columns);
