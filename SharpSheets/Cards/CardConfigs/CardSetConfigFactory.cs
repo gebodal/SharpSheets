@@ -83,6 +83,9 @@ namespace SharpSheets.Cards.CardConfigs {
 			TableSegmentConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(TableCardSegmentConfig), tableSegmentConfigConstructorInfo, "Table");
 			FeatureConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(CardFeatureConfig), featureConfigConstructorInfo, "Feature");
 
+			// Append non-conflicting card config arguments to card set config constructor, for clearer documentation
+			CardSetConfigConstructor = CardSetConfigConstructor.WithAdditionalArguments(CardConfigConstructor.Arguments.Where(cardArg => !cardArg.UseLocal && !CardSetConfigConstructor.Arguments.Any(cardSetArg => SharpDocuments.StringEquals(cardArg.Name, cardSetArg.Name))));
+
 			segmentConstructorsByType = new Dictionary<Type, ConstructorInfo>() {
 				{ typeof(DynamicCardSegmentConfig), dynamicSegmentConfigConstructorInfo },
 				{ typeof(TextCardSegmentConfig), textSegmentConfigConstructorInfo },
