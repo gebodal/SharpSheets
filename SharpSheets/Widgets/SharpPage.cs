@@ -29,29 +29,31 @@ namespace SharpSheets.Widgets {
 
 			List<SharpDrawingException> errorList = new List<SharpDrawingException>();
 			foreach (Page page in pages) {
-				if (cancellationToken.IsCancellationRequested) {
-					errors = errorList.ToArray();
-					return;
-				}
+				for (int i = 0; i < page.Repeat; i++) {
+					if (cancellationToken.IsCancellationRequested) {
+						errors = errorList.ToArray();
+						return;
+					}
 
-				ISharpCanvas canvas = document.AddNewPage(page.pageSize);
+					ISharpCanvas canvas = document.AddNewPage(page.pageSize);
 
-				try {
-					page.Draw(canvas, canvas.CanvasRect, cancellationToken);
-				}
-				catch (SharpDrawingException e) {
-					errorList.Add(e);
-				}
-				catch (Exception e) {
-					errorList.Add(new SharpDrawingException(page, "Drawing error: " + e.Message, e));
-				}
+					try {
+						page.Draw(canvas, canvas.CanvasRect, cancellationToken);
+					}
+					catch (SharpDrawingException e) {
+						errorList.Add(e);
+					}
+					catch (Exception e) {
+						errorList.Add(new SharpDrawingException(page, "Drawing error: " + e.Message, e));
+					}
 
-				if (cancellationToken.IsCancellationRequested) {
-					errors = errorList.ToArray();
-					return;
-				}
+					if (cancellationToken.IsCancellationRequested) {
+						errors = errorList.ToArray();
+						return;
+					}
 
-				errorList.AddRange(canvas.GetDrawingErrors());
+					errorList.AddRange(canvas.GetDrawingErrors());
+				}
 			}
 
 			errors = errorList.ToArray();
@@ -97,6 +99,8 @@ namespace SharpSheets.Widgets {
 		private readonly Div? header;
 		private readonly Div? footer;
 
+		public readonly uint Repeat;
+
 		/// <summary>
 		/// Constructor for SharpPage.
 		/// </summary>
@@ -114,6 +118,8 @@ namespace SharpSheets.Widgets {
 		/// area at the top of the page that lies within the <paramref name="pageMargins"/>.</param>
 		/// <param name="footer">If provided, this child will be drawn in the footer area of the page -- i.e. the
 		/// area at the bottom of the page that lies within the <paramref name="pageMargins"/>.</param>
+		/// <param name="repeat">A number of times to include this page in the document. Repeated pages will
+		/// be included sequentially.</param>
 		/// <size>0 0</size>
 		public Page(
 				WidgetSetup setup,
@@ -123,7 +129,8 @@ namespace SharpSheets.Widgets {
 				CanvasImageData? backgroundimage = null,
 				ImageLayout? backgroundLayout = null,
 				ChildHolder? header = null,
-				ChildHolder? footer = null
+				ChildHolder? footer = null,
+				uint repeat = 1
 			) : base(setup) {
 
 			pageSize = paper ?? PageSize.LETTER;
@@ -137,6 +144,8 @@ namespace SharpSheets.Widgets {
 
 			this.header = header?.Child;
 			this.footer = footer?.Child;
+
+			this.Repeat = repeat; // TODO Should really throw an error if zero
 		}
 
 		/*
