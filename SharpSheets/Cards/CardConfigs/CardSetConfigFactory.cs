@@ -760,8 +760,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			return OriginalContext.GetFlag(flag, local, origin, out location);
 		}
 
-		public IContext? GetNamedChild(string name) {
-			IContext? namedChild = OriginalContext.GetNamedChild(name);
+		public IContext? GetNamedChild(string name, bool local, IContext? origin) {
+			IContext? namedChild = OriginalContext.GetNamedChild(name, local, origin);
 			if (namedChild == null) {
 				return null;
 			}

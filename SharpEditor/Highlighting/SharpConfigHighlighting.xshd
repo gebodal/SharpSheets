@@ -301,6 +301,12 @@
 			</RuleSet>
 		</Span>
 
+		<!-- Named child rule -->
+		<Rule color="NamedRect">
+			^ \s* \@?\&amp;[A-Za-z][A-Za-z0-9]* (\.[A-Za-z][A-Za-z0-9]*)* \s* (?=(\:|\#|$))
+		</Rule>
+			
+		<!-- Widget name rule -->
 		<Rule color="NamedRect">
 			^ \s* [A-Za-z][A-Za-z0-9]* (\.[A-Za-z][A-Za-z0-9]*)* \s* (?=:\s*(\#|$))
 		</Rule>

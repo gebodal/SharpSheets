@@ -249,8 +249,16 @@ namespace SharpSheets.Cards.CardConfigs {
 				return OriginalContext.GetFlag(flag, local, origin, out location);
 			}
 
-			public IContext? GetNamedChild(string name) {
-				return namedChildren.GetValueOrFallback(name, null);
+			public IContext? GetNamedChild(string name, bool local, IContext? origin) {
+				if (namedChildren.TryGetValue(name, out EvaluatedContext? namedChild)) {
+					return namedChild;
+				}
+				else if(!local) {
+					return OriginalContext.GetNamedChild(name, local, origin);
+				}
+				else {
+					return null;
+				}
 			}
 
 			public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {

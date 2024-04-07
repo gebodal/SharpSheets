@@ -17,28 +17,36 @@ namespace SharpSheets.Sheets {
 
 		private class SheetEntryStack : EntryStack {
 
+			protected readonly WidgetFactory widgetFactory;
+
 			public readonly List<ConfigEntry> pages;
 
-			public SheetEntryStack(DirectoryPath source, WidgetFactory widgetFactory) : base(source, SheetConfigurationConstants.SheetsName, widgetFactory) {
+			public SheetEntryStack(DirectoryPath source, WidgetFactory widgetFactory) : base(source, SheetConfigurationConstants.SheetsName) {
+				this.widgetFactory = widgetFactory;
 				pages = new List<ConfigEntry>();
 			}
 
-			public override void Push(DocumentSpan location, int indentLevel, string type) {
-				if (pages.Count == 0) {
-					NewPage(DocumentSpan.Imaginary, -1);
-				}
-
-				if (stack.Count == 0 && pages.Count > 0) {
-					parsingExceptions.Add(new SharpParsingException(location, "Invalid entry, does not have an associated page."));
+			public override void Push(DocumentSpan location, int indentLevel, string type, bool isNamed, bool localOnly) {
+				if (isNamed) {
+					base.Push(location, indentLevel, type, isNamed, localOnly);
 				}
 				else {
-					base.Push(location, indentLevel, type);
+					if (stack.Count == 0 && pages.Count == 0) {
+						NewPage(DocumentSpan.Imaginary, -1);
+					}
+
+					if (stack.Count == 0 && pages.Count > 0) {
+						parsingExceptions.Add(new SharpParsingException(location, "Invalid entry, does not have an associated page."));
+					}
+					else {
+						base.Push(location, indentLevel, type, isNamed, localOnly);
+					}
 				}
 			}
 
 			public void NewPage(DocumentSpan location, int indentLevel) {
 				stack.Clear();
-				ConfigEntry page = new ConfigEntry(rootEntry, location, SheetConfigurationConstants.PageName, widgetFactory.GetNamedChildren(SheetConfigurationConstants.PageName));
+				ConfigEntry page = new ConfigEntry(rootEntry, location, SheetConfigurationConstants.PageName);
 				stack.Push(new EntryStackItem(indentLevel, page));
 				pages.Add(page);
 				rootEntry.AddChild(page);
@@ -109,27 +117,30 @@ namespace SharpSheets.Sheets {
 							entryStack.parsingExceptions.Add(new SharpParsingException(line.Location, $"\"{SheetConfigurationConstants.PageName.ToLowerInvariant()}\" must always be at root (indent 0)."));
 						}
 					}
-					else if (widgetFactory.ContainsKey(line.Content) || (entryStack.Count > 0 && widgetFactory.IsNamedChild(entryStack.Peek().SimpleName, line.Content))) {
-						entryStack.Push(line.Location, line.IndentLevel, line.Content);
+					else if (widgetFactory.ContainsKey(line.Content)) {
+						entryStack.Push(line.Location, line.IndentLevel, line.Content, false, false);
 					}
 					else {
-						entryStack.SetProperty(line.Location, line.Content, line.PropertyLocation, "");
+						entryStack.SetProperty(line.Location, line.Content, line.PropertyLocation, "", line.LocalOnly);
 						invalidState = line.IndentLevel;
 					}
 				}
+				else if(line.LineType == LineType.NAMEDCHILD) {
+					entryStack.Push(line.Location, line.IndentLevel, line.Content, true, line.LocalOnly);
+				}
 				else if (line.LineType == LineType.PROPERTY) {
-					entryStack.SetProperty(line.Location, line.Content, line.PropertyLocation, line.Property ?? ""); // Property should never be null is LineType is PROPERTY
+					entryStack.SetProperty(line.Location, line.Content, line.PropertyLocation, line.Property ?? "", line.LocalOnly); // Property should never be null is LineType is PROPERTY
 				}
 				else if (line.LineType == LineType.ENTRY) {
 					entryStack.AddEntry(line.Location, line.Content);
 				}
 				else if (line.LineType == LineType.FLAG) {
 					if (widgetFactory.IsWidget(line.Content)) { // flag is actually an empty SharpRect
-						entryStack.Push(line.Location, line.IndentLevel, line.Content);
+						entryStack.Push(line.Location, line.IndentLevel, line.Content, false, false);
 						entryStack.Pop();
 					}
 					else { // This really is just a flag
-						entryStack.AddFlag(line.Location, line.Content);
+						entryStack.AddFlag(line.Location, line.Content, line.LocalOnly);
 					}
 				}
 				else { // line.LineType == LineType.ERROR || line.LineType == LineType.DEFINITION

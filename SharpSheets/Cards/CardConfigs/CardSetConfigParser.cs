@@ -29,7 +29,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			public readonly List<ContextValue<string>> archives;
 
-			public CardSetConfigEntryStack(FilePath origin, DirectoryPath source, string configName, WidgetFactory widgetFactory, CardSetConfigFactory cardSetConfigFactory) : base(source, CardConfigConstants.CardConfigName, widgetFactory) {
+			public CardSetConfigEntryStack(FilePath origin, DirectoryPath source, string configName, CardSetConfigFactory cardSetConfigFactory) : base(source, CardConfigConstants.CardConfigName) {
 				this.cardSetConfigFactory = cardSetConfigFactory;
 				
 				this.configName = configName;
@@ -80,7 +80,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			string configName = origin.FileNameWithoutExtension; // Is this the best way of doing this?
 
-			CardSetConfigEntryStack entryStack = new CardSetConfigEntryStack(origin, source, configName, widgetFactory, cardSetConfigFactory);
+			CardSetConfigEntryStack entryStack = new CardSetConfigEntryStack(origin, source, configName, cardSetConfigFactory);
 
 			foreach (SharpDocumentLine line in SharpDocumentLineParsing.SplitLines(config)) {
 
@@ -93,8 +93,11 @@ namespace SharpSheets.Cards.CardConfigs {
 				}
 
 				if (line.LineType == LineType.DIV) {
-					entryStack.Push(line.Location, line.IndentLevel, line.Content);
+					entryStack.Push(line.Location, line.IndentLevel, line.Content, false, false);
 					// What about invalid divs? (i.e. empty properties)
+				}
+				else if (line.LineType == LineType.NAMEDCHILD) {
+					entryStack.Push(line.Location, line.IndentLevel, line.Content, true, line.LocalOnly);
 				}
 				else if (line.LineType == LineType.DEFINITION) {
 					entryStack.AddDefinition(line.Location, line.Content);
@@ -109,7 +112,7 @@ namespace SharpSheets.Cards.CardConfigs {
 						}
 					}
 					else {
-						entryStack.SetProperty(line.Location, line.Content, line.PropertyLocation, line.Property!); // Property must not be null is LineType is PROPERTY
+						entryStack.SetProperty(line.Location, line.Content, line.PropertyLocation, line.Property!, line.LocalOnly); // Property must not be null is LineType is PROPERTY
 					}
 				}
 				else if (line.LineType == LineType.ENTRY) {
@@ -117,11 +120,11 @@ namespace SharpSheets.Cards.CardConfigs {
 				}
 				else if (line.LineType == LineType.FLAG) {
 					if (line.IndentLevel > 0 && widgetFactory.IsWidget(line.Content)) { // flag is actually an empty SharpRect
-						entryStack.Push(line.Location, line.IndentLevel, line.Content);
+						entryStack.Push(line.Location, line.IndentLevel, line.Content, false, false);
 						entryStack.Pop();
 					}
 					else { // This really is just a flag
-						entryStack.AddFlag(line.Location, line.Content);
+						entryStack.AddFlag(line.Location, line.Content, line.LocalOnly);
 					}
 				}
 				else { // line.LineType == LineType.ERROR

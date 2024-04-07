@@ -115,7 +115,7 @@ namespace SharpSheets.Markup.Parsing {
 				Regex paramRegex = new Regex(@"^" + Regex.Escape(parameterName) + @"(?<number>[1-9][0-9]*)(?:\.|$)", RegexOptions.IgnoreCase);
 
 				int[] numbers = ((numberedElementType == typeof(IWidget)) switch {
-					true => context.NamedChildren.GetKeys(),
+					true => context.GetAllNamedChildren(arg.UseLocal),
 					false => context.GetAllProperties(arg.UseLocal).Select(p => p.Name).Concat(context.GetAllFlags(arg.UseLocal).Select(p => p.Name))
 				}).Select(n => paramRegex.Match(n))
 						.Where(m => m.Success).Select(m => int.Parse(m.Groups[1].Value))
@@ -203,7 +203,7 @@ namespace SharpSheets.Markup.Parsing {
 
 				string argName = arg.ArgumentName.ToString();
 
-				IContext? childContext = context.GetNamedChild(argName);
+				IContext? childContext = context.GetNamedChild(argName, arg.UseLocal, context);
 				if (childContext != null) {
 					IWidget child = widgetFactory.MakeWidget(typeof(Div), childContext, source, out SharpParsingException[] widgetBuildErrors);
 					if (child is not Div) {

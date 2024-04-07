@@ -24,7 +24,7 @@ namespace SharpSheets.Documentation {
 
 		public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
 
-		public IContext? GetNamedChild(string name) => null;
+		public IContext? GetNamedChild(string name, bool local, IContext? origin) => null;
 
 		private readonly Dictionary<string, string> properties;
 		private readonly Dictionary<string, bool> flags;

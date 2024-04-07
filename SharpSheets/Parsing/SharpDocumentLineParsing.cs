@@ -35,24 +35,29 @@ namespace SharpSheets.Parsing {
 		/// Enum denoting the presumed function of this line.
 		/// </summary>
 		public LineType LineType { get; }
+		/// <summary>
+		/// Indicates that this line's content is marked as local only.
+		/// </summary>
+		public bool LocalOnly { get; }
 
-		public SharpDocumentLine(DocumentSpan location, int indentLevel, string content, string? property, DocumentSpan propertyLocation, LineType lineType) {
+		public SharpDocumentLine(DocumentSpan location, int indentLevel, string content, string? property, DocumentSpan propertyLocation, LineType lineType, bool localOnly) {
 			Location = location;
 			IndentLevel = indentLevel;
 			Content = content;
 			Property = property;
 			PropertyLocation = propertyLocation;
 			LineType = lineType;
+			LocalOnly = localOnly;
 		}
 
 	}
 
-	public enum LineType { DIV, PROPERTY, FLAG, ENTRY, DEFINITION, ERROR }
+	public enum LineType { DIV, NAMEDCHILD, PROPERTY, FLAG, ENTRY, DEFINITION, ERROR }
 
 	public static class SharpDocumentLineParsing {
 
-		private static readonly Regex regex = new Regex(@"^((?<definition>(?:def|fun)\s+.+)|(?<property>\@?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*\s*:.+)|(?<div>[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*):|-\s*(?<entry>.+)|(?<flag>\@?\!?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*))$", RegexOptions.IgnoreCase);
-		private static readonly string[] types = new string[] { "div", "definition", "property", "entry", "flag" };
+		private static readonly Regex regex = new Regex(@"^(?:(?<definition>(?:def|fun)\s+.+)|(?<property>\@?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*\s*:.+)|(?<namedchild>\@?\&[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*)\:?|(?<div>[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*):|-\s*(?<entry>.+)|(?<flag>\@?\!?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*))$", RegexOptions.IgnoreCase);
+		private static readonly string[] types = new string[] { "div", "namedchild", "definition", "property", "entry", "flag" };
 
 		private static readonly bool removeComments = true;
 
@@ -82,7 +87,7 @@ namespace SharpSheets.Parsing {
 		}
 
 		private static readonly Regex propertyRegex = new Regex(@"^(?<name>\@?[a-z][a-z0-9]+(\.[a-z][a-z0-9]+)*)\s*:\s*(?<value>.+)$", RegexOptions.IgnoreCase);
-		private static void SplitProperty(string property, DocumentSpan location, out string nameStr, out DocumentSpan nameLocation, out string valueStr, out DocumentSpan valueLocation) {
+		private static void SplitProperty(string property, DocumentSpan location, out string nameStr, out DocumentSpan nameLocation, out string valueStr, out DocumentSpan valueLocation, out bool localOnly) {
 			Match match = propertyRegex.Match(property);
 			Group name = match.Groups["name"];
 			Group value = match.Groups["value"];
@@ -90,6 +95,26 @@ namespace SharpSheets.Parsing {
 			nameLocation = new DocumentSpan(location.Offset, location.Line, location.Column, name.Length);
 			valueStr = value.Value.TrimEnd();
 			valueLocation = new DocumentSpan(location.Offset + value.Index, location.Line, location.Column + value.Index, value.Length);
+
+			if (nameStr.StartsWith("@")) {
+				localOnly = true;
+				nameStr = nameStr[1..];
+				//nameLocation = new DocumentSpan(nameLocation.Offset + 1, nameLocation.Line, nameLocation.Column + 1, name.Length - 1);
+			}
+			else {
+				localOnly = false;
+			}
+		}
+
+		private static string SplitLocalOnly(string text, out bool localOnly) {
+			if (text.StartsWith("@")) {
+				localOnly = true;
+				return text[1..];
+			}
+			else {
+				localOnly = false;
+				return text;
+			}
 		}
 
 		private class Indentation {
@@ -146,18 +171,25 @@ namespace SharpSheets.Parsing {
 
 						string? property = null;
 						DocumentSpan propertyLocation = DocumentSpan.Imaginary;
+						bool localOnly = false;
 
 						LineType lineType = LineType.ERROR;
 						if (group != null) {
 							if (group.Name == "div") {
 								lineType = LineType.DIV;
 							}
+							else if (group.Name == "namedchild") {
+								lineType = LineType.NAMEDCHILD;
+								content = SplitLocalOnly(content, out localOnly); // Remove any "@"
+								content = content[1..]; // Remove the "&"
+							}
 							else if (group.Name == "property") {
-								SplitProperty(content, contentLocation, out content, out contentLocation, out property, out propertyLocation);
+								SplitProperty(content, contentLocation, out content, out contentLocation, out property, out propertyLocation, out localOnly);
 								lineType = LineType.PROPERTY;
 							}
 							else if (group.Name == "flag") {
 								lineType = LineType.FLAG;
+								content = SplitLocalOnly(content, out localOnly);
 							}
 							else if (group.Name == "entry") {
 								//content = DeEscapeNewlines(content);
@@ -189,7 +221,7 @@ namespace SharpSheets.Parsing {
 						else {
 							indentLevel = indentationStack.Peek().IndentLevel;
 
-							if (lineType == LineType.DIV) {
+							if (lineType == LineType.DIV || lineType == LineType.NAMEDCHILD) {
 								indentationStack.Push(new Indentation(lineIndentLength, null, indentationStack.Peek().IndentLevel + 1));
 							}
 						}
@@ -200,7 +232,7 @@ namespace SharpSheets.Parsing {
 							property = DeEscapeHash(property);
 						}
 
-						yield return new SharpDocumentLine(contentLocation, indentLevel, content, property, propertyLocation, lineType);
+						yield return new SharpDocumentLine(contentLocation, indentLevel, content, property, propertyLocation, lineType, localOnly);
 					}
 				}
 			}
@@ -222,8 +254,6 @@ namespace SharpSheets.Parsing {
 			}
 		}
 
-		protected readonly WidgetFactory widgetFactory;
-
 		public readonly DirectoryPath source;
 
 		public readonly ConfigEntry rootEntry;
@@ -231,11 +261,9 @@ namespace SharpSheets.Parsing {
 
 		public readonly List<SharpParsingException> parsingExceptions;
 
-		public EntryStack(DirectoryPath source, string rootEntryName, WidgetFactory widgetFactory) {
+		public EntryStack(DirectoryPath source, string rootEntryName) {
 			this.source = source;
-			this.rootEntry = new ConfigEntry(null, DocumentSpan.Imaginary, rootEntryName, Enumerable.Empty<Regex>());
-
-			this.widgetFactory = widgetFactory;
+			this.rootEntry = new ConfigEntry(null, DocumentSpan.Imaginary, rootEntryName);
 
 			stack = new Stack<EntryStackItem>();
 			parsingExceptions = new List<SharpParsingException>();
@@ -251,18 +279,24 @@ namespace SharpSheets.Parsing {
 		public ConfigEntry Pop() {
 			return stack.Pop().item;
 		}
-		public virtual void Push(DocumentSpan location, int indentLevel, string type) {
+		public virtual void Push(DocumentSpan location, int indentLevel, string type, bool isNamed, bool localOnly) {
 			ConfigEntry parent = Peek();
-			ConfigEntry newEntry = new ConfigEntry(parent, location, type, widgetFactory.GetNamedChildren(type));
+			ConfigEntry newEntry = new ConfigEntry(parent, location, type);
 			stack.Push(new EntryStackItem(indentLevel, newEntry));
-			parent.AddChild(newEntry);
+
+			if (isNamed) {
+				parent.AddNamedChild(newEntry, localOnly);
+			}
+			else {
+				parent.AddChild(newEntry);
+			}
 		}
 
-		public void SetProperty(DocumentSpan location, string name, DocumentSpan valueLocation, string value) {
-			Peek().SetProperty(location, name, valueLocation, value);
+		public void SetProperty(DocumentSpan location, string name, DocumentSpan valueLocation, string value, bool localOnly) {
+			Peek().SetProperty(location, name, valueLocation, value, localOnly);
 		}
-		public void AddFlag(DocumentSpan location, string flag) {
-			Peek().AddFlag(location, flag);
+		public void AddFlag(DocumentSpan location, string flag, bool localOnly) {
+			Peek().AddFlag(location, flag, localOnly);
 		}
 		public void AddEntry(DocumentSpan location, string entry) {
 			Peek().AddEntry(location, entry);

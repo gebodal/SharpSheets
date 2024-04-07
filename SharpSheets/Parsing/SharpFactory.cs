@@ -57,9 +57,10 @@ namespace SharpSheets.Parsing {
 			}
 			else if (parameterType == typeof(ChildHolder)) {
 				if (widgetFactory == null) { throw new SharpParsingException(context.Location, $"No WidgetFactory provided for constructing \"{parameterName}\"."); }
-				IContext? childContext = context.GetNamedChild(parameterName);
+				IContext? childContext = context.GetNamedChild(parameterName, useLocal, context);
 				if (childContext != null) {
-					IWidget child = widgetFactory.MakeWidget(typeof(Div), childContext, source, out buildErrors);
+					IContext nonRecurseContext = new DisallowNamedChildContext(childContext);
+					IWidget child = widgetFactory.MakeWidget(typeof(Div), nonRecurseContext, source, out buildErrors);
 					if (child is not Div) {
 						List<SharpParsingException> childErrors = new List<SharpParsingException>(buildErrors) {
 							new SharpParsingException(childContext.Location, "Invalid child element.")
@@ -149,7 +150,7 @@ namespace SharpSheets.Parsing {
 					Regex paramRegex = new Regex(@"^" + Regex.Escape(parameterName) + @"(?<number>[1-9][0-9]*)(?:\.|$)", RegexOptions.IgnoreCase);
 
 					int[] numbers = ((numberedElementType == typeof(ChildHolder)) switch {
-						true => context.NamedChildren.GetKeys(),
+						true => context.GetAllNamedChildren(useLocal),
 						false => context.GetAllProperties(useLocal).Select(p => p.Name).Concat(context.GetAllFlags(useLocal).Select(p => p.Name))
 					}).Select(n => paramRegex.Match(n))
 						.Where(m => m.Success).Select(m => int.Parse(m.Groups[1].Value))

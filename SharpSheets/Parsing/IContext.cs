@@ -1,4 +1,5 @@
 ﻿using SharpSheets.Exceptions;
+using SharpSheets.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -70,15 +71,20 @@ namespace SharpSheets.Parsing {
 
 		new IContext? Parent { get; }
 		new IEnumerable<IContext> Children { get; }
+		/// <summary>
+		/// Named children local to this context.
+		/// </summary>
 		IEnumerable<KeyValuePair<string, IContext>> NamedChildren { get; }
 
 		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="name"></param>
+		/// <param name="local"></param>
+		/// <param name="origin"></param>
 		/// <returns></returns>
 		/// <exception cref="SharpParsingException"></exception>
-		IContext? GetNamedChild(string name);
+		IContext? GetNamedChild(string name, bool local, IContext? origin);
 	}
 
 	[System.Diagnostics.DebuggerDisplay("({Location.Offset}, {Location.Line}, {Location.Column}, {Location.Length}): {Value}")]
@@ -172,7 +178,7 @@ namespace SharpSheets.Parsing {
 			public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
 			public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
 
-			public IContext? GetNamedChild(string name) => null;
+			public IContext? GetNamedChild(string name, bool local, IContext? origin) => null;
 
 			public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
 				location = null;
@@ -209,7 +215,7 @@ namespace SharpSheets.Parsing {
 			IEnumerable<IDocumentEntity> IDocumentEntity.Children => Children;
 			public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
 			public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
-			public IContext? GetNamedChild(string name) => null;
+			public IContext? GetNamedChild(string name, bool local, IContext? origin) => null;
 
 			private readonly Dictionary<string, string> properties;
 			private readonly Dictionary<string, bool> flags;
@@ -363,6 +369,22 @@ namespace SharpSheets.Parsing {
 
 		/// <summary></summary>
 		/// <exception cref="SharpParsingException"></exception>
+		public static IEnumerable<string> GetAllNamedChildren(this IContext context, bool local) {
+			foreach (string localNamedChild in context.NamedChildren.GetKeys()) {
+				yield return localNamedChild;
+			}
+
+			if (!local) {
+				foreach (IContext parent in context.TraverseParents()) {
+					foreach (string parentNamedChild in parent.NamedChildren.GetKeys()) {
+						yield return parentNamedChild;
+					}
+				}
+			}
+		}
+
+		/// <summary></summary>
+		/// <exception cref="SharpParsingException"></exception>
 		public static IEnumerable<ContextProperty<string>> GetAllProperties(this IContext context, bool local) {
 			foreach(ContextProperty<string> localProperty in context.GetLocalProperties(null)) {
 				yield return localProperty;
@@ -409,6 +431,7 @@ namespace SharpSheets.Parsing {
 		public int Depth { get { return originalContext.Depth; } } // TODO Is this correct?
 
 		public IContext? Parent { get { return originalContext.Parent is not null ? new NamedContext(originalContext.Parent, name, null, fallback) : null; } }
+		// TODO Is this right? No children for named context?
 		public IEnumerable<IContext> Children { get { return Enumerable.Empty<IContext>(); } }
 		public IEnumerable<KeyValuePair<string, IContext>> NamedChildren { get { return Enumerable.Empty<KeyValuePair<string, IContext>>(); } }
 
@@ -440,8 +463,8 @@ namespace SharpSheets.Parsing {
 			return prefix.Length == 0 || key.StartsWith(prefix, SharpDocuments.StringComparison);
 		}
 
-		public IContext? GetNamedChild(string name) {
-			return originalContext.GetNamedChild(MakeKey(name));
+		public IContext? GetNamedChild(string name, bool local, IContext? origin) {
+			return originalContext.GetNamedChild(MakeKey(name), local || forceLocal, origin);
 		}
 
 		public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
@@ -516,7 +539,7 @@ namespace SharpSheets.Parsing {
 			this.location = location;
 		}
 
-		public IContext? GetNamedChild(string name) => null;
+		public IContext? GetNamedChild(string name, bool local, IContext? origin) => null;
 
 		public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
 			if (local) {
@@ -562,6 +585,102 @@ namespace SharpSheets.Parsing {
 		public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) => Enumerable.Empty<ContextProperty<bool>>();
 		public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
 		public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
+	}
+
+	public class DisallowNamedChildContext : IContext {
+
+		private readonly IContext original;
+		private readonly IContext disallowed;
+
+		public DisallowNamedChildContext(IContext original) : this(original, original) { }
+
+		private DisallowNamedChildContext(IContext original, IContext disallowed) {
+			this.original = original;
+			this.disallowed = disallowed;
+		}
+
+		public DisallowNamedChildContext? Parent => original.Parent is null ? null : new DisallowNamedChildContext(original.Parent, disallowed);
+		public IEnumerable<IContext> Children => original.Children.Select(c => new DisallowNamedChildContext(c, disallowed));
+		public IEnumerable<KeyValuePair<string, IContext>> NamedChildren => original.NamedChildren.Where(nc => nc.Value.DetailedName != disallowed.DetailedName);
+
+		public string SimpleName => original.SimpleName;
+		public string DetailedName => original.DetailedName;
+		public string FullName => original.FullName;
+		public DocumentSpan Location => original.Location;
+		public int Depth => original.Depth;
+
+		IContext? IContext.Parent => Parent;
+		IDocumentEntity? IDocumentEntity.Parent => Parent;
+		IEnumerable<IDocumentEntity> IDocumentEntity.Children => Children;
+
+		public IContext? GetNamedChild(string name, bool local, IContext? origin) {
+			/*
+			if(original.GetNamedChild(name, local) is IContext originalNamedChild && originalNamedChild.DetailedName != disallowed.DetailedName) {
+				return originalNamedChild;
+			}
+			else if(!local) {
+				return Parent?.GetNamedChild(name, false);
+			}
+			else {
+				return null;
+			}
+			*/
+
+			/*
+			if (original.GetNamedChild(name, local) is IContext originalNamedChild) {
+				if (originalNamedChild.DetailedName != disallowed.DetailedName) {
+					return originalNamedChild;
+				}
+				else if(!local) {
+					DisallowNamedChildContext disallowed = new DisallowNamedChildContext(originalNamedChild, this.disallowed);
+					disallowed = new DisallowNamedChildContext(disallowed, originalNamedChild);
+					IContext? earlierChild = disallowed.GetNamedChild(name, false);
+					if (earlierChild != null && earlierChild.DetailedName != disallowed.DetailedName) {
+						return earlierChild;
+					}
+				}
+			}
+			return null;
+			*/
+
+			if (original.GetNamedChild(name, local, origin) is IContext originalNamedChild && originalNamedChild.DetailedName != disallowed.DetailedName) {
+				return originalNamedChild;
+			}
+			else {
+				return null;
+			}
+		}
+
+		public bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location) {
+			return original.HasProperty(key, local, origin, out location);
+		}
+		[return: NotNullIfNotNull("defaultValue")]
+		public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
+			return original.GetProperty(key, local, origin, defaultValue, out location);
+		}
+
+		public bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
+			return original.HasFlag(flag, local, origin, out location);
+		}
+		public bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
+			return original.GetFlag(flag, local, origin, out location);
+		}
+
+		public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) {
+			return original.GetLocalProperties(origin);
+		}
+
+		public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) {
+			return original.GetLocalFlags(origin);
+		}
+
+		public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) {
+			return original.GetEntries(origin);
+		}
+
+		public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) {
+			return original.GetDefinitions(origin);
+		}
 	}
 
 }
