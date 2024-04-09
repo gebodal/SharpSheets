@@ -155,6 +155,9 @@ namespace SharpSheets.Parsing {
 					lineOwners[definition.Location.Line] = definitionVisits; // Should this be checking if there is already a set present...?
 				}
 			}
+			foreach (KeyValuePair<int, HashSet<int>> entry in namedChildVisits) {
+				lineOwners[entry.Key] = entry.Value; // Should this be checking if there is already a set present...?
+			}
 
 			foreach (ConfigEntry child in children) {
 				child.CalculateLineOwnership(lineOwners);

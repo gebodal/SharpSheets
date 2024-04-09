@@ -672,24 +672,17 @@ namespace SharpEditor.CodeHelpers {
 		}
 
 		protected IEnumerable<FrameworkElement> MakeNamedChildEntry(TSpan span) {
-			string? parentConstructorName = parsingState.GetContext(Document.GetLineByOffset(span.StartOffset))?.Parent?.SimpleName;
+			IContext? context = parsingState.GetContext(Document.GetLineByOffset(span.StartOffset));
 
-			if (parentConstructorName is null) { yield break; }
+			if (context is null || context.Parent is null) { return Enumerable.Empty<FrameworkElement>(); }
 
-			ConstructorDetails? parentConstructor = divTypes.Get(parentConstructorName);
+			ConstructorArgumentDetails[] arguments = context.Parent.TraverseSelfAndChildren()
+				.Select(p => divTypes.Get(p.SimpleName)).WhereNotNull()
+				.Select(c => GetNamedChildArg(span, c)).WhereNotNull().ToArray();
 
-			if (parentConstructor is null) { yield break; }
+			if (arguments.Length == 0) { return Enumerable.Empty<FrameworkElement>(); }
 
-			ConstructorArgumentDetails? argument = GetNamedChildArg(span, parentConstructor);
-
-			if (argument is null) { yield break; }
-
-			yield return TooltipBuilder.MakeArgumentHeaderBlock(argument, null, true);
-
-			if (TooltipBuilder.MakeDescriptionTextBlock(argument.ArgumentDescription) is TextBlock descriptionBlock) {
-				//yield return TooltipBuilder.MakeIndentedBlock(argument.ArgumentDescription);
-				yield return descriptionBlock;
-			}
+			return TooltipBuilder.MakeMultipleArgumentBlocks(arguments, null);
 		}
 
 		protected IEnumerable<FrameworkElement> MakePropertyEntry(TSpan span, string word, IContext? context) {

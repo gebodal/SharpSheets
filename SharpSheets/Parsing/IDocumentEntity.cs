@@ -49,6 +49,13 @@ namespace SharpSheets.Parsing {
 			}
 		}
 
+		public static IEnumerable<IDocumentEntity> TraverseSelfAndChildren(this IDocumentEntity context) {
+			yield return context;
+			foreach (IDocumentEntity child in context.TraverseChildren()) {
+				yield return child;
+			}
+		}
+
 		public static IEnumerable<IDocumentEntity> TraverseParents(this IDocumentEntity context) {
 			IDocumentEntity? currentParent = context.Parent;
 			while (currentParent != null) {
