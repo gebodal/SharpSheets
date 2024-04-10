@@ -620,6 +620,9 @@ namespace SharpEditor.CodeHelpers {
 					else if (span.Type == SharpConfigSpanType.DIV) {
 						content.AddRange(MakeNamedChildEntry(span));
 					}
+					else if(span.Type == SharpConfigSpanType.ENTRY) {
+						content.AddRange(MakeEntryEntry(span));
+					}
 					else { // if(span.Type == ConfigSpanType.PROPERTY || span.Type == ConfigSpanType.FLAG) // or Named child
 						content.AddRange(MakePropertyEntry(span, word, currentContext));
 					}
@@ -679,6 +682,21 @@ namespace SharpEditor.CodeHelpers {
 			ConstructorArgumentDetails[] arguments = context.Parent.TraverseSelfAndChildren()
 				.Select(p => divTypes.Get(p.SimpleName)).WhereNotNull()
 				.Select(c => GetNamedChildArg(span, c)).WhereNotNull().ToArray();
+
+			if (arguments.Length == 0) { return Enumerable.Empty<FrameworkElement>(); }
+
+			return TooltipBuilder.MakeMultipleArgumentBlocks(arguments, null);
+		}
+
+		protected IEnumerable<FrameworkElement> MakeEntryEntry(TSpan span) {
+			IContext? context = parsingState.GetContext(Document.GetLineByOffset(span.StartOffset));
+
+			if (context is null) { return Enumerable.Empty<FrameworkElement>(); }
+
+			ConstructorDetails constructor = divTypes.Get(context.SimpleName) ?? fallbackType;
+
+			ConstructorArgumentDetails[] arguments = constructor.ConstructorArguments
+				.Where(a => a.ArgumentType.IsList).ToArray() ?? Array.Empty<ConstructorArgumentDetails>();
 
 			if (arguments.Length == 0) { return Enumerable.Empty<FrameworkElement>(); }
 
