@@ -85,18 +85,20 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			headerGrid.Children.Add(headerBlock);
 
 			linkButton = new Button {
-				Width = 32,
-				Height = 32,
+				//Width = 32,
+				//Height = 32,
 				//HorizontalAlignment = HorizontalAlignment.Stretch,
 				VerticalAlignment = VerticalAlignment.Stretch,
 				Content = new System.Windows.Controls.Image {
 					Source = new BitmapImage(new Uri("pack://application:,,,/Images/ExternalLink.png")),
 					VerticalAlignment = VerticalAlignment.Bottom,
 					HorizontalAlignment = HorizontalAlignment.Stretch,
-					Margin = new Thickness(3)
+					Margin = new Thickness(3),
+					Width = 26,
+					Height = 26
 				},
 				//Background = Brushes.Transparent,
-				Style = window.Resources["SubtleButton"] as Style,
+				Style = window.FindResource("SubtleButton") as Style,
 				Opacity = 0.5,
 				ToolTip = tooltip
 			};
