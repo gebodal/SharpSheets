@@ -45,7 +45,6 @@ namespace SharpEditor.Registries {
 			}
 		}
 
-		private readonly DirectoryPath registryDirectoryPath;
 		private readonly FileSystemWatcher fileWatcher;
 		private readonly Dictionary<FilePath, CardSetConfigBuild> configOrigins;
 
@@ -58,7 +57,6 @@ namespace SharpEditor.Registries {
 			}
 
 			this.registryPath = registryPath;
-			this.registryDirectoryPath = new DirectoryPath(registryPath);
 			this.cardSetConfigParser = cardSetConfigParser;
 
 			configOrigins = new Dictionary<FilePath, CardSetConfigBuild>();
@@ -208,7 +206,7 @@ namespace SharpEditor.Registries {
 
 		public CardSetConfig? GetSetConfig(DirectoryPath source, string path, out List<SharpParsingException> buildErrors) {
 
-			FilePath? resolvedPath = CardSetConfigRegistry.ResolveConfigPath(source, path, registryDirectoryPath);
+			FilePath? resolvedPath = CardSetConfigRegistry.ResolveConfigPath(source, path, new DirectoryPath(registryPath));
 
 			if(resolvedPath != null) {
 				CardSetConfigBuild? build;
