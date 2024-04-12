@@ -734,7 +734,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			if (foreachStr is not null) {
 				try {
 					ContextForEach forEach = ContextForEach.Parse(foreachStr, initial);
-					return initial.AppendEnvironment(new DryRunEnvironment(SimpleVariableBoxes.Single(forEach.LoopVariable)));
+					return initial.AppendEnvironment(new DryRunEnvironment(SimpleVariableBoxes.Single(forEach.LoopVariable), VariableDefinitionBox.Empty));
 				}
 				catch (EvaluationException) { }
 				catch (FormatException) { }

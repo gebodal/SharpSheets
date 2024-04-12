@@ -35,7 +35,8 @@ namespace SharpSheets.Cards.Definitions {
 		static readonly Definition nameDefinition = new ConstantDefinition(
 			"name", Array.Empty<EvaluationName>(),
 			"The subject name text.",
-			EvaluationType.STRING);
+			EvaluationType.STRING,
+			null);
 
 		public static readonly DefinitionGroup BaseDefinitions;
 
@@ -58,7 +59,7 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public static IEnvironment GetDryRun(CardConfig cardConfig) {
-			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(cardConfig)));
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(cardConfig), cardConfig.Variables));
 		}
 
 		public static DefinitionEnvironment MakeBaseEnvironment(ContextValue<string> name) {
@@ -74,11 +75,13 @@ namespace SharpSheets.Cards.Definitions {
 		static readonly Definition cardnumDefinition = new ConstantDefinition(
 			"card", new EvaluationName[] { "cardnum" },
 			"The index of the current card being drawn in the current layout. This is zero-indexed, meaning that the first card has an index of 0.",
-			EvaluationType.INT);
+			EvaluationType.INT,
+			null);
 		static readonly Definition cardcountDefinition = new ConstantDefinition(
 			"cardcount", new EvaluationName[] { "totalcards" },
 			"The total number of cards in the current card layout.",
-			EvaluationType.INT);
+			EvaluationType.INT,
+			null);
 
 		public static readonly DefinitionGroup BaseDefinitions;
 
@@ -98,11 +101,11 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public static IEnvironment GetDryRun(CardSetConfig cardSetConfig) {
-			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(cardSetConfig)));
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(cardSetConfig), cardSetConfig.Variables));
 		}
 
 		public static IEnvironment GetDryRun(CardConfig cardConfig) {
-			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(cardConfig)));
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(cardConfig), cardConfig.Variables));
 		}
 
 		public static DefinitionEnvironment GetEnvironment(int card, int totalCards) {
@@ -119,7 +122,8 @@ namespace SharpSheets.Cards.Definitions {
 		static readonly Definition headingDefinition = new ConstantDefinition(
 			"heading", Array.Empty<EvaluationName>(),
 			"The segment heading text, without note or details.",
-			EvaluationType.STRING);
+			EvaluationType.STRING,
+			null);
 		static readonly Definition noteDefinition = new FallbackDefinition(
 			"subheading", Array.Empty<EvaluationName>(),
 			"The segment subheading text (which may be empty).",
@@ -129,7 +133,8 @@ namespace SharpSheets.Cards.Definitions {
 		static readonly Definition featureCountDefinition = new ConstantDefinition(
 			"featurecount", new EvaluationName[] { "totalfeatures" },
 			"The total number of features in the current card segment.",
-			EvaluationType.INT);
+			EvaluationType.INT,
+			null);
 
 		public static readonly DefinitionGroup BaseDefinitions;
 
@@ -159,7 +164,7 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public static IEnvironment GetDryRun(AbstractCardSegmentConfig segmentConfig) {
-			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(segmentConfig)));
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(segmentConfig), segmentConfig.Variables));
 		}
 
 		/*
@@ -223,11 +228,13 @@ namespace SharpSheets.Cards.Definitions {
 		static readonly Definition partnumDefinition = new ConstantDefinition(
 			"partnum", Array.Empty<EvaluationName>(),
 			"The index of the current segment part/segment being drawn in the current card segment. This is zero-indexed, meaning that the first part has an index of 0.",
-			EvaluationType.INT);
+			EvaluationType.INT,
+			null);
 		static readonly Definition partcountDefinition = new ConstantDefinition(
 			"partcount", new EvaluationName[] { "totalparts" },
 			"The total number of segment parts/segments in the current segment for the current card layout.",
-			EvaluationType.INT);
+			EvaluationType.INT,
+			null);
 
 		public static readonly DefinitionGroup BaseDefinitions;
 
@@ -243,7 +250,7 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public static IEnvironment GetDryRun(AbstractCardSegmentConfig segmentConfig) {
-			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(segmentConfig)));
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(segmentConfig), segmentConfig.Variables));
 		}
 
 		public static DefinitionEnvironment GetEnvironment(int partnum, int totalParts) {
@@ -259,7 +266,8 @@ namespace SharpSheets.Cards.Definitions {
 		static readonly Definition titleDefinition = new ConstantDefinition(
 			"title", Array.Empty<EvaluationName>(),
 			"The feature title text (without note or details).",
-			EvaluationType.STRING);
+			EvaluationType.STRING,
+			null);
 		static readonly Definition noteDefinition = new FallbackDefinition(
 			"subtitle", Array.Empty<EvaluationName>(),
 			"The feature subtitle text (which may be empty).",
@@ -268,16 +276,19 @@ namespace SharpSheets.Cards.Definitions {
 		static readonly Definition textDefinition = new ConstantDefinition(
 			"text", Array.Empty<EvaluationName>(),
 			"The feature text content.",
-			EvaluationType.STRING);
+			EvaluationType.STRING,
+			null);
 		static readonly Definition listItemDefinition = new ConstantDefinition(
 			"listitem", Array.Empty<EvaluationName>(),
 			"A flag indicating if the current feature is an item in a list.",
-			EvaluationType.BOOL);
+			EvaluationType.BOOL,
+			null);
 		
 		static readonly Definition featureNumDefinition = new ConstantDefinition(
 			"featureNum", Array.Empty<EvaluationName>(),
 			"The index of the current feature being drawn in the current card segment. This is zero-indexed, meaning that the first feature has an index of 0.",
-			EvaluationType.INT);
+			EvaluationType.INT,
+			null);
 
 		public static readonly DefinitionGroup BaseDefinitions;
 		public static readonly DefinitionGroup BaseTextDefinitions;
@@ -317,7 +328,7 @@ namespace SharpSheets.Cards.Definitions {
 		}
 
 		public static IEnvironment GetDryRun(CardFeatureConfig featureConfig) {
-			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(featureConfig)));
+			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(featureConfig), featureConfig.Variables));
 		}
 
 		public static DefinitionEnvironment MakeBaseEnvironment(CardFeature feature) {

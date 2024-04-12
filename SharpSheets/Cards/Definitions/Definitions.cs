@@ -141,7 +141,11 @@ namespace SharpSheets.Cards.Definitions {
 						(?<multi>multi)?category \s* \( \s* (?<categories>[a-z0-9\ ]+ (\s* \, \s* [a-z0-9\ ]+)*) \)
 					)
 				)? # Optional type specifier
-				(\s*\=\s*(?<expression>(.(?!\/\/\/))+))? # Optional expression (either default value or calculation expression)
+				(
+					(\s*\@\s*(?<example>(.(?!\/\/\/))+)) # Example value
+					|
+					(\s*\=\s*(?<expression>(.(?!\/\/\/))+)) # Expression (either default value or calculation expression)
+				)? # Optional example value or expression
 				(\s*\/\/\/\s*(?<description>.*))? # Optional description
 				$ # Must be end of line
 				", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
@@ -161,17 +165,6 @@ namespace SharpSheets.Cards.Definitions {
 			EvaluationName[] allNames = GetDefinitionNames(match); // match.Groups["aliases"].Value.SplitAndTrim('|').Select(s => new EvaluationName(s)).Distinct().ToArray();
 			EvaluationName name = allNames.First();
 			EvaluationName[] aliases = allNames.Skip(1).ToArray();
-
-			string? description = null;
-			if (match.Groups["description"].Success && match.Groups["description"].Length > 0) {
-				description = match.Groups["description"].Value;
-			}
-
-			EvaluationNode? expression = null;
-			if (match.Groups["expression"].Success) {
-				string expressionStr = match.Groups["expression"].Value;
-				expression = Evaluation.Parse(expressionStr, variables);
-			}
 
 			DefinitionType? definitionType = null;
 
@@ -236,9 +229,42 @@ namespace SharpSheets.Cards.Definitions {
 				}
 			}
 
+			object? exampleValue = null;
+			if (match.Groups["example"].Success) {
+				if (definitionType is null) {
+					throw new FormatException("Example values can only be provided for value definitions.");
+				}
+				string exampleValueStr = match.Groups["example"].Value;
+				EvaluationNode exampleValueNode = Evaluation.Parse(exampleValueStr, VariableBoxes.Empty); // Evaluation.Parse(exampleValueStr, variables)
+				if (!EvaluationTypes.IsCompatibleType(definitionType.ReturnType, exampleValueNode.ReturnType)) {
+					throw new FormatException("Provided example value does not match definition type.");
+				}
+				if (!exampleValueNode.IsConstant) {
+					throw new FormatException("Example values must be provided as constant expressions.");
+				}
+				try {
+					exampleValueNode = definitionType.Validation(exampleValueNode);
+					exampleValue = exampleValueNode.Evaluate(Environments.Empty);
+				}
+				catch (EvaluationException e) {
+					throw new FormatException($"Invalid value for definition example value.", e);
+				}
+			}
+
+			EvaluationNode? expression = null;
+			if (match.Groups["expression"].Success) {
+				string expressionStr = match.Groups["expression"].Value;
+				expression = Evaluation.Parse(expressionStr, variables);
+			}
+
+			string? description = null;
+			if (match.Groups["description"].Success && match.Groups["description"].Length > 0) {
+				description = match.Groups["description"].Value;
+			}
+
 			if (definitionType != null) {
 				if (expression is null) {
-					return new ConstantDefinition(name, aliases, description, definitionType);
+					return new ConstantDefinition(name, aliases, description, definitionType, exampleValue);
 				}
 				else {
 					return new FallbackDefinition(name, aliases, description, definitionType, expression);
@@ -256,7 +282,15 @@ namespace SharpSheets.Cards.Definitions {
 
 	public class ConstantDefinition : ValueDefinition {
 
-		public ConstantDefinition(EvaluationName name, EvaluationName[] aliases, string? description, DefinitionType type) : base(name, aliases, type, description) { }
+		public readonly object? ExampleValue;
+
+		public ConstantDefinition(EvaluationName name, EvaluationName[] aliases, string? description, DefinitionType type, object? exampleValue) : base(name, aliases, type, description) {
+			if (exampleValue is not null && !type.ReturnType.ValidDataType(exampleValue.GetType())) {
+				throw new ArgumentException($"Invalid example value provided for constant definition. " +
+					$"Expected {type.ReturnType}, got {exampleValue.GetType()}.", nameof(exampleValue));
+			}
+			ExampleValue = exampleValue;
+		}
 
 		/*
 		public object ParseValue(string value) {

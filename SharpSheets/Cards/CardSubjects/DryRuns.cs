@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using SharpSheets.Colors;
 using System.Diagnostics.CodeAnalysis;
+using SharpSheets.Cards.Definitions;
+using SharpSheets.Cards.CardConfigs;
 
 namespace SharpSheets.Cards.CardSubjects {
 
@@ -42,9 +44,11 @@ namespace SharpSheets.Cards.CardSubjects {
 
 	public class DryRunEnvironment : IEnvironment {
 		private readonly IVariableBox variables;
+		private readonly IVariableDefinitionBox definitions;
 
-		public DryRunEnvironment(IVariableBox variables) {
+		public DryRunEnvironment(IVariableBox variables, IVariableDefinitionBox definitions) {
 			this.variables = variables;
+			this.definitions = definitions;
 		}
 
 		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) => variables.TryGetVariableInfo(key, out variableInfo);
@@ -52,6 +56,10 @@ namespace SharpSheets.Cards.CardSubjects {
 		public IEnumerable<EnvironmentVariableInfo> GetVariables() => variables.GetVariables();
 
 		public bool TryGetValue(EvaluationName key, out object? value) {
+			if(definitions.TryGetDefinition(key, out Definition? definition) && definition is ConstantDefinition constant && constant.ExampleValue is not null) {
+				value = constant.ExampleValue;
+				return true;
+			}
 			if(variables.TryGetReturnType(key, out EvaluationType? returnType)) {
 				value = DryRunConstants.Get(returnType);
 				return true;
@@ -64,7 +72,7 @@ namespace SharpSheets.Cards.CardSubjects {
 
 		// TODO These may need updating if we end up implementing user defined functions
 		public bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator) {
-			functionEvaluator = null;
+			functionEvaluator = null; // TODO What to do here?
 			return false;
 		}
 		public bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo) {

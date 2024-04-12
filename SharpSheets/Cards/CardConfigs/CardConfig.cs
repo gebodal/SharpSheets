@@ -616,6 +616,8 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	public class VariableDefinitionBox : IVariableDefinitionBox {
 
+		public static readonly VariableDefinitionBox Empty = new VariableDefinitionBox(new DefinitionGroup(), new DefinitionGroup(), null);
+
 		public readonly DefinitionGroup baseDefinitions;
 		public readonly DefinitionGroup definitions;
 		public readonly IVariableDefinitionBox? fallback;

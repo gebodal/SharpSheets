@@ -18,6 +18,7 @@
 	<Color name="EscapeSequence" foreground="#ffd68f" fontWeight="bold"/>
 	<Color name="Braces" foreground="Wheat" fontWeight="bold"/>
 	<Color name="Punctuation" foreground="#dcdcdc" fontWeight="normal"/>
+	<Color name="LesserPunctuation" foreground="#a3a3a3" fontWeight="normal"/>
 	<Color name="Error" foreground="Purple" fontWeight="normal"/>
 	<Color name="Keywords" foreground="#db2525" fontWeight="normal"/>
 	
@@ -161,12 +162,21 @@
 		<Span enabled="CardConfig" color="Def">
 			<Begin>^\s*def\s+</Begin>
 			<RuleSet ignoreCase="true">
-				<!-- Expression -->
+				<!-- Description -->
 				<Span color="Description">
 					<Begin>\/\/\/</Begin>
 				</Span>
+				<!-- Expression-->
 				<Span color="Punctuation">
 					<Begin>\=</Begin>
+					<End>(?=\/\/\/)|$</End>
+					<RuleSet>
+						<Import ruleSet="Expressions"/>
+					</RuleSet>
+				</Span>
+				<!-- Example value-->
+				<Span color="LesserPunctuation">
+					<Begin>\@</Begin>
 					<End>(?=\/\/\/)|$</End>
 					<RuleSet>
 						<Import ruleSet="Expressions"/>
@@ -175,11 +185,11 @@
 				<!-- Type -->
 				<Span color="Punctuation">
 					<Begin>\:</Begin>
-					<End>(?=\=|\/\/\/)|$</End>
+					<End>(?=\=|\@|\/\/\/)|$</End>
 					<RuleSet>
 						<Span color="DefinitionType">
 							<Begin>(?i:(multi)?category)\(</Begin>
-							<End>\)\s*(?=\=|\/\/\/|$)</End>
+							<End>\)\s*(?=\=|\@|\/\/\/|$)</End>
 							<RuleSet>
 								<Rule color="Punctuation">
 									\,
