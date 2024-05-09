@@ -21,6 +21,7 @@ using SharpSheets.Cards.CardConfigs;
 using SharpEditor.DataManagers;
 using SharpEditor.Documentation.DocumentationBuilders;
 using SharpEditor.ContentBuilders;
+using System.Text;
 
 namespace SharpEditor.CodeHelpers {
 
@@ -247,6 +248,25 @@ namespace SharpEditor.CodeHelpers {
 
 		protected int GetLineIndent(DocumentLine line) {
 			return TextUtilities.GetWhitespaceAfter(Document, line.Offset).Length;
+		}
+
+		protected (string parentIndent, string indent)? GetLineIndentPieces(DocumentLine line) {
+			IContext? context = parsingState.GetContext(line);
+
+			if(context is null) { return null; }
+
+			ISegment whitespace = TextUtilities.GetWhitespaceAfter(Document, line.Offset);
+
+			string whitespaceText = textEditor.Document.GetText(whitespace);
+			int contextDepth = context.Depth;
+
+			if (new HashSet<char>(whitespaceText).Count == 1 && whitespaceText.Length % contextDepth == 0) {
+				int charCount = whitespaceText.Length / contextDepth;
+				return (whitespaceText, whitespaceText[^charCount..]);
+			}
+			else {
+				return (whitespaceText, whitespaceText[^1..]);
+			}
 		}
 
 		static readonly Regex argNameRegex = new Regex(@"^\@?(?<arg>[a-z][a-z0-9\.]+)\s*:", RegexOptions.IgnoreCase);
@@ -846,6 +866,49 @@ namespace SharpEditor.CodeHelpers {
 			}
 
 			Document.EndUpdate();
+		}
+
+		#endregion
+
+		#region Pasting
+
+		public void TextPasted(DataObjectPastingEventArgs args, int offset) {
+			/*
+			string? text = args.DataObject.GetData(typeof(string)) as string;
+
+			if (text is null || text.Length == 0) { return; }
+
+			(string parent, string piece)? indent = GetLineIndentPieces(textEditor.Document.GetLineByOffset(offset));
+
+			if (indent is null) { return; }
+
+			text = text.TrimStart();
+
+			string newLine = TextUtilities.GetNewLineFromDocument(textEditor.Document, textEditor.TextArea.Caret.Line);
+
+			StringBuilder result = new StringBuilder();
+			foreach ((int idx, SharpDocumentLine line) in SharpDocumentLineParsing.SplitLines(text).Enumerate()) {
+				result.Append(indent.Value.parent);
+				for (int i = 0; i < line.IndentLevel; i++) {
+					result.Append(indent.Value.piece);
+				}
+				if (line.LocalOnly) { result.Append('@'); }
+				result.Append(line.LineType switch {
+					LineType.DIV => $"{line.Content}:",
+					LineType.NAMEDCHILD => $"&{line.Content}",
+					LineType.PROPERTY => $"{line.Content}: {line.Property ?? ""}",
+					LineType.FLAG => line.Content,
+					LineType.ENTRY => $"- {line.Content}",
+					LineType.DEFINITION => line.Content,
+					_ => ""
+				});
+				result.Append(newLine);
+			}
+
+			DataObject d = new DataObject();
+			d.SetData(DataFormats.Text, result.ToString());
+			args.DataObject = d;
+			*/
 		}
 
 		#endregion

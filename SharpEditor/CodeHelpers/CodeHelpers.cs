@@ -29,6 +29,8 @@ namespace SharpEditor.CodeHelpers {
 		void IncrementComment(int offset, int length);
 		void DecrementComment(int offset, int length);
 
+		void TextPasted(DataObjectPastingEventArgs args, int offset);
+
 	}
 
 	public static class CodeHelpers {

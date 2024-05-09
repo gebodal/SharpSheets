@@ -123,6 +123,9 @@ namespace SharpEditor {
 			textEditor.SnapsToDevicePixels = true;
 			textEditor.SetValue(RenderOptions.EdgeModeProperty, EdgeMode.Aliased);
 
+			DataObject.AddPastingHandler(this, PasteEvent);
+			//DataObject.AddCopyingHandler(this, CopyEvent);
+
 			SharpDataManager.Instance.WarnFontLicensingChanged += Refresh;
 
 			// Initialise state of text editor
@@ -596,6 +599,10 @@ namespace SharpEditor {
 				(int offset, int length) = GetSelection();
 				codeHelper.DecrementComment(offset, length);
 			}
+		}
+
+		private void PasteEvent(object sender, DataObjectPastingEventArgs args) {
+			codeHelper?.TextPasted(args, textEditor.CaretOffset);
 		}
 
 		#endregion CodeHelper

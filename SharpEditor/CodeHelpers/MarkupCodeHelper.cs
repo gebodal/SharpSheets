@@ -492,6 +492,14 @@ namespace SharpEditor.CodeHelpers {
 		}
 
 		#endregion
+
+		#region Pasting
+
+		public void TextPasted(DataObjectPastingEventArgs args, int offset) {
+
+		}
+
+		#endregion
 	}
 
 }
