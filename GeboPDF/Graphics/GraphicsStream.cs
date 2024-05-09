@@ -808,7 +808,7 @@ namespace GeboPdf.Graphics {
 		}
 
 		public GraphicsStream ShowTextCalculateKerning(string text) {
-			if (text.Length > 1 && state.Font?.font is PdfGlyphFont glyphFont) { // Is this a little brittle?
+			if (text.Length > 0 && state.Font?.font is PdfGlyphFont glyphFont) { // Is this a little brittle?
 
 				PositionedGlyphRun positionedGlyphs = glyphFont.GetGlyphRun(text, out FontGlyphUsage fontUsage);
 				resources.RegisterFontUsage(glyphFont, fontUsage);

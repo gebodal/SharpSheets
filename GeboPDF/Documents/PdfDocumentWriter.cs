@@ -4,6 +4,7 @@ using GeboPdf.Objects;
 using GeboPdf.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -298,7 +299,7 @@ namespace GeboPdf.Documents {
 
 			public DocumentObjectCollection(IEnumerable<PdfObject> docObjs) {
 				collection = new Dictionary<PdfObject, int>(this);
-				fontReferenceObjects = new Dictionary<PdfFont, PdfObject>();
+				fontReferenceObjects = new Dictionary<PdfFont, PdfObject>(FontCombinableComparer.Instance);
 
 				IEqualityComparer<PdfObject> comparer = EqualityComparer<PdfObject>.Default;
 
@@ -416,16 +417,17 @@ namespace GeboPdf.Documents {
 		}
 
 		public bool CanCombine(PdfFontProxyObject other) {
-			return this.Font.Equals(other.Font);
+			//return this.Font.Equals(other.Font);
+			return this.Font.CanCombine(other.Font);
 		}
 
 		public PdfFontProxyObject Combine(PdfFontProxyObject other) {
-			if (Font.Equals(other.Font)) {
+			if (Font.TryCombine(other.Font, out PdfFont? combined)) { // Font.Equals(other.Font)
 				FontGlyphUsage combinedUsage = FontGlyphUsage.Combine(FontUsage, other.FontUsage);
-				return new PdfFontProxyObject(Font, combinedUsage);
+				return new PdfFontProxyObject(combined, combinedUsage);
 			}
 			else {
-				throw new InvalidOperationException($"Cannot combine font proxies with different fonts.");
+				throw new InvalidOperationException($"Cannot combine font proxies with incompatible fonts.");
 			}
 		}
 

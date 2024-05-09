@@ -9,7 +9,7 @@ namespace SharpSheets.Parsing {
 	public static class StringParsing {
 
 		private static string NormalizeString(string text) {
-			return text.Normalize(NormalizationForm.FormKD); // This form seems to work best, but why?
+			return text.Normalize(NormalizationForm.FormC); // Is this the correct form here?
 		}
 
 		/// <summary></summary>

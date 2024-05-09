@@ -4,6 +4,7 @@ using GeboPdf.Objects;
 using GeboPdf.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -30,6 +31,11 @@ namespace GeboPdf.Fonts {
 
 
 		public abstract IEnumerable<PdfObject> CollectObjects(FontGlyphUsage usage, out PdfIndirectReference fontReference);
+
+		public abstract bool CanCombine(PdfFont other);
+		public abstract bool TryCombine(PdfFont other, [MaybeNullWhen(false)] out PdfFont combined);
+		public abstract int GetCombinableHashCode();
+		public abstract PdfFont GetCanonicalFont();
 
 		public abstract byte[] GetBytes(string text);
 
@@ -92,6 +98,21 @@ namespace GeboPdf.Fonts {
 		}
 		*/
 
+	}
+
+	public class FontCombinableComparer : IEqualityComparer<PdfFont> {
+		public static readonly FontCombinableComparer Instance = new FontCombinableComparer();
+
+		private FontCombinableComparer() { }
+
+		public bool Equals(PdfFont? x, PdfFont? y) {
+			if (x is null || y is null) { return x is null && y is null; }
+			return x.CanCombine(y);
+		}
+
+		public int GetHashCode([DisallowNull] PdfFont font) {
+			return font.GetCombinableHashCode();
+		}
 	}
 
 	public class PdfStandardFont : PdfFont {
@@ -175,6 +196,26 @@ namespace GeboPdf.Fonts {
 				return font == other.font && encoding == other.encoding;
 			}
 			return false;
+		}
+
+		public override bool CanCombine(PdfFont other) {
+			return Equals(other);
+		}
+		public override bool TryCombine(PdfFont other, [MaybeNullWhen(false)] out PdfFont combined) {
+			if (Equals(other)) {
+				combined = this;
+				return true;
+			}
+			else {
+				combined = null;
+				return false;
+			}
+		}
+		public override int GetCombinableHashCode() {
+			return this.GetHashCode();
+		}
+		public override PdfFont GetCanonicalFont() {
+			return this;
 		}
 
 		public override byte[] GetBytes(string text) {
@@ -305,6 +346,26 @@ namespace GeboPdf.Fonts {
 			this.gpos = gpos;
 		}
 
+		private PdfType0Font(
+			string origin, MemoryStream fontStream,
+			IReadOnlyDictionary<uint, ushort> unicodeToGID,
+			ushort[] advanceWidths, int[] ascents, int[] descents, Dictionary<uint, short>? kerning,
+			ushort unitsPerEm) {
+
+			this.origin = origin; // TODO This is crude, and needs replacing
+			this.fontStream = fontStream;
+
+			this.unicodeToGID = unicodeToGID;
+
+			this.unitsPerEm = unitsPerEm;
+			this.advanceWidths = advanceWidths;
+			this.ascents = ascents;
+			this.descents = descents;
+			this.kerning = kerning;
+			this.gsub = null;
+			this.gpos = null;
+		}
+
 		private static int ProcessShort(short value, ushort unitsPerEm) {
 			return (int)(1000 * (value / (double)unitsPerEm));
 		}
@@ -328,16 +389,40 @@ namespace GeboPdf.Fonts {
 			return fontDictionary.CollectObjects();
 		}
 
-		public override int GetHashCode() => origin.GetHashCode();
+		public override int GetHashCode() {
+			return HashCode.Combine(origin, gsub, gpos);
+		}
 
 		public override bool Equals(object? obj) {
 			if (ReferenceEquals(this, obj)) {
 				return true;
 			}
 			else if (obj is PdfType0Font other) {
-				return origin == other.origin;
+				return origin == other.origin
+					&& GlyphSubstitutionLookupSet.Equals(gsub, other.gsub)
+					&& GlyphPositioningLookupSet.Equals(gpos, other.gpos);
 			}
 			return false;
+		}
+
+		public override bool CanCombine(PdfFont other) {
+			return ReferenceEquals(this, other) || (other is PdfType0Font otherType0 && origin == otherType0.origin);
+		}
+		public override bool TryCombine(PdfFont other, [MaybeNullWhen(false)] out PdfFont combined) {
+			if (ReferenceEquals(this, other) || (other is PdfType0Font otherType0 && origin == otherType0.origin)) {
+				combined = GetCanonicalFont();
+				return true;
+			}
+			else {
+				combined = null;
+				return false;
+			}
+		}
+		public override int GetCombinableHashCode() {
+			return HashCode.Combine(origin);
+		}
+		public override PdfFont GetCanonicalFont() {
+			return new PdfType0Font(origin, fontStream, unicodeToGID, advanceWidths, ascents, descents, kerning, unitsPerEm);
 		}
 
 		public override ushort[] GetGlyphs(string text) {

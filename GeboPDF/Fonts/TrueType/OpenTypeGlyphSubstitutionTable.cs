@@ -236,6 +236,28 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 		}
 
+		// TODO Are these sufficient?
+		public static bool Equals(GlyphSubstitutionLookupSet? a, GlyphSubstitutionLookupSet? b) {
+			if (a is null && b is null) { return true; }
+			else if (a is null || b is null) { return false; }
+			else if (a.Count != b.Count) { return false; }
+
+			for (int i = 0; i < a.Lookups.Length; i++) {
+				if (!ReferenceEquals(a.Lookups[i], b.Lookups[i])) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+		public override bool Equals(object? obj) {
+			return obj is GlyphSubstitutionLookupSet set
+				&& Count == set.Count
+				&& EqualityComparer<GlyphSubstitutionLookupTable[]>.Default.Equals(Lookups, set.Lookups);
+		}
+		public override int GetHashCode() {
+			return HashCode.Combine(Lookups, Count);
+		}
 	}
 
 	public abstract class OpenTypeSingleSubstitutionSubtable : ISubstitutionSubtable {

@@ -34,14 +34,14 @@ namespace GeboPdf.Documents {
 			allRegistered = new HashSet<PdfName>();
 
 			// Could the creation of these be delayed unless needed? Seems a lot of effort to go to, considering how infrequently most will be used
-			extGStateRegistry = new ResourcesRegistry<PdfGraphicsStateParameterDictionary>(gs => PdfIndirectReference.Create(gs), "Gs", allRegistered);
-			colorSpaceRegistry = new ResourcesRegistry<PdfColorSpace>(cs => PdfIndirectReference.Create(cs), "Cs", allRegistered);
+			extGStateRegistry = new ResourcesRegistry<PdfGraphicsStateParameterDictionary>(PdfIndirectReference.Create, "Gs", allRegistered);
+			colorSpaceRegistry = new ResourcesRegistry<PdfColorSpace>(PdfIndirectReference.Create, "Cs", allRegistered);
 			patternRegistry = new ResourcesRegistry<IPdfPattern>(p => p.Reference, "P", allRegistered);
-			shadingRegistry = new ResourcesRegistry<PdfShadingDictionary>(s => PdfIndirectReference.Create(s), "S", allRegistered);
+			shadingRegistry = new ResourcesRegistry<PdfShadingDictionary>(PdfIndirectReference.Create, "S", allRegistered);
 			xObjectRegistry = new ResourcesRegistry<PdfXObject>(x => x.Reference, "XO", allRegistered);
-			fontRegistry = new ResourcesRegistry<PdfFont>(f => f.FontReference, "F", allRegistered);
+			fontRegistry = new ResourcesRegistry<PdfFont>(f => f.FontReference, "F", allRegistered, FontCombinableComparer.Instance);
 
-			fontUsages = new Dictionary<PdfFont, FontGlyphUsage>();
+			fontUsages = new Dictionary<PdfFont, FontGlyphUsage>(FontCombinableComparer.Instance);
 		}
 
 		public override int Count {
@@ -96,17 +96,9 @@ namespace GeboPdf.Documents {
 				}
 			}
 
-			/*
-			foreach (PdfFont font in fontRegistry.Entries) {
-				foreach (PdfObject fontObject in font.CollectObjects()) {
-					yield return fontObject;
-				}
-			}
-			*/
-			// TODO Finish implementation
 			foreach(PdfFont font in fontRegistry.Entries) {
-				FontGlyphUsage fontUsage = fontUsages.GetValueOrFallback(font, null) ?? new FontGlyphUsage(); // TODO Should probably not emit font is unused?
-				yield return new PdfFontProxyObject(font, fontUsage);
+				FontGlyphUsage fontUsage = fontUsages.GetValueOrFallback(font, null) ?? new FontGlyphUsage(); // Should not emit font if unused?
+				yield return new PdfFontProxyObject(font.GetCanonicalFont(), fontUsage);
 			}
 		}
 
@@ -176,12 +168,12 @@ namespace GeboPdf.Documents {
 			private readonly Func<T, PdfObject> resolver;
 			private readonly string namePattern;
 
-			public ResourcesRegistry(Func<T, PdfObject> resolver, string namePattern, HashSet<PdfName> allRegistered) {
+			public ResourcesRegistry(Func<T, PdfObject> resolver, string namePattern, HashSet<PdfName> allRegistered, IEqualityComparer<T>? comparer = null) {
 				this.resolver = resolver;
 				this.namePattern = namePattern;
 
 				this.Dictionary = null;
-				this.registry = new Dictionary<T, PdfName>();
+				this.registry = new Dictionary<T, PdfName>(comparer);
 
 				this.allRegistered = allRegistered;
 			}

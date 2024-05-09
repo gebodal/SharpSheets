@@ -223,6 +223,28 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 		}
 
+		// TODO Are these sufficient?
+		public static bool Equals(GlyphPositioningLookupSet? a, GlyphPositioningLookupSet? b) {
+			if (a is null && b is null) { return true; }
+			else if (a is null || b is null) { return false; }
+			else if (a.Lookups.Length != b.Lookups.Length) { return false; }
+
+			for (int i = 0; i < a.Lookups.Length; i++) {
+				if (!ReferenceEquals(a.Lookups[i], b.Lookups[i])) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+		public override bool Equals(object? obj) {
+			return obj is GlyphPositioningLookupSet set &&
+				   EqualityComparer<GlyphPositioningLookupTable[]>.Default.Equals(Lookups, set.Lookups);
+		}
+		public override int GetHashCode() {
+			return HashCode.Combine(Lookups);
+		}
+
 	}
 
 	public abstract class OpenTypeSingleAdjustmentPositioningSubtable : IPositioningSubtable {
