@@ -196,11 +196,11 @@ namespace GeboPdf.Fonts.TrueType {
 	public class GlyphSubstitutionLookupTable {
 
 		public readonly LookupFlag LookupFlag;
-		public readonly ushort MarkAttachmentTypeMask;
+		public readonly byte? MarkAttachmentTypeMask;
 		public readonly ISubstitutionSubtable[] Subtables;
-		public readonly ushort MarkFilteringSet;
+		public readonly ushort? MarkFilteringSet;
 
-		public GlyphSubstitutionLookupTable(LookupFlag lookupFlag, ushort markAttachmentTypeMask, ISubstitutionSubtable[] subtables, ushort markFilteringSet) {
+		public GlyphSubstitutionLookupTable(LookupFlag lookupFlag, byte? markAttachmentTypeMask, ISubstitutionSubtable[] subtables, ushort? markFilteringSet) {
 			LookupFlag = lookupFlag;
 			MarkAttachmentTypeMask = markAttachmentTypeMask;
 			Subtables = subtables;

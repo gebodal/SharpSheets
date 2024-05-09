@@ -184,11 +184,11 @@ namespace GeboPdf.Fonts.TrueType {
 	public class GlyphPositioningLookupTable {
 
 		public readonly LookupFlag LookupFlag;
-		public readonly ushort MarkAttachmentTypeMask;
+		public readonly byte? MarkAttachmentTypeMask;
 		public readonly IPositioningSubtable[] Subtables;
-		public readonly ushort MarkFilteringSet;
+		public readonly ushort? MarkFilteringSet;
 
-		public GlyphPositioningLookupTable(LookupFlag lookupFlag, ushort markAttachmentTypeMask, IPositioningSubtable[] subtables, ushort markFilteringSet) {
+		public GlyphPositioningLookupTable(LookupFlag lookupFlag, byte? markAttachmentTypeMask, IPositioningSubtable[] subtables, ushort? markFilteringSet) {
 			LookupFlag = lookupFlag;
 			MarkAttachmentTypeMask = markAttachmentTypeMask;
 			Subtables = subtables;
@@ -682,25 +682,25 @@ namespace GeboPdf.Fonts.TrueType {
 					}
 
 					if (baseIndex >= 0) { // Found a base glyph before start of sequence
-					(ushort markClass, AnchorTable markAnchor) = MarkArray.MarkRecords[markCoverageIdx];
-					AnchorTable? baseAttachmentAnchor = BaseRecords[baseCoverageIdx][markClass];
+						(ushort markClass, AnchorTable markAnchor) = MarkArray.MarkRecords[markCoverageIdx];
+						AnchorTable? baseAttachmentAnchor = BaseRecords[baseCoverageIdx][markClass];
 
-					if (baseAttachmentAnchor is not null) {
-						(short xDelta, short yDelta) = AnchorTable.GetDelta(
-							baseAttachmentAnchor,
+						if (baseAttachmentAnchor is not null) {
+							(short xDelta, short yDelta) = AnchorTable.GetDelta(
+								baseAttachmentAnchor,
 								(totalAdvanceX, totalAdvanceY),
 								run.GetPlacement(baseIndex),
 								markAnchor,
 								run.GetPlacement(index));
 
-						run.AdjustPlacement(index, xDelta, yDelta);
+							run.AdjustPlacement(index, xDelta, yDelta);
+						}
 					}
-				}
 				}
 
 				return 0;
 			}
-
+			
 		}
 
 	}

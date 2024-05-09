@@ -450,11 +450,11 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public readonly ushort LookupType;
 		public readonly LookupFlag LookupFlag;
-		public readonly ushort MarkAttachmentTypeMask;
+		public readonly byte? MarkAttachmentTypeMask;
 		public readonly long[] SubtableOffsets; // Absolute offsets within FontFile
-		public readonly ushort MarkFilteringSet;
+		public readonly ushort? MarkFilteringSet;
 
-		internal OpenTypeLookupTable(ushort lookupType, LookupFlag lookupFlag, ushort markAttachmentTypeMask, long[] subtableOffsets, ushort markFilteringSet) {
+		internal OpenTypeLookupTable(ushort lookupType, LookupFlag lookupFlag, byte? markAttachmentTypeMask, long[] subtableOffsets, ushort? markFilteringSet) {
 			LookupType = lookupType;
 			LookupFlag = lookupFlag;
 			MarkAttachmentTypeMask = markAttachmentTypeMask;
@@ -468,8 +468,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 			ushort lookupType = reader.ReadUInt16();
 			ushort lookupFlagValue = reader.ReadUInt16();
-			LookupFlag lookupFlag = (LookupFlag)(lookupFlagValue & 0b11111);
-			ushort markAttachmentTypeMask = (ushort)(lookupFlagValue & (ushort)0xFF00);
+			(LookupFlag lookupFlag, byte? markAttachmentTypeMask) = ParseLookupFlag(lookupFlagValue);
 			ushort subTableCount = reader.ReadUInt16();
 
 			long[] subtableOffsets = new long[subTableCount]; // reader.ReadUInt16(subTableCount);
@@ -478,9 +477,18 @@ namespace GeboPdf.Fonts.TrueType {
 				subtableOffsets[i] = offset + reader.ReadUInt16();
 			}
 
-			ushort markFilteringSet = reader.ReadUInt16();
+			ushort? markFilteringSet = null;
+			if (lookupFlag.HasFlag(LookupFlag.USE_MARK_FILTERING_SET)) {
+				markFilteringSet = reader.ReadUInt16();
+			}
 
 			return new OpenTypeLookupTable(lookupType, lookupFlag, markAttachmentTypeMask, subtableOffsets, markFilteringSet);
+		}
+
+		private static (LookupFlag lookupFlag, byte? markAttachmentTypeMask) ParseLookupFlag(ushort lookupFlagValue) {
+			LookupFlag lookupFlag = (LookupFlag)(lookupFlagValue & 0b11111);
+			byte markAttachmentTypeMask = (byte)((lookupFlagValue & (ushort)0xFF00) >> 8);
+			return (lookupFlag,  markAttachmentTypeMask != 0 ? markAttachmentTypeMask : null);
 		}
 
 	}

@@ -27,6 +27,8 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public readonly TrueTypeKerningTable? kern;
 
+
+		public readonly OpenTypeGlyphDefinitionTable? gdef;
 		public readonly OpenTypeGlyphSubstitutionTable? gsub;
 		public readonly OpenTypeGlyphPositioningTable? gpos;
 
@@ -50,6 +52,7 @@ namespace GeboPdf.Fonts.TrueType {
 				TrueTypeOS2Table? os2,
 				TrueTypePostTable? post,
 				TrueTypeKerningTable? kern,
+				OpenTypeGlyphDefinitionTable? gdef,
 				OpenTypeGlyphSubstitutionTable? gsub,
 				OpenTypeGlyphPositioningTable? gpos,
 				GlyphOutlineLayout glyphOutlineLayout
@@ -72,6 +75,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 			this.kern = kern;
 
+			this.gdef = gdef;
 			this.gsub = gsub;
 			this.gpos = gpos;
 
@@ -229,6 +233,12 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			///////////// GSUB table
+			OpenTypeGlyphDefinitionTable? gdef = null;
+			if (tables.TryGetValue("GDEF", out TrueTypeFontTable? gdefTable)) {
+				gdef = OpenTypeGlyphDefinitionTable.Read(reader, gdefTable.offset);
+			}
+
+			///////////// GSUB table
 			OpenTypeGlyphSubstitutionTable? gsub = null;
 			if (tables.TryGetValue("GSUB", out TrueTypeFontTable? gsubTable)) {
 				gsub = OpenTypeGlyphSubstitutionTable.Read(reader, gsubTable.offset);
@@ -248,7 +258,7 @@ namespace GeboPdf.Fonts.TrueType {
 				numGlyphs,
 				head, name, hhea, loca, glyf, hmtx, cmap, os2, post,
 				kern,
-				gsub, gpos,
+				gdef, gsub, gpos,
 				outlineLayout);
 		}
 
