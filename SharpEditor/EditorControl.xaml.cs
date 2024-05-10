@@ -1349,6 +1349,8 @@ namespace SharpEditor {
 				//Console.WriteLine("Areas: " + string.Join(", ", areas.Select(r => (r.Key.GetType().Name ?? "NULL") + $" ({r.Value})")));
 				//Console.WriteLine("Position: " + pos);
 				//Console.WriteLine($"Double click: {string.Join("; ", areas.Select(kv => drawingMapper.GetDrawnObjectLocation(kv.Key)).WhereNotNull().OrderBy(l => l.Line).Select(l => $"line {l.Line} offset {l.Offset}"))}");
+				//Console.WriteLine($"Double click: {string.Join("; ", areas.OrderBy(kv => kv.Value.Total.Area).ThenByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1).Select(l => $"{l.Key.GetType()}"))}");
+				//Console.WriteLine($"Double click: {string.Join("; ", areas.OrderBy(kv => kv.Value.Total.Area).ThenByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1).Select(kv => drawingMapper.GetDrawnObjectLocation(kv.Key)).Select(l => $"{l?.ToString() ?? "NULL"}"))}");
 				if (areas.OrderBy(kv => kv.Value.Total.Area).ThenByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1).Select(kv => drawingMapper.GetDrawnObjectLocation(kv.Key)).WhereNotNull().Where(l => l.Line >= 0).FirstOrDefault() is DocumentSpan location) {
 					//if (areas.OrderByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1).Select(kv => drawingMapper.GetDrawnObjectLocation(kv.Key)).WhereNotNull().Where(s => s.Line >= 0).FirstOrDefault() is DocumentSpan location) {
 

@@ -55,9 +55,9 @@ namespace SharpSheets.Utilities {
 			else {
 				values = new ArrayList();
 				foreach (object nextMember in collection) {
-					#pragma warning disable GJT0001 // Unhandled thrown exception from statement
+#pragma warning disable GJT0001 // Unhandled thrown exception from statement
 					values.Add(nextMember);
-					#pragma warning restore GJT0001 // Unhandled thrown exception from statement
+#pragma warning restore GJT0001 // Unhandled thrown exception from statement
 				}
 			}
 
@@ -121,6 +121,29 @@ namespace SharpSheets.Utilities {
 					array[i, j] = value;
 				}
 			}
+		}
+
+		public static (T[,], T[,]) Split<T>(this T[,] array, int atIndex) {
+			if (atIndex >= array.GetLength(0)) {
+				throw new IndexOutOfRangeException();
+			}
+
+			T[,] first = new T[atIndex, array.GetLength(1)];
+			T[,] second = new T[array.GetLength(0) - atIndex, array.GetLength(1)];
+
+			for (int i = 0; i < atIndex; i++) {
+				for (int j = 0; j < array.GetLength(1); j++) {
+					first[i, j]	= array[i, j];
+				}
+			}
+
+			for (int i = atIndex; i < array.GetLength(0); i++) {
+				for (int j = 0; j < array.GetLength(1); j++) {
+					second[i - atIndex, j] = array[i, j];
+				}
+			}
+
+			return (first, second);
 		}
 
 	}

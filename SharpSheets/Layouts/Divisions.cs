@@ -120,7 +120,7 @@ namespace SharpSheets.Layouts {
 				}
 
 				float remainingRectBottom = fullRect.Bottom + current - gutter + remainingGutter;
-				if (!overflow && remainingRectBottom < fullRect.Top) {
+				if (!overflow && remainingLength > 0f && remainingRectBottom < fullRect.Top) {
 					remainingRect = new Rectangle(fullRect.X, remainingRectBottom, fullRect.Width, fullRect.Top - remainingRectBottom);
 					remainingGutterRect = new Rectangle(fullRect.X, remainingRectBottom - remainingGutter, fullRect.Width, remainingGutter);
 				}
@@ -145,7 +145,7 @@ namespace SharpSheets.Layouts {
 				}
 
 				float remainingRectTop = fullRect.Top - current + gutter - remainingGutter;
-				if (!overflow && remainingRectTop > fullRect.Bottom) {
+				if (!overflow && remainingLength > 0f && remainingRectTop > fullRect.Bottom) {
 					remainingRect = new Rectangle(fullRect.X, fullRect.Y, fullRect.Width, remainingRectTop - fullRect.Bottom);
 					remainingGutterRect = new Rectangle(fullRect.X, remainingRectTop, fullRect.Width, remainingGutter);
 				}
@@ -228,7 +228,7 @@ namespace SharpSheets.Layouts {
 				}
 
 				float remainingRectRight = fullRect.Right - current + gutter - remainingGutter;
-				if (!overflow && remainingRectRight > fullRect.Left) {
+				if (!overflow && remainingLength > 0f && remainingRectRight > fullRect.Left) {
 					remainingRect = new Rectangle(fullRect.X, fullRect.Y, remainingRectRight - fullRect.Left, fullRect.Height);
 					remainingGutterRect = new Rectangle(remainingRectRight, fullRect.Y, remainingGutter, fullRect.Height);
 				}
@@ -254,7 +254,7 @@ namespace SharpSheets.Layouts {
 				}
 
 				float remainingRectLeft = fullRect.Left + current - gutter + remainingGutter;
-				if (!overflow && remainingRectLeft < fullRect.Right) {
+				if (!overflow && remainingLength > 0f && remainingRectLeft < fullRect.Right) {
 					remainingRect = new Rectangle(remainingRectLeft, fullRect.Y, fullRect.Right - remainingRectLeft, fullRect.Height);
 					remainingGutterRect = new Rectangle(remainingRectLeft - remainingGutter, fullRect.Y, remainingGutter, fullRect.Height);
 				}

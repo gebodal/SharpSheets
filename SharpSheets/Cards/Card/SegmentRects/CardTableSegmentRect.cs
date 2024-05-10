@@ -8,288 +8,341 @@ using SharpSheets.Colors;
 using System.Text.RegularExpressions;
 using SharpSheets.Utilities;
 using System.Linq;
+using SharpSheets.Cards.Layouts;
+using SharpSheets.Cards.CardSubjects;
 
 namespace SharpSheets.Cards.Card.SegmentRects {
 
-    public abstract class CardTableSegmentRect : IFixedCardSegmentRect {
+	public class NewCardTableSegmentRect : IFixedCardSegmentRect {
 
-        AbstractCardSegmentConfig IFixedCardSegmentRect.Config => Config;
-        public TableCardSegmentConfig Config { get; }
-        public IFixedCardSegmentRect? Original { get; set; }
+		AbstractCardSegmentConfig IFixedCardSegmentRect.Config => Config;
+		public TableCardSegmentConfig Config { get; }
+		public IFixedCardSegmentRect? Original { get; set; }
 
-        public readonly ArrangementCollection<IWidget> outlines;
-        public readonly (float column, float row) tableSpacing;
-        public abstract float HeaderGutter { get; }
-        public bool Splittable { get; private set; }
-        public bool AcceptRemaining { get; private set; }
+		public readonly ArrangementCollection<IWidget> outlines;
+		public bool Splittable { get; }
+		public bool AcceptRemaining => Config.acceptRemaining;
 
-        private int partIndex { get; } = 0;
-        private int partsCount { get; } = 1;
+		private readonly RichString[,] entries;
+		private readonly CardFeature[] features;
 
-        public CardTableSegmentRect(TableCardSegmentConfig config, ArrangementCollection<IWidget> outlines, (float column, float row) tableSpacing, bool splittable, bool acceptRemaining) {
-            Config = config;
-            this.outlines = outlines;
-            this.tableSpacing = tableSpacing;
-            Splittable = splittable;
-            AcceptRemaining = acceptRemaining;
-        }
+		private Color[] RowColors => Config.tableColors;
+		private readonly Justification[] justifications;
+		private readonly bool[] numericColumns;
+		private (float column, float row) TableSpacing => Config.tableSpacing;
 
-        private IWidget GetOutline() {
-            return outlines[partIndex, partsCount];
-        }
+		private static readonly Regex numberColumnRegex = new Regex(@"^[0-9\-\+\.]+$");
+		private readonly TextHeightStrategy cellHeightStrategy = TextHeightStrategy.AscentDescent;
 
-        protected abstract float GetHeaderHeight(float width, float fontSize, ParagraphSpecification paragraphSpec);
-        /// <summary></summary>
-        /// <exception cref="InvalidRectangleException"></exception>
-        protected Rectangle? GetHeaderRect(Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec, out Rectangle? remainingRect) {
-            float headerHeight = GetHeaderHeight(rect.Width, fontSize, paragraphSpec);
-            if (headerHeight > 0) {
-                return Divisions.Row(rect, Dimension.FromPoints(headerHeight), HeaderGutter, out remainingRect, out _, false, Arrangement.FRONT, LayoutOrder.FORWARD);
-            }
-            else {
-                remainingRect = rect;
-                return null;
-            }
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="canvas"></param>
-        /// <param name="headerRect"></param>
-        /// <param name="fontSize"></param>
-        /// <param name="paragraphSpec"></param>
-        /// <exception cref="InvalidOperationException"></exception>
-        protected abstract void DrawHeader(ISharpCanvas canvas, Rectangle headerRect, float fontSize, ParagraphSpecification paragraphSpec);
+		protected int StartRow { get; set; } = 0;
 
-        protected abstract Dimension[] GetRowDimensions(ISharpGraphicsState graphicsState, float width, float fontSize, ParagraphSpecification paragraphSpec);
-        protected abstract float GetTableRowsMinimumHeight(ISharpGraphicsState graphicsState, float fontSize, ParagraphSpecification paragraphSpec, float width);
+		private int partIndex { get; set; } = 0;
+		private int partsCount { get; set; } = 1;
 
-        /// <summary></summary>
-        /// <exception cref="InvalidRectangleException"></exception>
-        protected Rectangle?[] GetRowRects(ISharpGraphicsState graphicsState, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec) {
-            return Divisions.Rows(rect, GetRowDimensions(graphicsState, rect.Width, fontSize, paragraphSpec), tableSpacing.row, false, Arrangement.FRONT, LayoutOrder.FORWARD);
-        }
+		public NewCardTableSegmentRect(TableCardSegmentConfig config, ArrangementCollection<IWidget> outlines, RichString[,] tableEntries, CardFeature[] features, bool splittable) {
+			Config = config;
+			this.outlines = outlines;
+			entries = tableEntries;
+			this.features = features;
+			Splittable = splittable;
 
-        public virtual float CalculateMinimumHeight(ISharpGraphicsState graphicsState, float fontSize, ParagraphSpecification paragraphSpec, float width, CardQueryCache cache) {
-            IWidget outline = GetOutline();
-            Rectangle exampleRect = new Rectangle(width, 10000f);
-            Rectangle tempRect;
-            if (outline != null) {
-                tempRect = outline.RemainingRect(graphicsState, exampleRect) ?? exampleRect;
-            }
-            else {
-                tempRect = exampleRect;
-            }
+			numericColumns = new bool[entries.GetLength(1)];
+			justifications = new Justification[entries.GetLength(1)];
+			for (int c = 0; c < entries.GetLength(1); c++) {
+				numericColumns[c] = entries.GetColumn2D(c).Skip(1).Select(e => numberColumnRegex.IsMatch(e.Text)).All(b => b);
+				justifications[c] = numericColumns[c] ? Justification.CENTRE : Justification.LEFT;
+			}
+		}
 
-            float headerHeight = GetHeaderHeight(width, fontSize, paragraphSpec);
-            if (headerHeight > 0f) { headerHeight += HeaderGutter; }
+		private IWidget GetOutline() {
+			return outlines[partIndex, partsCount];
+		}
 
-            float tableHeight = GetTableRowsMinimumHeight(graphicsState, fontSize, paragraphSpec, tempRect.Width);
+		public virtual float CalculateMinimumHeight(ISharpGraphicsState graphicsState, float fontSize, ParagraphSpecification paragraphSpec, float width, CardQueryCache cache) {
+			IWidget outline = GetOutline();
+			Rectangle exampleRect = new Rectangle(width, 10000f);
+			Rectangle tempRect;
+			if (outline != null) {
+				tempRect = outline.RemainingRect(graphicsState, exampleRect) ?? exampleRect;
+			}
+			else {
+				tempRect = exampleRect;
+			}
 
-            float totalHeight = exampleRect.Height - tempRect.Height + tableHeight + headerHeight;
+			float tableHeight = GetTableRowsMinimumHeight(graphicsState, fontSize, paragraphSpec, tempRect.Width);
 
-            return totalHeight;
-        }
+			float totalHeight = exampleRect.Height - tempRect.Height + tableHeight;
 
-        public void Draw(ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec) {
-            canvas.RegisterAreas(Original ?? this, rect, null, Array.Empty<Rectangle>());
+			return totalHeight;
+		}
 
-            IWidget outline = GetOutline();
+		protected float GetTableRowsMinimumHeight(ISharpGraphicsState graphicsState, float fontSize, ParagraphSpecification paragraphSpec, float width) {
+			return GetRowDimensions(graphicsState, entries, numericColumns, width, Config.edgeOffset, fontSize, paragraphSpec, cellHeightStrategy).Select(d => d.Absolute).Sum()
+				+ (entries.GetLength(0) - 1) * TableSpacing.row // Inter-row spacing
+				+ TableSpacing.row; // Spacing before and after table (half-width each, for filling in cell backgrounds)
+		}
 
-            if (outline != null) {
-                outline.Draw(canvas, rect, default);
-                rect = outline.RemainingRect(canvas, rect) ?? rect;
-                //canvas.RegisterArea(Original ?? this, rect);
-            }
+		protected static Dimension[] GetRowDimensions(ISharpGraphicsState graphicsState, RichString[,] entries, bool[] numericColumns, float width, float edgeOffset, float fontSize, ParagraphSpecification paragraphSpec, TextHeightStrategy cellHeightStrategy) {
+			Dimension[] columnDimensions = GetColumnDimensions(graphicsState, entries, numericColumns, width, edgeOffset, fontSize, paragraphSpec);
+			float columnGutter = ColumnGutter(graphicsState, fontSize);
+			float[] columnWidths = Divisions.ToAbsolute(columnDimensions, width - 2 * edgeOffset, columnGutter, out _);
 
-            canvas.SaveState();
+			float[,] entryHeights = new float[entries.GetLength(0), entries.GetLength(1)];
+			for (int i = 0; i < entries.GetLength(0); i++) {
+				for (int j = 0; j < entries.GetLength(1); j++) {
+					entryHeights[i, j] = RichStringLayout.CalculateHeight(graphicsState, entries[i, j], columnWidths[j], fontSize, paragraphSpec, cellHeightStrategy, true);
+				}
+			}
 
-            Rectangle? headerRect = GetHeaderRect(rect, fontSize, paragraphSpec, out Rectangle? remainingRect);
+			Dimension[] rowDimentions = new Dimension[entries.GetLength(0)];
+			for (int i = 0; i < rowDimentions.Length; i++) {
+				rowDimentions[i] = Dimension.FromPoints(entryHeights.GetRow2D(i).Max());
+			}
 
-            if (headerRect != null) {
-                DrawHeader(canvas, headerRect, fontSize, paragraphSpec);
-            }
+			return rowDimentions;
+		}
 
-            if (remainingRect != null) {
-                Dimension[] columnDimensions = GetColumnDimensions(canvas, remainingRect.Width, fontSize, paragraphSpec);
+		protected static Dimension[] GetColumnDimensions(ISharpGraphicsState graphicsState, RichString[,] entries, bool[] numericColumns, float width, float edgeOffset, float fontSize, ParagraphSpecification paragraphSpec) {
 
-                Rectangle?[] rowRects = GetRowRects(canvas, remainingRect, fontSize, paragraphSpec);
-                for (int i = 0; i < rowRects.Length; i++) {
-                    if (rowRects[i] is not null) {
-                        DrawRow(i, canvas, rowRects[i]!, fontSize, paragraphSpec, columnDimensions);
-                    }
-                }
-            }
+			width -= 2 * edgeOffset; // To give some spacing at the sides
+			float columnGutter = ColumnGutter(graphicsState, fontSize);
 
-            canvas.RestoreState();
-        }
+			float[] textWidths = new float[entries.GetLength(1)];
+			for (int j = 0; j < entries.GetLength(1); j++) {
+				textWidths[j] = entries.GetColumn2D(j).Select(s => graphicsState.GetWidth(s, fontSize)).Max();
+			}
+			float totalWidth = textWidths.Sum() + (entries.GetLength(1) - 1) * columnGutter; // Total width of text, including gutters
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="i"></param>
-        /// <param name="canvas"></param>
-        /// <param name="rect"></param>
-        /// <param name="fontSize"></param>
-        /// <param name="paragraphSpec"></param>
-        /// <param name="columnDimensions"></param>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="InvalidRectangleException"></exception>
-        public abstract void DrawRow(int i, ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec, Dimension[] columnDimensions);
-        protected abstract Dimension[] GetColumnDimensions(ISharpGraphicsState graphicsState, float width, float fontSize, ParagraphSpecification paragraphSpec);
+			if (totalWidth <= width) {
+				return textWidths.Zip(numericColumns, (w, n) => n ? Dimension.FromPoints(w) : Dimension.FromRelative(w)).ToArray();
+			}
+			else {
+				bool[] useFullWidth = ArrayUtils.MakeArray(entries.GetLength(1), true);
+				while (totalWidth > width && useFullWidth.Any(b => b)) {
+					// TODO Possibility for infinite loop here
+					int largestIndex = 0;
+					float largestWidth = 0f;
+					for (int i = 0; i < textWidths.Length; i++) {
+						if (useFullWidth[i] && textWidths[i] > largestWidth) {
+							largestWidth = textWidths[i];
+							largestIndex = i;
+						}
+					}
+					useFullWidth[largestIndex] = false;
+					totalWidth = textWidths.Zip(useFullWidth, (w, u) => u ? w : 0f).Sum() + (entries.GetLength(1) - 1) * columnGutter;
+				}
 
-        public IPartialCardSegmentRects Split(int parts) {
-            throw new NotImplementedException(); // TODO Implement
-        }
-    }
+				Dimension[] columnWidths = new Dimension[entries.GetLength(1)];
+				for (int i = 0; i < columnWidths.Length; i++) {
+					if (useFullWidth[i]) {
+						columnWidths[i] = Dimension.FromPoints(textWidths[i]);
+					}
+					else {
+						columnWidths[i] = Dimension.FromRelative(1f);
+					}
+				}
 
-    public class SimpleCardTableSegmentRect : CardTableSegmentRect {
+				return columnWidths;
+			}
+		}
 
-        public override float HeaderGutter { get { return tableSpacing.row * 2f; } }
-        private readonly float edgeOffset;
+		protected static float ColumnGutter(ISharpGraphicsState graphicsState, float fontSize) {
+			return graphicsState.GetWidth(new RichString("M"), fontSize);
+		}
 
-        private readonly RichString? title;
-        private readonly RichString[,] entries;
-        private readonly Color[] rowColors;
+		protected Color GetRowColor(int i) {
+			return RowColors[(StartRow + i) % RowColors.Length];
+		}
 
-        private readonly Justification[] justifications;
-        private readonly bool[] numberColumns;
+		public void Draw(ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec) {
+			canvas.RegisterAreas(Original ?? this, rect, null, Array.Empty<Rectangle>());
 
-        private static readonly Regex numberColumnRegex = new Regex(@"^[0-9\-\+\.]+$");
+			IWidget outline = GetOutline();
 
-        private readonly TextHeightStrategy cellHeightStrategy = TextHeightStrategy.AscentDescent;
+			if (outline != null) {
+				outline.Draw(canvas, rect, default);
+				rect = outline.RemainingRect(canvas, rect) ?? rect;
+				//canvas.RegisterArea(Original ?? this, rect);
+			}
 
-        public SimpleCardTableSegmentRect(TableCardSegmentConfig definition, ArrangementCollection<IWidget> outlines, RichString? title, RichString[,] tableEntries, (float, float) tableSpacing, float edgeOffset, Color[] rowColors, bool splittable, bool acceptRemaining) : base(definition, outlines, tableSpacing, splittable, acceptRemaining) {
-            this.title = title;
-            entries = tableEntries;
-            this.rowColors = rowColors;
+			rect = rect.Margins(TableSpacing.row / 2f, 0f, false); // To remove spacing for cell backgrounds
 
-            this.edgeOffset = edgeOffset;
+			canvas.SaveState();
 
-            numberColumns = new bool[entries.GetLength(1)];
-            for (int j = 0; j < numberColumns.Length; j++) {
-                numberColumns[j] = entries.GetColumn2D(j).Skip(1).Select(e => numberColumnRegex.IsMatch(e.Text)).All(b => b);
-            }
+			Dimension[] columnDimensions = GetColumnDimensions(canvas, entries, numericColumns, rect.Width, Config.edgeOffset, fontSize, paragraphSpec);
 
-            justifications = new Justification[entries.GetLength(1)];
-            for (int j = 0; j < justifications.Length; j++) {
-                justifications[j] = numberColumns[j] ? Justification.CENTRE : Justification.LEFT;
-            }
-        }
+			Rectangle?[] rowRects = GetRowRects(canvas, rect, fontSize, paragraphSpec);
+			for (int i = 0; i < rowRects.Length; i++) {
+				if (rowRects[i] is not null) {
+					DrawRow(i, canvas, rowRects[i]!, fontSize, paragraphSpec, columnDimensions);
+					canvas.RegisterAreas(features[i], rowRects[i]!, null, Array.Empty<Rectangle>());
+				}
+			}
 
-        protected override float GetHeaderHeight(float width, float fontSize, ParagraphSpecification paragraphSpec) {
-            return 0f;
-            /*
-            if (title != null) {
-                return fontSize + 2f;
-            }
-            else {
-                return 0f;
-            }
-            */
-        }
+			canvas.RestoreState();
+		}
 
-        protected override void DrawHeader(ISharpCanvas canvas, Rectangle headerRect, float fontSize, ParagraphSpecification paragraphSpec) {
-            /*
-            if (title != null) {
-                canvas.DrawRichText(headerRect, title, fontSize + 2f, paragraphSpec, Justification.LEFT, Alignment.CENTRE, cellHeightStrategy, false);
-            }
-            */
-        }
+		/// <summary></summary>
+		/// <exception cref="InvalidRectangleException"></exception>
+		protected Rectangle?[] GetRowRects(ISharpGraphicsState graphicsState, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec) {
+			return Divisions.Rows(rect, GetRowDimensions(graphicsState, entries, numericColumns, rect.Width, Config.edgeOffset, fontSize, paragraphSpec, cellHeightStrategy), TableSpacing.row, false, Arrangement.FRONT, LayoutOrder.FORWARD);
+		}
 
-        public override void DrawRow(int i, ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec, Dimension[] columnDimensions) {
-            Color color = rowColors[i % rowColors.Length];
-            if (color.A > 0) {
-                canvas.SaveState().SetFillColor(color);
-                canvas.Rectangle(rect.Margins(tableSpacing.row / 2, 0, true)).Fill().RestoreState();
-            }
+		/// <summary></summary>
+		/// <exception cref="InvalidRectangleException"></exception>
+		private static Rectangle?[] GetColumnRects(Rectangle fullRect, Dimension[] columnDimensions, float columnGutter, float edgeOffset) {
+			Rectangle rect = fullRect.Margins(0, edgeOffset, false);
+			return Divisions.Columns(rect, columnDimensions, columnGutter, false, Arrangement.FRONT, LayoutOrder.FORWARD); ;
+		}
 
-            Rectangle?[] columnRects = GetColumnRects(rect, columnDimensions, ColumnGutter(canvas, fontSize));
-            for (int j = 0; j < columnRects.Length; j++) {
-                if (columnRects[j] != null) {
-                    canvas.DrawRichText(columnRects[j]!, entries[i, j], fontSize, paragraphSpec, justifications[j], Alignment.CENTRE, cellHeightStrategy, true);
-                }
-            }
-        }
+		public void DrawRow(int i, ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec, Dimension[] columnDimensions) {
+			Color color = GetRowColor(i);
+			if (color.A > 0) {
+				canvas.SaveState().SetFillColor(color);
+				canvas.Rectangle(rect.Margins(TableSpacing.row / 2, 0, true)).Fill().RestoreState();
+			}
 
-        /// <summary></summary>
-        /// <exception cref="InvalidRectangleException"></exception>
-        private Rectangle?[] GetColumnRects(Rectangle fullRect, Dimension[] columnDimensions, float columnGutter) {
-            Rectangle rect = fullRect.Margins(0, edgeOffset, false);
-            return Divisions.Columns(rect, columnDimensions, columnGutter, false, Arrangement.FRONT, LayoutOrder.FORWARD); ;
-        }
+			Rectangle?[] columnRects = GetColumnRects(rect, columnDimensions, ColumnGutter(canvas, fontSize), Config.edgeOffset);
+			for (int j = 0; j < columnRects.Length; j++) {
+				if (columnRects[j] != null) {
+					canvas.DrawRichText(columnRects[j]!, entries[i, j], fontSize, paragraphSpec, justifications[j], Alignment.CENTRE, cellHeightStrategy, true);
+				}
+			}
+		}
 
-        protected override Dimension[] GetRowDimensions(ISharpGraphicsState graphicsState, float width, float fontSize, ParagraphSpecification paragraphSpec) {
-            Dimension[] columnDimensions = GetColumnDimensions(graphicsState, width, fontSize, paragraphSpec);
-            float columnGutter = ColumnGutter(graphicsState, fontSize);
-            float[] columnWidths = Divisions.ToAbsolute(columnDimensions, width - 2 * edgeOffset, columnGutter, out _);
+		public IPartialCardSegmentRects Split(int parts) {
+			if (Splittable) {
+				return new CardTableSegmentRectPieces(this, parts);
+			}
+			else {
+				throw new InvalidOperationException($"Cannot split a {GetType().Name} with Splittable==false.");
+			}
+		}
 
-            float[,] entryHeights = new float[entries.GetLength(0), entries.GetLength(1)];
-            for (int i = 0; i < entries.GetLength(0); i++) {
-                for (int j = 0; j < entries.GetLength(1); j++) {
-                    entryHeights[i, j] = RichStringLayout.CalculateHeight(graphicsState, entries[i, j], columnWidths[j], fontSize, paragraphSpec, cellHeightStrategy, true);
-                }
-            }
+		#region Card Table Pieces
 
-            Dimension[] rowDimentions = new Dimension[entries.GetLength(0)];
-            for (int i = 0; i < rowDimentions.Length; i++) {
-                rowDimentions[i] = Dimension.FromPoints(entryHeights.GetRow2D(i).Max());
-            }
+		public class CardTableSegmentRectPieces : IPartialCardSegmentRects {
+			public IFixedCardSegmentRect Parent { get { return original; } }
+			readonly NewCardTableSegmentRect original;
+			public int Boxes { get; set; }
 
-            return rowDimentions;
-        }
+			public bool PenaliseSplit { get; } = true;
 
-        protected virtual float ColumnGutter(ISharpGraphicsState graphicsState, float fontSize) {
-            return graphicsState.GetWidth(new RichString("M"), fontSize);
-        }
+			RichString[,]? remainingEntries;
+			CardFeature[]? remainingFeatures;
+			int startRow;
+			int boxCount;
 
-        protected override Dimension[] GetColumnDimensions(ISharpGraphicsState graphicsState, float width, float fontSize, ParagraphSpecification paragraphSpec) {
+			public CardTableSegmentRectPieces(NewCardTableSegmentRect original, int boxes) {
+				this.original = original;
+				Boxes = boxes;
+			}
 
-            width -= 2 * edgeOffset; // To give some spacing at the sides
-            float columnGutter = ColumnGutter(graphicsState, fontSize);
+			public void Reset() {
+				remainingEntries = original.entries;
+				remainingFeatures = original.features;
+				startRow = 0;
+				boxCount = 0;
+			}
 
-            float[] textWidths = new float[entries.GetLength(1)];
-            for (int j = 0; j < entries.GetLength(1); j++) {
-                textWidths[j] = entries.GetColumn2D(j).Select(s => graphicsState.GetWidth(s, fontSize)).Max();
-            }
-            float totalWidth = textWidths.Sum() + (entries.GetLength(1) - 1) * columnGutter; // Total width of text, including gutters
+			/*
+			public void RemoveBox() {
+				Boxes = Math.Max(0, Boxes - 1);
+			}
+			*/
 
-            if (totalWidth <= width) {
-                return textWidths.Zip(numberColumns, (w, n) => n ? Dimension.FromPoints(w) : Dimension.FromRelative(w)).ToArray();
-            }
-            else {
-                bool[] useFullWidth = ArrayUtils.MakeArray(entries.GetLength(1), true);
-                while (totalWidth > width && useFullWidth.Any(b => b)) {
-                    // TODO Possibility for infinite loop here
-                    int largestIndex = 0;
-                    float largestWidth = 0f;
-                    for (int i = 0; i < textWidths.Length; i++) {
-                        if (useFullWidth[i] && textWidths[i] > largestWidth) {
-                            largestWidth = textWidths[i];
-                            largestIndex = i;
-                        }
-                    }
-                    useFullWidth[largestIndex] = false;
-                    totalWidth = textWidths.Zip(useFullWidth, (w, u) => u ? w : 0f).Sum() + (entries.GetLength(1) - 1) * columnGutter;
-                }
+			public IFixedCardSegmentRect? FromAvailableHeight(ISharpGraphicsState graphicsState, float availableHeight, float width, float fontSize, ParagraphSpecification paragraphSpec, CardQueryCache cache, out float resultingHeight) {
 
-                Dimension[] columnWidths = new Dimension[entries.GetLength(1)];
-                for (int i = 0; i < columnWidths.Length; i++) {
-                    if (useFullWidth[i]) {
-                        columnWidths[i] = Dimension.FromPoints(textWidths[i]);
-                    }
-                    else {
-                        columnWidths[i] = Dimension.FromRelative(1f);
-                    }
-                }
+				boxCount++;
 
-                return columnWidths;
-            }
-        }
+				if (boxCount > Boxes) {
+					throw new CardLayoutException($"Too many requests for boxes for {GetType().Name} ({boxCount} > {Boxes})");
+				}
 
-        protected override float GetTableRowsMinimumHeight(ISharpGraphicsState graphicsState, float fontSize, ParagraphSpecification paragraphSpec, float width) {
-            return GetRowDimensions(graphicsState, width, fontSize, paragraphSpec).Select(d => d.Absolute).Sum() + (entries.GetLength(0) - 1) * tableSpacing.row;
-        }
-    }
+				RichString[,]? boxEntries;
+				CardFeature[]? boxFeatures;
+
+				if (boxCount < Boxes) {
+
+					if (remainingEntries == null || remainingEntries.GetLength(0) == 0 || availableHeight <= fontSize) {
+						resultingHeight = 0f;
+						return null;
+					}
+
+					Rectangle remainingRect = new Rectangle(width, availableHeight);
+					IWidget outline = original.outlines[boxCount - 1, Boxes];
+					if (outline != null) {
+						try {
+							remainingRect = outline.RemainingRect(graphicsState, remainingRect) ?? remainingRect;
+						}
+						catch (InvalidRectangleException) {
+							resultingHeight = 0f;
+							return null;
+						}
+					}
+
+					(boxEntries, boxFeatures) = SplitEntriesByHeight(graphicsState, remainingEntries!, remainingFeatures!, remainingRect.Width, remainingRect.Height, fontSize, paragraphSpec, out remainingEntries, out remainingFeatures);
+
+				}
+				else { // boxCount == parts -> This is the last available box, so everything must be put in here.
+					boxEntries = remainingEntries;
+					boxFeatures = remainingFeatures;
+					remainingEntries = null;
+				}
+
+				NewCardTableSegmentRect? nextBox;
+				if (boxEntries != null) {
+					nextBox = new NewCardTableSegmentRect(original.Config, original.outlines, boxEntries, boxFeatures!, false) {
+						Original = original,
+						StartRow = startRow,
+						partIndex = boxCount - 1,
+						partsCount = Boxes
+					};
+					resultingHeight = cache.GetMinimumHeight(nextBox, fontSize, paragraphSpec, width); // fixedBox.CalculateMinimumHeight1(graphicsState, font, width); // TODO This seems inefficient here?
+				}
+				else {
+					nextBox = null;
+					resultingHeight = 0f;
+				}
+
+				startRow += boxEntries?.GetLength(0) ?? 0;
+
+				return nextBox;
+			}
+
+			public (RichString[,]?, CardFeature[]?) SplitEntriesByHeight(ISharpGraphicsState graphicsState, RichString[,] entries, CardFeature[] features, float width, float height, float fontSize, ParagraphSpecification paragraphSpec, out RichString[,]? remainingEntries, out CardFeature[]? remainingFeatures) {
+
+				Dimension[] rowDims = NewCardTableSegmentRect.GetRowDimensions(graphicsState, entries, original.numericColumns, width, original.Config.edgeOffset, fontSize, paragraphSpec, original.cellHeightStrategy);
+
+				float rowsHeight1 = rowDims[0].Absolute;
+				for (int i = 1; i < rowDims.Length; i++) {
+
+					if (rowsHeight1 > height) {
+						(RichString[,] first, RichString[,] second) = entries.Split(i - 1);
+						remainingEntries = second.GetLength(0) > 0 ? second : null;
+						remainingFeatures = remainingEntries != null ? features[^remainingEntries.GetLength(0)..] : null;
+
+						RichString[,]? splitEntries = first.GetLength(0) > 0 ? first : null;
+						CardFeature[]? splitFeatures = splitEntries != null ? features[..splitEntries.GetLength(0)] : null;
+
+						return (splitEntries, splitFeatures);
+					}
+
+					rowsHeight1 += original.TableSpacing.row + rowDims[i].Absolute;
+				}
+
+				remainingEntries = null;
+				remainingFeatures = null;
+				return (entries, features);
+			}
+
+			public IPartialCardSegmentRects Clone() {
+				return new CardTableSegmentRectPieces(original, Boxes);
+			}
+		}
+
+		#endregion
+
+	}
 
 }

@@ -329,13 +329,17 @@ namespace SharpSheets.Cards.Card {
 				throw new SharpParsingException(segment.Location, "Table must have same number of columns in each row.");
 			}
 
-			RichString[,] tableEntriesMatrix = GetTableEntries(tableEntries);
+			if (origins != null) {
+				foreach (CardFeature feature in segment) {
+					origins.Add(feature, feature);
+				}
+			}
 
-			RichString? tableTitle = !string.IsNullOrWhiteSpace(segment.Heading.Value) ? new RichString(segment.Heading.Value) : null;
+			RichString[,] tableEntriesMatrix = GetTableEntries(tableEntries);
 
 			ArrangementCollection<IWidget> segmentOutlines = GetOutlines(segment.Environment, segment.Location, segmentConfig, cardConfig, errors, widgetFactory);
 
-			rect = new SimpleCardTableSegmentRect(segmentConfig, segmentOutlines, tableTitle, tableEntriesMatrix, segmentConfig.tableSpacing, segmentConfig.edgeOffset, segmentConfig.tableColors, segmentConfig.splittable, segmentConfig.acceptRemaining);
+			rect = new NewCardTableSegmentRect(segmentConfig, segmentOutlines, tableEntriesMatrix, segment.ToArray<CardFeature>(), segmentConfig.splittable);
 
 			if (origins != null) { origins.Add(rect, segment); }
 			if (configOrigins != null) { configOrigins.Add(rect, segmentConfig); }
