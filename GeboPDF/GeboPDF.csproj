@@ -31,6 +31,7 @@
 	  <None Remove="Fonts\TrueType\resources\OpenType\scriptTags.txt" />
 	  <None Remove="Fonts\TrueType\resources\TrueType\postv1glyphs.txt" />
 	  <None Remove="Text\resources\PdfEncodings.csv" />
+	  <None Remove="Text\resources\UnicodeData15-1-0.txt" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -58,6 +59,7 @@
 	  <EmbeddedResource Include="Fonts\TrueType\resources\OpenType\languageTags.txt" />
 	  <EmbeddedResource Include="Fonts\TrueType\resources\TrueType\postv1glyphs.txt" />
 	  <EmbeddedResource Include="Text\resources\PdfEncodings.csv" />
+	  <EmbeddedResource Include="Text\resources\UnicodeData15-1-0.txt" />
 	</ItemGroup>
 
 	<ItemGroup>
