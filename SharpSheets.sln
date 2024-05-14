@@ -20,6 +20,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpSheets", "SharpSheets\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpEditor", "SharpEditor\SharpEditor.csproj", "{8FDA9072-45BB-45CE-86E9-B54CADDD04EE}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpEditorAvalonia", "SharpEditorAvalonia\SharpEditorAvalonia.csproj", "{F818CC03-8462-459E-8FBC-8B813D66C01E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpEditorAvalonia.Desktop", "SharpEditorAvalonia.Desktop\SharpEditorAvalonia.Desktop.csproj", "{F59FCF0F-E1F6-4214-9254-D72DFE4A8FAA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,6 +46,14 @@ Global
 		{8FDA9072-45BB-45CE-86E9-B54CADDD04EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8FDA9072-45BB-45CE-86E9-B54CADDD04EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8FDA9072-45BB-45CE-86E9-B54CADDD04EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F818CC03-8462-459E-8FBC-8B813D66C01E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F818CC03-8462-459E-8FBC-8B813D66C01E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F818CC03-8462-459E-8FBC-8B813D66C01E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F818CC03-8462-459E-8FBC-8B813D66C01E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F59FCF0F-E1F6-4214-9254-D72DFE4A8FAA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F59FCF0F-E1F6-4214-9254-D72DFE4A8FAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F59FCF0F-E1F6-4214-9254-D72DFE4A8FAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F59FCF0F-E1F6-4214-9254-D72DFE4A8FAA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
