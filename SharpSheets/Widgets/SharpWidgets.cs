@@ -1807,43 +1807,43 @@ namespace SharpSheets.Widgets {
 	}
 
 	/// <summary>
+	/// Different arrangements of gutters between elements in a two-dimensional grid.
+	/// </summary>
+	public enum GutterLayout {
+		/// <summary>
+		/// No gutters to be drawn between elements.
+		/// </summary>
+		NONE,
+		/// <summary>
+		/// Gutter details should be drawn between columns (i.e. vertical gutters).
+		/// </summary>
+		COLUMNS,
+		/// <summary>
+		/// Gutter details should be drawn between rows (i.e. horizontal gutters).
+		/// </summary>
+		ROWS
+	}
+
+	public readonly struct Spacing {
+		public readonly float? horizontal;
+		public readonly float? vertical;
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="horizontal">Horizontal spacing between elements, measured in points.</param>
+		/// <param name="vertical">Vertical spacing between elements, measured in points.</param>
+		public Spacing(float? horizontal = null, float? vertical = null) {
+			this.horizontal = horizontal;
+			this.vertical = vertical;
+		}
+	}
+
+	/// <summary>
 	/// This widget draws a specified content multiple times in a grid layout, with a specified number of rows and columns.
 	/// The repeated content will be drawn on a two-dimensional, rectangular grid, with equal-sized elements.
 	/// Gutter details may be drawn in between the repeated elements, if desired.
 	/// </summary>
 	public class Repeat : SharpWidget {
-
-		/// <summary>
-		/// Different arrangements of gutters between elements in a two-dimensional grid.
-		/// </summary>
-		public enum GutterLayout {
-			/// <summary>
-			/// No gutters to be drawn between elements.
-			/// </summary>
-			NONE,
-			/// <summary>
-			/// Gutter details should be drawn between columns (i.e. vertical gutters).
-			/// </summary>
-			COLUMNS,
-			/// <summary>
-			/// Gutter details should be drawn between rows (i.e. horizontal gutters).
-			/// </summary>
-			ROWS
-		}
-
-		public readonly struct Spacing {
-			public readonly float? horizontal;
-			public readonly float? vertical;
-			/// <summary>
-			/// 
-			/// </summary>
-			/// <param name="horizontal">Horizontal spacing between elements, measured in points.</param>
-			/// <param name="vertical">Vertical spacing between elements, measured in points.</param>
-			public Spacing(float? horizontal = null, float? vertical = null) {
-				this.horizontal = horizontal;
-				this.vertical = vertical;
-			}
-		}
 
 		protected readonly Div? content;
 
@@ -1957,6 +1957,163 @@ namespace SharpSheets.Widgets {
 			Rectangle[] rects = Divisions.Grid(available, rows, columns, horizontalSpacing, verticalSpacing, out _, out _).Flatten().ToArray();
 
 			return rects;
+		}
+	}
+
+	/// <summary>
+	/// This widget draws its children in a grid layout, with a specified number of rows and columns.
+	/// The children will be drawn on a two-dimensional, rectangular grid, with equal-sized elements.
+	/// Gutter details may be drawn in between the repeated elements, if desired.
+	/// There may be fewer children than grid spaces, in which case the excess spaces will be left blank.
+	/// </summary>
+	public class Grid : SharpWidget {
+
+		/// <summary>
+		/// Specifies the layout direction for content drawn within a grid.
+		/// </summary>
+		public enum GridFlow {
+			/// <summary>
+			/// The content should be drawn rows-first, meaning that the first row
+			/// will be filled, then the second, and so on.
+			/// </summary>
+			Rows,
+			/// <summary>
+			/// The content should be drawn columns-first, meaning that the first column
+			/// will be filled, then the second, and so on.
+			/// </summary>
+			Columns
+		}
+
+		protected readonly uint rows;
+		protected readonly uint columns;
+		protected readonly GridFlow flow;
+
+		protected readonly float horizontalSpacing;
+		protected readonly float verticalSpacing;
+
+		protected readonly GutterLayout gutterLayout;
+
+		/// <summary>
+		/// Constructor for Grid widget.
+		/// </summary>
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="_rows">The number of grid rows for this widget's children.</param>
+		/// <param name="_columns">The number of grid columns for this widget's children.</param>
+		/// <param name="_flow">The layout direction for children within the grid, by rows first
+		/// or columns first. This will always begin in the top-left corner of the grid.</param>
+		/// <param name="spacing">The default spacing to use for the widget's children, measured in
+		/// points (defaults to current gutter size).</param>
+		/// <param name="spacing_">Spacing data for this widget.</param>
+		/// <param name="gutterLayout">The gutter layout to use when drawing gutter details between the grid elements.
+		/// The details can either be drawn between rows, between columns, or not be drawn at all.</param>
+		/// <size>0 0</size>
+		public Grid(
+				WidgetSetup setup,
+				uint _rows = 1,
+				uint _columns = 1,
+				GridFlow _flow = GridFlow.Rows,
+				float? spacing = null,
+				Spacing spacing_ = default,
+				GutterLayout gutterLayout = GutterLayout.NONE
+			) : base(setup) {
+
+			rows = _rows;
+			columns = _columns;
+			this.flow = _flow;
+
+			if (rows < 1 || columns < 1) { throw new ArgumentException("\"rows\" and \"columns\" must have values >= 1."); } // SharpInitializationException
+
+			float defaultSpacing = spacing ?? Gutter;
+			horizontalSpacing = spacing_.horizontal ?? defaultSpacing;
+			verticalSpacing = spacing_.vertical ?? defaultSpacing;
+
+			this.gutterLayout = gutterLayout;
+		}
+
+		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
+			return;
+		}
+
+		public override void Draw(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
+
+			if (cancellationToken.IsCancellationRequested) { return; }
+
+			canvas.SaveState();
+
+			canvas.ApplySetup(setup);
+
+			Rectangle availableRect = rect.Margins(setup.margins, false);
+			Rectangle[] gridRects = Divisions.Grid(availableRect, (int)rows, (int)columns, Gutter, Gutter, out Rectangle[] rowGutters, out Rectangle[] columnGutters).Flatten(flow == GridFlow.Rows).ToArray();
+
+			RegisterAreas(canvas, rect, availableRect);
+
+			if (cancellationToken.IsCancellationRequested) {
+				canvas.RestoreState();
+				return;
+			}
+
+			if (children.Count > 0) {
+
+				if (setup.gutterStyle is IDetail gutterStyle) {
+					if (gutterLayout == GutterLayout.COLUMNS) {
+						gutterStyle.Layout = Layout.COLUMNS;
+						for (int g = 0; g < columnGutters.Length; g++) {
+							gutterStyle.Draw(canvas, columnGutters[g]);
+						}
+					}
+					else if (gutterLayout == GutterLayout.ROWS) {
+						gutterStyle.Layout = Layout.ROWS;
+						for (int g = 0; g < rowGutters.Length; g++) {
+							gutterStyle.Draw(canvas, rowGutters[g]);
+						}
+					}
+				}
+
+				int i;
+				for (i = 0; i < gridRects.Length && i < children.Count; i++) {
+					try {
+						if (gridRects[i] != null) {
+							try {
+								children[i].Draw(canvas, gridRects[i]!, cancellationToken);
+							}
+							catch (SharpDrawingException e) {
+								throw e;
+							}
+							catch (InvalidRectangleException e) {
+								throw new SharpDrawingException(children[i], "Layout error: " + e.Message, e);
+							}
+							catch (Exception e) {
+								throw new SharpDrawingException(children[i], "Drawing error: " + e.Message, e);
+							}
+						}
+						else if (children[i].GetType() != typeof(Empty)) { // It's fine if Empty children have no space available
+							canvas.LogError(new SharpDrawingException(children[i], $"No rect available for child {i+1} of {children.Count} ({children[i].GetType().Name})"));
+						}
+					}
+					catch (SharpDrawingException e) {
+						CreateErrorRect(canvas, gridRects[i] ?? rect, e);
+					}
+
+					if (cancellationToken.IsCancellationRequested) {
+						canvas.RestoreState();
+						return;
+					}
+				}
+
+				for (; i < children.Count; i++) {
+					canvas.LogError(new SharpDrawingException(children[i], $"No rect available for child {i+1} of {children.Count} ({children[i].GetType().Name})"));
+				}
+			}
+
+			if (setup.diagnostic) { DrawableElementUtils.DrawDiagnostics(canvas, this, this.GetType().Name, rect, availableRect, null); }
+
+			canvas.RestoreState();
+
+			return;
+		}
+
+		protected override Rectangle? GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
+			return rect;
 		}
 	}
 

@@ -28,10 +28,19 @@ namespace SharpSheets.Utilities {
 			}
 		}
 
-		public static IEnumerable<T> Flatten<T>(this T[,] array) {
-			for (int i = 0; i < array.GetLength(0); i++) {
+		public static IEnumerable<T> Flatten<T>(this T[,] array, bool byRows = true) {
+			if (byRows) {
+				for (int i = 0; i < array.GetLength(0); i++) {
+					for (int j = 0; j < array.GetLength(1); j++) {
+						yield return array[i, j];
+					}
+				}
+			}
+			else {
 				for (int j = 0; j < array.GetLength(1); j++) {
-					yield return array[i, j];
+					for (int i = 0; i < array.GetLength(0); i++) {
+						yield return array[i, j];
+					}
 				}
 			}
 		}
