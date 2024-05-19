@@ -1,5 +1,6 @@
 ﻿using SharpSheets.Evaluations;
 using SharpSheets.Evaluations.Nodes;
+using SharpSheets.Parsing;
 using SharpSheets.Utilities;
 using System;
 using System.Collections;
@@ -183,7 +184,8 @@ namespace SharpSheets.Cards.Definitions {
 			}
 
 			private void ValidateValue(object value) {
-				if (value is string text) {
+				if (value is string rawText) {
+					string text = StringParsing.Parse(rawText);
 					Match match = pattern.Match(text);
 					if (!(match.Success && match.Length == text.Length && match.Index == 0)) {
 						throw new EvaluationCalculationException("Value does not match expected pattern: " + pattern.ToString());
