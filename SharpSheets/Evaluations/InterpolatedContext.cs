@@ -1,27 +1,31 @@
-﻿using SharpSheets.Evaluations;
-using SharpSheets.Parsing;
+﻿using SharpSheets.Parsing;
 using SharpSheets.Exceptions;
 using SharpSheets.Utilities;
 using SharpSheets.Evaluations.Nodes;
 using System.Text.RegularExpressions;
+using System.Diagnostics.CodeAnalysis;
 
-namespace SharpSheets.Cards.CardConfigs {
+namespace SharpSheets.Evaluations {
 
 	public class InterpolatedContext {
 
 		public static readonly InterpolatedContext Empty = new InterpolatedContext(Context.Empty, true, null, true, Enumerable.Empty<ContextProperty<string>>(), Enumerable.Empty<ContextProperty<TextExpression>>(), Array.Empty<ContextValue<TextExpression>>());
 
-		public static InterpolatedContext Parse(IContext originalContext, IVariableBox variables, bool pruneChildren, out SharpParsingException[] contextErrors) {
-			return Parse(originalContext, variables, pruneChildren, "For-each not allowed here.", out contextErrors);
+		public static InterpolatedContext Parse(IContext originalContext, IVariableBox variables, bool pruneChildren, out SharpParsingException[] contextErrors, out IReadOnlyLineOwnership knownLineOwners) {
+			LineOwnership lineOwners = new LineOwnership();
+			InterpolatedContext parsed = Parse(originalContext, variables, pruneChildren, "For-each not allowed here.", lineOwners, out contextErrors);
+			knownLineOwners = lineOwners;
+			return parsed;
 		}
 
-		private static InterpolatedContext Parse(IContext originalContext, IVariableBox variables, bool pruneChildren, string? forEachErrorMessage, out SharpParsingException[] contextErrors) {
+		private static InterpolatedContext Parse(IContext originalContext, IVariableBox variables, bool pruneChildren, string? forEachErrorMessage, LineOwnership lineOwners, out SharpParsingException[] contextErrors) {
 
 			List<SharpParsingException> errors = new List<SharpParsingException>();
 
 			string? forEachStr = originalContext.GetProperty("foreach", true, originalContext, null, out DocumentSpan? forEachLocation);
 			ContextForEach? forEach;
 			if (forEachStr is not null) {
+				if (forEachLocation.HasValue) { lineOwners.Add(forEachLocation.Value.Line, originalContext.Location.Line); }
 				if (forEachErrorMessage is null) {
 					try {
 						forEach = ContextForEach.Parse(forEachStr, variables);
@@ -48,7 +52,8 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			string? conditionStr = originalContext.GetProperty("condition", true, originalContext, null, out DocumentSpan? conditionLocation);
 			BoolExpression condition;
-			if(conditionStr is not null) {
+			if (conditionStr is not null) {
+				if (conditionLocation.HasValue) { lineOwners.Add(conditionLocation.Value.Line, originalContext.Location.Line); }
 				try {
 					condition = BoolExpression.Parse(conditionStr, fullContextVariables);
 				}
@@ -61,12 +66,13 @@ namespace SharpSheets.Cards.CardConfigs {
 				condition = true;
 			}
 
-			
+
 
 			List<ContextProperty<string>> simpleProperties = new List<ContextProperty<string>>();
 			List<ContextProperty<TextExpression>> exprProperties = new List<ContextProperty<TextExpression>>();
 
 			foreach (ContextProperty<string> property in originalContext.GetLocalProperties(null).Where(p => !SharpDocuments.StringComparer.Equals("condition", p.Name))) {
+				
 				try {
 					TextExpression expr = Interpolation.Parse(property.Value, fullContextVariables, true);
 					if (expr.IsConstant) {
@@ -80,7 +86,7 @@ namespace SharpSheets.Cards.CardConfigs {
 					errors.Add(new SharpParsingException(property.ValueLocation, e.Message, e));
 				}
 			}
-			
+
 			List<ContextValue<TextExpression>> entries = new List<ContextValue<TextExpression>>();
 
 			foreach (ContextValue<string> entry in originalContext.GetEntries(null)) {
@@ -95,12 +101,12 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			InterpolatedContext context = new InterpolatedContext(originalContext, pruneChildren, forEach, condition, simpleProperties, exprProperties, entries);
 
-			foreach(IContext child in originalContext.Children) {
-				context.children.Add(Parse(child, fullContextVariables, pruneChildren, null, out SharpParsingException[] childErrors));
+			foreach (IContext child in originalContext.Children) {
+				context.children.Add(Parse(child, fullContextVariables, pruneChildren, null, lineOwners, out SharpParsingException[] childErrors));
 				errors.AddRange(childErrors);
 			}
-			foreach(KeyValuePair<string, IContext> namedChild in originalContext.NamedChildren) {
-				context.namedChildren.Add(namedChild.Key, Parse(namedChild.Value, fullContextVariables, pruneChildren, "Named children cannot use for-each.", out SharpParsingException[] namedChildErrors));
+			foreach (KeyValuePair<string, IContext> namedChild in originalContext.NamedChildren) {
+				context.namedChildren.Add(namedChild.Key, Parse(namedChild.Value, fullContextVariables, pruneChildren, "Named children cannot use for-each.", lineOwners, out SharpParsingException[] namedChildErrors));
 				errors.AddRange(namedChildErrors);
 			}
 
@@ -133,14 +139,14 @@ namespace SharpSheets.Cards.CardConfigs {
 			//Variables = variables;
 			PruneChildren = pruneChildren;
 
-			this.ForEach = forEach;
-			this.Condition = condition;
+			ForEach = forEach;
+			Condition = condition;
 			this.simpleProperties = new Dictionary<string, ContextProperty<string>>(simpleProperties.Select(p => new KeyValuePair<string, ContextProperty<string>>(p.Name, p)), SharpDocuments.StringComparer);
 			this.exprProperties = new Dictionary<string, ContextProperty<TextExpression>>(exprProperties.Select(p => new KeyValuePair<string, ContextProperty<TextExpression>>(p.Name, p)), SharpDocuments.StringComparer);
-			this.entries = exprEntries.ToList();
+			entries = exprEntries.ToList();
 
-			this.children = new List<InterpolatedContext>();
-			this.namedChildren = new Dictionary<string, InterpolatedContext>(SharpDocuments.StringComparer);
+			children = new List<InterpolatedContext>();
+			namedChildren = new Dictionary<string, InterpolatedContext>(SharpDocuments.StringComparer);
 		}
 
 		public bool IsConstant {
@@ -151,7 +157,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		public IContext Evaluate(IEnvironment environment, out SharpParsingException[] contextErrors) {
 			List<SharpParsingException> errors = new List<SharpParsingException>();
-			EvaluatedContext result = EvaluateContext(environment, errors);
+			EvaluatedContext result = EvaluateContext(environment, errors, null);
 			contextErrors = errors.ToArray();
 			return result;
 		}
@@ -165,10 +171,10 @@ namespace SharpSheets.Cards.CardConfigs {
 					).Distinct();
 		}
 
-		private EvaluatedContext EvaluateContext(IEnvironment environment, List<SharpParsingException> errors) {
+		private EvaluatedContext EvaluateContext(IEnvironment environment, List<SharpParsingException> errors, string? nameSuffix) {
 			Dictionary<string, ContextProperty<string>> properties = new Dictionary<string, ContextProperty<string>>(simpleProperties, SharpDocuments.StringComparer);
 
-			foreach(KeyValuePair<string, ContextProperty<TextExpression>> property in exprProperties) {
+			foreach (KeyValuePair<string, ContextProperty<TextExpression>> property in exprProperties) {
 				try {
 					string result = property.Value.Value.Evaluate(environment);
 					properties.Add(property.Key, new ContextProperty<string>(property.Value.Location, property.Value.Name, property.Value.ValueLocation, result));
@@ -190,18 +196,18 @@ namespace SharpSheets.Cards.CardConfigs {
 				}
 			}
 
-			EvaluatedContext context = new EvaluatedContext(OriginalContext, properties, entries);
+			EvaluatedContext context = new EvaluatedContext(OriginalContext, properties, entries, nameSuffix);
 
-			foreach(InterpolatedContext child in children) {
-				foreach (IEnvironment childEnv in (child.ForEach?.GetEnvironments(environment) ?? environment.Yield())) {
+			foreach (InterpolatedContext child in children) {
+				foreach ((int childIdx, IEnvironment childEnv) in (child.ForEach?.GetEnvironments(environment) ?? environment.Yield()).Enumerate()) {
 					if (!PruneChildren || child.Condition.Evaluate(childEnv)) {
-						context.children.Add(child.EvaluateContext(childEnv, errors));
+						context.children.Add(child.EvaluateContext(childEnv, errors, childIdx > 0 ? $"##{childIdx}" : null));
 					}
 				}
 			}
-			foreach(KeyValuePair<string, InterpolatedContext> namedChild in namedChildren) {
+			foreach (KeyValuePair<string, InterpolatedContext> namedChild in namedChildren) {
 				if (!PruneChildren || namedChild.Value.Condition.Evaluate(environment)) {
-					context.namedChildren.Add(namedChild.Key, namedChild.Value.EvaluateContext(environment, errors));
+					context.namedChildren.Add(namedChild.Key, namedChild.Value.EvaluateContext(environment, errors, null));
 				}
 			}
 
@@ -211,6 +217,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		private class EvaluatedContext : IContext {
 
 			public IContext OriginalContext { get; }
+			private readonly string? nameSuffix;
 
 			private readonly Dictionary<string, ContextProperty<string>> properties;
 			private readonly List<ContextValue<string>> entries;
@@ -218,18 +225,20 @@ namespace SharpSheets.Cards.CardConfigs {
 			public readonly List<EvaluatedContext> children;
 			public readonly Dictionary<string, EvaluatedContext> namedChildren;
 
-			public EvaluatedContext(IContext originalContext, Dictionary<string, ContextProperty<string>> properties, List<ContextValue<string>> entries) {
-				this.OriginalContext = originalContext;
+			public EvaluatedContext(IContext originalContext, Dictionary<string, ContextProperty<string>> properties, List<ContextValue<string>> entries, string? nameSuffix) {
+				OriginalContext = originalContext;
 				this.properties = properties;
 				this.entries = entries;
 
-				this.children = new List<EvaluatedContext>();
-				this.namedChildren = new Dictionary<string, EvaluatedContext>(SharpDocuments.StringComparer);
+				children = new List<EvaluatedContext>();
+				namedChildren = new Dictionary<string, EvaluatedContext>(SharpDocuments.StringComparer);
+
+				this.nameSuffix = nameSuffix;
 			}
 
 			public string SimpleName => OriginalContext.SimpleName;
-			public string DetailedName => OriginalContext.DetailedName;
-			public string FullName => OriginalContext.FullName;
+			public string DetailedName => OriginalContext.DetailedName; // + (nameSuffix ?? "");
+			public string FullName => OriginalContext.FullName; // + (nameSuffix ?? "");
 			public DocumentSpan Location => OriginalContext.Location;
 			public int Depth => OriginalContext.Depth;
 
@@ -245,40 +254,33 @@ namespace SharpSheets.Cards.CardConfigs {
 			public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) => entries;
 			public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) => OriginalContext.GetDefinitions(origin); // TODO Is this right?
 
-			public bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-				return OriginalContext.GetFlag(flag, local, origin, out location);
-			}
-
-			public IContext? GetNamedChild(string name, bool local, IContext? origin) {
-				if (namedChildren.TryGetValue(name, out EvaluatedContext? namedChild)) {
-					return namedChild;
-				}
-				else if(!local) {
-					return OriginalContext.GetNamedChild(name, local, origin);
+			public bool TryGetLocalProperty(string key, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out string property, out DocumentSpan? location) {
+				if (OriginalContext.TryGetLocalProperty(key, origin, isLocalRequest, out _, out _) && properties.TryGetValue(key, out ContextProperty<string> value)) {
+					property = value.Value;
+					location = value.Location;
+					return true;
 				}
 				else {
-					return null;
+					property = null;
+					location = null;
+					return false;
 				}
 			}
 
-			public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
-				if (properties.TryGetValue(key, out ContextProperty<string> property)) {
-					location = property.Location;
-					return property.Value;
+			public bool TryGetLocalFlag(string key, IContext? origin, bool isLocalRequest, out bool flag, out DocumentSpan? location) {
+				return OriginalContext.TryGetLocalFlag(key, origin, isLocalRequest, out flag, out location);
+			}
+
+			public bool TryGetLocalNamedChild(string name, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out IContext namedChild) {
+				if (OriginalContext.TryGetLocalNamedChild(name, origin, isLocalRequest, out _) && namedChildren.TryGetValue(name, out EvaluatedContext? evaluatedNamedChild)) {
+					namedChild = evaluatedNamedChild;
+					return true;
 				}
 				else {
-					return OriginalContext.GetProperty(key, local, origin, defaultValue, out location);
+					namedChild = null;
+					return false;
 				}
 			}
-
-			public bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-				return OriginalContext.HasFlag(flag, local, origin, out location);
-			}
-
-			public bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location) {
-				return OriginalContext.HasProperty(key, local, origin, out location);
-			}
-
 		}
 
 	}
@@ -293,7 +295,7 @@ namespace SharpSheets.Cards.CardConfigs {
 				throw new EvaluationTypeException("For-each expression must produce an array or tuple.");
 			}
 
-			this.LoopVariable = new EnvironmentVariableInfo(loopVariable, array.ReturnType.ElementType, null);
+			LoopVariable = new EnvironmentVariableInfo(loopVariable, array.ReturnType.ElementType, null);
 			this.array = array;
 		}
 
@@ -306,7 +308,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		public IEnumerable<IEnvironment> GetEnvironments(IEnvironment environment) {
 			object? value = array.Evaluate(environment);
-			if(EvaluationTypes.TryGetArray(value, out Array? arrayValue)) {
+			if (EvaluationTypes.TryGetArray(value, out Array? arrayValue)) {
 				foreach (object entry in arrayValue) {
 					IEnvironment loopVarEnv = SimpleEnvironments.Single(LoopVariable, entry);
 					yield return loopVarEnv.AppendEnvironment(environment);
@@ -332,7 +334,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <exception cref="EvaluationException"></exception>
 		public static ContextForEach Parse(string text, IVariableBox variables) {
 			Match match = forEachRegex.Match(text);
-			if(!match.Success) {
+			if (!match.Success) {
 				throw new FormatException("Could not parse for-each.");
 			}
 

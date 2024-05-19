@@ -9,33 +9,43 @@ namespace SharpSheets.Parsing {
 
 	public interface IContext : IDocumentEntity {
 
-		bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location);
+		new IContext? Parent { get; }
+		new IEnumerable<IContext> Children { get; }
 
 		/// <summary>
 		///  
 		/// </summary>
 		/// <param name="key"></param>
-		/// <param name="local"></param>
 		/// <param name="origin"></param>
-		/// <param name="defaultValue"></param>
+		/// <param name="isLocalRequest"></param>
+		/// <param name="property"></param>
 		/// <param name="location"></param>
 		/// <returns></returns>
 		/// <exception cref="SharpParsingException"></exception>
-		[return: NotNullIfNotNull(nameof(defaultValue))]
-		string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location);
+		bool TryGetLocalProperty(string key, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out string property, out DocumentSpan? location);
 		
-		bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location);
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="origin"></param>
+		/// <param name="isLocalRequest"></param>
+		/// <param name="flag"></param>
+		/// <param name="location"></param>
+		/// <returns></returns>
+		/// <exception cref="SharpParsingException"></exception>
+		bool TryGetLocalFlag(string key, IContext? origin, bool isLocalRequest, out bool flag, out DocumentSpan? location);
 
 		/// <summary>
 		/// 
 		/// </summary>
-		/// <param name="flag"></param>
-		/// <param name="local"></param>
+		/// <param name="name"></param>
 		/// <param name="origin"></param>
-		/// <param name="location"></param>
+		/// <param name="isLocalRequest"></param>
+		/// <param name="namedChild"></param>
 		/// <returns></returns>
 		/// <exception cref="SharpParsingException"></exception>
-		bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location);
+		bool TryGetLocalNamedChild(string name, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out IContext namedChild);
 
 		/// <summary>
 		/// 
@@ -69,22 +79,102 @@ namespace SharpSheets.Parsing {
 		/// <exception cref="SharpParsingException"></exception>
 		IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin);
 
-		new IContext? Parent { get; }
-		new IEnumerable<IContext> Children { get; }
 		/// <summary>
 		/// Named children local to this context.
 		/// </summary>
 		IEnumerable<KeyValuePair<string, IContext>> NamedChildren { get; }
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="name"></param>
-		/// <param name="local"></param>
-		/// <param name="origin"></param>
-		/// <returns></returns>
-		/// <exception cref="SharpParsingException"></exception>
-		IContext? GetNamedChild(string name, bool local, IContext? origin);
+	}
+
+	public static class ContextSearchUtils {
+
+		private static bool TryGetPropertyRecurse(IContext context, string key, IContext? origin, [MaybeNullWhen(false)] out string value, out DocumentSpan? location, bool forceLocal, bool firstCall) {
+			if (context.TryGetLocalProperty(key, origin, firstCall, out value, out location)) {
+				return true;
+			}
+			else if (!forceLocal && context.Parent != null) {
+				return TryGetPropertyRecurse(context.Parent, key, origin, out value, out location, forceLocal, false);
+			}
+			else {
+				value = null;
+				location = null;
+				return false;
+			}
+		}
+		public static bool TryGetProperty(this IContext context, string key, bool local, IContext? origin, [MaybeNullWhen(false)] out string value, out DocumentSpan? location) {
+			return TryGetPropertyRecurse(context, key, origin, out value, out location, local, true);
+		}
+
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static string? GetProperty(this IContext context, string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
+			if (TryGetProperty(context, key, local, origin, out string? value, out location)) {
+				return value;
+			}
+			else {
+				location = null;
+				return defaultValue;
+			}
+		}
+
+		public static bool HasProperty(this IContext context, string key, bool local, IContext? origin, out DocumentSpan? location) {
+			return TryGetProperty(context, key, local, origin, out _, out location);
+		}
+
+		private static bool TryGetFlagRecurse(IContext context, string key, IContext? origin, out bool value, out DocumentSpan? location, bool forceLocal, bool firstCall) {
+			if(context.TryGetLocalFlag(key, origin, firstCall, out value, out location)) {
+				return true;
+			}
+			else if (!forceLocal && context.Parent != null) {
+				return TryGetFlagRecurse(context.Parent, key, origin, out value, out location, forceLocal, false);
+			}
+			else {
+				value = false;
+				location = null;
+				return false;
+			}
+		}
+		public static bool TryGetFlag(this IContext context, string key, bool local, IContext? origin, out bool value, out DocumentSpan? location) {
+			return TryGetFlagRecurse(context, key, origin, out value, out location, local, true);
+		}
+
+		public static bool GetFlag(this IContext context, string key, bool local, IContext? origin, out DocumentSpan? location) {
+			if (TryGetFlag(context, key, local, origin, out bool value, out location)) {
+				return value;
+			}
+			else {
+				location = null;
+				return false;
+			}
+		}
+
+		public static bool HasFlag(this IContext context, string key, bool local, IContext? origin, out DocumentSpan? location) {
+			return TryGetFlag(context, key, local, origin, out _, out location);
+		}
+
+		private static bool TryGetNamedChildRecurse(IContext context, string key, IContext? origin, [MaybeNullWhen(false)] out IContext namedChild, bool forceLocal, bool firstCall) {
+			if(context.TryGetLocalNamedChild(key, origin, firstCall, out namedChild)) {
+				return true;
+			}
+			else if (!forceLocal && context.Parent != null) {
+				return TryGetNamedChildRecurse(context.Parent, key, origin, out namedChild, forceLocal, false);
+			}
+			else {
+				namedChild = null;
+				return false;
+			}
+		}
+		public static bool TryGetNamedChild(this IContext context, string key, bool local, IContext? origin, [MaybeNullWhen(false)] out IContext namedChild) {
+			return TryGetNamedChildRecurse(context, key, origin, out namedChild, local, true);
+		}
+
+		public static IContext? GetNamedChild(this IContext context, string key, bool local, IContext? origin) {
+			if (TryGetNamedChild(context, key, local, origin, out IContext? namedChild)) {
+				return namedChild;
+			}
+			else {
+				return null;
+			}
+		}
 	}
 
 	[System.Diagnostics.DebuggerDisplay("({Location.Offset}, {Location.Line}, {Location.Column}, {Location.Length}): {Value}")]
@@ -153,49 +243,42 @@ namespace SharpSheets.Parsing {
 		public static IContext Empty { get; } = new EmptyContext();
 
 		private class EmptyContext : IContext {
+			
 			public IContext? Parent => null;
-
 			public IEnumerable<IContext> Children => Enumerable.Empty<IContext>();
-
 			public IEnumerable<KeyValuePair<string, IContext>> NamedChildren => Enumerable.Empty<KeyValuePair<string, IContext>>();
 
 			public string SimpleName => "";
-
 			public string DetailedName => "";
-
 			public string FullName => "";
 
 			public DocumentSpan Location { get; } = DocumentSpan.Imaginary;
-
 			public int Depth => 0; // TODO Is this the best value? -1?
 
 			IDocumentEntity? IDocumentEntity.Parent => Parent;
-
 			IEnumerable<IDocumentEntity> IDocumentEntity.Children => Children;
+
+			public bool TryGetLocalProperty(string key, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out string property, out DocumentSpan? location) {
+				property = null;
+				location = null;
+				return false;
+			}
+
+			public bool TryGetLocalFlag(string key, IContext? origin, bool isLocalRequest, out bool flag, out DocumentSpan? location) {
+				flag = false;
+				location = null;
+				return false;
+			}
+
+			public bool TryGetLocalNamedChild(string name, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out IContext namedChild) {
+				namedChild = null;
+				return false;
+			}
 
 			public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) => Enumerable.Empty<ContextProperty<string>>();
 			public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) => Enumerable.Empty<ContextProperty<bool>>();
 			public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
 			public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
-
-			public IContext? GetNamedChild(string name, bool local, IContext? origin) => null;
-
-			public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
-				location = null;
-				return defaultValue;
-			}
-			public bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location) {
-				location = null;
-				return false;
-			}
-			public bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-				location = null;
-				return false;
-			}
-			public bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-				location = null;
-				return false;
-			}
 		}
 
 		public static IContext Simple(string name, Dictionary<string, string> properties, Dictionary<string, bool> flags) {
@@ -203,19 +286,23 @@ namespace SharpSheets.Parsing {
 		}
 
 		private class SimpleContext : IContext {
+
 			public IContext? Parent { get; } = null;
 			public IEnumerable<IContext> Children => Enumerable.Empty<IContext>();
 			public IEnumerable<KeyValuePair<string, IContext>> NamedChildren => Enumerable.Empty<KeyValuePair<string, IContext>>();
+			
 			public string SimpleName { get; }
 			public string DetailedName => SimpleName;
 			public string FullName => SimpleName;
+			
 			public DocumentSpan Location { get; } = DocumentSpan.Imaginary;
 			public int Depth => 0; // TODO Is this the best value? -1?
+			
 			IDocumentEntity? IDocumentEntity.Parent => Parent;
 			IEnumerable<IDocumentEntity> IDocumentEntity.Children => Children;
+			
 			public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
 			public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
-			public IContext? GetNamedChild(string name, bool local, IContext? origin) => null;
 
 			private readonly Dictionary<string, string> properties;
 			private readonly Dictionary<string, bool> flags;
@@ -226,47 +313,43 @@ namespace SharpSheets.Parsing {
 				this.flags = new Dictionary<string, bool>(flags, SharpDocuments.StringComparer);
 			}
 
-			public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) {
-				return properties
-					.Select(kv => new ContextProperty<string>(DocumentSpan.Imaginary, kv.Key, DocumentSpan.Imaginary, kv.Value));
-			}
-			public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) {
-				return flags
-					.Select(kv => new ContextProperty<bool>(DocumentSpan.Imaginary, kv.Key, DocumentSpan.Imaginary, kv.Value));
-			}
-
-			public bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-				if (flags.TryGetValue(flag, out bool value)) {
+			public bool TryGetLocalProperty(string key, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out string property, out DocumentSpan? location) {
+				if(properties.TryGetValue(key, out property)) {
 					location = DocumentSpan.Imaginary;
-					return value;
+					return true;
 				}
 				else {
+					property = null;
 					location = null;
 					return false;
 				}
 			}
 
-			public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
-				if (properties.TryGetValue(key, out string? value) && value is not null) {
+			public bool TryGetLocalFlag(string key, IContext? origin, bool isLocalRequest, out bool flag, out DocumentSpan? location) {
+				if (flags.TryGetValue(key, out flag)) {
 					location = DocumentSpan.Imaginary;
-					return value;
+					return true;
 				}
 				else {
+					flag = false;
 					location = null;
-					return defaultValue;
+					return false;
 				}
 			}
 
-			public bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-				bool hasFlag = flags.ContainsKey(flag);
-				location = hasFlag ? DocumentSpan.Imaginary : (DocumentSpan?)null;
-				return hasFlag;
+			public bool TryGetLocalNamedChild(string name, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out IContext namedChild) {
+				namedChild = null;
+				return false;
 			}
 
-			public bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location) {
-				bool hasProperty = properties.TryGetValue(key, out string? value) && value is not null;
-				location = hasProperty ? DocumentSpan.Imaginary : (DocumentSpan?)null;
-				return hasProperty;
+			public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) {
+				return properties
+					.Select(kv => new ContextProperty<string>(DocumentSpan.Imaginary, kv.Key, DocumentSpan.Imaginary, kv.Value));
+			}
+
+			public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) {
+				return flags
+					.Select(kv => new ContextProperty<bool>(DocumentSpan.Imaginary, kv.Key, DocumentSpan.Imaginary, kv.Value));
 			}
 		}
 	}
@@ -423,14 +506,16 @@ namespace SharpSheets.Parsing {
 		protected readonly string prefix;
 		protected readonly DocumentSpan? location;
 
-		protected readonly bool fallback;
 		protected readonly bool forceLocal;
 
 		public string SimpleName { get { return originalContext.SimpleName; } }
+		public string DetailedName { get { return originalContext.DetailedName + $"[{name}]"; } }
+		public string FullName { get { return originalContext.FullName + $"[{name}]"; } }
+
 		public DocumentSpan Location { get { return location ?? originalContext.Location; } }
 		public int Depth { get { return originalContext.Depth; } } // TODO Is this correct?
 
-		public IContext? Parent { get { return originalContext.Parent is not null ? new NamedContext(originalContext.Parent, name, null, fallback) : null; } }
+		public IContext? Parent { get { return originalContext.Parent is not null ? new NamedContext(originalContext.Parent, name, location: null) : null; } }
 		// TODO Is this right? No children for named context?
 		public IEnumerable<IContext> Children { get { return Enumerable.Empty<IContext>(); } }
 		public IEnumerable<KeyValuePair<string, IContext>> NamedChildren { get { return Enumerable.Empty<KeyValuePair<string, IContext>>(); } }
@@ -438,16 +523,12 @@ namespace SharpSheets.Parsing {
 		IDocumentEntity? IDocumentEntity.Parent => Parent;
 		IEnumerable<IDocumentEntity> IDocumentEntity.Children => Children;
 
-		public string DetailedName { get { return originalContext.DetailedName + $"[{name}]"; } }
-		public string FullName { get { return originalContext.FullName + $"[{name}]"; } }
-
-		public NamedContext(IContext originalContext, string name, DocumentSpan? location = null, bool fallback = false, bool forceLocal = false) {
+		public NamedContext(IContext originalContext, string name, DocumentSpan? location = null, bool forceLocal = false) {
 			this.originalContext = originalContext;
 			this.name = string.IsNullOrWhiteSpace(name) ? "" : name; // (name != null && name.Length > 0) ? name : (name ?? "");
 			this.prefix = this.name.Length > 0 ? this.name + "." : "";
 			this.location = location;
 
-			this.fallback = fallback;
 			this.forceLocal = forceLocal;
 		}
 
@@ -461,34 +542,6 @@ namespace SharpSheets.Parsing {
 
 		protected bool IsNamed(string key) {
 			return prefix.Length == 0 || key.StartsWith(prefix, SharpDocuments.StringComparison);
-		}
-
-		public IContext? GetNamedChild(string name, bool local, IContext? origin) {
-			return originalContext.GetNamedChild(MakeKey(name), local || forceLocal, origin);
-		}
-
-		public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
-			string? result = originalContext.GetProperty(MakeKey(key), local || forceLocal, origin, defaultValue, out location);
-			if (fallback && location == null) {
-				result = originalContext.GetProperty(key, local || forceLocal, origin, defaultValue, out location);
-			}
-			return result;
-		}
-
-		public bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location) {
-			return originalContext.HasProperty(MakeKey(key), local || forceLocal, origin, out location) || (fallback && originalContext.HasProperty(key, local || forceLocal, origin, out location));
-		}
-
-		public bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-			bool result = originalContext.GetFlag(MakeKey(flag), local || forceLocal, origin, out location);
-			if (fallback && location == null) {
-				result = originalContext.GetFlag(flag, local || forceLocal, origin, out location);
-			}
-			return result;
-		}
-
-		public bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-			return originalContext.HasFlag(MakeKey(flag), local || forceLocal, origin, out location) || (fallback && originalContext.HasFlag(flag, local || forceLocal, origin, out location));
 		}
 
 		protected IEnumerable<ContextProperty<T>> StripKeys<T>(IEnumerable<ContextProperty<T>> source) {
@@ -509,6 +562,38 @@ namespace SharpSheets.Parsing {
 
 		public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) {
 			return originalContext.GetDefinitions(origin);
+		}
+
+		public bool TryGetLocalProperty(string key, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out string property, out DocumentSpan? location) {
+			if ((isLocalRequest || !forceLocal) && originalContext.TryGetLocalProperty(MakeKey(key), origin, isLocalRequest, out property, out location)) {
+				return true;
+			}
+			else {
+				property = null;
+				location = null;
+				return false;
+			}
+		}
+
+		public bool TryGetLocalFlag(string key, IContext? origin, bool isLocalRequest, out bool flag, out DocumentSpan? location) {
+			if ((isLocalRequest || !forceLocal) && originalContext.TryGetLocalFlag(MakeKey(key), origin, isLocalRequest, out flag, out location)) {
+				return true;
+			}
+			else {
+				flag = false;
+				location = null;
+				return false;
+			}
+		}
+
+		public bool TryGetLocalNamedChild(string name, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out IContext namedChild) {
+			if ((isLocalRequest || !forceLocal) && originalContext.TryGetLocalNamedChild(MakeKey(name), origin, isLocalRequest, out namedChild)) {
+				return true;
+			}
+			else {
+				namedChild = null;
+				return false;
+			}
 		}
 	}
 
@@ -539,52 +624,27 @@ namespace SharpSheets.Parsing {
 			this.location = location;
 		}
 
-		public IContext? GetNamedChild(string name, bool local, IContext? origin) => null;
-
-		public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
-			if (local) {
-				location = null;
-				return defaultValue;
-			}
-			else {
-				return Parent.GetProperty(key, local, origin, defaultValue, out location);
-			}
-		}
-
-		public bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location) {
-			if (local) {
-				location = null;
-				return false;
-			}
-			else {
-				return Parent.HasProperty(key, local, origin, out location);
-			}
-		}
-
-		public bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-			if (local) {
-				location = null;
-				return false;
-			}
-			else {
-				return Parent.GetFlag(flag, local, origin, out location);
-			}
-		}
-
-		public bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-			if (local) {
-				location = null;
-				return false;
-			}
-			else {
-				return Parent.HasFlag(flag, local, origin, out location);
-			}
-		}
-
 		public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) => Enumerable.Empty<ContextProperty<string>>();
 		public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) => Enumerable.Empty<ContextProperty<bool>>();
 		public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
 		public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) => Enumerable.Empty<ContextValue<string>>();
+
+		public bool TryGetLocalProperty(string key, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out string property, out DocumentSpan? location) {
+			property = null;
+			location = null;
+			return false;
+		}
+
+		public bool TryGetLocalFlag(string key, IContext? origin, bool isLocalRequest, out bool flag, out DocumentSpan? location) {
+			flag = false;
+			location = null;
+			return false;
+		}
+
+		public bool TryGetLocalNamedChild(string name, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out IContext namedChild) {
+			namedChild = null;
+			return false;
+		}
 	}
 
 	public class DisallowNamedChildContext : IContext {
@@ -601,11 +661,12 @@ namespace SharpSheets.Parsing {
 
 		public DisallowNamedChildContext? Parent => original.Parent is null ? null : new DisallowNamedChildContext(original.Parent, disallowed);
 		public IEnumerable<IContext> Children => original.Children.Select(c => new DisallowNamedChildContext(c, disallowed));
-		public IEnumerable<KeyValuePair<string, IContext>> NamedChildren => original.NamedChildren.Where(nc => nc.Value.DetailedName != disallowed.DetailedName);
+		public IEnumerable<KeyValuePair<string, IContext>> NamedChildren => original.NamedChildren.Where(nc => nc.Value.DetailedName != disallowed.DetailedName).Select(nc => new KeyValuePair<string, IContext>(nc.Key, new DisallowNamedChildContext(nc.Value, disallowed)));
 
 		public string SimpleName => original.SimpleName;
 		public string DetailedName => original.DetailedName;
 		public string FullName => original.FullName;
+
 		public DocumentSpan Location => original.Location;
 		public int Depth => original.Depth;
 
@@ -613,73 +674,28 @@ namespace SharpSheets.Parsing {
 		IDocumentEntity? IDocumentEntity.Parent => Parent;
 		IEnumerable<IDocumentEntity> IDocumentEntity.Children => Children;
 
-		public IContext? GetNamedChild(string name, bool local, IContext? origin) {
-			/*
-			if(original.GetNamedChild(name, local) is IContext originalNamedChild && originalNamedChild.DetailedName != disallowed.DetailedName) {
-				return originalNamedChild;
-			}
-			else if(!local) {
-				return Parent?.GetNamedChild(name, false);
-			}
-			else {
-				return null;
-			}
-			*/
+		public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) => original.GetLocalProperties(origin);
+		public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) => original.GetLocalFlags(origin);
+		public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) => original.GetEntries(origin);
+		public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) => original.GetDefinitions(origin);
 
-			/*
-			if (original.GetNamedChild(name, local) is IContext originalNamedChild) {
-				if (originalNamedChild.DetailedName != disallowed.DetailedName) {
-					return originalNamedChild;
-				}
-				else if(!local) {
-					DisallowNamedChildContext disallowed = new DisallowNamedChildContext(originalNamedChild, this.disallowed);
-					disallowed = new DisallowNamedChildContext(disallowed, originalNamedChild);
-					IContext? earlierChild = disallowed.GetNamedChild(name, false);
-					if (earlierChild != null && earlierChild.DetailedName != disallowed.DetailedName) {
-						return earlierChild;
-					}
-				}
-			}
-			return null;
-			*/
+		public bool TryGetLocalProperty(string key, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out string property, out DocumentSpan? location) {
+			return original.TryGetLocalProperty(key, origin, isLocalRequest, out property, out location);
+		}
 
-			if (original.GetNamedChild(name, local, origin) is IContext originalNamedChild && originalNamedChild.DetailedName != disallowed.DetailedName) {
-				return originalNamedChild;
+		public bool TryGetLocalFlag(string key, IContext? origin, bool isLocalRequest, out bool flag, out DocumentSpan? location) {
+			return original.TryGetLocalFlag(key, origin, isLocalRequest, out flag, out location);
+		}
+
+		public bool TryGetLocalNamedChild(string name, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out IContext namedChild) {
+			if (original.TryGetLocalNamedChild(name, origin, isLocalRequest, out IContext? originalNamedChild) && originalNamedChild.DetailedName != disallowed.DetailedName) {
+				namedChild = originalNamedChild;
+				return true;
 			}
 			else {
-				return null;
+				namedChild = null;
+				return false;
 			}
-		}
-
-		public bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location) {
-			return original.HasProperty(key, local, origin, out location);
-		}
-		[return: NotNullIfNotNull("defaultValue")]
-		public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
-			return original.GetProperty(key, local, origin, defaultValue, out location);
-		}
-
-		public bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-			return original.HasFlag(flag, local, origin, out location);
-		}
-		public bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-			return original.GetFlag(flag, local, origin, out location);
-		}
-
-		public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) {
-			return original.GetLocalProperties(origin);
-		}
-
-		public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) {
-			return original.GetLocalFlags(origin);
-		}
-
-		public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) {
-			return original.GetEntries(origin);
-		}
-
-		public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) {
-			return original.GetDefinitions(origin);
 		}
 	}
 

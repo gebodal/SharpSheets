@@ -38,14 +38,6 @@ namespace SharpSheets.Parsing {
 		private readonly List<ConfigEntry> children;
 		private readonly Dictionary<string, ConfigNamedChild> namedChildren;
 
-		private Dictionary<int, HashSet<int>> propertyVisits; // Key: line of property, Value: Set of lines it was called from
-		private Dictionary<int, HashSet<int>> flagVisits; // Key: line of flag, Value: Set of lines it was called from
-		private HashSet<int> entryVisits;
-		private HashSet<int> definitionVisits;
-		private Dictionary<int, HashSet<int>> namedChildVisits; // Key: line of named child, Value: Set of lines it was called from
-
-		private Dictionary<int, HashSet<int>> AllVisits { get { return propertyVisits.Concat(flagVisits).ToDictionary(); } }
-
 		public ConfigEntry(ConfigEntry? parent, DocumentSpan location, string type) {
 			this.parent = parent;
 			this.Location = location;
@@ -58,118 +50,6 @@ namespace SharpSheets.Parsing {
 			entries = new List<ContextValue<string>>();
 			definitions = new List<ContextValue<string>>();
 			overwrittenLines = new HashSet<int>();
-
-			RefreshVisited();
-		}
-
-		[MemberNotNull(nameof(propertyVisits), nameof(flagVisits), nameof(entryVisits), nameof(definitionVisits), nameof(namedChildVisits))]
-		public void RefreshVisited() {
-			//Console.WriteLine(new string(' ', Math.Max(0,indent*4)) + $"Refresh Visited: {type}");
-			propertyVisits = properties.ToDictionary(kv => kv.Value.Location.Line, kv => new HashSet<int>());
-			flagVisits = flags.ToDictionary(kv => kv.Value.Location.Line, kv => new HashSet<int>());
-			entryVisits = new HashSet<int>();
-			definitionVisits = new HashSet<int>();
-			namedChildVisits = namedChildren.ToDictionary(kv => kv.Value.Child.Location.Line, kv => new HashSet<int>());
-
-			foreach (ConfigEntry child in children) {
-				child.RefreshVisited();
-			}
-			foreach (ConfigNamedChild namedChild in namedChildren.Values) {
-				namedChild.Child.RefreshVisited();
-			}
-		}
-
-		private void VisitProperty(DocumentSpan propertyLocation, IContext? origin) {
-			if (origin != null) {
-				propertyVisits[propertyLocation.Line].Add(origin.Location.Line);
-			}
-		}
-		private void VisitFlag(DocumentSpan flagLocation, IContext? origin) {
-			if (origin != null) {
-				flagVisits[flagLocation.Line].Add(origin.Location.Line);
-			}
-		}
-		private void VisitEntries(IContext? origin) {
-			if (origin != null) {
-				entryVisits.Add(origin.Location.Line);
-			}
-		}
-		private void VisitDefinitions(IContext? origin) {
-			if (origin != null) {
-				definitionVisits.Add(origin.Location.Line);
-			}
-		}
-		private void VisitNamedChild(IContext namedChild, IContext? origin) {
-			if (origin != null) {
-				namedChildVisits[namedChild.Location.Line].Add(origin.Location.Line);
-			}
-		}
-
-		/*
-		public HashSet<int> GetUnusedLines() {
-			HashSet<int> unused = new HashSet<int>(overwrittenLines);
-			unused.UnionWith(propertyVisits.Where(kv => kv.Value.Count == 0).Select(kv => kv.Key));
-			unused.UnionWith(flagVisits.Where(kv => kv.Value.Count == 0).Select(kv => kv.Key));
-			if (entryVisits.Count == 0) { unused.UnionWith(entries.Select(e => e.Location.Line)); }
-			if (definitionVisits.Count == 0) { unused.UnionWith(definitions.Select(e => e.Location.Line)); }
-
-			foreach (ConfigEntry child in children) {
-				unused.UnionWith(child.GetUnusedLines());
-			}
-			foreach (ConfigEntry namedChild in namedChildren.Values) {
-				unused.UnionWith(namedChild.GetUnusedLines());
-			}
-
-			return unused;
-		}
-		*/
-		public HashSet<int> GetUsedLines() {
-			HashSet<int> used = new HashSet<int>() { Location.Line };
-			used.UnionWith(propertyVisits.Where(kv => kv.Value.Count > 0).Select(kv => kv.Key));
-			used.UnionWith(flagVisits.Where(kv => kv.Value.Count > 0).Select(kv => kv.Key));
-			if (entryVisits.Count > 0) { used.UnionWith(entries.Select(e => e.Location.Line)); }
-			if (definitionVisits.Count > 0) { used.UnionWith(definitions.Select(e => e.Location.Line)); }
-
-			foreach (ConfigEntry child in children) {
-				used.UnionWith(child.GetUsedLines());
-			}
-			foreach (ConfigNamedChild namedChild in namedChildren.Values) {
-				used.UnionWith(namedChild.Child.GetUsedLines());
-			}
-
-			return used;
-		}
-
-		// Line owners: Key: line number, Value: all lines which reference that line
-		private void CalculateLineOwnership(Dictionary<int, HashSet<int>> lineOwners) {
-			foreach (KeyValuePair<int, HashSet<int>> entry in AllVisits) {
-				lineOwners[entry.Key] = entry.Value; // Should this be checking if there is already a set present...?
-			}
-			if (entryVisits.Count > 0) {
-				foreach (ContextValue<string> entry in entries) {
-					lineOwners[entry.Location.Line] = entryVisits; // Should this be checking if there is already a set present...?
-				}
-			}
-			if (definitionVisits.Count > 0) {
-				foreach (ContextValue<string> definition in definitions) {
-					lineOwners[definition.Location.Line] = definitionVisits; // Should this be checking if there is already a set present...?
-				}
-			}
-			foreach (KeyValuePair<int, HashSet<int>> entry in namedChildVisits) {
-				lineOwners[entry.Key] = entry.Value; // Should this be checking if there is already a set present...?
-			}
-
-			foreach (ConfigEntry child in children) {
-				child.CalculateLineOwnership(lineOwners);
-			}
-			foreach (ConfigNamedChild namedChild in namedChildren.Values) {
-				namedChild.Child.CalculateLineOwnership(lineOwners);
-			}
-		}
-		public Dictionary<int, HashSet<int>> CalculateLineOwnership() {
-			Dictionary<int, HashSet<int>> lineOwners = new Dictionary<int, HashSet<int>>();
-			CalculateLineOwnership(lineOwners);
-			return lineOwners;
 		}
 
 		public void SetProperty(DocumentSpan location, string name, DocumentSpan valueLocation, string value, bool localOnly) {
@@ -213,115 +93,60 @@ namespace SharpSheets.Parsing {
 			namedChildren[child.type] = new ConfigNamedChild(child, localOnly);
 		}
 
-		private IContext? GetNamedChildRecurse(string key, IContext? origin, bool forceLocal, bool firstCall) {
-			if (namedChildren.TryGetValue(key, out ConfigNamedChild value) && (firstCall || !value.LocalOnly)) {
-				VisitNamedChild(value.Child, origin);
-				return value.Child;
-			}
-			else if (!forceLocal && parent != null) {
-				return parent.GetNamedChildRecurse(key, origin, forceLocal, false);
-			}
-			else {
-				return null;
-			}
-		}
-		public IContext? GetNamedChild(string key, bool local, IContext? origin) {
-			return GetNamedChildRecurse(key, origin, local, true);
-		}
-
-		private string? GetPropertyRecurse(string key, IContext? origin, string? defaultValue, out DocumentSpan? location, bool forceLocal, bool firstCall) {
-			if (properties.TryGetValue(key, out ConfigProperty<string> value) && (firstCall || !value.LocalOnly)) {
-				VisitProperty(value.Location, origin);
+		public bool TryGetLocalProperty(string key, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out string property, out DocumentSpan? location) {
+			if (properties.TryGetValue(key, out ConfigProperty<string> value) && (isLocalRequest || !value.LocalOnly)) {
+				property = value.Value;
 				location = value.Location;
-				return value.Value;
-			}
-			else if (!forceLocal && parent != null) {
-				return parent.GetPropertyRecurse(key, origin, defaultValue, out location, forceLocal, false);
+				return true;
 			}
 			else {
-				location = null;
-				return defaultValue;
-			}
-		}
-		public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
-			return GetPropertyRecurse(key, origin, defaultValue, out location, local, true);
-		}
-
-		private bool HasPropertyRecurse(string key, IContext? origin, out DocumentSpan? location, bool forceLocal, bool firstCall) {
-			bool hasProperty = properties.TryGetValue(key, out ConfigProperty<string> value);
-			if (hasProperty && (firstCall || !value.LocalOnly)) {
-				VisitProperty(value.Location, origin);
-				location = value.Location;
-			}
-			else if (!forceLocal && parent != null) {
-				hasProperty = parent.HasPropertyRecurse(key, origin, out location, forceLocal, false);
-			}
-			else {
-				location = null;
-			}
-			return hasProperty;
-		}
-		public bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location) {
-			return HasPropertyRecurse(key, origin, out location, local, true);
-		}
-
-		private bool GetFlagRecurse(string flag, IContext? origin, out DocumentSpan? location, bool forceLocal, bool firstCall) {
-			if (flags.TryGetValue(flag, out ConfigValue<bool> value) && (firstCall || !value.LocalOnly)) {
-				VisitFlag(value.Location, origin);
-				location = value.Location;
-				return value.Value;
-			}
-			else if (!forceLocal && parent != null) {
-				return parent.GetFlag(flag, false, origin, out location);
-			}
-			else {
+				property = null;
 				location = null;
 				return false;
 			}
 		}
-		public bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-			return GetFlagRecurse(flag, origin, out location, local, true);
-		}
 
-		private bool HasFlagRecurse(string flag, IContext? origin, out DocumentSpan? location, bool forceLocal, bool firstCall) {
-			bool hasFlag = flags.TryGetValue(flag, out ConfigValue<bool> value);
-			if (hasFlag && (firstCall || !value.LocalOnly)) {
-				VisitFlag(value.Location, origin);
+		public bool TryGetLocalFlag(string key, IContext? origin, bool isLocalRequest, out bool flag, out DocumentSpan? location) {
+			if (flags.TryGetValue(key, out ConfigValue<bool> value) && (isLocalRequest || !value.LocalOnly)) {
+				flag = value.Value;
 				location = value.Location;
-			}
-			else if (!forceLocal && parent != null) {
-				hasFlag = parent.HasFlagRecurse(flag, origin, out location, forceLocal, false);
+				return true;
 			}
 			else {
+				flag = false;
 				location = null;
+				return false;
 			}
-			return hasFlag;
 		}
-		public bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-			return HasFlagRecurse(flag, origin, out location, local, true);
+
+		public bool TryGetLocalNamedChild(string name, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out IContext namedChild) {
+			if (namedChildren.TryGetValue(name, out ConfigNamedChild value) && (isLocalRequest || !value.LocalOnly)) {
+				namedChild = value.Child;
+				return true;
+			}
+			else {
+				namedChild = null;
+				return false;
+			}
 		}
 
 		public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) {
 			foreach(ConfigProperty<string> property in properties.Values) {
-				VisitProperty(property.Location, origin);
 				yield return new ContextProperty<string>(property.Location, property.Name, property.ValueLocation, property.Value);
 			}
 		}
 
 		public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) {
 			foreach (KeyValuePair<string, ConfigValue<bool>> flagEntry in flags) {
-				VisitFlag(flagEntry.Value.Location, origin);
 				yield return new ContextProperty<bool>(flagEntry.Value.Location, flagEntry.Key, flagEntry.Value.Location, flagEntry.Value.Value);
 			}
 		}
 
 		public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) {
-			VisitEntries(origin);
 			return entries;
 		}
 
 		public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) {
-			VisitDefinitions(origin);
 			return definitions;
 		}
 
@@ -363,6 +188,7 @@ namespace SharpSheets.Parsing {
 		public override string ToString() {
 			return FullName;
 		}
+
 	}
 
 }

@@ -53,8 +53,7 @@ namespace SharpSheets.Cards.Card {
 				subjectResults.errors.Concat(errors).ToList(),
 				subjectResults.usedLines,
 				subjectResults.lineOwners,
-				subjectResults.lineChildren,
-				subjectResults.parents,
+				//subjectResults.parents,
 				subjectResults.dependencies
 			);
 

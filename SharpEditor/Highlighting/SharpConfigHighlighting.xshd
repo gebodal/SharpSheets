@@ -85,7 +85,7 @@
 		</Span>
 		
 		<!-- Bracketed expression -->
-		<Span enabled="CardConfig" color="Braces">
+		<Span color="Braces">
 			<Begin>(?&lt;!\\)\$\{</Begin>
 			<End>\}</End>
 			<RuleSet>
@@ -94,7 +94,7 @@
 		</Span>
 		
 		<!-- Escaped variable -->
-		<Rule enabled="CardConfig" color="Variable">
+		<Rule color="Variable">
 			(?&lt;!\\)\$[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*
 		</Rule>
 
@@ -295,8 +295,8 @@
 			</RuleSet>
 		</Span>
 
-		<!-- Condition line and expression -->
-		<Span enabled="CardConfig" color="Condition">
+		<!-- Condition and for-each line and expression -->
+		<Span color="Condition">
 			<Begin>^ \s* (condition|foreach) \s* (?=:\s*[^\s])</Begin>
 			<RuleSet>
 				<Import ruleSet="Expressions"/>

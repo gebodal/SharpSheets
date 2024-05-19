@@ -131,21 +131,13 @@ namespace SharpSheets.Cards.CardSubjects {
 			List<SharpParsingException> errors = new List<SharpParsingException>();
 			//List<List<CardSubjectConcrete>> parsedSubjects = new List<List<CardSubjectConcrete>> { new List<CardSubjectConcrete>() };
 
-			Dictionary<int, HashSet<int>> lineOwners = new Dictionary<int, HashSet<int>>();
-			Dictionary<int, HashSet<int>> lineChildren = new Dictionary<int, HashSet<int>>();
+			LineOwnership lineOwnership = new LineOwnership();
 			//Dictionary<int, IDocumentEntity> parents = new Dictionary<int, IDocumentEntity>();
 			//HashSet<int> unusedLines = new HashSet<int>();
 			HashSet<int> usedLines = new HashSet<int>();
 
 			void AssignRelation(DocumentSpan parent, DocumentSpan child) {
-				if (!lineChildren.ContainsKey(parent.Line)) {
-					lineChildren.Add(parent.Line, new HashSet<int>());
-				}
-				if (!lineOwners.ContainsKey(child.Line)) {
-					lineOwners.Add(child.Line, new HashSet<int>());
-				}
-				lineChildren[parent.Line].Add(child.Line);
-				lineOwners[child.Line].Add(parent.Line);
+				lineOwnership.Add(child.Line, parent.Line);
 			}
 
 			Stack<CardSetConfig> configStack = new Stack<CardSetConfig>();
@@ -428,6 +420,7 @@ namespace SharpSheets.Cards.CardSubjects {
 				BuildCurrentSubject();
 			}
 
+			/*
 			Dictionary<int, IDocumentEntity> parents = new Dictionary<int, IDocumentEntity>();
 			foreach(IDocumentEntity entity in parsedSubjectDocument.TraverseChildren()) {
 				if (entity.Location.Line >= 0 && !parents.ContainsKey(entity.Location.Line)) {
@@ -435,13 +428,14 @@ namespace SharpSheets.Cards.CardSubjects {
 					parents.Add(entity.Location.Line, entity);
 				}
 			}
+			*/
 
 			List<FilePath> configDependencies = parsedSubjectDocument.GetConfigurations()
 				.Select(cv => cv.Value)
 				.SelectMany(d => d.origin.Yield().Concat(d.archivePaths))
 				.ToList();
 
-			results = new CompilationResult(parsedSubjectDocument, null, errors, usedLines, lineOwners, lineChildren, parents, configDependencies);
+			results = new CompilationResult(parsedSubjectDocument, null, errors, usedLines, lineOwnership, configDependencies);
 
 			//return parsedSubjects.Select(s => s.ToArray()).ToArray();
 			return parsedSubjectDocument;
@@ -450,7 +444,7 @@ namespace SharpSheets.Cards.CardSubjects {
 		private static void CheckForTerminator(ContextValue<string> lineText, out ContextValue<string> lineContent, out bool lineTerminated) {
 			if (!string.IsNullOrEmpty(lineText.Value)) {
 				Match terminatorMatch = lineTerminatorRegex.Match(lineText.Value);
-				
+
 				bool terminator = terminatorMatch.Groups["terminator"].Value.Length > 0;
 				bool escaped = terminatorMatch.Groups["escape"].Value.Length > 0;
 

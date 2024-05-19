@@ -165,6 +165,14 @@ namespace SharpSheets.Utilities {
 			return source.Where(i => i != null).Select(i => i!.Value);
 		}
 
+		public static IEnumerable<TResult> SelectNotNull<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult?> selector) where TResult : class {
+			return source.Select(selector).WhereNotNull();
+		}
+
+		public static IEnumerable<TResult> SelectNotNull<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult?> selector) where TResult : struct {
+			return source.Select(selector).WhereNotNull();
+		}
+
 		public static IEnumerable<T> Concat<T>(params IEnumerable<T>[] sources) {
 			for (int i = 0; i < sources.Length; i++) {
 				foreach (T elem in sources[i]) {

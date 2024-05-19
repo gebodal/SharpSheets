@@ -29,7 +29,7 @@ namespace SharpEditor {
 
 		public override bool ColorOwners { get { return true; } }
 
-		protected List<FilePath>? MarkupDependencies { get; set; }
+		protected IReadOnlyList<FilePath>? MarkupDependencies { get; set; }
 		protected MarkupOrigins? Origins { get; set; }
 
 		public override IParser Parser => SharpEditorRegistries.MarkupPatternParserInstance;
@@ -314,7 +314,7 @@ namespace SharpEditor {
 
 		public IDocumentEntity this[object result] { get { return entities[result]; } }
 
-		public MarkupOrigins(MarkupParsingState parsingState, Dictionary<object, IDocumentEntity>? origins) {
+		public MarkupOrigins(MarkupParsingState parsingState, IReadOnlyDictionary<object, IDocumentEntity>? origins) {
 			this.parsingState = parsingState;
 			this.entities = new Dictionary<object, IDocumentEntity>(origins ?? new Dictionary<object, IDocumentEntity>(), new IdentityEqualityComparer<object>());
 
