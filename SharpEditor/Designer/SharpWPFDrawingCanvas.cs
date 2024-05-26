@@ -832,9 +832,78 @@ namespace SharpEditor {
 		}
 		*/
 
-		private Geometry? GetGlyphGeometry(ushort glyph, GlyphTypeface glyphTypeface, float fontsize) {
+		private static Geometry? GetGlyphGeometry(ushort glyph, TrueTypeFontFileOutlines glyphOutlines, float fontsize) {
 			// Create a geometry for the glyph
-			Geometry geometry = glyphTypeface.GetGlyphOutline(glyph, fontsize, fontsize);
+			PathGeometry geometry = new PathGeometry() { FillRule = FillRule.Nonzero };
+
+			double ProcessShort(short value) {
+				return (fontsize * (1000.0 * (value / (double)glyphOutlines.UnitsPerEm))) / 1000.0;
+			}
+
+			if (glyphOutlines.glyf?.glyphOutlines[glyph] is TrueTypeGlyphOutline gOutline) {
+				int p = 0, c = 0;
+				bool first = true;
+				while (p < gOutline.PointCount) {
+					if (gOutline.onCurve[p]) {
+						double x = ProcessShort(gOutline.xCoordinates[p]);
+						double y = ProcessShort(gOutline.yCoordinates[p]);
+
+						if (first) {
+							geometry.Figures.Add(new PathFigure() { StartPoint = new Point(x, y), IsClosed = true, IsFilled = true });
+							first = false;
+						}
+						else if (p > 0 && !gOutline.onCurve[p - 1]) {
+							double cx = ProcessShort(gOutline.xCoordinates[p - 1]);
+							double cy = ProcessShort(gOutline.yCoordinates[p - 1]);
+
+							geometry.Figures[^1].Segments.Add(new QuadraticBezierSegment() { Point1 = new Point(cx, cy), Point2 = new Point(x, y), IsStroked = true });
+						}
+						else {
+							geometry.Figures[^1].Segments.Add(new LineSegment() { Point = new Point(x, y), IsStroked = true });
+						}
+					}
+
+					if (c < gOutline.endPtsOfContours.Count && p == gOutline.endPtsOfContours[c]) {
+						c += 1;
+						first = true;
+					}
+
+					p += 1;
+				}
+			}
+			else if (glyphOutlines.cff?.glyphs[glyph] is Type2Glyph g2Outline) {
+				int p = 0, c = 0;
+				bool first = true;
+				while (p < g2Outline.PointCount) {
+					if (g2Outline.OnCurve[p]) {
+						double x = ProcessShort(g2Outline.Xs[p]);
+						double y = ProcessShort(g2Outline.Ys[p]);
+
+						if (first) {
+							geometry.Figures.Add(new PathFigure() { StartPoint = new Point(x, y), IsClosed = true, IsFilled = true });
+							first = false;
+						}
+						else if (p > 1 && !g2Outline.OnCurve[p - 1]) {
+							double cx1 = ProcessShort(g2Outline.Xs[p - 2]);
+							double cy1 = ProcessShort(g2Outline.Ys[p - 2]);
+							double cx2 = ProcessShort(g2Outline.Xs[p - 1]);
+							double cy2 = ProcessShort(g2Outline.Ys[p - 1]);
+
+							geometry.Figures[^1].Segments.Add(new BezierSegment() { Point1 = new Point(cx1, cy1), Point2 = new Point(cx2, cy2), Point3 = new Point(x, y), IsStroked = true });
+						}
+						else {
+							geometry.Figures[^1].Segments.Add(new LineSegment() { Point = new Point(x, y), IsStroked = true });
+						}
+					}
+
+					if (c < g2Outline.EndPtsOfContours.Count && p == g2Outline.EndPtsOfContours[c]) {
+						c += 1;
+						first = true;
+					}
+
+					p += 1;
+				}
+			}
 
 			return geometry;
 		}
@@ -874,12 +943,13 @@ namespace SharpEditor {
 
 			SolidColorBrush? brush = new SolidColorBrush(ConvertColor(GetTextColor()));
 
-			Pen? pen = StrokeText ? new Pen(gsState.strokeBrush, GetLineWidth()) { DashStyle = CurrentDashStyle } : null;
+			//Pen? pen = StrokeText ? new Pen(gsState.strokeBrush, GetLineWidth()) { DashStyle = CurrentDashStyle } : null;
+			Pen? pen = StrokeText ? GetCurrentPen() : null;
 			brush = FillText ? brush : null;
 
 			float fontsize = gsState.fontsize;
 
-			GlyphTypeface glyphTypeface = gsState.typefaces.GetTypeface(gsState.font);
+			TrueTypeFontFileOutlines glyphOutlines = gsState.typefaces.GetOutlines(gsState.font);
 			PdfGlyphFont pdfFont = gsState.typefaces.GetPdfFont(gsState.font); // Feels messy to be referencing PDF library here
 
 			PositionedGlyphRun glyphRun = pdfFont.GetGlyphRun(text1);
@@ -890,13 +960,13 @@ namespace SharpEditor {
 			for (int i = 0; i < glyphRun.Count; i++) {
 				ushort g = glyphRun[i];
 
-				Geometry? glyphGeometry = glyphTypeface.GetGlyphOutline(g, fontsize, fontsize);
+				Geometry? glyphGeometry = GetGlyphGeometry(g, glyphOutlines, fontsize);
 
 				if (glyphGeometry is not null) {
 					(short xPlacement, short yPlacement) = glyphRun.GetPlacement(i);
 					float xPlaceSized = PdfFont.ConvertDesignSpaceValue(xPlacement, fontsize);
 					float yPlaceSized = PdfFont.ConvertDesignSpaceValue(yPlacement, fontsize);
-					glyphGeometry.Transform = new TranslateTransform(runningX + xPlaceSized, -yPlaceSized);
+					glyphGeometry.Transform = new TranslateTransform(runningX + xPlaceSized, yPlaceSized);
 					textGeometryGroup.Children.Add(glyphGeometry);
 				}
 
@@ -904,7 +974,8 @@ namespace SharpEditor {
 				runningX += PdfFont.ConvertDesignSpaceValue(glyphRun.GetAdvanceTotal(i).xAdvance, fontsize);
 			}
 
-			textGeometryGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y) * SharpSheets.Canvas.Transform.Scale(1, -1));
+			//textGeometryGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y) * SharpSheets.Canvas.Transform.Scale(1, -1));
+			textGeometryGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y));
 
 			GeometryDrawing textDrawing = new GeometryDrawing(brush, pen, textGeometryGroup);
 

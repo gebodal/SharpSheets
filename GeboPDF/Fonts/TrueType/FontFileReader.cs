@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GeboPdf.Utilities;
+using System;
 using System.IO;
 using System.Text;
 
@@ -217,6 +218,24 @@ namespace GeboPdf.Fonts.TrueType {
 			reader.ReadBytes(count * 4);
 		}
 
+		/*** 2.14 float ***/
+		public float ReadF2Dot14() {
+			ushort bytes = ReadUInt16();
+			return HexWriter.ConvertF2Dot14(bytes);
+		}
+
+		public float[] ReadF2Dot14(int count) {
+			float[] array = new float[count];
+			for (int i = 0; i < count; i++) {
+				array[i] = ReadF2Dot14();
+			}
+			return array;
+		}
+
+		public void SkipF2Dot14(int count) {
+			SkipUInt16(count);
+		}
+
 		/*** Offset16 ***/
 		public ushort? ReadOffset16() {
 			ushort offset = ReadUInt16();
@@ -251,6 +270,78 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public void SkipOffset32(int count) {
 			SkipUInt32(count);
+		}
+
+	}
+
+	public static class FontFileReaderUtils {
+
+		public static T ReadFrom<T>(this FontFileReader reader, long offset, Func<FontFileReader, long, T> parser) {
+			long position = reader.Position;
+			T result = parser(reader, offset);
+			reader.Position = position;
+			return result;
+		}
+
+		public static T? ReadFrom<T>(this FontFileReader reader, long? offset, Func<FontFileReader, long, T> parser) {
+			if (offset.HasValue) {
+				return reader.ReadFrom(offset.Value, parser);
+			}
+			else {
+				return default;
+			}
+		}
+
+		public static T ReadFromOffset16<T>(this FontFileReader reader, long referenceOffset, Func<FontFileReader, long, T> parser) {
+			ushort valueOffset = reader.ReadUInt16();
+			return reader.ReadFrom(referenceOffset + valueOffset, parser);
+		}
+
+		public static T ReadFromOffset32<T>(this FontFileReader reader, long referenceOffset, Func<FontFileReader, long, T> parser) {
+			uint valueOffset = reader.ReadUInt32();
+			return reader.ReadFrom(referenceOffset + valueOffset, parser);
+		}
+
+		public static T[] ReadFrom<T>(this FontFileReader reader, long referenceOffset, ushort[] offsets, Func<FontFileReader, long, T> parser) {
+			T[] array = new T[offsets.Length];
+			for (int i = 0; i < offsets.Length; i++) {
+				array[i] = reader.ReadFrom(referenceOffset + offsets[i], parser);
+			}
+			return array;
+		}
+
+		public static T[] ReadFrom<T>(this FontFileReader reader, long referenceOffset, uint[] offsets, Func<FontFileReader, long, T> parser) {
+			T[] array = new T[offsets.Length];
+			for (int i = 0; i < offsets.Length; i++) {
+				array[i] = reader.ReadFrom(referenceOffset + offsets[i], parser);
+			}
+			return array;
+		}
+
+		public static T?[] ReadFrom<T>(this FontFileReader reader, long referenceOffset, ushort?[] offsets, Func<FontFileReader, long, T> parser) {
+			T?[] array = new T?[offsets.Length];
+			for (int i = 0; i < offsets.Length; i++) {
+				if (offsets[i].HasValue) {
+					array[i] = reader.ReadFrom(referenceOffset + offsets[i]!.Value, parser);
+				}
+				else {
+					array[i] = default;
+				}
+			}
+			return array;
+		}
+
+		public static T?[] ReadFrom<T>(this FontFileReader reader, long referenceOffset, uint?[] offsets, Func<FontFileReader, long, T> parser) {
+			T?[] array = new T?[offsets.Length];
+			for (int i = 0; i < offsets.Length; i++) {
+				if (offsets[i].HasValue) {
+					array[i] = reader.ReadFrom(referenceOffset + offsets[i]!.Value, parser);
+				}
+				else {
+					array[i] = default;
+				}
+			}
+			return array;
 		}
 
 	}

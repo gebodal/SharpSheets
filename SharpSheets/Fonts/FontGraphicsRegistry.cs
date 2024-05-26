@@ -24,6 +24,18 @@ namespace SharpSheets.Fonts {
 			return knownFonts[font];
 		}
 
+		public static TrueTypeFontFileOutlines GetFontOutlines(FontPath font) {
+			if (!knownOutlines.ContainsKey(font)) {
+				TrueTypeFontFileOutlines outlines = CreateOutlines(font);
+				knownOutlines.Add(font, outlines);
+			}
+			return knownOutlines[font];
+		}
+
+		public static TrueTypeFontFileOutlines GetFontOutlines(FontSetting font) {
+			return GetFontOutlines(font.Path);
+		}
+
 		/*
 		public static PdfGlyphFont GetPdfFont(FontPath? font, TextFormat format) {
 			if (font is null) {
@@ -70,6 +82,15 @@ namespace SharpSheets.Fonts {
 			return CIDFontFactory.CreateFont(fontUri, fontStream, GetOpenTypeTags(fontTags));
 		}
 
+		private static TrueTypeFontFileOutlines CreateOutlines(FontPath fontPath) {
+			if (fontPath.FontIndex >= 0) {
+				throw new NotImplementedException();
+			}
+			else {
+				return TrueTypeFontFileOutlines.Open(fontPath.Path);
+			}
+		}
+
 		private static OpenTypeLayoutTags GetOpenTypeTags(FontTags? tags) {
 			if (tags is null) { tags = FontTags.Default; }
 			return new OpenTypeLayoutTags(MakeTag(tags.ScriptTag), MakeTag(tags.LangSysTag), tags.FeatureTags.Select(t => MakeTag(t)));
@@ -98,34 +119,36 @@ namespace SharpSheets.Fonts {
 			return defaultFonts[TextFormat.BOLDITALIC];
 		}
 
-		public static Uri GetRegularDefaultUri() {
-			return defaultFontUris[TextFormat.REGULAR];
+		public static FontPath GetRegularDefaultPath() {
+			return defaultFontPaths[TextFormat.REGULAR];
 		}
-		public static Uri GetBoldDefaultUri() {
-			return defaultFontUris[TextFormat.BOLD];
+		public static FontPath GetBoldDefaultPath() {
+			return defaultFontPaths[TextFormat.BOLD];
 		}
-		public static Uri GetItalicDefaultUri() {
-			return defaultFontUris[TextFormat.ITALIC];
+		public static FontPath GetItalicDefaultPath() {
+			return defaultFontPaths[TextFormat.ITALIC];
 		}
-		public static Uri GetBoldItalicDefaultUri() {
-			return defaultFontUris[TextFormat.BOLDITALIC];
+		public static FontPath GetBoldItalicDefaultPath() {
+			return defaultFontPaths[TextFormat.BOLDITALIC];
 		}
 
 		private static readonly Dictionary<FontSetting, PdfGlyphFont> knownFonts;
+		private static readonly Dictionary<FontPath, TrueTypeFontFileOutlines> knownOutlines;
 
 		private static readonly IReadOnlyDictionary<TextFormat, PdfGlyphFont> defaultFonts;
-		private static readonly IReadOnlyDictionary<TextFormat, Uri> defaultFontUris;
+		private static readonly IReadOnlyDictionary<TextFormat, FontPath> defaultFontPaths;
 
 		static FontGraphicsRegistry() {
 			knownFonts = new Dictionary<FontSetting, PdfGlyphFont>();
+			knownOutlines = new Dictionary<FontPath, TrueTypeFontFileOutlines>();
 
 			System.Reflection.Assembly assembly = typeof(FontGraphicsRegistry).Assembly;
 
 			Dictionary<TextFormat, PdfGlyphFont>  defaultFontsDict = new Dictionary<TextFormat, PdfGlyphFont>();
 			defaultFonts = defaultFontsDict;
 
-			Dictionary<TextFormat, Uri>  defaultFontUrisDict = new Dictionary<TextFormat, Uri>();
-			defaultFontUris = defaultFontUrisDict;
+			Dictionary<TextFormat, FontPath>  defaultFontUrisDict = new Dictionary<TextFormat, FontPath>();
+			defaultFontPaths = defaultFontUrisDict;
 
 			//defaultFonts.SetFont(TextFormat.REGULAR, PdfStandardFonts.Helvetica);
 			//defaultFonts.SetFont(TextFormat.BOLD, PdfStandardFonts.HelveticaBold);
@@ -152,7 +175,7 @@ namespace SharpSheets.Fonts {
 					}
 				}
 
-				defaultFontUrisDict[fontFormat] = new Uri(diskPath);
+				defaultFontUrisDict[fontFormat] = new FontPath(diskPath, -1, EmbeddingFlags.EditableEmbedding);
 
 				using (Stream stream = assembly.GetManifestResourceStream(resourceName)!) { // We know this resource exists
 					PdfGlyphFont defaultFont = CreateFont(diskPath, stream, FontTags.Default);

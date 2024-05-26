@@ -48,6 +48,19 @@ namespace GeboPdf.Utilities {
 				throw new FormatException($"Invalid hex character \'{c}\'.");
 			}
 		}
+
+		public static float ConvertF2Dot14(ushort bytes) {
+			byte intPart = (byte)(bytes >> 14);
+
+			if ((intPart & 0b10) > 0) {
+				intPart = (byte)-(((~intPart) & 0b11) + 1); // 2's complement
+			}
+			
+			ushort fracPart = (ushort)(bytes & 0x3FFF);
+
+			// 2^14 = 16384
+			return intPart + (fracPart / 16384f);
+		}
 	}
 
 }

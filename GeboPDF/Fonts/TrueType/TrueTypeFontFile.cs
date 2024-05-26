@@ -367,6 +367,8 @@ namespace GeboPdf.Fonts.TrueType {
 		public EmbeddingFlags EmbeddingFlags => os2?.fsType ?? EmbeddingFlags.EditableEmbedding;
 		public GlyphOutlineLayout OutlineLayout { get; }
 
+		public ushort UnitsPerEm => head.unitsPerEm;
+
 		public TrueTypeFontFileData(ushort numGlyphs, TrueTypeHeadTable head, TrueTypeNameTable name, TrueTypeOS2Table? os2, GlyphOutlineLayout glyphOutlineLayout) {
 			this.numGlyphs = numGlyphs;
 			this.head = head;
@@ -423,6 +425,82 @@ namespace GeboPdf.Fonts.TrueType {
 				numGlyphs,
 				head, name, os2,
 				outlineLayout);
+		}
+	}
+
+	public class TrueTypeFontFileOutlines {
+
+		public readonly ushort numGlyphs;
+
+		public readonly TrueTypeHeadTable head;
+		public readonly TrueTypeIndexToLocationTable? loca;
+		public readonly TrueTypeGlyphContourTable? glyf;
+		public readonly OpenTypeCFFTable? cff;
+
+		public ushort UnitsPerEm => head.unitsPerEm;
+
+		public TrueTypeFontFileOutlines(ushort numGlyphs, TrueTypeHeadTable head, TrueTypeIndexToLocationTable? loca, TrueTypeGlyphContourTable? glyf, OpenTypeCFFTable? cff) {
+			this.numGlyphs = numGlyphs;
+			this.head = head;
+			this.loca = loca;
+			this.glyf = glyf;
+			this.cff = cff;
+		}
+
+		public static TrueTypeFontFileOutlines Open(string fontProgramPath) {
+			using (FileStream fontFileStream = new FileStream(fontProgramPath, FileMode.Open, FileAccess.Read)) {
+				FontFileReader fontReader = new FontFileReader(fontFileStream);
+				return Open(fontReader);
+			}
+		}
+
+		public static TrueTypeFontFileOutlines Open(FontFileReader reader) {
+
+			IReadOnlyDictionary<string, TrueTypeFontTable> tables = TrueTypeFontFile.ReadHeaderDict(reader,
+				out _, out _, out _, out _);
+
+			///////////// Head table
+			if (!tables.TryGetValue("head", out TrueTypeFontTable? headTable)) {
+				throw new FormatException("No head table.");
+			}
+			TrueTypeHeadTable head = TrueTypeHeadTable.Read(reader, headTable.offset);
+
+			///////////// maxp table
+			if (!tables.TryGetValue("maxp", out TrueTypeFontTable? maxpTable)) {
+				throw new FormatException("No maxp table.");
+			}
+			reader.Position = maxpTable.offset;
+			/*Fixed version =*/
+			reader.ReadFixed();
+			ushort numGlyphs = reader.ReadUInt16();
+
+			////// TrueType loca and glyf tables
+			TrueTypeIndexToLocationTable? loca = null;
+			TrueTypeGlyphContourTable? glyf = null;
+			if (tables.ContainsKey("loca") || tables.ContainsKey("glyf")) {
+				///////////// Location to Index table
+				if (!tables.TryGetValue("loca", out TrueTypeFontTable? locaTable)) {
+					throw new FormatException("No loca table.");
+				}
+				loca = TrueTypeIndexToLocationTable.Read(reader, locaTable.offset, numGlyphs, head.indexToLocFormat);
+
+				///////////// Glyph Data table
+				if (!tables.TryGetValue("glyf", out TrueTypeFontTable? glyfTable)) {
+					throw new FormatException("No glyf table.");
+				}
+				glyf = TrueTypeGlyphContourTable.Read(reader, glyfTable.offset, loca);
+			}
+
+			///////////// OS/2 table
+			OpenTypeCFFTable? cff = null;
+			if (tables.TryGetValue("CFF ", out TrueTypeFontTable? cffTable)) {
+				cff = OpenTypeCFFTable.Read(reader, cffTable.offset);
+			}
+
+			return new TrueTypeFontFileOutlines(
+				numGlyphs,
+				head, loca, glyf,
+				cff);
 		}
 	}
 

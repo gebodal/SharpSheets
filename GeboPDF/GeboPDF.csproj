@@ -26,6 +26,7 @@
 	  <None Remove="Fonts\resources\afm\Times-Roman.afm" />
 	  <None Remove="Fonts\resources\afm\ZapfDingbats.afm" />
 	  <None Remove="Fonts\resources\mustRead.html" />
+	  <None Remove="Fonts\TrueType\resources\OpenType\adobeStandardStrings.txt" />
 	  <None Remove="Fonts\TrueType\resources\OpenType\featureTags.txt" />
 	  <None Remove="Fonts\TrueType\resources\OpenType\languageTags.txt" />
 	  <None Remove="Fonts\TrueType\resources\OpenType\scriptTags.txt" />
@@ -35,6 +36,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <EmbeddedResource Include="Fonts\TrueType\resources\OpenType\adobeStandardStrings.txt" />
 	  <EmbeddedResource Include="Fonts\TrueType\resources\OpenType\featureTags.txt" />
 	  <EmbeddedResource Include="Fonts\TrueType\resources\OpenType\scriptTags.txt" />
 	</ItemGroup>
