@@ -769,9 +769,84 @@ namespace SharpEditorAvalonia {
 
 		#region Text
 
-		private Geometry? GetGlyphGeometry(ushort glyph, GlyphTypeface glyphTypeface, float fontsize) {
+		private static Geometry? GetGlyphGeometry(ushort glyph, TrueTypeFontFileOutlines glyphOutlines, float fontsize) {
 			// Create a geometry for the glyph
-			Geometry geometry = glyphTypeface.GetGlyphOutline(glyph, fontsize, fontsize);
+			PathGeometry geometry = new PathGeometry() { FillRule = FillRule.NonZero };
+
+			double ProcessShort(short value) {
+				return (fontsize * (1000.0 * (value / (double)glyphOutlines.UnitsPerEm))) / 1000.0;
+			}
+
+			if (glyphOutlines.glyf?.glyphOutlines[glyph] is TrueTypeGlyphOutline gOutline) {
+				PathFigures figures = new PathFigures();
+				geometry.Figures = figures;
+
+				int p = 0, c = 0;
+				bool first = true;
+				while (p < gOutline.PointCount) {
+					if (gOutline.onCurve[p]) {
+						double x = ProcessShort(gOutline.xCoordinates[p]);
+						double y = ProcessShort(gOutline.yCoordinates[p]);
+
+						if (first) {
+							figures.Add(new PathFigure() { StartPoint = new Point(x, y), IsClosed = true, IsFilled = true, Segments = new PathSegments() });
+							first = false;
+						}
+						else if (p > 0 && !gOutline.onCurve[p - 1]) {
+							double cx = ProcessShort(gOutline.xCoordinates[p - 1]);
+							double cy = ProcessShort(gOutline.yCoordinates[p - 1]);
+
+							figures[^1].Segments?.Add(new QuadraticBezierSegment() { Point1 = new Point(cx, cy), Point2 = new Point(x, y) });
+						}
+						else {
+							figures[^1].Segments?.Add(new LineSegment() { Point = new Point(x, y) });
+						}
+					}
+
+					if (c < gOutline.endPtsOfContours.Count && p == gOutline.endPtsOfContours[c]) {
+						c += 1;
+						first = true;
+					}
+
+					p += 1;
+				}
+			}
+			else if (glyphOutlines.cff?.glyphs[glyph] is Type2Glyph g2Outline) {
+				PathFigures figures = new PathFigures();
+				geometry.Figures = figures;
+
+				int p = 0, c = 0;
+				bool first = true;
+				while (p < g2Outline.PointCount) {
+					if (g2Outline.OnCurve[p]) {
+						double x = ProcessShort(g2Outline.Xs[p]);
+						double y = ProcessShort(g2Outline.Ys[p]);
+
+						if (first) {
+							figures.Add(new PathFigure() { StartPoint = new Point(x, y), IsClosed = true, IsFilled = true, Segments = new PathSegments() });
+							first = false;
+						}
+						else if (p > 1 && !g2Outline.OnCurve[p - 1]) {
+							double cx1 = ProcessShort(g2Outline.Xs[p - 2]);
+							double cy1 = ProcessShort(g2Outline.Ys[p - 2]);
+							double cx2 = ProcessShort(g2Outline.Xs[p - 1]);
+							double cy2 = ProcessShort(g2Outline.Ys[p - 1]);
+
+							figures[^1].Segments?.Add(new BezierSegment() { Point1 = new Point(cx1, cy1), Point2 = new Point(cx2, cy2), Point3 = new Point(x, y) });
+						}
+						else {
+							figures[^1].Segments?.Add(new LineSegment() { Point = new Point(x, y) });
+						}
+					}
+
+					if (c < g2Outline.EndPtsOfContours.Count && p == g2Outline.EndPtsOfContours[c]) {
+						c += 1;
+						first = true;
+					}
+
+					p += 1;
+				}
+			}
 
 			return geometry;
 		}
@@ -808,38 +883,41 @@ namespace SharpEditorAvalonia {
 
 			SolidColorBrush? brush = new SolidColorBrush(ConvertColor(GetTextColor()));
 
-			Pen? pen = StrokeText ? new Pen(gsState.strokeBrush, GetLineWidth()) { DashStyle = CurrentDashStyle } : null;
+			//Pen? pen = StrokeText ? new Pen(gsState.strokeBrush, GetLineWidth()) { DashStyle = CurrentDashStyle } : null;
+			Pen? pen = StrokeText ? GetCurrentPen() : null;
 			brush = FillText ? brush : null;
 
 			float fontsize = gsState.fontsize;
 
-			GlyphTypeface glyphTypeface = gsState.typefaces.GetTypeface(gsState.font);
+			TrueTypeFontFileOutlines glyphOutlines = gsState.typefaces.GetOutlines(gsState.font);
 			PdfGlyphFont pdfFont = gsState.typefaces.GetPdfFont(gsState.font); // Feels messy to be referencing PDF library here
 
 			PositionedGlyphRun glyphRun = pdfFont.GetGlyphRun(text1);
 
-			// Draw each character individually, as there is no way to turn off kerning in WPF
+			// Draw each character individually
 			// This will need updating for vertical writing directions
 			float runningX = 0f;
 			for (int i = 0; i < glyphRun.Count; i++) {
 				ushort g = glyphRun[i];
 
-				Geometry? glyphGeometry = glyphTypeface.GetGlyphOutline(g, fontsize, fontsize);
+				Geometry? glyphGeometry = GetGlyphGeometry(g, glyphOutlines, fontsize);
 
 				if (glyphGeometry is not null) {
 					(short xPlacement, short yPlacement) = glyphRun.GetPlacement(i);
 					float xPlaceSized = PdfFont.ConvertDesignSpaceValue(xPlacement, fontsize);
 					float yPlaceSized = PdfFont.ConvertDesignSpaceValue(yPlacement, fontsize);
-					glyphGeometry.Transform = new TranslateTransform(runningX + xPlaceSized, -yPlaceSized);
+					glyphGeometry.Transform = new TranslateTransform(runningX + xPlaceSized, yPlaceSized);
 					textGeometryGroup.Children.Add(glyphGeometry);
 				}
 
+				//runningX += pdfFont.GetWidth(g, fontsize);
 				runningX += PdfFont.ConvertDesignSpaceValue(glyphRun.GetAdvanceTotal(i).xAdvance, fontsize);
 			}
 
-			textGeometryGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y) * SharpSheets.Canvas.Transform.Scale(1, -1));
+			//textGeometryGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y) * SharpSheets.Canvas.Transform.Scale(1, -1));
+			textGeometryGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y));
 
-			GeometryDrawing textDrawing = new GeometryDrawing(brush, pen, textGeometryGroup);
+			GeometryDrawing textDrawing = new GeometryDrawing() { Brush = brush, Pen = pen, Geometry = textGeometryGroup };
 
 			if ((gsState.textRenderingMode & SharpSheets.Canvas.TextRenderingMode.FILL_STROKE) != SharpSheets.Canvas.TextRenderingMode.INVISIBLE) {
 				drawingGroup.Children.Add(textDrawing);
@@ -918,25 +996,19 @@ namespace SharpEditorAvalonia {
 
 		#region Misc
 
-		static ImageSource BitmapFromUri(Uri source) {
-			BitmapImage bitmap = new BitmapImage();
-			bitmap.BeginInit();
-			bitmap.CreateOptions = BitmapCreateOptions.IgnoreImageCache; // Otherwise updates to image files are ignored
-			bitmap.UriSource = source;
-			bitmap.CacheOption = BitmapCacheOption.OnLoad;
-			bitmap.EndInit();
-			return bitmap;
+		static IImage BitmapFromPath(string filename) {
+			return new Avalonia.Media.Imaging.Bitmap(filename);
 		}
 
-		private void AddImage(ImageSource image, Rectangle rect, float? aspect) {
+		private void AddImage(IImage image, Rectangle rect, float? aspect) {
 			if (image != null) {
-				float imageAspect = (float)(aspect ?? image.Width / image.Height);
+				float imageAspect = (float)(aspect ?? image.Size.Width / image.Size.Height);
 				if (imageAspect > 0) {
 					rect = rect.Aspect(imageAspect);
 				}
 
 				Point point = MakePoint(rect.X, rect.Y + rect.Height);
-				ImageDrawing drawing = new ImageDrawing(image, new Rect(new Point(0, 0), new System.Windows.Size(rect.Width, rect.Height)));
+				ImageDrawing drawing = new ImageDrawing() { ImageSource = image, Rect = new Rect(new Point(0, 0), new Avalonia.Size(rect.Width, rect.Height)) };
 
 				DrawingGroup imageDrawingGroup = new DrawingGroup();
 				imageDrawingGroup.Children.Add(drawing);
@@ -968,14 +1040,14 @@ namespace SharpEditorAvalonia {
 				this.RestoreState();
 			}
 			else {
-				ImageSource imageSource = BitmapFromUri(new Uri(image.Path.Path));
-				AddImage(imageSource, rect, imageAspect);
+				IImage imageObj = BitmapFromPath(image.Path.Path);
+				AddImage(imageObj, rect, imageAspect);
 			}
 			return this;
 		}
 
 		public float GetUserUnits() {
-			return 1f; // TODO Implement
+			return 1f; // Implement?
 		}
 
 		#endregion

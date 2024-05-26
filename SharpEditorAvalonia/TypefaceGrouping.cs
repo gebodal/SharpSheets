@@ -1,25 +1,20 @@
-﻿using Avalonia.Media;
-using Avalonia.Media.Fonts;
+﻿using System;
 using GeboPdf.Fonts;
+using GeboPdf.Fonts.TrueType;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Fonts;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SharpEditorAvalonia {
 
 	public class TypefaceGrouping {
 
 		private readonly struct TypefaceInfo {
-			public readonly GlyphTypeface typeface;
+			public readonly TrueTypeFontFileOutlines outlines;
 			public readonly PdfGlyphFont pdfFont;
 			public readonly FontSetting? origin;
 
-			public TypefaceInfo(GlyphTypeface typeface, PdfGlyphFont pdfFont, FontSetting? origin) {
-				this.typeface = typeface;
+			public TypefaceInfo(TrueTypeFontFileOutlines typeface, PdfGlyphFont pdfFont, FontSetting? origin) {
+				this.outlines = typeface;
 				this.pdfFont = pdfFont;
 				this.origin = origin;
 			}
@@ -42,18 +37,18 @@ namespace SharpEditorAvalonia {
 		}
 		*/
 
-		public GlyphTypeface GetTypeface(TextFormat format) {
+		public TrueTypeFontFileOutlines GetOutlines(TextFormat format) {
 			if (format == TextFormat.REGULAR) {
-				return regular.typeface;
+				return regular.outlines;
 			}
 			else if (format == TextFormat.BOLD) {
-				return bold?.typeface ?? regular.typeface;
+				return bold?.outlines ?? regular.outlines;
 			}
 			else if (format == TextFormat.ITALIC) {
-				return italic?.typeface ?? regular.typeface;
+				return italic?.outlines ?? regular.outlines;
 			}
 			else { // format == TextFormat.BOLDITALIC
-				return bolditalic?.typeface ?? regular.typeface;
+				return bolditalic?.outlines ?? regular.outlines;
 			}
 		}
 
@@ -72,8 +67,8 @@ namespace SharpEditorAvalonia {
 			}
 		}
 
-		private void SetFont(TextFormat format, GlyphTypeface typeface, PdfGlyphFont pdfFont, FontSetting? origin) {
-			TypefaceInfo typefaceInfo = new TypefaceInfo(typeface, pdfFont, origin);
+		private void SetFont(TextFormat format, TrueTypeFontFileOutlines outlines, PdfGlyphFont pdfFont, FontSetting? origin) {
+			TypefaceInfo typefaceInfo = new TypefaceInfo(outlines, pdfFont, origin);
 			if (format == TextFormat.REGULAR) {
 				regular = typefaceInfo;
 			}
@@ -93,14 +88,9 @@ namespace SharpEditorAvalonia {
 		}
 
 		public void SetFont(TextFormat format, FontSetting origin) {
-
-			FontFamilyLoader.LoadFontAssets(new Uri("font.otf"));
-			Avalonia.Media.Gly
-			//new FontFamily()
-			//new Avalonia.Media.Typeface()
-			GlyphTypeface glyphs = new GlyphTypeface(GetFontUri(origin.Path));
+			TrueTypeFontFileOutlines outlines = FontGraphicsRegistry.GetFontOutlines(origin);
 			PdfGlyphFont pdfFont = FontGraphicsRegistry.GetPdfFont(origin); // PdfEncodings.WINANSI
-			SetFont(format, glyphs, pdfFont, origin);
+			SetFont(format, outlines, pdfFont, origin);
 		}
 
 		// For opening a font from a Stream?
@@ -168,16 +158,16 @@ namespace SharpEditorAvalonia {
 		}
 		*/
 
-		private static readonly GlyphTypeface regularGlyphs;
-		private static readonly GlyphTypeface boldGlyphs;
-		private static readonly GlyphTypeface italicGlyphs;
-		private static readonly GlyphTypeface bolditalicGlyphs;
+		private static readonly TrueTypeFontFileOutlines regularOutlines;
+		private static readonly TrueTypeFontFileOutlines boldOutlines;
+		private static readonly TrueTypeFontFileOutlines italicOutlines;
+		private static readonly TrueTypeFontFileOutlines bolditalicOutlines;
 
 		static TypefaceGrouping() {
-			regularGlyphs = new GlyphTypeface(FontGraphicsRegistry.GetRegularDefaultUri());
-			boldGlyphs = new GlyphTypeface(FontGraphicsRegistry.GetBoldDefaultUri());
-			italicGlyphs = new GlyphTypeface(FontGraphicsRegistry.GetItalicDefaultUri());
-			bolditalicGlyphs = new GlyphTypeface(FontGraphicsRegistry.GetBoldItalicDefaultUri());
+			regularOutlines = FontGraphicsRegistry.GetFontOutlines(FontGraphicsRegistry.GetRegularDefaultPath());
+			boldOutlines = FontGraphicsRegistry.GetFontOutlines(FontGraphicsRegistry.GetBoldDefaultPath());
+			italicOutlines = FontGraphicsRegistry.GetFontOutlines(FontGraphicsRegistry.GetItalicDefaultPath());
+			bolditalicOutlines = FontGraphicsRegistry.GetFontOutlines(FontGraphicsRegistry.GetBoldItalicDefaultPath());
 		}
 
 		public TypefaceGrouping() {
@@ -186,10 +176,10 @@ namespace SharpEditorAvalonia {
 			PdfGlyphFont italicDefault = FontGraphicsRegistry.GetItalicDefault();
 			PdfGlyphFont boldItalicDefault = FontGraphicsRegistry.GetBoldItalicDefault();
 
-			this.SetFont(TextFormat.REGULAR, regularGlyphs, regularDefault, null);
-			this.SetFont(TextFormat.BOLD, boldGlyphs, boldDefault, null);
-			this.SetFont(TextFormat.ITALIC, italicGlyphs, italicDefault, null);
-			this.SetFont(TextFormat.BOLDITALIC, bolditalicGlyphs, boldItalicDefault, null);
+			this.SetFont(TextFormat.REGULAR, regularOutlines, regularDefault, null);
+			this.SetFont(TextFormat.BOLD, boldOutlines, boldDefault, null);
+			this.SetFont(TextFormat.ITALIC, italicOutlines, italicDefault, null);
+			this.SetFont(TextFormat.BOLDITALIC, bolditalicOutlines, boldItalicDefault, null);
 		}
 
 		public TypefaceGrouping(TypefaceGrouping source) {
