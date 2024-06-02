@@ -84,11 +84,15 @@ namespace SharpSheets.Fonts {
 
 		private static TrueTypeFontFileOutlines CreateOutlines(FontPath fontPath) {
 			if (fontPath.FontIndex >= 0) {
-				throw new NotImplementedException();
+				return TrueTypeCollectionOutlines.Open(fontPath.Path, fontPath.FontIndex);
 			}
 			else {
 				return TrueTypeFontFileOutlines.Open(fontPath.Path);
 			}
+		}
+		private static TrueTypeFontFileOutlines CreateOutlines(string fontUri, Stream fontStream) {
+			FontFileReader reader = new FontFileReader(fontStream);
+			return TrueTypeFontFileOutlines.Open(reader);
 		}
 
 		private static OpenTypeLayoutTags GetOpenTypeTags(FontTags? tags) {
@@ -119,24 +123,24 @@ namespace SharpSheets.Fonts {
 			return defaultFonts[TextFormat.BOLDITALIC];
 		}
 
-		public static FontPath GetRegularDefaultPath() {
-			return defaultFontPaths[TextFormat.REGULAR];
+		public static TrueTypeFontFileOutlines GetRegularDefaultOutlines() {
+			return defaultFontOutlines[TextFormat.REGULAR];
 		}
-		public static FontPath GetBoldDefaultPath() {
-			return defaultFontPaths[TextFormat.BOLD];
+		public static TrueTypeFontFileOutlines GetBoldDefaultOutlines() {
+			return defaultFontOutlines[TextFormat.BOLD];
 		}
-		public static FontPath GetItalicDefaultPath() {
-			return defaultFontPaths[TextFormat.ITALIC];
+		public static TrueTypeFontFileOutlines GetItalicDefaultOutlines() {
+			return defaultFontOutlines[TextFormat.ITALIC];
 		}
-		public static FontPath GetBoldItalicDefaultPath() {
-			return defaultFontPaths[TextFormat.BOLDITALIC];
+		public static TrueTypeFontFileOutlines GetBoldItalicDefaultOutlines() {
+			return defaultFontOutlines[TextFormat.BOLDITALIC];
 		}
 
 		private static readonly Dictionary<FontSetting, PdfGlyphFont> knownFonts;
 		private static readonly Dictionary<FontPath, TrueTypeFontFileOutlines> knownOutlines;
 
 		private static readonly IReadOnlyDictionary<TextFormat, PdfGlyphFont> defaultFonts;
-		private static readonly IReadOnlyDictionary<TextFormat, FontPath> defaultFontPaths;
+		private static readonly IReadOnlyDictionary<TextFormat, TrueTypeFontFileOutlines> defaultFontOutlines;
 
 		static FontGraphicsRegistry() {
 			knownFonts = new Dictionary<FontSetting, PdfGlyphFont>();
@@ -144,43 +148,32 @@ namespace SharpSheets.Fonts {
 
 			System.Reflection.Assembly assembly = typeof(FontGraphicsRegistry).Assembly;
 
-			Dictionary<TextFormat, PdfGlyphFont>  defaultFontsDict = new Dictionary<TextFormat, PdfGlyphFont>();
+			Dictionary<TextFormat, PdfGlyphFont> defaultFontsDict = new Dictionary<TextFormat, PdfGlyphFont>();
 			defaultFonts = defaultFontsDict;
 
-			Dictionary<TextFormat, FontPath>  defaultFontUrisDict = new Dictionary<TextFormat, FontPath>();
-			defaultFontPaths = defaultFontUrisDict;
+			Dictionary<TextFormat, TrueTypeFontFileOutlines>  defaultFontOutlinesDict = new Dictionary<TextFormat, TrueTypeFontFileOutlines>();
+			defaultFontOutlines = defaultFontOutlinesDict;
 
 			//defaultFonts.SetFont(TextFormat.REGULAR, PdfStandardFonts.Helvetica);
 			//defaultFonts.SetFont(TextFormat.BOLD, PdfStandardFonts.HelveticaBold);
 			//defaultFonts.SetFont(TextFormat.ITALIC, PdfStandardFonts.HelveticaOblique);
 			//defaultFonts.SetFont(TextFormat.BOLDITALIC, PdfStandardFonts.HelveticaBoldOblique);
 
-			string appDataFolder = SharpSheetsData.GetAssemblyDataDir(); // TODO Is this a good place?
-			string fontDataFolder = Path.Combine(appDataFolder, "fonts");
-
-			if(!Directory.Exists(fontDataFolder)) {
-				Directory.CreateDirectory(fontDataFolder);
-			}
-
 			foreach ((TextFormat fontFormat, string fontFileName) in defaultFontFiles) {
 
 				string resourceName = GetResourceName(assembly, fontFileName);
-				string diskPath = Path.Combine(fontDataFolder, fontFileName);
-
-				if (!File.Exists(diskPath)) {
-					using (Stream fontResourceStream = assembly.GetManifestResourceStream(resourceName)!) { // We know this resource exists
-						using (FileStream fileStream = File.Create(diskPath)) {
-							fontResourceStream.CopyTo(fileStream);
-						}
-					}
-				}
-
-				defaultFontUrisDict[fontFormat] = new FontPath(diskPath, -1, EmbeddingFlags.EditableEmbedding);
+				string resourceUri = "MANIFEST_RESOURCE:::" + resourceName;
 
 				using (Stream stream = assembly.GetManifestResourceStream(resourceName)!) { // We know this resource exists
-					PdfGlyphFont defaultFont = CreateFont(diskPath, stream, FontTags.Default);
+					PdfGlyphFont defaultFont = CreateFont(resourceUri, stream, FontTags.Default);
 
 					defaultFontsDict[fontFormat] = defaultFont;
+				}
+
+				using (Stream stream = assembly.GetManifestResourceStream(resourceName)!) { // We know this resource exists
+					TrueTypeFontFileOutlines defaultFontOutlines = CreateOutlines(resourceUri, stream);
+
+					defaultFontOutlinesDict[fontFormat] = defaultFontOutlines;
 				}
 			}
 		}

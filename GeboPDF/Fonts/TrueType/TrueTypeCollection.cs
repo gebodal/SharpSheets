@@ -194,6 +194,14 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 		}
 
+		public static TrueTypeFontFileData Open(string fontProgramPath, int fontIndex) {
+			using (FileStream fontFileStream = new FileStream(fontProgramPath, FileMode.Open, FileAccess.Read)) {
+				FontFileReader fontReader = new FontFileReader(fontFileStream);
+				TrueTypeFontFileData fontData = Open(fontReader, fontIndex);
+				return fontData;
+			}
+		}
+
 		public static TrueTypeCollectionData Open(FontFileReader reader) {
 
 			uint[] tableDirectoryOffsets = TrueTypeCollection.ReadHeader(reader);
@@ -207,6 +215,72 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			return new TrueTypeCollectionData(fonts);
+		}
+
+		public static TrueTypeFontFileData Open(FontFileReader reader, int fontIndex) {
+
+			uint[] tableDirectoryOffsets = TrueTypeCollection.ReadHeader(reader);
+
+			if (fontIndex < 0 || fontIndex >= tableDirectoryOffsets.Length) {
+				throw new ArgumentOutOfRangeException(nameof(fontIndex), fontIndex, $"This collection contains only {tableDirectoryOffsets.Length} fonts.");
+			}
+
+			reader.Position = tableDirectoryOffsets[fontIndex];
+			return TrueTypeFontFileData.Open(reader);
+		}
+
+	}
+
+	public class TrueTypeCollectionOutlines {
+
+		public readonly TrueTypeFontFileOutlines[] fonts;
+
+		public uint NumFonts => (uint)fonts.Length;
+
+		public TrueTypeCollectionOutlines(TrueTypeFontFileOutlines[] fonts) {
+			this.fonts = fonts;
+		}
+
+		public static TrueTypeCollectionOutlines Open(string fontProgramPath) {
+			using (FileStream fontFileStream = new FileStream(fontProgramPath, FileMode.Open, FileAccess.Read)) {
+				FontFileReader fontReader = new FontFileReader(fontFileStream);
+				return Open(fontReader);
+			}
+		}
+
+		public static TrueTypeFontFileOutlines Open(string fontProgramPath, int fontIndex) {
+			using (FileStream fontFileStream = new FileStream(fontProgramPath, FileMode.Open, FileAccess.Read)) {
+				FontFileReader fontReader = new FontFileReader(fontFileStream);
+				TrueTypeFontFileOutlines fontOutlines = Open(fontReader, fontIndex);
+				return fontOutlines;
+			}
+		}
+
+		public static TrueTypeCollectionOutlines Open(FontFileReader reader) {
+
+			uint[] tableDirectoryOffsets = TrueTypeCollection.ReadHeader(reader);
+
+			TrueTypeFontFileOutlines[] fonts = new TrueTypeFontFileOutlines[tableDirectoryOffsets.Length];
+
+			for (int i = 0; i < tableDirectoryOffsets.Length; i++) {
+				reader.Position = tableDirectoryOffsets[i];
+
+				fonts[i] = TrueTypeFontFileOutlines.Open(reader);
+			}
+
+			return new TrueTypeCollectionOutlines(fonts);
+		}
+
+		public static TrueTypeFontFileOutlines Open(FontFileReader reader, int fontIndex) {
+
+			uint[] tableDirectoryOffsets = TrueTypeCollection.ReadHeader(reader);
+
+			if (fontIndex < 0 || fontIndex >= tableDirectoryOffsets.Length) {
+				throw new ArgumentOutOfRangeException(nameof(fontIndex), fontIndex, $"This collection contains only {tableDirectoryOffsets.Length} fonts.");
+			}
+
+			reader.Position = tableDirectoryOffsets[fontIndex];
+			return TrueTypeFontFileOutlines.Open(reader);
 		}
 
 	}

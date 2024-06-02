@@ -164,10 +164,10 @@ namespace SharpEditorAvalonia {
 		private static readonly TrueTypeFontFileOutlines bolditalicOutlines;
 
 		static TypefaceGrouping() {
-			regularOutlines = FontGraphicsRegistry.GetFontOutlines(FontGraphicsRegistry.GetRegularDefaultPath());
-			boldOutlines = FontGraphicsRegistry.GetFontOutlines(FontGraphicsRegistry.GetBoldDefaultPath());
-			italicOutlines = FontGraphicsRegistry.GetFontOutlines(FontGraphicsRegistry.GetItalicDefaultPath());
-			bolditalicOutlines = FontGraphicsRegistry.GetFontOutlines(FontGraphicsRegistry.GetBoldItalicDefaultPath());
+			regularOutlines = FontGraphicsRegistry.GetRegularDefaultOutlines();
+			boldOutlines = FontGraphicsRegistry.GetBoldDefaultOutlines();
+			italicOutlines = FontGraphicsRegistry.GetItalicDefaultOutlines();
+			bolditalicOutlines = FontGraphicsRegistry.GetBoldItalicDefaultOutlines();
 		}
 
 		public TypefaceGrouping() {
