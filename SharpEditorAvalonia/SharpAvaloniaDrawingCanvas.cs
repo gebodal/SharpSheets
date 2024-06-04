@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 namespace SharpEditorAvalonia {
 
 	// SharpAvaloniaDrawingCanvas
+	// ActualWidth -> Bounds.Width
 
 	public class SharpAvaloniaDrawingDocument : ISharpDocument {
 
@@ -436,7 +437,7 @@ namespace SharpEditorAvalonia {
 
 		private DashStyle CurrentDashStyle {
 			get {
-				return gsState.strokeDash != null ? new DashStyle(gsState.strokeDash.Values.Select(f => (double)f / gsState.lineWidth), gsState.strokeDash.Offset) : new DashStyle(new double[] { 1.0 }, 0.0);
+				return gsState.strokeDash != null ? new DashStyle(gsState.strokeDash.Values.Select(f => (double)f / gsState.lineWidth), gsState.strokeDash.Offset) : new DashStyle(null, 0.0);
 			}
 		}
 		#endregion
@@ -555,7 +556,7 @@ namespace SharpEditorAvalonia {
 		PathFigure PathFigure {
 			get {
 				if (_pathFigure == null) {
-					_pathFigure = new PathFigure() { Segments = new PathSegments() };
+					_pathFigure = new PathFigure() { Segments = new PathSegments(), IsClosed = false };
 				}
 				return _pathFigure;
 			}
@@ -576,7 +577,7 @@ namespace SharpEditorAvalonia {
 			if (PathFigure.Segments?.Count > 0) {
 				PathGeometry.Figures?.Add(PathFigure);
 			}
-			PathFigure = new PathFigure() { Segments = new PathSegments(), StartPoint = MakePoint(x, y) };
+			PathFigure = new PathFigure() { Segments = new PathSegments(), IsClosed = false, StartPoint = MakePoint(x, y) };
 			CurrentPenLocation = new DrawPoint(x, y);
 			return this;
 		}

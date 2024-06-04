@@ -1,0 +1,28 @@
+# Graphics State
+
+SharpSheets configuration files use a set of common graphics state properties to control general qualities of the content drawn in the document. These properties control: colors, line width, and fonts.
+
+## Colors
+
+There are four properties which control the colors of the document: `foreground`, `background`, `midtone`, and `textcolor`. Each of these properties can be declared on all widgets, and are inheritable. How these values are used is up the the widget design. It is possible, for example, for text to be drawn using the background color, rather than the text color, if this is specified in the widget design. Each of them is assigned values as any other color property, as discussed in the page on [Data Types](Tutorial/Data Types);
+
+```
+foreground: red
+background: 00FF00
+midtone: 0.0, 0.0, 1.0
+textcolor: 0.5
+# This color scheme is certainly not recommended
+```
+
+As a general design principle, however, the background color is used to fill in large areas designed to be filled with content (many Boxes will fill their main area with the color). The foreground color is used to drawn primary details, such as shape outlines. The midtone color is a visual intermediary between these two, and is used for secondary details or as an alternative background color when this is desireable (as in the [SimpleBackground](widget::SimpleBackground) widget). The text color is used for drawing text and titles.
+
+Again, these are only guidelines, and you and other designers are free to follow or break them when creating your own widget patterns. Individual widgets can also accept other color properties that adjust specific details or parts of their design -- but these four colors will always be available to any widget and shape being drawn in the document.
+
+## Line Width
+
+The `linewidth` property, also available on all widgets, is used to control the base line (or "stroke") width to be used when drawing paths in the document. As with colors, any given widget is free to use or ignore this value, but it is a useful way of combining visual elements of a document together, and its use is encouraged when designing your own patterns. Note that many widgets will use combinations of relative values of this default line width (e.g. using half the default line width for secondary details, and the full width for primary details).
+
+## Fonts
+
+See the section on [handling text](Tutorial/Handling Text) for details on fonts and font paths.
+

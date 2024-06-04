@@ -1,0 +1,438 @@
+# Card Configurations Tutorial
+
+SharpSheets allows for the creation of "card" templates, which can have different contents drawn to them, and be reused for many different card lists.
+
+Here "card" is a loose term, simply meaning the division of a page into areas which will have templated contents drawn to them. In practice, these may only very loosely resemble cards, but the system is designed to work best with card-like designs.
+
+The templates are described using card configuration files, which use the same basic syntax as the standard SharpSheets configuration files described in [the tutorial](Tutorial). There are some additional structures used in the card configurations for describing different elements of the card design, a full list of which can be found [here](Cards/Configuration Elements).
+
+An important aspect of the card layout system is that the text size can be dynamically selected to give better packing of the cards (both for their own content, and for the cards on the page), based on a maximum and minimum fontsize specified in the configuration file. In general, font sizes larger than the maximum will never be used, but smaller font sizes may be if there is no other way to arrange the card content. Note that these font size restrictions only apply when specified, and in general text of any size may be drawn to the card if desired.
+
+A card's content can also be spread over multiple cards, if allowed, in order to respect the minimum specified font sized.
+
+This tutorial will cover the basic usage of these configuration files, and how they define a pattern for corresponding card subject files, which contain the data which will populate the card templates for drawing to the page.
+
+
+## Basic Configuration Structure
+
+Each card configuration file actually represents a set of possible card templates. Within a file, we define `card` elements, which themselves are composed of `outline` elements for the (you guessed it) outline of the card area, and various "segment" elements which describe the main sections of the card content. Segments can either be simple text, or can be more complex "dynamic segments", whose content can also be templated. These dynamic segments are then composed of `feature` elements, which describe individual portions of the card sections.
+
+Basically: cards are made up of segments, and segments are made up of features. And you can define multiple card templates within one card configuration file.
+
+You can also define segments and outlines which belong to all cards within the configuration file. If you have no `card` elements in a configuration, then a default card template will be constructed that uses all the top level segments and outlines defined.
+
+A simplified version of this structure would look something like:
+
+```CardConfig
+card:
+	outline:
+		# Content
+
+	segment:
+		feature:
+			# Content
+		feature:
+			# Other content
+
+outline:
+	# Top level outline
+
+segment:
+	# Top-level segment
+```
+
+The card templates also make use of "expressions": simple instructions that can be embedded in the configuration file to change the content based on data provided at a later date (by the user in a card subject file, for example). These make use of variables -- pieces of data whose values will change depending on input -- some of which are defined by SharpSheets, and others you define yourself.
+
+Certain information is always available by SharpSheets: each card has a `name`; each segment has a `heading` and a `subheading`; and each feature has a `title`, a `subtitle`, and `text` content. There are also other useful pieces of data made available to you, but those are the most common variables you will need.
+
+To define your own variables, which will then become pieces of data that can be specified in the card subject files that use your configuration, we use the following syntax:
+
+```CardConfig
+def name|alias1|alias2: int
+```
+
+You can define variables for: the entire configuration file, individual cards, segments, and features.
+
+Within these card elements, the actual content makes use of the widget types familiar from the [configuration files](Tutorial) used elsewhere. There is a special widget type, `cardtext`, which is intended for use within card configuration elements, and will be discussed below. Other than that, all the widgets and shapes available elsewhere in SharpSheets are available for card configurations (and you can of course define your own in Markup for use with your card designs).
+
+
+
+## Important Concepts
+
+There are some general concepts that we should cover before getting into the specifics.
+
+### Remaining Areas
+
+A widget does not have to use up all of the available space with its content, and can leave some remaining area for its children -- or other objects, as we shall make use of here.
+
+However, it may actually be a child of the widget (or some other descendent) that has the remaining area, not the widget itself. To determine the remaining area of a widget, SharpSheets will check if the widget has any area not used by its children (determined by the widget pattern itself -- so this can be specified for Markup patterns): if the widget does have remaining space, that will be returned as the remaining area; otherwise, the widget's children will be queried in document order to see if any of them have remaining space (and they will query their children, and so on). If no space is found, the widget does not have a remaining area. If one of the descendents does (searched depth-first in document order), then that area will be used.
+
+Remember that some widgets, like the `section` [widget](widget::Section), will fill their remaining area with a text field if they have no children. If you want to have more control over where the remaining area is assigned, you can use a `div` [widget](widget::Div) as a placeholder for that space. `div` widgets do not fill their remaining area with content, and if a `size` is set (e.g. `1`) will happily take up any available space.
+
+Remaining areas are used a lot for things like `outline` elements, and so you can create something like the following:
+
+```CardConfig
+outline:
+	section:
+		outline.style: Rounded
+		div # This will provide the remaining area for the outline
+```
+
+And then any content inside the outline will be drawn as if it was a child of the `div` widget.
+
+
+### Definitions
+
+Definitions allow you to specify what information is required to draw your cards. For example, if your card represents a character in a game, then you may need a number describing how much health that character has. You could do that like so:
+
+```CardConfig
+def health: int
+```
+
+Here we have created a definition named "health", whose value must be an integer. This value must now be specified in the card subject file when the content for a card is described.
+
+However, definitions have more possibilities than this: we can specify a value which must be provided for each card (as above), a value which __may__ be specified but has some default value if one is not provided, or we can have a definition whose value is fixed and cannot be changed by the card subject file. Each of these looks as follows:
+
+```CardConfig
+# Must be specified by user
+def name1: int
+# Can be specified by user
+def name2: int = 10
+# Cannot be specified by user
+def name3 = 10
+```
+
+Each one consists of the `def` keyword, followed by the name of the definition, and then either: a colon (`:`) and value type; a colon (`:`), value type, equals sign (`=`), and default value; or an equals sign (`=`) and value (this value may be an expression which makes use of previously defined variables/definitions).
+
+Additionally, each definition may have more than one name (referred to as "aliases"), which gives more freedom when specifying value names in the card subject file. These aliases are separated by `|` characters, like so:
+
+```CardConfig
+def name|alias1|alias2: int
+```
+
+Each name and alias for each definition must be unique within the configuration file, and definition names are case-insensitive (meaning `HELLO` and `hello` are considered to be the same).
+
+The first definition name must be a sequence of alphanumeric characters (A-Z, a-z, 0-9), which must begin with an alphabetical character (A-Z, a-z). The aliases which follow must also begin with an alphabetical character (A-Z, a-z), but can be followed by any alphanumeric character or a space. For example:
+
+```CardConfig
+def name|full name: int
+```
+
+This allows for better readability of names in the card subject files. Note, however, that you can only reference the variable for this definition in an expression using a name or alias without any spaces.
+
+Definitions may also have a description, specified at the end of the same line as the definition, after the characters `///`, like so:
+
+```CardConfig
+def name|alias1: int /// A description of "name"
+```
+
+This description will be displayed in the documentation, and when the user is writing in the card subject file.
+
+
+#### Definition Types
+
+Definitions allow for the following types:
+
+```Unknown
+int
+uint
+float
+ufloat
+bool
+string
+intrange([start], [end])
+floatrange([start], [end])
+category(...)
+multicategory(...)
+```
+
+The integer and floating point types allow for signed or unsigned numeric values, and the Boolean type allows for flags in the card subjects.
+
+`string` may optionally be followed by brackets, `()`, containing a regular expression that the provided data must conform to. SharpSheets uses the .NET Regular Expression engine, which is based on the Perl 5 syntax. See the appropriate documentation for a description of the available regex features.
+
+For example, if the string value must only contain the characters "a", "b", or "c", in any order, in any case, with at least one character, then you could have the following:
+
+```CardConfig
+def mystring: string((?i:[abc]+))
+```
+
+(For the uninitiated, you should be warned, if you go looking, regular expressions look a little scary -- but fear is the mind killer. Let it pass through you.)
+
+`intrange` and `floatrange` must be followed by brackets, `()`, containing a comma-separated (`,`) pair of numbers (integers for `intrange` and floating point numbers for `floatrange`, unsurprisingly) representing the start and end points (inclusive) of an allowed range of values. Any value provided for a definition with this type must be either an int or float (as appropriate) that falls within the specified range. For example, if a value must be an integer in the range -10 to 10, then we have:
+
+```CardConfig
+def myval: intrange(-10, 10)
+```
+
+Or a float between 0.0 and 1.0:
+
+```CardConfig
+def myval: floatrange(0, 1)
+```
+
+`category` and `multicategory` must be followed by brackets, `()`, containing a comma-separated (`,`) list of strings. These strings are the only allowed values for these definitions, with `category` allowing a single value, and `multicategory` allowing an array of such values. However, any case-insensitive initial substring provided for one of these definitions will be converted into the corresponding full string. So, if we have `category(Hello, World)`, this will allow `H`, `h`, `he`, or `hel` to mean `Hello`, and `WORLD`, `WOR`, or `W` to mean `World`. If there are potential values which share initial substrings, then the first match alphabetically will be chosen -- meaning that, in practice, the values are sorted alphabetically, and the first one that starts with the provided string will be chosen. So, `category(Two, Three)` would interpret `t` as `Three`, and `tw` as `Two`. Categorical definitions are intended to allow more robust instructions in the card configuration, while still providing flexibility for the user of the card subject file, as SharpSheets will deal with checking the provided strings and converting them into a standard format.
+
+Any definition type except `category` and `multicategory` may be suffixed with one or two `[]` bracket pairs to indicate an array of values (only rank 1 or two arrays are allowed). This means the user can provide one or more values of the specified type in the card subject file, and you can use those values to produce variable-length content in the card template.
+
+Note that there is a limitation of the syntax when it comes to creating zero-length arrays, for example when creating definitions with default values where the default value is an array with no elements. As all expressions must have a known return type, you cannot simply create an empty array with `array()`, as the element type would be unknown. Instead, you must create an array of the appropriate type, and then slice that array to produce a zero-length array. For example, for a zero-length array of strings: `array("")[0:0]`. Or for integers: `array(0)[0:0]`. Which looks a bit silly, but there you go.
+
+
+#### Function Definitions
+
+It is also possible to define functions in configuration files (i.e. instructions which can be provided arguments and return a value based on those arguments).
+
+A function definition begins with the `fun` keyword, followed by the function name (an alphanumeric sequence beginning with an alphabetical character), a bracketed comma-separated list of arguments, an equals sign (`=`), and then the expression for the function. Arguments are given as the argument name (alphanumeric sequence beginning with an alphabetical character), followed by a colon (`:`), and then the argument type. For example:
+
+```CardConfig
+fun myfunc(x: int, y: int) = x + y
+```
+
+The expression for the function will, essentially, be substituted any time the function is called, making it much easier to repeat the same calculation in multiple locations within the configuration file.
+
+The available argument types are:
+
+```Unknown
+int
+uint
+float
+ufloat
+bool
+color
+string
+```
+
+Here `string` cannot be limited to a regular expression (i.e. no brackets after `string` are allowed). Note that `color` values may be created using the built-in color creation functions.
+
+Any argument type may be suffixed with one or more `[]` to indicate an array of values.
+
+Within the function expression, all existing variables will be available, with their values as defined in the card subject file or the card configuration file. In addition, the arguments will be available as variables (overriding any variables with the same name -- so this is not advised), and can be used in calculations like any other variable. Note that these variables are __only__ available for this expression, and not anywhere else in the document.
+
+
+
+### Using Expressions
+
+Card configurations are designed to be highly configurable, and must be reactive to changing values provided in the card subject data. As such, you can express properties and text data as mathematical expressions, which can use any variable (or function) defined for the configuration and provided in the card subject file, as well as the built-in variables and functions provided by SharpSheets.
+
+Expressions themselves consist of variables (i.e. named pieces of data, where the value can change depending on circumstances), constants (such as numbers, e.g. `1`, `3.14`, or strings, `"Hello World"`), operators (such as `+` for addition and `-` for subtraction), and functions (which are operations that take one or more arguments, such as `max(1, 2)` or `sum(width, height)`).
+
+The list of built-in variables and functions, separated by element type, can be found [here](Cards/Environments).
+
+All variable and function names are case insensitive, meaning that `VARIABLE`, `variable`, and `VARiable` are all considered to be the same variable or function name.
+
+The expressions used in SharpSheets are statically typed, meaning that each variable, and the result of each expression, has a fixed type. This means that the output type of a given expression is known ahead of time, and can be inferred from the expression.
+
+Single variables can be substituted into property or entry values by stating the variable name with a dollar-sign (`$`) prefix, for example:
+
+```CardConfig
+def myfontsize: float = 10
+def myvar: string = "Testing"
+
+text: # Note that, in practice, this would need to be inside a card element (e.g. outline)
+	fontsize: $myfontsize
+	- $myvar
+```
+
+However, full expressions must be placed inside dollar-sign (`$`) preceeded curly-braces, `{}`, such as:
+
+```CardConfig
+def myHalfFontSize: float = 10
+def myvar: string = "Testing"
+
+text:
+	fontsize: ${myHalfFontSize * 2}
+	- $myvar
+```
+
+Note that if you require a string literal in an expression, it must be surrounded by double quote marks, `"`, as in:
+
+```CardConfig
+def myvar: string = "Testing"
+
+text:
+	- ${"My variable is " + myvar}
+```
+
+The expression syntax and functionality is the same as that described for Markup patterns, so check elsewhere in this documentation for discussion of the use of expressions.
+
+
+#### Value Parsing
+
+A quick comment about how parsing of properties and entries is conducted in card configuration files: In practice, expressions used as properties and entries in the configuration file will first be evaluated as mathematical expressions, and then converted to strings before being re-parsed as standard SharpSheets configuration content. This means that you can build most content in string form, if you desire, to then be parsed.
+
+However, conversion to and from strings is controlled by the SharpSheets parsing system, and therefore is symmetric under most circumstances -- meaning that if you use expressions liberally, you should never notice the effects of this process.
+
+
+#### Condition
+
+One special use of expressions in card configuration files is the `condition` property which can be assigned to any element (card configuration element or widget) in a card configuration file except for the `card` [element](card::card). This property determines if the element in question will be included in the drawn instance of the card. The property must have a Boolean expression as its value, and will be evaluated with the card subject data and any variables specific to its owner or ancestor card configuration element type.
+
+For example, card outlines have access to an integer variable `cardnum`, which indicates the zero-based index of the current card being drawn (in the case where the card content is too long and is spread over multiple cards this number will be greater than zero). If you only wish to draw the card's name on the first of such a sequence of cards, you could do that in the following way:
+
+```CardConfig
+outline:
+	text:
+		condition: $cardnum == 0
+		size: auto
+		fontsize: 20
+		- $name
+	div:
+		size: 1
+```
+
+Conditions can be as complex as you desire, and allow you to create dynamic and custom designs based on the card data.
+
+
+#### For-Each
+
+Another special use of expressions for card configurations is the `foreach` property, which allows you to repeat an element based on some sequence of values.
+
+`foreach` properties consist of a variable name (obeying all the normal rules of variable names), followed by the keyword `in` (which must be separated by whitespace on both sides), and finally an expression which returns an array or tuple of values.
+
+For example, if you have an array of values, you can print each of them in its own text widget using the following:
+
+```CardConfig
+text:
+	foreach: val in myvalues
+	size: 1
+	- $val
+```
+
+If `myvalues` contained the strings `Hello` and `World`, then the above would be equivalent to writing:
+
+```CardConfig
+text:
+	size: 1
+	- Hello
+text:
+	size: 1
+	- World
+```
+
+When using a `foreach` property, the entire element will be copied, including any children. As such, you can create very complex repeating patterns in your card configuration files without having to specify repeated content over and over. The source of the `foreach` items can even be a hard-coded array, as opposed to a user-provided variable length array, to reduce the need for repeated elements:
+
+```CardConfig
+text:
+	foreach: val in array("One", "Two", "Three")
+	size: 1
+	- $val
+```
+
+### Regex Formats
+
+A shared concept between different card elements is that of regex formatting of text -- specifically, the `format` properties (`format.regular`, `format.bold`, etc) of the `textblock` and `feature` elements. These formatting properties are used to apply a [text format](enum::TextFormat) to arbitrary text.
+
+Each format is specified as a regular expression, and any instance of that pattern in the target text will be instructed to use the associated text format (i.e. the font associated with that format). The regular expression syntax uses the .NET regex engine, which is based on Perl 5.
+
+The `textblock` [element](card::TextBlock) applies the specified formatting to all of its text components, and the `feature` element applies the formatting to its `text` variable before drawing.
+
+You can specify a regex format for each text format separately (regular, bold, italic, bold-italic). They will be applied in the order Bold > Italic > Bold-Italic > Regular. If text matches both the bold and italic patterns, then it will be printed as bold-italic. Any text which matches the regular pattern will have its format set back to simply regular (i.e. for overriding other formats). All of these formatting changes are applied on top of any existing format provided by the user.
+
+For example, if you want to put all numbers in italics, you could do that like so:
+
+```CardConfig
+format.italic: [0-9]
+```
+
+Or all instances of a certain `keyword` in bold:
+
+```CardConfig
+format.bold: keyword
+```
+
+
+## Cards
+### Outline
+### Background
+## Card Segments
+### Outline
+### Segment Types
+#### TextBlock
+[Element](card::TextBlock)
+#### Paragraphs
+[Element](card::Paragraphs)
+#### Table
+[Element](card::Table)
+#### Segment
+[Element](card::Segment)
+##### Feature
+###### CardText
+
+
+## Which Card/Segment/Outline/background Gets Selected
+## Arrangement of Content
+
+## Relation to Card Subject Files
+## Documentation
+
+
+
+
+
+
+
+
+
+## Putting It All Together
+
+Putting it all together, we see that configuration files follow an overall structure like so:
+
+```CardConfig
+# Configuration properties
+configProperty1: value1
+configProperty2: value2
+
+# Configuration definitions
+def value1: int
+def value2 = value1 + 5
+
+# Card backgrounds and outlines
+background:
+	condition: expression
+	# Contents...
+
+outline:
+	condition: expression
+	# Contents...
+
+outline:
+	condition: otherexpression
+	# Contents...
+
+# Individual card style configurations
+card:
+	condition: expression
+
+	# Card properties
+	cardProperty: value
+
+	# Card definitions
+	def cardValue: int
+
+	# Card segments
+	segment:
+		condition: expression
+
+		# Segment definitions
+		def segmentValue: int
+
+		# Segment features
+		feature:
+			condition: expression
+
+			# Properties and definitions...
+			featureProperty: value
+			def featureValue: int
+
+			# Contents...
+
+	segment:
+		# Contents...
+
+card:
+	# Contents...
+
+# Universal card segments
+segment:
+	# Contents
+```
+

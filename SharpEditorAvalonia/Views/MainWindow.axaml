@@ -5,12 +5,26 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="clr-namespace:SharpEditorAvalonia.Views"
         xmlns:AvaloniaEdit="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
+		xmlns:local="clr-namespace:SharpEditorAvalonia"
 		mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="SharpEditorAvalonia.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
         Title="SharpEditorAvalonia">
 
-	<AvaloniaEdit:TextEditor Text="Hello AvaloniaEdit!"
-					   ShowLineNumbers="True"
-					   FontFamily="Cascadia Code,Consolas,Menlo,Monospace"/>
+	<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="*"></ColumnDefinition>
+			<ColumnDefinition Width="*"></ColumnDefinition>
+		</Grid.ColumnDefinitions>
+
+		<AvaloniaEdit:TextEditor Text="Hello AvaloniaEdit!"
+			ShowLineNumbers="True"
+			FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+			Grid.Row="0" Grid.Column="0"/>
+
+		<local:CanvasViewer Name="Viewer" Background="Black"
+			Grid.Row="0" Grid.Column="1"/>
+	</Grid>
+	
+	
 </Window>

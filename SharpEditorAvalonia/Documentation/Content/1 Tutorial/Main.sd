@@ -1,0 +1,421 @@
+# Tutorial
+
+Welcome to the SharpSheets tutorial! Below you will find a Quick Start guide to get you used to the basic SharpSheets configuration file. 
+
+# Quick Start
+
+Here we will run through the basic usage of the SharpSheets configuration files. These files will allow you to create form-fillable PDF documents in your desired layout, which can be styled in a wide variety of ways.
+
+In this tutorial we will cover basic syntax, document structure, and the concepts of Widgets and Shapes.
+
+## Basic Syntax
+
+So, how does it work? SharpSheets uses a YAML-inspired syntax for the configuration files, which means they look something like the following:
+
+```
+page:
+	# This is a comment
+	section:
+		name: This Is A Title
+		size: 2
+		text:
+			fontsize: 12
+			- This is an entry.
+			- This is another entry.
+	section:
+		name: Another Title!
+		size: 1
+```
+
+Here we have a very simple configuration file, with a single page, and several nested "widgets". Each line contains either: the name of a widget, a property of a widget, or an entry for a widget.
+
+Widgets are specified by a line containing the widget name (e.g. "section", or "text"), followed by a colon.
+
+Properties are specified by the name of that property, followed by a colon, and then the property value. In the example above, "fontsize" is a property of the [Text](widget::Text) widget, and "name" is a property of the [Section](widget::Section) widgets.
+
+An entry is specified by a hyphen, followed by a space, and then the entry value, as for the [Text](widget::Text) widget in the example above.
+
+Notice that the configuration file is inherently hierarchical, with indentation providing the hierarchy. Widgets can either be at the same indentation level, or they can be at a greater indentation, in which case they are children of the first widget above them with lower indentation. If there is no widget above them, that widget is at the "root level". There are some restrictions on root level widgets, which will be discussed later.
+
+In the example above, the root widget is "page", which has two child "section" widgets. The first section has one "text" child, and the other has no children. The page has no properties, each section has a "name" and "size" property, and the text widget has a single "fontsize" property. The text widget also has two entries.
+
+Indentation considers the number of whitespace characters at the beginning of the line. This means that one tab character is the same as one space character (not four, or eight, or...). As a result, it is strongly advised to use either spaces or tabs for your document, but not to mix them. However, if you want to live dangerously, SharpSheets will not stop you.
+
+You can add comments to your configuration files using "#". This will cause everything from the "#" character to the end of the current line to be ignored by SharpSheets when generating your PDF.
+
+Empty lines are also ignored, so feel free to space out your lines as much as you'd like.
+
+With all of this, there are several special characters that are used by the configuration syntax which should be escaped if you want to use them in your property values. These are: `:#@$\*\_{}\\`, and sometimes `,;|`. They can be escaped using a backslash ("\\"). Escaping means that any time you want to use one of these characters, it should be preceeded by a backslash, such as:
+
+```
+text:
+	- This line does not contain a comment: \# This is still part of the text.
+	- But this line does contain a comment: # This is not part of the text.
+```
+
+And there you go, that's it, that's the basic syntax.
+
+### Properties
+
+... well, not quite.
+
+Let's say we want to draw a box on the page (Shapes will be covered in full below, just roll with it for now). The [Section](widget::Section) widget has a property for this, called "outline". But shapes also have lots of properties that you might want to change, even though they're not part of the document structure like widgets (again, see below for full details).
+
+So, we need the following:
+
+```
+section:
+	outline.style: Rounded
+	outline.radius: 5
+	outline.fill: red
+	outline.stroke: 0000FF
+```
+
+Here we have a shape, "outline", that has multiple components. It has a "style", and that style has properties such as "radius" and "fill" that we can also set. But all of them still belong to the "outline". We indicate this using the dot-syntax as above. It is possible to have mutiple levels of components, so we might have something like: "outline.offset.x: 3".
+
+### Inheriting Properties
+
+Many properties are inherited, such that all children of a widget use the same value for the property, unless they provide a different value themselves. For example:
+
+```
+div:
+	foreground: green
+	section:
+		name: Green Section
+	section:
+		foreground: red
+		name: Red Section
+```
+
+Here we have specified a green foreground color for the "div" ([Division](widget::Div)) widget, which is inherited by its children. The first section does not override that value, and so has a green foreground. The second section, however, provides its own value for "foreground", and so uses that value (red, in this case).
+
+If you want to specify that a property should only apply to the current widget, you can do that. Just add an `@` symbol before the property name, and it will be considered a local property.
+
+```
+div:
+	layout: ROWS
+	div:
+		@layout: COLUMNS
+		div:
+			# The value of "layout" here is still "ROWS"
+			size: 1
+```
+
+Properties can be provided at the root level of the configuration, before any widgets have been specified. The normal rules for inheritance apply in this case, and the properties are considered to belong to an abstract configuration-level __widget__.
+
+```
+foreground: red
+
+page:
+	section:
+		name: Red Section
+
+page:
+	section:
+		name: Another Red Section
+```
+
+### Flags
+
+The final piece of syntax you should be aware of is flags. SharpSheets uses the following syntax for expressing flags (true or false values, also called Booleans):
+
+```
+text:
+	# This text is on a single line
+	singleline
+text:
+	# This text is multiline
+	!singleline
+```
+
+Writing the name of the flag (with no trailing colon) indicates a "true" value. An exclamation mark at the front indicates a "false" value. These can even be combined with local values using `@!singleline`, if you'd like.
+
+### Dictionary Properties
+
+Occasionally, there are more complex properties which require multiple values to be specified all at once, either for convenience or because they do not make sense independently. A common example of this is a way for specifying margins in the document, which looks like this:
+
+```
+margins: {top: 2, bottom: 2, left: 5, right: 5}
+```
+
+This collection starts and ends with curly-braces ("{}"), and contains comma-separated key-value pairs, with the key and value themselves being separated by a colon. As such, any commas inside the values of dictionary-style properties must be escaped using `\\,`.
+
+Generally speaking, not all entries of a dictionary property will need to be specified, and will have default values if not provided.
+
+## Document Layout
+
+Now that you have a handle on the syntax for the configuration, let's delve into the actual content: the document layout.
+
+A PDF document, and therefore you configuration, is comprised of a number of pages. A [Page](widget::Page) is considered to be a widget within the configuration file, with the special constraint that page widgets must always be at the document root.
+
+```
+page:
+	section:
+		name: Page 1
+
+page:
+	section:
+		name: Page 2
+```
+
+If there is no page widget in the configuration, then all root level widgets are considered to be children of a single abstract page widget.
+
+This means that you can have zero, one, or multiple page widgets in the configuration, but any that do occur must have an indentation of zero.
+
+Widgets, including pages, can have zero, one, or more child widgets. This means that the configuration is actually a tree structure, where every widget (except the root pages) has a parent widget. Not all widgets, however, can be children. This is because some widgets do not have any remaining space in which to draw children. This can either be because they take up all the space they are given, or because they logically should not contain any children.
+
+### Grid Layout
+
+SharpSheets fundamentally works on a rectangular grid layout. Starting with the page, each widget is assigned a certain area of the page in which to draw itself and its children (for the page widget, this is the whole document page area). Each widget then determines the available area for each of its children, and they are drawn in that area (along with their own children), and so on. An important aspect of this is that all widgets are drawn __in configuration order__, i.e. the order in which they appear in the configuration file.
+
+Within the available space, the children of a parent widget will be arranged either in rows or columns, according to the `layout` property of the parent widget. In general, this layout will all be conducted as a series of nested rectangular areas.
+
+An important aspect of the grid layout system is the `size` property of widgets. Each widget has a size, which defaults to __1 relative unit__ if not specified. Sizes can be written as relative values (e.g. "1"), percentage values (e.g. "10pc"), absolute values (e.g. "1cm", "10pt", "1in"), or automatic values (written as "auto"). This method of sizing is referred to as a Dimension in SharpSheets. When the children of a widget are arranged on the document page, the available length will be determined, as either the width or height (for values of COLUMNS or ROWS for `layout`, respectively) of the rectangular area on the page assigned to the parent. Each absolute-sized child will take up exactly as much space as specified in its size, each percentage-sized child will take up exactly that percentage of the total available length, and each relative-sized child will take up a proportion of the __remaining__ length (after subtracting absolute and percentage sizes) based on its relative weight among the relative-sized children. Each automatically-sized child will have its minimum size calculated, and will be assigned that amount of space as if it were an absolute-sized child of that size.
+
+Additionally, the children may be spaced apart, based on the value of the `gutter` property of the parent. This total gutter length will be subtracted from the remaining area before relative lengths are calculated.
+
+So, the important properties for the grid layout are `layout`, `size`, and `gutter`. There are also `arrangement` and `order` properties which can be used to determine the position of children when there is additional, unused space, and how the configuration order of the children should correspond to the document arrangement. All of these properties are described in the widget documentation pages, such as for [Div](widget::Div).
+
+### Automatic Sizing
+
+Any child with a size of "auto" will have a minimum size calculated for it, and will be assigned precisely that amount of space. This minimum size is determined by its content. Each widget has a mechanism for determining the amount of space it requires (including any margin it has, as discussed below). Various properties and entries can change this required space. The widget's children are also considered when determining required space. A child with a relative or percentage size will be considered to take up no space. As such, descendants of auto-sized widgets should all have automatic or absolute sizing themselves. There are exceptions to this, especially if the layout option is changed in some of the descendant widgets.
+
+As an example:
+
+```
+div:
+	size: auto # Final size = 50pt
+	gutter: 10
+	section:
+		size: 20pt
+	section:
+		size: 20pt
+```
+
+Here the final size of the div widget will be 50pt: 20pt for each child widget, and 10pt for the gutter between them. The same result would be achieved by specifying `size: 50pt` on the div widget. However then it would not be responsive to changes made to the descendant nodes.
+
+### Positioning
+
+The grid layout system can be subverted, however, by using the `position` property for the widget. If a child widget has a `position` specified, it will not be drawn using the above gridding system, but will instead be places at a specified location relative to the parent area. Note that it will still be drawn in order with its siblings (often, but not always, this means that positioned children should be last in the configuration file order).
+
+Position is specified as follows:
+
+```
+position: {anchor: BOTTOMLEFT, width: 10pc, height: 10pc, x: 0pc, y: 0pc}
+```
+
+This uses a dictionary-style property value as discussed previously.
+
+The [anchor](enum::Anchor) value represents the zero-point for the relative coordinate system. Here, "BOTTOMLEFT" means that the bottom-left corner of the child will align with the bottom-left corner of the parent, and any offset will be applied upward and rightward. See the [anchor](enum::Anchor) documentation for more details. If not provided, the anchor defaults to `BOTTOMLEFT`.
+
+The width and height values are dimensions, that must be either percentage or absolute values, relative to the width and height of the parent area where necessary, and specify the size of the child area. Both of these values default to `100pc`.
+
+The x and y values are also dimensions (percentage or absolute), and give an offset for the child area relative to the anchor point of the parent area. Both of these values default to `0pt`.
+
+The position property, if provided on a child widget, will be used to calculate the area available to that child widget, and will be drawn in sequence with its siblings. Bear in mind that any children of the positioned child will also be drawn in the calculated area. The positioned child will also not have any effect on the grid layout calculations for its siblings.
+
+### Margins
+
+Once the area for a child has been determined, any `margins` property specified will be applied to that area. This margin is subtracted from the area, such that a margin of 5pt on all sides will produce a rectangle 10pt smaller in both axes.
+
+For automatically-sized widgets, this margin is taken into account when determining the required area.
+
+
+## Widgets
+
+So, what widgets do we actually use in the document? Well, there are many widgets available for particular purposes. You can even create custom widgets too, or install ones provided for specific gaming systems!
+
+All available widget types may be found in the [Widgets](Widgets) page of the documentation. However, there are some general purpose widgets its good to know about.
+
+### Page
+
+The [page](widget::Page) widget is a very important one for document structure, and has a couple of special properties worth mentioning.
+
+The `paper` property is used to indicate the size of the document pages. It can be expressed as an A or B paper size, one of "letter", "legal", "ledger", "tabloid", or "executive", or as a set of dimensions of the form "20.5 x 20.5 cm" (units are "pt", "cm", "mm", or "in"). The page size can be flipped using the `landscape` flag.
+
+The `pagemargins` property indicates the margins for the document pages (and is inheritable, unlike `margins`), and is expressed like any other margin property.
+
+Additionally, the [page](widget::Page) can have a background image.
+
+### Div
+
+The [div](widget::Div) widget (short for "division") is a good general purpose widget for dividing up space in the document. The div widget will not drawn anything for itself on the page, it will only layout and draw any child widgets it has. So, if you want four areas of your document, you could do the following:
+
+```
+page:
+	layout: COLUMNS
+	div:
+		layout: ROWS
+		section:
+			name: Section 1
+		section:
+			name: Section 2
+	div:
+		layout: ROWS
+		section:
+			name: Section 3
+		section:
+			name: Section 4
+```
+
+If you want to divide the space up more, you can replace the section widgets with more divs, and create patterns as complex as you want!
+
+There are two other widgets, [row](widget::Row) and [column](widget::Column), which are identical to div in functionality. They exist to allow more descriptive configuration files (i.e. a div whose primary purpose is to be a row in the parent area can be labelled as "row" directly).
+
+### Section and Box
+
+The [section](widget::Section) and [box](widget::Box) widgets do very similar jobs. They exist as a quick way of creating an area of the page with an outline and/or title. While [div](widget::Div) doesn't draw anything for itself, these two will draw some kind of shape around the area, and then draw any children inside that shape.
+
+If they do not have any children, they will fill the space inside with a form-field. This is the difference between them: [section](widget::Section) will create a left-aligned multi-line form-field, whereas [box](widget::Box) will create a centre-aligned single-line form-field. Other than this, these two widgets are identical.
+
+### Empty
+
+The [empty](widget::Empty) widget does exactly what it says on the tin. It will not draw anything to the page for itself or any children (in fact, any children will be completely ignored). The only effect an empty widget will have is to be involved in grid layout calculations for its siblings. As such, `size` is the only significant property for empty widgets.
+
+### Others
+
+A few other widgets it's helpful to know about are: [text](widget::Text), [repeat](widget::Repeat), and [field](widget::Field). Take a look at their documentation pages to get an idea of what they do.
+
+### Named Children
+
+It is also worth noting that some widgets, such as [repeat](widget::Repeat), can have __named children__. This means that a child "widget" of that parent will have a specific name, and will be utilised in a special way when that parent is drawn.
+
+These child "widgets" will always be interpreted as [div](widget::Div) widgets, and can have children as normal. Usually their `size` property is ignored, but this need not be the case.
+
+For example, there is no widget type called "content", but [repeat](widget::Repeat) uses the following syntax:
+
+```
+repeat:
+	rows: 3
+	columns: 2
+	content:
+		field:
+			fontsize: 6
+```
+
+
+## Shapes
+
+So, we can place widgets on the page, choose their size and arrangement, and assign values to their properties. Now how do we make everything look fancy?
+
+This is where Shapes come in. Shapes are specified as multi-part properties on certain widgets. For example, one you will see a lot is the "outline" property of the [section](widget::Section) widget.
+
+Every shape property will have a "style" sub-property. Each such style may have its own properties, which are specified like so:
+
+```
+outline.style: Simple
+outline.stroke: Green
+outline.fill: Red
+```
+
+All shape styles may be found from the [Shapes](Shapes) page of the documentation.
+
+Additionally, all shape types except Details have an "aspect" property, which allows you to specify the aspect ratio of the shape when it is drawn on the page. Note that this will always make the shape area smaller, if needed, to abide by the specified aspect ratio.
+
+```
+outline.style: Simple
+outline.aspect: 1 # This outline will be square
+```
+
+It is worth noting that the drawn parts of a shape may extend beyond the edge of the area assigned for it. This is left up to the designer of the shape, and allows for more elaborate styles to be drawn.
+
+There are several categories of shapes to encounter in SharpSheets, and they are detailed below. Each category has a default style, which will be assumed for any shape property which is unspecified (i.e. no value is provided in the configuration file).
+
+### Boxes
+
+[Boxes](Shapes/Boxes) are the simplest type of shape. They represent an outline for an area, and the space available inside that outline. This internal space is referred to as the "remaining" area. These shapes can be simple or complex, and cover a wide range of possible designs.
+
+Most box styles can infer the full area required for the box outline, given the size of the content (i.e. the widgets to be drawn in the remaining area). This means that the size of the outline is included in auto-sizing calculations for the grid layout. Note, however, this is not available for all box styles. Check the documentation for a style to see if it will work with auto-sizing.
+
+Boxes are most commonly used in the [Section](widget::Section) and [Box](widget::Box) widgets, but can also used for many other widget types.
+
+The default style is the [NoOutline](Shape::NoOutline) box, which draws no additional detail. The most basic box is the [Simple](Shape::Simple) box, which just draws a rectangle, with the option to specify colors for the outline and inside fill.
+
+### Labelled Boxes
+
+[Labelled Boxes](Shapes/Labelled Boxes) are very similar to Boxes, but have an additional area in their design, called the "label" area. As such, a labelled box has two sub-areas in which to draw additional content. Labelled boxes can be used in the [Labelled](widget::Labelled) widget, along with other widgets which support this type of shape.
+
+Some labelled box styles can infer the full area required for the box content for auto-sizing purposes. Generally speaking, this is inferred from the content of the remaining area. Check the documentation for a style to see if it will work with auto-sizing.
+
+The default style is the [SimpleLabelledBox](Shape::SimpleLabelledBox), which draws a simple rectangular outline around the remaining and label areas.
+
+### Titled Boxes
+
+[Titled Boxes](Shapes/Titled Boxes) are also similar to boxes, with no additional sub-areas. A titled box instead uses the "name" property as text to write as a title for the area. The name property does not belong to the shape property, but is instead taken from the current context. This is to allow for the name to be shared by shapes and widgets.
+
+```
+outline.style: BlockTitledBox
+outline.fontsize: 13
+outline.format: BOLD
+name: Test Box Title
+```
+
+The layout of this title text is determined by the titled box style. It could be placed anywhere, in any orientation, as dictated by the style. Some styles will also allow for multi-line titles. These can be specified using a newline escape sequence `\\n` in the name property.
+
+```
+name: Title on\nMultiple Lines
+```
+
+Additionally, most titled boxes accept `fontsize` and `format` properties for controlling the size and font format (see the page on [Text](Tutorial/Handling Text) for details) of the title.
+
+The default style is the [BlockTitledBox](Shape::BlockTitledBox). However, this default is rarely used by widgets in SharpSheets, as generally the default box style will be utilised when a container is requested (see below).
+
+### Title Styles
+
+[Titled Styles](Shapes/Titled Styles) are a way of adding titles to any box style. They can be added to boxes (but not titled boxes), using the `shape.title` sub-property:
+
+```
+outline.style: Simple
+outline.title.style: Named
+outline.title.fontsize: 13
+outline.title.format: BOLD
+outline.title.offset: 3,5
+outline.title.spacing: 2
+name: Title Styled Simple Box
+```
+
+In addition to the `fontsize` and `format` options, which function the same as for titled boxes, most title styles also have `offset` and `spacing` properties. The `offset` specifies how far from the edge of the available area the title should be drawn, and the `spacing` specifies how far the box content should be from the title (the exact meaning of these properties for layout differs between styles).
+
+Most title styles work with the box styles to calculate the full area required based on the box contents, for the purposes of auto-sizing.
+
+The default style is [Named](Shape::Named), which draws the title inside the shape outline. The [Titled](Shape::Titled) style draws the title outside the outline. There is also an [Untitled](Shape::Untitled) style for when you explicitly want to ignore any `name` property that might be present.
+
+### Containers
+
+In some circumstances, a box, titled box, or box and title style may be specified. Each of these arrangements allows for a remaining area, and the possibility of calculating the full area based on content for auto-sizing. In such cases, the shape will be requested as a "Container".
+
+If a titled box is provided as the main shape, then any title style will be ignored. However, if a box is specified, the title style will be applied to it if a name property has been specified (this property can be inherited). If no title is desired, then the [Untitled](Shape::Untitled) title style should be used.
+
+### Bars
+
+[Bars](Shapes/Bars), like labelled boxes, have two areas in which to draw content, also referred to as "remaining" and "label" areas. The difference is that bars do not assume that the full area may be inferred from the content. Hence, they do not work with auto-sizing layouts, and widgets that contain them may need sizes specifying manually in some circumstances.
+
+Bars do not have to be bar-like (i.e. longer than they are tall), and can be designed in many different ways.
+
+Bars are most commonly used in the [Bar](widget::Bar) and [Bars](widget::Bars) widgets, but can also used for many other widget types.
+
+The default style is the [SimpleBar](Shape::SimpleBar), which draws a simple rectangular outline around the remaining and label areas.
+
+### Usage Bars
+
+[Usage Bars](Shapes/Usage Bars) are very similar to bars, except that they have three sub-areas for drawing content. These are referred to as "label", "entry1", and "entry2". Here, the remaining area is split into two areas -- this is intended for cases where a single entry in a document has two components, such as a "maximum" and "used" value (hence "usage bar").
+
+Usage bars are most commonly used in the [SlotsBar](widget::SlotsBar) and [SlotsBars](widget::SlotsBars) widgets, but can also used for other widget types.
+
+The default style is the [SimpleUsageBar](Shape::SimpleUsageBar), which draws a simple rectangular outline around the label and entry areas.
+
+### Details
+
+[Details](Shapes/Details) are the final shape type in SharpSheets. They are different from the others, in that they have no sub-areas for drawing content. Instead, a detail is used to simply fill in an area with a design. Most often, this is the gutter between two areas on the page, and is specified using the `gutter.style` property available on all widgets.
+
+Details have two modes, depending on whether they are being drawn in a vertical or horizontal space. This is generally determined by the layout property of the widget whose gutters are being drawn. As such, the design of a detail may be different depending on which orientation is being drawn.
+
+The default style is [Blank](Shape::Blank), which draws nothing in the area. A useful detail style is the [LineDetail](Shape::LineDetail) style, which draws a simple line in the appropriate orientation, with an offset from the edge of the area.
+
+### Custom Shapes
+
+You are not limited to the built-in styles implemented for the above shape categories! You can install shapes into your SharpSheets template directory, or create your own using Markup files. See the relevant pages of the documentation for details.
+
+## Further Details
+
+That covers the basic aspects of SharpSheets configuration files. We've looked at the basic syntax, document structure, widgets, and shapes. There are more details, which can be found in the contents at the top of this page, and in other parts of this documentation. Look there for details on handling text, form fields, using the editor, creating cards, designing your own widget and shape patterns, and other information.

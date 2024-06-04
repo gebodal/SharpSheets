@@ -1,0 +1,224 @@
+﻿<?xml version="1.0"?>
+<SyntaxDefinition name="CardDefinitions" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+	<Color name="BaseColor" foreground="#d69d6d" fontWeight="normal"/>
+	<Color name="Comment" foreground="#808080" fontWeight="normal" fontStyle="italic"/>
+	<Color name="CommentEmphasis" foreground="#a1a1a1" fontWeight="bold"/>
+	<Color name="Number" foreground="#09abfc" fontWeight="normal"/>
+	<Color name="Dimension" foreground="#09abfc" fontWeight="bold"/>
+	<Color name="Diagnostic" foreground="HotPink" fontWeight="bold"/>
+	<Color name="Rect" foreground="#3ca5fb" fontWeight="normal"/>
+	<Color name="Style" foreground="#00eaea" fontWeight="normal"/>
+	<Color name="Property" foreground="#dbab04" fontWeight="normal"/>
+	<Color name="RectSetup" foreground="#dbab04" fontStyle="italic" fontWeight="normal"/>
+	<Color name="BracesProperty" foreground="#4ec9b0" fontWeight="normal"/>
+	<Color name="Flag" foreground="#b8d7a3" fontWeight="bold"/>
+	<Color name="NotFlag" foreground="#b8d7a3" fontWeight="bold"/>
+	<Color name="Entry" foreground="White" fontWeight="normal"/> <!-- BlueViolet? -->
+	<Color name="EscapeSequence" foreground="#ffd68f" fontWeight="bold"/>
+	<Color name="Braces" foreground="Wheat" fontWeight="bold"/>
+	<Color name="Punctuation" foreground="#dcdcdc" fontWeight="normal"/>
+	<Color name="Error" foreground="Purple" fontWeight="normal"/>
+	<Color name="Keywords" foreground="#db2525" fontWeight="normal"/>
+	
+	<Color name="Def" foreground="#b31a1a" fontWeight="bold"/>
+	<Color name="DefinitionName" foreground="Orange" fontWeight="normal"/>
+	<Color name="DefinitionType" foreground="Yellow" fontWeight="normal"/>
+	<Color name="DefinitionCategory" foreground="Teal" fontWeight="normal"/>
+	<Color name="Condition" foreground="#45bd38" fontWeight="normal"/>
+	<Color name="Variable" foreground="#bb6d8d" fontWeight="normal"/>
+	<Color name="Description" foreground="#d69d6d" fontWeight="normal"/>
+
+	<RuleSet name="Expressions" ignoreCase="true">
+		<!-- Keywords -->
+		<Rule color="Keywords">
+			(\bfor|in|if)\b
+		</Rule>
+		<!-- General punctuation for def -->
+		<Rule color="Punctuation">
+			[\:\|\=]
+		</Rule>
+		<!-- Operators -->
+		<Rule color="Punctuation">
+			[\*\/\%\+\-\&lt;\&gt;\=\!\&amp;,\^\|\?\[\]\(\)]
+		</Rule>
+		<!-- Numbers (float/int) -->
+		<Rule color="Number">
+			[0-9]+\.[0-9]* | [0-9]+
+		</Rule>
+		<!-- Boolean -->
+		<Rule color="Number">
+			\b(true|false)\b
+		</Rule>
+		<!-- Strings -->
+		<Rule color="BaseColor">
+			\"([^\"\\]|\\.)*\"
+		</Rule>
+		<!-- Escaped variable -->
+		<Rule color="Variable">
+			(?&lt;!\\)\$[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*
+		</Rule>
+		<!-- Function -->
+		<Rule color="Rect">
+			[a-z]+(?=\s*\()
+		</Rule>
+		<!-- Raw variable -->
+		<Rule color="Variable">
+			[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*
+		</Rule>
+	</RuleSet>
+
+	<RuleSet name="BasicRules" ignoreCase="false">
+		<Rule color="EscapeSequence">
+			\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8}|\\.
+		</Rule>
+
+		<Rule color="Dimension">
+			(?i) \b ([0-9]+(\.[0-9]+)? | \.[0-9]+) (pt | cm | in | pc) \b
+		</Rule>
+
+		<Rule color="Number">
+			\b ([\+\-]? [0-9]+(\.[0-9]+)? | \.[0-9]+) \b
+		</Rule>
+
+		<Rule color="Punctuation">
+			[,;:-]
+		</Rule>
+
+		<Rule color="BaseColor">
+			.
+		</Rule>
+	</RuleSet>
+
+	<RuleSet name="Regex" ignoreCase="true">
+		<Rule foreground="Teal">
+			.
+		</Rule>
+	</RuleSet>
+
+	<!-- This is the main ruleset. -->
+	<RuleSet ignoreCase="true">
+		<Span color="Comment" multiline="true" begin="\#--" end="--\#"/>
+		
+		<Span color="Comment">
+			<Begin>(?&lt;!\\)\#</Begin>
+			<RuleSet ignoreCase="false">
+				<Rule color="CommentEmphasis">
+					\b (TODO | FIX(ME)?) \b
+				</Rule>
+			</RuleSet>
+		</Span>
+
+		<Span color="Def">
+			<Begin>^\s*def\s+</Begin>
+			<RuleSet ignoreCase="true">
+				<!-- Expression -->
+				<Span color="Description">
+					<Begin>\/\/\/</Begin>
+				</Span>
+				<Span color="Punctuation">
+					<Begin>\=</Begin>
+					<End>(?=\/\/\/)|$</End>
+					<RuleSet>
+						<Import ruleSet="Expressions"/>
+					</RuleSet>
+				</Span>
+				<!-- Type -->
+				<Span color="Punctuation">
+					<Begin>\:</Begin>
+					<End>(?=\=|\/\/\/)|$</End>
+					<RuleSet>
+						<Span color="DefinitionType">
+							<Begin>(?i:(multi)?category)\(</Begin>
+							<End>\)\s*(?=\=|\/\/\/|$)</End>
+							<RuleSet>
+								<Rule color="Punctuation">
+									\,
+								</Rule>
+								<Rule color="DefinitionCategory">
+									.
+								</Rule>
+							</RuleSet>
+						</Span>
+						<Span color="DefinitionType">
+							<Begin>(?i:string)\(</Begin>
+							<End>\)\s*(?=\=|\/\/\/|$)</End>
+							<RuleSet>
+								<Import ruleSet="Regex"/>
+							</RuleSet>
+						</Span>
+						<Rule color="DefinitionType">
+							.
+						</Rule>
+					</RuleSet>
+				</Span>
+				<Rule color="Punctuation">
+					[\|]
+				</Rule>
+				<Rule color="DefinitionName">
+					[A-Za-z\s]+
+				</Rule>
+			</RuleSet>
+		</Span>
+
+		<!-- Condition line and expression -->
+		<Span color="Condition">
+			<Begin>^ \s* condition \s* (?=:\s*[^\s])</Begin>
+			<RuleSet>
+				<Import ruleSet="Expressions"/>
+			</RuleSet>
+		</Span>
+
+		<!-- Bracketed expression -->
+		<Span color="Braces">
+			<Begin>(?&lt;!\\)\$\{</Begin>
+			<End>\}</End>
+			<RuleSet>
+				<Import ruleSet="Expressions"/>
+			</RuleSet>
+		</Span>
+
+		<!-- Escaped variable -->
+		<Rule color="Variable">
+			(?&lt;!\\)\$[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*
+		</Rule>
+
+		<Rule color="Property">
+			^ \s* \@? [A-Za-z] [A-Za-z0-9\.]* \s* (?=\:)
+		</Rule>
+
+		<Rule color="Diagnostic">
+			^ \s* diagnostic \s* (?=\#|$)
+		</Rule>
+
+		<Rule color="NotFlag">
+			^ \s* \@? \! [A-Za-z] [A-Za-z0-9\.]* \s* (?=\#|$)
+		</Rule>
+		<Rule color="Flag">
+			^ \s* \@? [A-Za-z] [A-Za-z0-9\.]* \s* (?=\#|$)
+		</Rule>
+
+		<Rule color="Entry">
+			^ \s* -
+		</Rule>
+
+		<Span color="Braces">
+			<Begin>(?&lt;=\:)\s*\{</Begin>
+			<End>\}</End>
+			<RuleSet>
+				<Rule color="BracesProperty">
+					[A-Za-z] [A-Za-z0-9\.]* \s* (?=:)
+				</Rule>
+				<Import ruleSet="BasicRules"/>
+			</RuleSet>
+		</Span>
+
+		<!--
+		<Rule color="Error">
+			^ \s* [A-Za-z][A-Za-z0-9]* \s* (?=:?\s*(\#|$))
+		</Rule>
+		-->
+
+		<Import ruleSet="BasicRules"/>
+		
+	</RuleSet>
+</SyntaxDefinition>

@@ -6,6 +6,8 @@ public partial class MainView : UserControl {
 
 	public MainView() {
 		InitializeComponent();
+
+		Block1.Text = "Testing";
 	}
 
 }
