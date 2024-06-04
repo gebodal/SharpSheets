@@ -155,7 +155,6 @@ namespace SharpEditorAvalonia {
 					//CanvasViewScroller.ScrollToHorizontalOffset(offset.X);
 					//CanvasViewScroller.ScrollToVerticalOffset(offset.Y);
 					CanvasViewScroller.Offset = offset;
-					Console.WriteLine($"Offset: ({offset.X:F2}, {offset.Y:F2})");
 				}
 				this.UpdateLayout();
 			}

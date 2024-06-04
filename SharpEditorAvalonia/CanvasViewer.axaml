@@ -19,7 +19,7 @@
 				SizeChanged="OnCanvasSizeChanged"
 				HorizontalScrollBarVisibility="Auto"
 				VerticalScrollBarVisibility="Auto">
-			<Grid HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+			<Grid HorizontalAlignment="Center" VerticalAlignment="Center">
 				<Grid.RowDefinitions>
 					<RowDefinition Height="*" />
 				</Grid.RowDefinitions>
