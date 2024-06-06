@@ -3,17 +3,12 @@
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
   
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
-  </ItemGroup>
-
-  
-  <ItemGroup>
-    <AvaloniaXaml Remove="Documentation\DocumentationWindow.axaml" />
   </ItemGroup>
 
   
@@ -54,6 +49,75 @@
     <None Remove="Highlighting\CharacterSheetHighlighting.xshd" />
     <None Remove="Highlighting\SBMLHighlighting.xshd" />
     <None Remove="Highlighting\SharpConfigHighlighting.xshd" />
+    <None Remove="Images\CommentAdd.png" />
+    <None Remove="Images\CommentRemove.png" />
+    <None Remove="Images\Copy.png" />
+    <None Remove="Images\Copy2.png" />
+    <None Remove="Images\Cut.png" />
+    <None Remove="Images\Cut2.png" />
+    <None Remove="Images\Cut3.png" />
+    <None Remove="Images\Delete.png" />
+    <None Remove="Images\Delete2.png" />
+    <None Remove="Images\Delete3.png" />
+    <None Remove="Images\Delete4.png" />
+    <None Remove="Images\Designer.png" />
+    <None Remove="Images\Designer2.png" />
+    <None Remove="Images\Designer3.png" />
+    <None Remove="Images\Designer4.png" />
+    <None Remove="Images\Exclamation.png" />
+    <None Remove="Images\ExclamationWhite.png" />
+    <None Remove="Images\ExternalLink.png" />
+    <None Remove="Images\GeneratePopulate.png" />
+    <None Remove="Images\Home.png" />
+    <None Remove="Images\Icon.ico" />
+    <None Remove="Images\Icon.png" />
+    <None Remove="Images\Icon_old.ico" />
+    <None Remove="Images\Info.png" />
+    <None Remove="Images\Logo.png" />
+    <None Remove="Images\New.png" />
+    <None Remove="Images\New2.png" />
+    <None Remove="Images\NewCardDefinition.png" />
+    <None Remove="Images\NewCardDefinition2.png" />
+    <None Remove="Images\NewCardDefinition3.png" />
+    <None Remove="Images\NewCardSubject.png" />
+    <None Remove="Images\NewCardSubject2.png" />
+    <None Remove="Images\NewCharacterSheet.png" />
+    <None Remove="Images\NewCharacterSheet2.png" />
+    <None Remove="Images\NewMarkup.png" />
+    <None Remove="Images\NewMarkup2.png" />
+    <None Remove="Images\NewMarkup3.png" />
+    <None Remove="Images\Next.png" />
+    <None Remove="Images\Open.png" />
+    <None Remove="Images\Open2.png" />
+    <None Remove="Images\Open3.png" />
+    <None Remove="Images\PageFields.png" />
+    <None Remove="Images\PageHighlight.png" />
+    <None Remove="Images\Paste.png" />
+    <None Remove="Images\Paste2.png" />
+    <None Remove="Images\Previous.png" />
+    <None Remove="Images\Redo.png" />
+    <None Remove="Images\Redo2.png" />
+    <None Remove="Images\Refresh.png" />
+    <None Remove="Images\RightArrow.png" />
+    <None Remove="Images\RightArrow2.png" />
+    <None Remove="Images\Run.png" />
+    <None Remove="Images\Run2.png" />
+    <None Remove="Images\Run3.png" />
+    <None Remove="Images\Save.png" />
+    <None Remove="Images\Save2.png" />
+    <None Remove="Images\SaveAll.png" />
+    <None Remove="Images\Settings.png" />
+    <None Remove="Images\Settings1.png" />
+    <None Remove="Images\Settings2.png" />
+    <None Remove="Images\Settings3.png" />
+    <None Remove="Images\Tick.png" />
+    <None Remove="Images\Undo.png" />
+    <None Remove="Images\Undo2.png" />
+    <None Remove="Images\WholePage.png" />
+    <None Remove="Images\WordWrap.png" />
+    <None Remove="Images\WordWrap2.png" />
+    <None Remove="Images\ZoomIn.png" />
+    <None Remove="Images\ZoomOut.png" />
   </ItemGroup>
 
   
@@ -105,16 +169,96 @@
 
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
     <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.10" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Page Include="Documentation\DocumentationWindow.axaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
+    <PackageReference Include="MessageBox.Avalonia" Version="3.1.5.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\GeboPDF\GeboPDF.csproj" />
     <ProjectReference Include="..\SharpSheets\SharpSheets.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Images\CommentAdd.png" />
+    <AvaloniaResource Include="Images\CommentRemove.png" />
+    <AvaloniaResource Include="Images\Copy.png" />
+    <AvaloniaResource Include="Images\Copy2.png" />
+    <AvaloniaResource Include="Images\Cut.png" />
+    <AvaloniaResource Include="Images\Cut2.png" />
+    <AvaloniaResource Include="Images\Cut3.png" />
+    <AvaloniaResource Include="Images\Delete.png" />
+    <AvaloniaResource Include="Images\Delete2.png" />
+    <AvaloniaResource Include="Images\Delete3.png" />
+    <AvaloniaResource Include="Images\Delete4.png" />
+    <AvaloniaResource Include="Images\Designer.png" />
+    <AvaloniaResource Include="Images\Designer2.png" />
+    <AvaloniaResource Include="Images\Designer3.png" />
+    <AvaloniaResource Include="Images\Designer4.png" />
+    <AvaloniaResource Include="Images\Exclamation.png" />
+    <AvaloniaResource Include="Images\ExclamationWhite.png" />
+    <AvaloniaResource Include="Images\ExternalLink.png" />
+    <AvaloniaResource Include="Images\GeneratePopulate.png" />
+    <AvaloniaResource Include="Images\Home.png" />
+    <AvaloniaResource Include="Images\Icon.ico" />
+    <AvaloniaResource Include="Images\Icon.png" />
+    <AvaloniaResource Include="Images\Icon_old.ico" />
+    <AvaloniaResource Include="Images\Info.png" />
+    <AvaloniaResource Include="Images\Logo.png" />
+    <AvaloniaResource Include="Images\New.png" />
+    <AvaloniaResource Include="Images\New2.png" />
+    <AvaloniaResource Include="Images\NewCardDefinition.png" />
+    <AvaloniaResource Include="Images\NewCardDefinition2.png" />
+    <AvaloniaResource Include="Images\NewCardDefinition3.png" />
+    <AvaloniaResource Include="Images\NewCardSubject.png" />
+    <AvaloniaResource Include="Images\NewCardSubject2.png" />
+    <AvaloniaResource Include="Images\NewCharacterSheet.png" />
+    <AvaloniaResource Include="Images\NewCharacterSheet2.png" />
+    <AvaloniaResource Include="Images\NewMarkup.png" />
+    <AvaloniaResource Include="Images\NewMarkup2.png" />
+    <AvaloniaResource Include="Images\NewMarkup3.png" />
+    <AvaloniaResource Include="Images\Next.png" />
+    <AvaloniaResource Include="Images\Open.png" />
+    <AvaloniaResource Include="Images\Open2.png" />
+    <AvaloniaResource Include="Images\Open3.png" />
+    <AvaloniaResource Include="Images\PageFields.png" />
+    <AvaloniaResource Include="Images\PageHighlight.png" />
+    <AvaloniaResource Include="Images\Paste.png" />
+    <AvaloniaResource Include="Images\Paste2.png" />
+    <AvaloniaResource Include="Images\Previous.png" />
+    <AvaloniaResource Include="Images\Redo.png" />
+    <AvaloniaResource Include="Images\Redo2.png" />
+    <AvaloniaResource Include="Images\Refresh.png" />
+    <AvaloniaResource Include="Images\RightArrow.png" />
+    <AvaloniaResource Include="Images\RightArrow2.png" />
+    <AvaloniaResource Include="Images\Run.png" />
+    <AvaloniaResource Include="Images\Run2.png" />
+    <AvaloniaResource Include="Images\Run3.png" />
+    <AvaloniaResource Include="Images\Save.png" />
+    <AvaloniaResource Include="Images\Save2.png" />
+    <AvaloniaResource Include="Images\SaveAll.png" />
+    <AvaloniaResource Include="Images\Settings.png" />
+    <AvaloniaResource Include="Images\Settings1.png" />
+    <AvaloniaResource Include="Images\Settings2.png" />
+    <AvaloniaResource Include="Images\Settings3.png" />
+    <AvaloniaResource Include="Images\Tick.png" />
+    <AvaloniaResource Include="Images\Undo.png" />
+    <AvaloniaResource Include="Images\Undo2.png" />
+    <AvaloniaResource Include="Images\WholePage.png" />
+    <AvaloniaResource Include="Images\WordWrap.png" />
+    <AvaloniaResource Include="Images\WordWrap2.png" />
+    <AvaloniaResource Include="Images\ZoomIn.png" />
+    <AvaloniaResource Include="Images\ZoomOut.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Documentation\DocumentationWindow.axaml.cs">
+      <DependentUpon>DocumentationWindow.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Documentation\DocumentationPage.axaml.cs">
+      <DependentUpon>DocumentationPage.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Assets\Fonts\" />
   </ItemGroup>
 </Project>

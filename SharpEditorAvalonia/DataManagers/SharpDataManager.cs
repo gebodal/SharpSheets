@@ -13,6 +13,7 @@ namespace SharpEditorAvalonia.DataManagers {
 	public partial class SharpDataManager : ObservableObject {
 
 		private static readonly string configPath;
+		private static readonly string configExtension = ".conf";
 		private static readonly JsonSerializerOptions jsonSerializeoptions = new JsonSerializerOptions() {
 			IncludeFields = true
 		};
@@ -34,17 +35,18 @@ namespace SharpEditorAvalonia.DataManagers {
 			if (File.Exists(configPath)) {
 				Instance = LoadSettings(configPath) ?? new SharpDataManager();
 			}
-			else if(GetOldConfigPath() is string oldConfigPath) {
+			else if (GetOldConfigPath() is string oldConfigPath) {
 				Instance = LoadSettings(oldConfigPath) ?? new SharpDataManager();
 				Instance.Save();
 			}
 			else {
 				Instance = new SharpDataManager();
+				Instance.Save();
 			}
 
 		}
 
-		private SharpDataManager() { }
+		public SharpDataManager() { } // I don't like this being public
 
 		protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
 			base.OnPropertyChanged(e);
@@ -53,17 +55,20 @@ namespace SharpEditorAvalonia.DataManagers {
 		}
 
 		private static SharpDataManager? LoadSettings(string filePath) {
+			Console.WriteLine($"Load settings from: {filePath}");
 			string jsonText = File.ReadAllText(filePath);
+			// TODO Need to deal better with unrecognised properties
 			return JsonSerializer.Deserialize<SharpDataManager>(jsonText, jsonSerializeoptions);
 		}
 
 		private void Save() {
 			string jsonText = JsonSerializer.Serialize(this, jsonSerializeoptions);
 			File.WriteAllText(configPath, jsonText);
+			Console.WriteLine($"Save settings to: {configPath}");
 		}
 
 		private static string GetCurrentConfigPath() {
-			string filename = SharpEditorData.GetEditorName() + SharpEditorData.GetVersionString();
+			string filename = SharpEditorData.GetEditorName() + SharpEditorData.GetVersionString() + configExtension;
 			string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 			return Path.Combine(appData, filename);
 		}
@@ -75,14 +80,14 @@ namespace SharpEditorAvalonia.DataManagers {
 			IEnumerable<(string path, Version version)> GetVersions(IEnumerable<string> paths) {
 				foreach (string path in paths) {
 					string filename = Path.GetFileName(path);
-					string versionStr = filename[editorName.Length..^5];
+					string versionStr = filename[editorName.Length..^configExtension.Length];
 					if (Version.TryParse(versionStr, out Version? parsed)) {
 						yield return (path, parsed);
 					}
 				}
 			}
 
-			(string path, Version version)[] existing = GetVersions(Directory.GetFiles(appData, $"{editorName}*.json", SearchOption.TopDirectoryOnly)).ToArray();
+			(string path, Version version)[] existing = GetVersions(Directory.GetFiles(appData, $"{editorName}*{configExtension}", SearchOption.TopDirectoryOnly)).ToArray();
 
 			if (existing.Length > 0) {
 				return existing.MaxBy(pv => pv.version).path;

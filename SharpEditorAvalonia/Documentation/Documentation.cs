@@ -22,7 +22,7 @@ namespace SharpEditorAvalonia.Documentation {
 			List<DocumentationFile> parsedDocumentationFiles = new List<DocumentationFile>();
 
 			Assembly assembly = Assembly.GetAssembly(typeof(Documentation)) ?? throw new TypeInitializationException("Could not find main assembly.", null);
-			string prefix = "SharpEditor.Documentation.Content.";
+			string prefix = "SharpEditorAvalonia.Documentation.Content.";
 			//Console.WriteLine("Resource names");
 			foreach(string resourceName in ResourceUtilities.GetResources(assembly, prefix)) {
 				//Console.WriteLine(resourceName);

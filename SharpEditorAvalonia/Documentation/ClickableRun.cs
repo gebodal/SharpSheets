@@ -1,29 +1,53 @@
-﻿using System.Windows;
-using System.Windows.Documents;
-using System.Windows.Input;
+﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Styling;
+using System;
 
 namespace SharpEditorAvalonia.Documentation {
 
-	public class ClickableRun : Run {
+	public class ClickableRun : InlineUIContainer {
 
-		public ClickableRun() : base() { Initialize(); }
-		public ClickableRun(string text) : base(text) { Initialize(); }
-		public ClickableRun(string text, TextPointer insertionPosition) : base(text, insertionPosition) { Initialize(); }
+		public event EventHandler<PointerPressedEventArgs>? MouseLeftButtonDown;
 
-		private void Initialize() {
+		private readonly TextBlock textBlock;
+
+		public ClickableRun(string? text) : base() {
 			this.Foreground = DocumentationWindow.HyperlinkColor;
+
+			textBlock = new TextBlock() {
+				Text = text,
+				Foreground = DocumentationWindow.HyperlinkColor
+			};
+
+			textBlock.PointerEntered += OnPointerChanged;
+			textBlock.PointerExited += OnPointerChanged;
+
+			textBlock.PointerPressed += OnPointerPressed;
+
+			this.Child = textBlock;
 		}
 
-		protected override void OnIsMouseDirectlyOverChanged(DependencyPropertyChangedEventArgs e) {
-			base.OnIsMouseDirectlyOverChanged(e);
+		public ClickableRun() : this(null) { }
 
-			if (IsMouseDirectlyOver) {
-				this.TextDecorations = System.Windows.TextDecorations.Underline;
-				this.Cursor = Cursors.Arrow;
+		protected void OnPointerChanged(object? sender, PointerEventArgs e) {
+			if (textBlock.IsPointerOver) {
+				textBlock.TextDecorations = Avalonia.Media.TextDecorations.Underline;
+				textBlock.Cursor = new Cursor(StandardCursorType.Arrow);
 			}
 			else {
-				this.TextDecorations = null;
-				this.Cursor = null;
+				textBlock.TextDecorations = null;
+				textBlock.Cursor = Cursor.Default;
+			}
+		}
+
+		private void OnPointerPressed(object? sender, PointerPressedEventArgs e) {
+			PointerPoint point = e.GetCurrentPoint(sender as Control);
+			if (point.Properties.IsLeftButtonPressed) {
+				MouseLeftButtonDown?.Invoke(sender, e);
+				e.Handled = true;
 			}
 		}
 

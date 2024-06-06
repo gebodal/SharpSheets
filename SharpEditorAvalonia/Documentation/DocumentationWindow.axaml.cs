@@ -1,4 +1,4 @@
-﻿using SharpSheets.Shapes;
+using SharpSheets.Shapes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +14,9 @@ using SharpEditorAvalonia.DataManagers;
 using SharpEditorAvalonia.Documentation.DocumentationBuilders;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Controls.Shapes;
 
 namespace SharpEditorAvalonia.Documentation {
 	/// <summary>
@@ -23,15 +26,20 @@ namespace SharpEditorAvalonia.Documentation {
 
 		public static readonly Brush HyperlinkColor = new SolidColorBrush(Color.FromRgb(142, 148, 251));
 
+		protected readonly NavigationService<DocumentationPage> navigationService;
+
 		public DocumentationWindow() {
 			InitializeComponent();
 
+			this.navigationService = new NavigationService<DocumentationPage>();
+
 			this.Title = $"{SharpEditorData.GetEditorName()} Documentation";
 			TitleTextBlock.MakeFontSizeRelative(1.25);
-
-			DocFrame.NavigationService.Navigated += NavigationFinished;
+			
+			// TODO Implement navigation properly
+			//DocFrame.NavigationService.Navigated += NavigationFinished;
 			DataContext = this;
-
+			
 			NavigateTo(DocumentationPageBuilder.CreateHomePage(this));
 		}
 
@@ -58,6 +66,26 @@ namespace SharpEditorAvalonia.Documentation {
 			*/
 		}
 
+		public bool IsClosed { get; private set; } = false;
+		protected override void OnClosed(EventArgs e) {
+			base.OnClosed(e);
+
+			IsClosed = true;
+		}
+
+		public void NavigateTo(DocumentationPage page) {
+			//Console.WriteLine("Navigate to " + page.Title);
+			//DocFrame.NavigationService.Navigate(page);
+			navigationService.Navigate(page);
+			DocFrame.Children.Clear();
+			if (navigationService.Current is DocumentationPage current) {
+				DocFrame.Children.Add(current);
+				TitleTextBlock.Text = (DocFrame.Children[0] as DocumentationPage)?.Title ?? "Documentation";
+				//Console.WriteLine("Navigated");
+			}
+		}
+
+		/*
 		void BrowseBackExecuted(object target, ExecutedRoutedEventArgs e) {
 			Back();
 			e.Handled = true;
@@ -77,18 +105,6 @@ namespace SharpEditorAvalonia.Documentation {
 
 		void NavigationCommandCanExecute(object? sender, CanExecuteRoutedEventArgs e) {
 			e.CanExecute = true;
-		}
-
-		public bool IsClosed { get; private set; } = false;
-		protected override void OnClosed(EventArgs e) {
-			base.OnClosed(e);
-
-			IsClosed = true;
-		}
-
-		public void NavigateTo(DocumentationPage page) {
-			//Console.WriteLine("Navigate to " + page.Title);
-			DocFrame.NavigationService.Navigate(page);
 		}
 
 		public void NavigateTo(ConstructorDetails constructor, Func<ConstructorDetails?>? refreshAction) {
@@ -115,11 +131,16 @@ namespace SharpEditorAvalonia.Documentation {
 			NavigateTo(FontPageBuilder.GetFontFamilyPage(fontFamilyName, this));
 		}
 
+		*/
+
 		#region Navigation DependencyProperties
 
-		public static readonly DependencyProperty CanGoBackProperty =
-			DependencyProperty.Register("CanGoBack", typeof(bool),
-			typeof(DocumentationWindow), new UIPropertyMetadata());
+		/*
+		public event PropertyChangedEventHandler PropertyChanged;
+
+		protected virtual void OnPropertyChanged(string propertyName) {
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+		}
 
 		public bool CanGoBack {
 			get {
@@ -127,13 +148,9 @@ namespace SharpEditorAvalonia.Documentation {
 			}
 			set {
 				SetValue(CanGoBackProperty, value);
-				NotifyPropertyChanged("CanGoBack");
+				OnPropertyChanged(nameof(CanGoBack));
 			}
 		}
-
-		public static readonly DependencyProperty CanGoForwardProperty =
-			DependencyProperty.Register("CanGoForward", typeof(bool),
-			typeof(DocumentationWindow), new UIPropertyMetadata());
 
 		public bool CanGoForward {
 			get {
@@ -144,84 +161,70 @@ namespace SharpEditorAvalonia.Documentation {
 				NotifyPropertyChanged("CanGoForward");
 			}
 		}
+		*/
 
-		public event PropertyChangedEventHandler? PropertyChanged;
-
-		public void NotifyPropertyChanged(string propertyName) {
-			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-		}
-
+		/*
 		private void NavigationFinished(object? sender, System.Windows.Navigation.NavigationEventArgs e) {
 			CanGoBack = DocFrame.NavigationService.CanGoBack;
 			CanGoForward = DocFrame.NavigationService.CanGoForward;
 			TitleTextBlock.Text = (DocFrame.Content as DocumentationPage)?.Title ?? "Documentation";
 			//Console.WriteLine("Navigated: " + CanGoBack + ", " + CanGoForward);
 		}
+		*/
 
 		#endregion Navigation DependencyProperties
-
+		
 		private void OnBackClick(object? sender, RoutedEventArgs e) => Back();
 		private void OnNextClick(object? sender, RoutedEventArgs e) => Next();
 		private void OnHomeClick(object? sender, RoutedEventArgs e) => Home();
 		private void OnRefreshClick(object? sender, RoutedEventArgs e) => Refresh();
-
+		
 		private void Back() {
-			if (DocFrame.NavigationService.CanGoBack) {
-				DocFrame.NavigationService.GoBack();
-				//Console.WriteLine("Back");
+			//if (DocFrame.NavigationService.CanGoBack) {
+			//	DocFrame.NavigationService.GoBack();
+			//	//Console.WriteLine("Back");
+			//}
+			if (navigationService.CanGoBack) {
+				navigationService.GoBack();
 			}
 		}
 
 		private void Next() {
-			if (DocFrame.NavigationService.CanGoForward) {
-				DocFrame.NavigationService.GoForward();
-				//Console.WriteLine("Next");
+			//if (DocFrame.NavigationService.CanGoForward) {
+			//	DocFrame.NavigationService.GoForward();
+			//	//Console.WriteLine("Next");
+			//}
+			if (navigationService.CanGoForward) {
+				navigationService.GoForward();
 			}
 		}
 
 		private void Home() {
-			/*
-			if (DocFrame.NavigationService.CanGoBack) {
-				var entry = DocFrame.NavigationService.RemoveBackEntry();
-				while (entry != null) {
-					entry = DocFrame.NavigationService.RemoveBackEntry();
-				}
-			}
-			*/
+			////if (DocFrame.NavigationService.CanGoBack) {
+			////	var entry = DocFrame.NavigationService.RemoveBackEntry();
+			////	while (entry != null) {
+			////		entry = DocFrame.NavigationService.RemoveBackEntry();
+			////	}
+			////}
 
-			/*
-			while (DocFrame.NavigationService.CanGoBack) {
-				Console.WriteLine("Go back");
-				DocFrame.NavigationService.GoBack();
-			}
-			DocFrame.NavigationService.RemoveBackEntry();
-			*/
+			////while (DocFrame.NavigationService.CanGoBack) {
+			////	Console.WriteLine("Go back");
+			////	DocFrame.NavigationService.GoBack();
+			////}
+			////DocFrame.NavigationService.RemoveBackEntry();
 
-			if (!(DocFrame.Content is Page page && page.Title == Documentation.DocumentationRoot.name)) {
+			if (!(DocFrame.Children[0] is DocumentationPage page && page.Title == Documentation.DocumentationRoot.name)) {
 				NavigateTo(DocumentationPageBuilder.CreateHomePage(this));
 			}
 		}
 
 		private void Refresh() {
-			if(DocFrame.Content is DocumentationPage page) {
+			if (DocFrame.Children[0] is DocumentationPage page) {
 				page.RefreshPage();
-				/*
-				try {
-					UIElement refreshed = page.RefreshAction();
-					if (refreshed != null) {
-						page.SetPageContent(refreshed);
-					}
-					//DocFrame.NavigationService.Content = page.RefreshAction();
-
-				}
-				catch (Exception e) {
-					Console.WriteLine($"Error refreshing page \"{page.Title}\": " + e.Message);
-				}
-				*/
 			}
 		}
 
-		public MouseButtonEventHandler MakeNavigationDelegate(ConstructorDetails constructor, Func<ConstructorDetails?>? refreshAction) {
+		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(ConstructorDetails constructor, Func<ConstructorDetails?>? refreshAction) {
 			if (typeof(IMarkupElement).IsAssignableFrom(constructor.DeclaringType)) {
 				return delegate { NavigateTo(MarkupPageBuilder.GetMarkupElementPage(constructor, this, refreshAction)); };
 			}
@@ -229,33 +232,33 @@ namespace SharpEditorAvalonia.Documentation {
 				return delegate { NavigateTo(ConstructorPageBuilder.GetConstructorPage(constructor, this, refreshAction)); };
 			}
 		}
-		public MouseButtonEventHandler MakeNavigationDelegate(EnumDoc enumDoc, Func<EnumDoc?>? refreshAction) {
+		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(EnumDoc enumDoc, Func<EnumDoc?>? refreshAction) {
 			return delegate { NavigateTo(EnumPageBuilder.GetEnumPage(enumDoc, this, refreshAction)); };
 		}
-		public MouseButtonEventHandler MakeNavigationDelegate(CardSetConfig cardSetConfig, Func<CardSetConfig?>? refreshAction) {
+		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(CardSetConfig cardSetConfig, Func<CardSetConfig?>? refreshAction) {
 			return delegate { NavigateTo(CardConfigPageBuilder.GetCardSetConfigPage(cardSetConfig, this, refreshAction)); };
 		}
-		public MouseButtonEventHandler MakeNavigationDelegate(FontName fontName) {
+		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(FontName fontName) {
 			return delegate { NavigateTo(FontPageBuilder.GetFontPage(fontName, this)); };
 		}
-		public MouseButtonEventHandler MakeNavigationDelegate(FontFamilyName fontFamilyName) {
+		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(FontFamilyName fontFamilyName) {
 			return delegate { NavigateTo(FontPageBuilder.GetFontFamilyPage(fontFamilyName, this)); };
 		}
-		public MouseButtonEventHandler MakeNavigationDelegate(OpenTypeFontSetting fontSetting) {
+		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(OpenTypeFontSetting fontSetting) {
 			return delegate { NavigateTo(FontPageBuilder.GetOpenTypeFeaturesPage(fontSetting, this)); };
 		}
-		public MouseButtonEventHandler MakeNavigationDelegate(DocumentationFile documentationFile) {
+		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(DocumentationFile documentationFile) {
 			return delegate { NavigateTo(DocumentationPageBuilder.CreateDocumentationPage(documentationFile, this)); };
 		}
-		public MouseButtonEventHandler MakeNavigationDelegate(DocumentationNode documentationNode) {
+		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(DocumentationNode documentationNode) {
 			return delegate { NavigateTo(DocumentationPageBuilder.CreateDocumentationPageForNode(documentationNode, this)); };
 		}
-		public MouseButtonEventHandler MakeNavigationDelegate(DocumentationLink link) {
+		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(DocumentationLink link) {
 			if (link.linkType == DocumentationLinkType.UNKNOWN) {
 				// Just use the raw string if type unknown
 				return MakeNavigationDelegate(link.location);
 			}
-			else if(link.linkType == DocumentationLinkType.WIDGET) {
+			else if (link.linkType == DocumentationLinkType.WIDGET) {
 				if (SharpEditorRegistries.WidgetFactoryInstance.Get(link.location) is ConstructorDetails widgetConstructor) {
 					return delegate { NavigateTo(ConstructorPageBuilder.GetConstructorPage(widgetConstructor, this, WidgetConstructorFunc(link.location))); };
 				}
@@ -284,9 +287,9 @@ namespace SharpEditorAvalonia.Documentation {
 			// Otherwise, do nothing
 			return delegate { };
 		}
-		public MouseButtonEventHandler MakeNavigationDelegate(string link) {
+		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(string link) {
 			return delegate {
-				if(Documentation.DocumentationRoot.GetNode(link) is DocumentationNode node) {
+				if (Documentation.DocumentationRoot.GetNode(link) is DocumentationNode node) {
 					NavigateTo(DocumentationPageBuilder.CreateDocumentationPageForNode(node, this));
 				}
 				else if (Documentation.DocumentationRoot.GetFile(link) is DocumentationFile file) {
@@ -298,7 +301,7 @@ namespace SharpEditorAvalonia.Documentation {
 				else if (SharpEditorRegistries.ShapeFactoryInstance.Get(link) is ConstructorDetails shapeConstructor) {
 					NavigateTo(ConstructorPageBuilder.GetConstructorPage(shapeConstructor, this, ShapeConstructorFunc(link)));
 				}
-				else if(MarkupDocumentation.MarkupConstructors.Get(link) is ConstructorDetails markupConstructor) {
+				else if (MarkupDocumentation.MarkupConstructors.Get(link) is ConstructorDetails markupConstructor) {
 					NavigateTo(MarkupPageBuilder.GetMarkupElementPage(markupConstructor, this, MarkupConstructorFunc(link)));
 				}
 				else if (CardSetConfigFactory.ConfigConstructors.Get(link) is ConstructorDetails cardElementConstructor) {
@@ -306,7 +309,7 @@ namespace SharpEditorAvalonia.Documentation {
 				}
 			};
 		}
-		
+
 		private static Func<ConstructorDetails?> WidgetConstructorFunc(string name) {
 			return () => SharpEditorRegistries.WidgetFactoryInstance.Get(name);
 		}
@@ -318,7 +321,7 @@ namespace SharpEditorAvalonia.Documentation {
 		private static Func<ConstructorDetails?> MarkupConstructorFunc(string name) {
 			return () => MarkupDocumentation.MarkupConstructors.Get(name);
 		}
-		
+
 		private static Func<EnumDoc?> BuiltInEnumDocFunc(string name) {
 			return () => SharpDocumentation.GetBuiltInEnumDocFromName(name);
 		}

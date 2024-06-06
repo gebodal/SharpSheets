@@ -21,7 +21,12 @@ namespace SharpEditorAvalonia.ContentBuilders {
 	public static class BaseContentBuilder {
 
 		public static TextBlock GetContentTextBlock(Thickness margin) {
-			return new TextBlock() { Inlines = new InlineCollection(), TextWrapping = TextWrapping.Wrap, Margin = margin };
+			return new TextBlock() {
+				Inlines = new InlineCollection(),
+				TextWrapping = TextWrapping.Wrap,
+				Margin = margin,
+				//HorizontalAlignment = HorizontalAlignment.Center
+			};
 		}
 
 		public static TextBlock GetContentTextBlock(string? text, Thickness margin) {
@@ -46,18 +51,23 @@ namespace SharpEditorAvalonia.ContentBuilders {
 		public static T MakeFontSizeRelative<T>(this T block, double ratio) where T : TextBlock {
 			//block.LayoutTransform = new ScaleTransform(ratio, ratio);
 			block.RenderTransform = new ScaleTransform(ratio, ratio); // TODO Is this going to work?
+			block.RenderTransformOrigin = new RelativePoint(0, 1, RelativeUnit.Relative);
 			return block;
 		}
 
 		public static T AddMargin<T>(this T element, Thickness margin) where T : Control {
+			Console.WriteLine($"Add margin {margin} to {element.Margin}");
 			Thickness initial = element.Margin;
 			element.Margin = initial + margin;
+			Console.WriteLine($"Final margin {element.Margin}");
 			return element;
 		}
 
 		public static T AddIndent<T>(this T element, double indent) where T : Control {
+			Console.WriteLine($"Add indent {indent} to {element.Margin}");
 			Thickness margin = element.Margin;
 			element.Margin = margin + new Thickness(indent, 0, 0, 0);
+			Console.WriteLine($"Final margin {element.Margin}");
 			return element;
 		}
 

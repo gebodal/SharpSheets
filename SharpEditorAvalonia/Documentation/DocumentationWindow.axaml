@@ -1,30 +1,14 @@
-﻿<Window xmlns="https://github.com/avaloniaui"
+<Window xmlns="https://github.com/avaloniaui"
 		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-		xmlns:vm="using:SharpEditorAvalonia.ViewModels"
 		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-		xmlns:views="clr-namespace:SharpEditorAvalonia.Views"
-		xmlns:local="clr-namespace:SharpEditorAvalonia"
 		mc:Ignorable="d"
 		Title="Documentation" d:DesignWidth="700" d:DesignHeight="600"
+		Width="700" Height="600"
 		x:Class="SharpEditorAvalonia.Documentation.DocumentationWindow"
 		Background="#424245"
-		Foreground="White">
-	
-	<Window.CommandBindings>
-		<CommandBinding Command="NavigationCommands.BrowseBack"
-                  Executed="BrowseBackExecuted"
-                  CanExecute="NavigationCommandCanExecute"/>
-		<CommandBinding Command="NavigationCommands.BrowseForward"
-                  Executed="BrowseForwardExecuted"
-                  CanExecute="NavigationCommandCanExecute"/>
-		<CommandBinding Command="NavigationCommands.BrowseHome"
-                  Executed="BrowseHomeExecuted"
-                  CanExecute="NavigationCommandCanExecute"/>
-		<CommandBinding Command="NavigationCommands.Refresh"
-                  Executed="RefreshExecuted"
-                  CanExecute="NavigationCommandCanExecute"/>
-	</Window.CommandBindings>
+		Foreground="White"
+		FontFamily="{StaticResource ApplicationFont}">
 
 	<DockPanel>
 		<Grid DockPanel.Dock="Top" Background="#2d2d30">
@@ -36,26 +20,30 @@
 				<ColumnDefinition Width="*"/>
 				<ColumnDefinition Width="Auto"/>
 			</Grid.ColumnDefinitions>
-			<Button Grid.Column="0" Click="OnBackClick" Style="{StaticResource SubtleButton}" Margin="0,2"
-					IsEnabled="{Binding Path=CanGoBack, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+			<Button Grid.Column="0" Click="OnBackClick" Margin="0,2"
+					IsEnabled="{Binding navigationServive.CanGoBack, Mode=OneWay}">
 				<Image Source="../Images/Previous.png" Height="32"/>
 			</Button>
-			<Button Grid.Column="1" Click="OnNextClick" Style="{StaticResource SubtleButton}" Margin="0,2"
-					IsEnabled="{Binding Path=CanGoForward, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+			<Button Grid.Column="1" Click="OnNextClick" Margin="0,2"
+					IsEnabled="{Binding navigationServive.CanGoForward, Mode=OneWay}">
 				<Image Source="../Images/Next.png" Height="32"/>
 			</Button>
-			<Button Grid.Column="2" Click="OnHomeClick" Style="{StaticResource SubtleButton}" Margin="4,2">
+			<Button Grid.Column="2" Click="OnHomeClick" Margin="4,2">
 				<Image Source="../Images/Home.png" Height="32"/>
 			</Button>
-			<Button Grid.Column="3" Click="OnRefreshClick" Style="{StaticResource SubtleButton}" Margin="0,2">
+			<Button Grid.Column="3" Click="OnRefreshClick" Margin="0,2">
 				<Image Source="../Images/Refresh.png" Height="32"/>
 			</Button>
 			<TextBlock Grid.Column="5" Name="TitleTextBlock"
-				Text="Title" VerticalAlignment="Center" Margin="5,0,20,0"/>
+				Text="Title" VerticalAlignment="Center" Padding="0,0,10,0" Margin="5,0,20,0"/>
 		</Grid>
-		<Frame x:Name="DocFrame"
-			   NavigationUIVisibility="Hidden"
-			   JournalOwnership="OwnsJournal"
-			   Foreground="White"/>
+		<Grid x:Name="DocFrame">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*"/>
+			</Grid.ColumnDefinitions>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="*"/>
+			</Grid.RowDefinitions>
+		</Grid>
 	</DockPanel>
 </Window>

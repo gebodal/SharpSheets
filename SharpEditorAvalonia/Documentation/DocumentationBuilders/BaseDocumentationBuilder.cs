@@ -1,4 +1,12 @@
-﻿using SharpEditorAvalonia.ContentBuilders;
+﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using SharpEditorAvalonia.ContentBuilders;
+using SharpEditorAvalonia.Utilities;
 using SharpSheets.Documentation;
 using SharpSheets.Utilities;
 using System;
@@ -7,6 +15,8 @@ using System.Linq;
 using static SharpEditorAvalonia.ContentBuilders.BaseContentBuilder;
 
 namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
+
+	// UIElement -> Control
 
 	public static class BaseDocumentationBuilder {
 
@@ -22,12 +32,12 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 		public static Thickness ContentsBlockMargin { get; } = new Thickness(30, 0, 0, 0);
 		public static Thickness CanvasMargin { get; } = new Thickness(7, 20, 7, 20);
 
-		public static DocumentationPage MakePage(UIElement content, string name, DocumentationRefresh? refreshAction) {
+		public static DocumentationPage MakePage(Control content, string name, DocumentationRefresh? refreshAction) {
 			DocumentationPage page = new DocumentationPage() {
 				RefreshAction = refreshAction,
 				Title = name,
-				Foreground = Brushes.White,
-				FontSize = 14
+				//Foreground = Brushes.White,
+				//FontSize = 14
 			};
 			page.SetPageContent(content);
 			return page;
@@ -37,12 +47,12 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			return MakePage(MakeErrorContent(message), "Error", null);
 		}
 
-		public static UIElement MakeErrorContent(string message) {
+		public static Control MakeErrorContent(string message) {
 			return new TextBlock() { Text = message };
 		}
 
 		public static TextBlock MakeTitleBlock(IEnumerable<Inline> inlines, int level, TextWrapping textWrapping = TextWrapping.Wrap) {
-			TextBlock titleBlock = new TextBlock() { TextWrapping = textWrapping, Margin = TitleMargin };
+			TextBlock titleBlock = new TextBlock() { TextWrapping = textWrapping, Margin = TitleMargin, Inlines = new InlineCollection() };
 			titleBlock.Inlines.AddRange(inlines);
 
 			titleBlock.MakeFontSizeRelative(level switch {
@@ -79,13 +89,16 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			Grid.SetRow(headerBlock, 0);
 			headerGrid.Children.Add(headerBlock);
 
+			Uri bitmapUri = ResourceUtilities.GetAssetUri("Images/ExternalLink.png");
+			Bitmap bitmap = new Bitmap(AssetLoader.Open(bitmapUri));
+
 			linkButton = new Button {
 				//Width = 32,
 				//Height = 32,
 				//HorizontalAlignment = HorizontalAlignment.Stretch,
 				VerticalAlignment = VerticalAlignment.Stretch,
-				Content = new System.Windows.Controls.Image {
-					Source = new BitmapImage(new Uri("pack://application:,,,/Images/ExternalLink.png")),
+				Content = new Image() {
+					Source = bitmap,
 					VerticalAlignment = VerticalAlignment.Bottom,
 					HorizontalAlignment = HorizontalAlignment.Stretch,
 					Margin = new Thickness(3),
@@ -93,10 +106,11 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 					Height = 26
 				},
 				//Background = Brushes.Transparent,
-				Style = window.FindResource("SubtleButton") as Style,
+				//Style = window.FindResource("SubtleButton") as Style, // TODO How to deal with this?
 				Opacity = 0.5,
-				ToolTip = tooltip
+				//ToolTip = tooltip // TODO How to do this?
 			};
+
 			Grid.SetColumn(linkButton, 1);
 			Grid.SetRow(linkButton, 0);
 			headerGrid.Children.Add(linkButton);

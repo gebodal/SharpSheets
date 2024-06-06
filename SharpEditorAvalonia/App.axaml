@@ -8,4 +8,10 @@
         <FluentTheme />
 		<StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
     </Application.Styles>
+
+	<Application.Resources>
+		<FontFamily x:Key="NotoSansFont">avares://SharpEditorAvalonia/Assets/Fonts#Noto Sans</FontFamily>
+		<FontFamily x:Key="OpenSansFont">avares://SharpEditorAvalonia/Assets/Fonts#Open Sans</FontFamily>
+		<FontFamily x:Key="ApplicationFont">avares://SharpEditorAvalonia/Assets/Fonts#Open Sans</FontFamily>
+	</Application.Resources>
 </Application>

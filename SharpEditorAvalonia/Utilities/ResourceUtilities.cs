@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -21,6 +22,11 @@ namespace SharpEditorAvalonia.Utilities {
 			else {
 				return null;
 			}
+		}
+
+		public static Uri GetAssetUri(string assetPath) {
+			string assemblyName = Assembly.GetEntryAssembly()?.GetName().Name ?? throw new InvalidOperationException($"Could not load assembly for asset: {assetPath}");
+			return new Uri($"avares://{assemblyName}/{assetPath}");
 		}
 
 	}

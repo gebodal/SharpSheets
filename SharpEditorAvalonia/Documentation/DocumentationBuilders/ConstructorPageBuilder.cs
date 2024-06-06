@@ -13,8 +13,15 @@ using SharpEditorAvalonia.DataManagers;
 using System.Diagnostics.CodeAnalysis;
 using static SharpEditorAvalonia.ContentBuilders.BaseContentBuilder;
 using static SharpEditorAvalonia.Documentation.DocumentationBuilders.BaseDocumentationBuilder;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Controls.Documents;
+using Avalonia.Media;
 
 namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
+
+	// UIElement -> Control
+	// FrameworkElement -> Control
 
 	public static class ConstructorPageBuilder {
 
@@ -26,7 +33,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			return MakePage(GetConstructorPageContent(constructor, window), constructor.Name, () => GetConstructorPageContent(refreshAction?.Invoke(), window));
 		}
 
-		private static UIElement GetConstructorPageContent(ConstructorDetails? constructor, DocumentationWindow window) {
+		private static Control GetConstructorPageContent(ConstructorDetails? constructor, DocumentationWindow window) {
 			if (constructor == null) {
 				return MakeErrorContent("Invalid constructor.");
 			}
@@ -51,7 +58,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			}
 
 			if (typeof(IShape).IsAssignableFrom(constructor.DeclaringType) || typeof(IWidget).IsAssignableFrom(constructor.DeclaringType)) {
-				FrameworkElement? graphicElement = MakeExampleGraphic(constructor);
+				Control? graphicElement = MakeExampleGraphic(constructor);
 				if (graphicElement != null) {
 					stack.Children.Add(graphicElement);
 				}
@@ -68,7 +75,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			return stack;
 		}
 
-		public static FrameworkElement MakeSingleArgumentElement(ConstructorArgumentDetails argument, DocumentationWindow window) {
+		public static Control MakeSingleArgumentElement(ConstructorArgumentDetails argument, DocumentationWindow window) {
 			StackPanel argPanel = new StackPanel() { Orientation = Orientation.Vertical };
 
 			argPanel.Children.Add(MakeArgumentHeaderBlock(argument, window));
@@ -95,20 +102,20 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 		public static TextBlock MakeArgumentHeaderBlock(ConstructorArgumentDetails argument, DocumentationWindow window) {
 			TextBlock argumentBlock = GetContentTextBlock(TextBlockMargin);
 
-			argumentBlock.Inlines.Add(GetArgumentTypeInline(argument, window));
+			argumentBlock.Inlines?.Add(GetArgumentTypeInline(argument, window));
 
-			argumentBlock.Inlines.Add(new Run(SharpValueHandler.NO_BREAK_SPACE + argument.ConstructorName) { Foreground = SharpEditorPalette.GetTypeBrush(argument.DeclaringType) });
+			argumentBlock.Inlines?.Add(new Run(SharpValueHandler.NO_BREAK_SPACE + argument.ConstructorName) { Foreground = SharpEditorPalette.GetTypeBrush(argument.DeclaringType) });
 
 			ArgumentDetails arg = argument.Argument;
 			//while (arg != null && arg is PrefixedArgumentDetails prefixed) { arg = prefixed.Basis; } // What was this supposed to be doing?
 
-			argumentBlock.Inlines.Add(new Run("." + arg.Name) { });
+			argumentBlock.Inlines?.Add(new Run("." + arg.Name) { });
 
 			if (argument.Implied != null) {
-				argumentBlock.Inlines.Add(new Run("." + argument.Implied));
+				argumentBlock.Inlines?.Add(new Run("." + argument.Implied));
 			}
 
-			argumentBlock.Inlines.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(argument.Argument, null));
+			argumentBlock.Inlines?.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(argument.Argument, null));
 
 			return argumentBlock;
 		}
@@ -125,7 +132,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 		}
 
 		private static readonly float ExampleGraphicDefaultMargin = 0.1f;
-		public static FrameworkElement? MakeExampleGraphic(ConstructorDetails constructor) {
+		public static Control? MakeExampleGraphic(ConstructorDetails constructor) {
 			if (!typeof(IShape).IsAssignableFrom(constructor.DeclaringType) && !typeof(IWidget).IsAssignableFrom(constructor.DeclaringType)) {
 				return null;
 			}
@@ -136,7 +143,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			}
 
 			try {
-				SharpWPFDrawingDocument wpfDocument = new SharpWPFDrawingDocument();
+				SharpAvaloniaDrawingDocument wpfDocument = new SharpAvaloniaDrawingDocument();
 				ISharpCanvas canvas;
 				List<Rectangle> displayRects = new List<Rectangle>();
 
@@ -320,7 +327,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 					}
 				}
 
-				SharpWPFDrawingCanvas page = wpfDocument.Pages[0];
+				SharpAvaloniaDrawingCanvas page = wpfDocument.Pages[0];
 
 				DrawingElement element = new DrawingElement(page.drawingGroup) {
 					//LayoutTransform = TestBlock.LayoutTransform,
@@ -328,9 +335,12 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 					Height = page.CanvasRect.Height
 				};
 
-				element.LayoutTransform = GetLayoutTransform(40, 40, 145, 145, element.Width, element.Height);
+				LayoutTransformControl layoutTransformControl = new LayoutTransformControl() {
+					Child = element,
+					LayoutTransform = GetLayoutTransform(40, 40, 145, 145, element.Width, element.Height)
+				};
 
-				return new Border() { Child = element, Margin = CanvasMargin };
+				return new Border() { Child = layoutTransformControl, Margin = CanvasMargin };
 			}
 			catch (Exception e) {
 				Console.WriteLine(e.Message);

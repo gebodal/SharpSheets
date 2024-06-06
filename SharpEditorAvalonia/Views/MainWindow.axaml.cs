@@ -1,4 +1,5 @@
 ﻿using Avalonia.Controls;
+using SharpEditorAvalonia.DataManagers;
 using SharpSheets.Markup.Parsing;
 using SharpSheets.Markup.Patterns;
 using SharpSheets.Parsing;
@@ -16,6 +17,8 @@ public partial class MainWindow : Window {
 
 	public MainWindow() {
 		InitializeComponent();
+
+		SharpDataManager.Initialise();
 
 		string templatesPath = @"D:\Tom\Documents\SharpSheets\AppData\Templates";
 		string configFilePath = @"D:\Tom\Documents\Warhammer\D&D\5th Edition\My Characters\SharpSheets\balthazar.ssc";

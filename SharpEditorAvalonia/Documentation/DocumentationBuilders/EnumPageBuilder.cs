@@ -3,8 +3,13 @@ using System;
 using SharpEditorAvalonia.DataManagers;
 using static SharpEditorAvalonia.ContentBuilders.BaseContentBuilder;
 using static SharpEditorAvalonia.Documentation.DocumentationBuilders.BaseDocumentationBuilder;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Controls.Documents;
 
 namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
+
+	// UIElement -> Control
 
 	public static class EnumPageBuilder {
 
@@ -16,7 +21,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			return MakePage(GetEnumPageContent(enumDoc, window), enumDoc.type, () => GetEnumPageContent(refreshAction?.Invoke(), window));
 		}
 
-		private static UIElement GetEnumPageContent(EnumDoc? enumDoc, DocumentationWindow window) {
+		private static Control GetEnumPageContent(EnumDoc? enumDoc, DocumentationWindow window) {
 			if (enumDoc == null) {
 				return MakeErrorContent("Invalid enum documentation.");
 			}
@@ -40,8 +45,8 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				StackPanel argPanel = new StackPanel() { Margin = ParagraphSpacingMargin, Orientation = Orientation.Vertical };
 
 				TextBlock nameBlock = GetContentTextBlock(TextBlockMargin);
-				nameBlock.Inlines.Add(new Run(enumVal.type ?? enumDoc.type) { Foreground = SharpEditorPalette.TypeBrush });
-				nameBlock.Inlines.Add(new Run("." + enumVal.name));
+				nameBlock.Inlines?.Add(new Run(enumVal.type ?? enumDoc.type) { Foreground = SharpEditorPalette.TypeBrush });
+				nameBlock.Inlines?.Add(new Run("." + enumVal.name));
 				argPanel.Children.Add(nameBlock);
 
 				if (MakeDescriptionTextBlock(enumVal.description, window) is TextBlock valDescriptionBlock) {

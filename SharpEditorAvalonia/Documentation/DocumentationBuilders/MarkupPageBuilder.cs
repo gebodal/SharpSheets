@@ -5,8 +5,14 @@ using System.Collections.Generic;
 using SharpEditorAvalonia.DataManagers;
 using static SharpEditorAvalonia.ContentBuilders.BaseContentBuilder;
 using static SharpEditorAvalonia.Documentation.DocumentationBuilders.BaseDocumentationBuilder;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Controls.Documents;
 
 namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
+
+	// UIElement -> Control
+	// FrameworkElement -> Control
 
 	public static class MarkupPageBuilder {
 
@@ -18,7 +24,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			return MakePage(GetMarkupElementPageContent(constructor, window), constructor.Name, () => GetMarkupElementPageContent(refreshAction?.Invoke(), window));
 		}
 
-		private static UIElement GetMarkupElementPageContent(ConstructorDetails? constructor, DocumentationWindow window) {
+		private static Control GetMarkupElementPageContent(ConstructorDetails? constructor, DocumentationWindow window) {
 			if (constructor == null) {
 				return MakeErrorContent("Invalid constructor.");
 			}
@@ -45,7 +51,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			return stack;
 		}
 
-		private static FrameworkElement MakeSingleMarkupArgumentBlocks(ConstructorArgumentDetails argument, DocumentationWindow window) {
+		private static Control MakeSingleMarkupArgumentBlocks(ConstructorArgumentDetails argument, DocumentationWindow window) {
 			StackPanel argPanel = new StackPanel() { Orientation = Orientation.Vertical };
 
 			Type resolvedType = GetArgumentType(argument.ArgumentType, out bool isExpression);
@@ -78,29 +84,29 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
 			string typeName = XMLContentBuilder.GetTypeName(argument.ArgumentType, out _);
 
-			Run typeRun;
+			Inline typeInline;
 			if (resolvedType.IsEnum && SharpDocumentation.GetEnumDoc(resolvedType) is EnumDoc enumDoc) {
 				ClickableRun enumClickable = new ClickableRun(typeName) { Foreground = SharpEditorPalette.TypeBrush };
 				enumClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(enumDoc, null); // TODO Passing the type back in won't change anything for refresh
-				typeRun = enumClickable;
+				typeInline = enumClickable;
 			}
 			else {
-				typeRun = new Run(typeName) { Foreground = SharpEditorPalette.TypeBrush };
+				typeInline = new Run(typeName) { Foreground = SharpEditorPalette.TypeBrush };
 			}
-			argumentBlock.Inlines.Add(typeRun);
+			argumentBlock.Inlines?.Add(typeInline);
 
-			argumentBlock.Inlines.Add(new Run(SharpValueHandler.NO_BREAK_SPACE.ToString()));
+			argumentBlock.Inlines?.Add(new Run(SharpValueHandler.NO_BREAK_SPACE.ToString()));
 
 			ArgumentDetails arg = argument.Argument;
 			//while (arg != null && arg is PrefixedArgumentDetails prefixed) { arg = prefixed.Basis; } // What was this supposed to be doing?
 
-			argumentBlock.Inlines.Add(new Run(arg.Name) { });
+			argumentBlock.Inlines?.Add(new Run(arg.Name) { });
 
 			if (argument.Implied != null) {
-				argumentBlock.Inlines.Add(new Run("." + argument.Implied));
+				argumentBlock.Inlines?.Add(new Run("." + argument.Implied));
 			}
 
-			argumentBlock.Inlines.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(argument.Argument, null));
+			argumentBlock.Inlines?.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(argument.Argument, null));
 
 			return argumentBlock;
 		}

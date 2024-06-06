@@ -1,0 +1,134 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Class="SharpEditorAvalonia.Windows.SettingsWindow"
+        mc:Ignorable="d"
+        Title="Settings"
+		d:DesignWidth="800" d:DesignHeight="450"
+		Width="600" Height="450"
+		MinWidth="300" MinHeight="200"
+		WindowStartupLocation="CenterOwner"
+		ShowInTaskbar="False"
+		SystemDecorations="BorderOnly"
+		Background="#424245">
+
+	<Window.Styles>
+		<Style Selector="HeaderedContentControl">
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate>
+						<Grid>
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="*"/>
+							</Grid.RowDefinitions>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+							<Border ZIndex="1" Padding="5,0,5,0" Background="White" Margin="5,0,0,0">
+								<TextBlock TextBlock.FontWeight="Bold" Text="{TemplateBinding Header}" />
+							</Border>
+							<Border Grid.RowSpan="2" Grid.ColumnSpan="2" Margin="0,10,0,0"
+								BorderBrush="{TemplateBinding Background}"
+								BorderThickness="1">
+								<ContentPresenter Content="{TemplateBinding Content}" />
+							</Border>
+						</Grid>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+	</Window.Styles>
+
+	<DockPanel x:Name="MainPanel">
+		<StackPanel DockPanel.Dock="Bottom" Margin="10" Orientation="Horizontal" HorizontalAlignment="Right">
+			<Button Content="OK" Click="ExitClick" Padding="0,2" Width="80"/>
+		</StackPanel>
+
+		<ScrollViewer
+			HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+			KeyboardNavigation.TabNavigation="Cycle">
+			<StackPanel Orientation="Vertical">
+
+				<HeaderedContentControl Header="Designer" Padding="8">
+					<StackPanel>
+						<CheckBox
+							Content="Show Fields In Designer"
+							Foreground="White" HorizontalAlignment="Left" Margin="4"
+							IsChecked="{Binding DesignerDisplayFields}"/>
+						<CheckBox
+							Content="Show Designer by Default"
+							Foreground="White" HorizontalAlignment="Left" Margin="4"
+							IsChecked="{Binding DesignerViewerOpenDefault}"/>
+					</StackPanel>
+				</HeaderedContentControl>
+
+				<HeaderedContentControl Header="Generator" Padding="8">
+					<CheckBox
+						Content="Open After Generate"
+						Foreground="White" HorizontalAlignment="Left" Margin="4"
+						IsChecked="{Binding OpenOnGenerate}"/>
+				</HeaderedContentControl>
+
+				<HeaderedContentControl Header="Templates Directory" Padding="8">
+					<StackPanel>
+						<Grid Margin="4">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="4"/>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="4"/>
+								<ColumnDefinition Width="Auto"/>
+							</Grid.ColumnDefinitions>
+							<TextBox x:Name="TemplateDirectoryTextBox" TextChanged="OnTemplateDirectoryTextChanged"/>
+							<Button
+								Grid.Column="2" Content="..." Padding="8,2"
+								Click="BrowseTemplateDirectoryClick"/>
+							<Button
+								Grid.Column="4" Content="Reset" Padding="12,2" Width="80"
+								ToolTip.Tip="Reset field to current template directory path."
+								Click="ResetTemplateDirectoryClick"/>
+						</Grid>
+						<Grid Margin="4" HorizontalAlignment="Left">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="4"/>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="4"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+							<Button
+								x:Name="ApplyButton"
+								Content="Apply"
+								Grid.Column="0" Padding="12,2" Width="80"
+								IsEnabled="False"
+								Click="TemplateDirectoryApplyClick"
+								/>
+							<Button
+								Content="Restore Application Default"
+								Grid.Column="2" Padding="12,2" MinWidth="80"
+								Click="RestoreTemplateDirectoryApplicationDefaultClick"/>
+							<TextBlock
+								x:Name="TemplatePathErrorTextBlock"
+								Grid.Column="4"
+								IsVisible="False"
+								VerticalAlignment="Center" HorizontalAlignment="Left"/>
+						</Grid>
+					</StackPanel>
+				</HeaderedContentControl>
+
+				<HeaderedContentControl Header="Fonts" Padding="8">
+					<CheckBox
+						Content="Generate Warnings For Licensed Fonts (recommended for any commercial works)"
+						Foreground="White" HorizontalAlignment="Left" Margin="4"
+						IsChecked="{Binding WarnFontLicensing}"/>
+				</HeaderedContentControl>
+				
+			</StackPanel>
+		</ScrollViewer>
+	</DockPanel>
+	
+	
+</Window>
