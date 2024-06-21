@@ -3,7 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using System;
 
-namespace SharpEditorAvalonia {
+namespace SharpEditorAvalonia.Designer {
+
 	// https://stackoverflow.com/a/16876915/11002708
 	public class DrawingElement : Control {
 		

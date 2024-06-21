@@ -164,7 +164,7 @@
     <PackageReference Include="Avalonia" Version="11.0.10" />
     <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.0.6" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.10" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.10" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.0.10" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.0" />
 
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
@@ -255,6 +255,9 @@
     </Compile>
     <Compile Update="Documentation\DocumentationPage.axaml.cs">
       <DependentUpon>DocumentationPage.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Windows\TemplateErrorWindow.axaml.cs">
+      <DependentUpon>TemplateErrorWindow.axaml</DependentUpon>
     </Compile>
   </ItemGroup>
 

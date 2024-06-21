@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:avaloniaEdit="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
+			 xmlns:designer="clr-namespace:SharpEditorAvalonia.Designer"
+			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="SharpEditorAvalonia.Windows.SharpDocumentEditor">
+
+	<DockPanel Background="#2d2d30">
+
+		<!-- Status bar goes here -->
+		<Grid DockPanel.Dock="Bottom">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto" />
+				<ColumnDefinition Width="Auto" />
+				<ColumnDefinition Width="*" />
+				<ColumnDefinition Width="Auto" />
+				<ColumnDefinition Width="Auto" />
+			</Grid.ColumnDefinitions>
+
+			<TextBox
+				Grid.Column="0"
+				Name="TextZoomTextBox"
+				Width="50"
+				Margin="2,1"
+				Background="#1c1c1f"
+				Foreground="LightGray"
+				BorderThickness="1"
+				BorderBrush="#1c1c1f"
+				VerticalContentAlignment="Center"
+				TextAlignment="Left"
+				Text="100%"
+				ToolTip.Tip="Text Zoom Level"
+				KeyDown="TextZoomBoxKeyDown"
+				PointerWheelChanged="TextZoomBoxMouseWheel"
+				LostFocus="TextZoomBoxLostFocus"/>
+			<StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0">
+				<TextBlock Name="CursorLineText" Width="50" Margin="20,0" Text="Line"/>
+				<TextBlock Name="CursorColText" Width="50" Margin="20,0" Text="Col"/>
+			</StackPanel>
+			<TextBlock
+				Grid.Column="3"
+				IsVisible="False"
+				Name="BackgroundMessageText" Margin="30,0">Parsing...</TextBlock>
+			<StackPanel Name="ErrorPanel" Grid.Column="4" IsVisible="False" Orientation="Horizontal" Margin="20,0">
+				<!-- Error panel popup goes here -->
+			</StackPanel>
+		</Grid>
+
+		<Grid Name="MainGrid">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*" MinWidth="150"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="*" MinWidth="150"/>
+			</Grid.ColumnDefinitions>
+
+			<avaloniaEdit:TextEditor
+				Grid.Column="0"
+				Name="textEditor"
+				Background="#1e1e1e"
+				Foreground="White"
+				FontFamily="Consolas"
+				HorizontalScrollBarVisibility="Auto"
+				VerticalScrollBarVisibility="Auto"
+				PointerWheelChanged="OnTextPreviewMouseWheel"/>
+			<GridSplitter
+				Name="Splitter"
+				Grid.Column="1"
+				Width="5" Background="#2d2d30"
+				HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+			<DockPanel Name="DesignerHolder" Grid.Column="2">
+				<designer:DesignerArea
+					x:Name="DesignerArea"
+					CanvasAreaDoubleClick="OnCanvasDoubleClick"
+					CanvasMouseMove="OnCanvasMouseMove"/>
+			</DockPanel>
+		</Grid>
+		
+	</DockPanel>
+	
+</UserControl>

@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
+        x:Class="SharpEditorAvalonia.Windows.TemplateErrorWindow"
+        Title="Designer" Height="450" Width="400"
+		Background="#424245"
+		Foreground="White">
+
+	<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+		<StackPanel x:Name="ErrorPanel" Orientation="Vertical" Margin="15">
+
+		</StackPanel>
+	</ScrollViewer>
+
+</Window>

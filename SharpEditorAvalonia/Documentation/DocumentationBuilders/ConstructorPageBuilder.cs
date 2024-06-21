@@ -17,6 +17,9 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
+using SharpEditorAvalonia.Designer;
+using SharpEditorAvalonia.Utilities;
+using SharpEditorAvalonia.Windows;
 
 namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 

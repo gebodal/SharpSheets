@@ -8,6 +8,7 @@ using static SharpEditorAvalonia.Documentation.DocumentationBuilders.BaseDocumen
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Controls.Documents;
+using SharpEditorAvalonia.Utilities;
 
 namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 

@@ -1,5 +1,6 @@
 ﻿using SharpEditorAvalonia.Program;
 using SharpEditorAvalonia.Registries;
+using SharpEditorAvalonia.Windows;
 using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Exceptions;
 using SharpSheets.Markup.Parsing;

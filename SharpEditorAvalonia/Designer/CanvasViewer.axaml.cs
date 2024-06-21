@@ -8,7 +8,7 @@ using AvaloniaEdit.Utils;
 using System;
 using System.Linq;
 
-namespace SharpEditorAvalonia {
+namespace SharpEditorAvalonia.Designer {
 
 	// FrameworkElement -> Control
 	// MouseButtonEventHandler -> EventHandler<PointerPressedEventArgs>
@@ -231,7 +231,7 @@ namespace SharpEditorAvalonia {
 			//UpdateCanvasZoomText();
 		}
 
-		private static readonly double ShowAreaBorderFactor = 0.1;
+		//private static readonly double ShowAreaBorderFactor = 0.1;
 		public void ShowArea(double x1, double y1, double x2, double y2, bool zoomToArea) {
 			// TODO Implement show area
 			/*
@@ -332,5 +332,22 @@ namespace SharpEditorAvalonia {
 			WholePageZoomOn = true;
 		}
 
+		#region Forwarded ScrollViewer functions
+		public double VerticalOffset {
+			get {
+				return CanvasViewScroller.Offset.Y;
+			}
+		}
+
+		public double ScrollableHeight {
+			get {
+				return CanvasViewScroller.ScrollBarMaximum.Y;
+			}
+		}
+
+		public void ScrollToVerticalOffset(double offset) {
+			CanvasViewScroller.Offset = new Vector(CanvasViewScroller.Offset.X, offset);
+		}
+		#endregion
 	}
 }

@@ -4,7 +4,7 @@ using GeboPdf.Fonts.TrueType;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Fonts;
 
-namespace SharpEditorAvalonia {
+namespace SharpEditorAvalonia.Designer {
 
 	public class TypefaceGrouping {
 

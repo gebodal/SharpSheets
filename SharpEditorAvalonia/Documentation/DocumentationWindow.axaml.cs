@@ -24,8 +24,6 @@ namespace SharpEditorAvalonia.Documentation {
 	/// </summary>
 	public partial class DocumentationWindow : Window, INotifyPropertyChanged {
 
-		public static readonly Brush HyperlinkColor = new SolidColorBrush(Color.FromRgb(142, 148, 251));
-
 		protected readonly NavigationService<DocumentationPage> navigationService;
 
 		public DocumentationWindow() {
@@ -106,6 +104,7 @@ namespace SharpEditorAvalonia.Documentation {
 		void NavigationCommandCanExecute(object? sender, CanExecuteRoutedEventArgs e) {
 			e.CanExecute = true;
 		}
+		*/
 
 		public void NavigateTo(ConstructorDetails constructor, Func<ConstructorDetails?>? refreshAction) {
 			if (typeof(IMarkupElement).IsAssignableFrom(constructor.DeclaringType)) {
@@ -131,7 +130,6 @@ namespace SharpEditorAvalonia.Documentation {
 			NavigateTo(FontPageBuilder.GetFontFamilyPage(fontFamilyName, this));
 		}
 
-		*/
 
 		#region Navigation DependencyProperties
 

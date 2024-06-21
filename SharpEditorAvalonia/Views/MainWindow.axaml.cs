@@ -1,5 +1,6 @@
 ﻿using Avalonia.Controls;
 using SharpEditorAvalonia.DataManagers;
+using SharpEditorAvalonia.Designer;
 using SharpSheets.Markup.Parsing;
 using SharpSheets.Markup.Patterns;
 using SharpSheets.Parsing;

@@ -33,13 +33,16 @@ namespace SharpEditorAvalonia.DataManagers {
 			configPath = GetCurrentConfigPath();
 
 			if (File.Exists(configPath)) {
+				Console.WriteLine("Load existing config.");
 				Instance = LoadSettings(configPath) ?? new SharpDataManager();
 			}
 			else if (GetOldConfigPath() is string oldConfigPath) {
+				Console.WriteLine("Load old config.");
 				Instance = LoadSettings(oldConfigPath) ?? new SharpDataManager();
 				Instance.Save();
 			}
 			else {
+				Console.WriteLine("Create new config.");
 				Instance = new SharpDataManager();
 				Instance.Save();
 			}
@@ -50,7 +53,7 @@ namespace SharpEditorAvalonia.DataManagers {
 
 		protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
 			base.OnPropertyChanged(e);
-
+			
 			Save();
 		}
 
@@ -88,7 +91,7 @@ namespace SharpEditorAvalonia.DataManagers {
 			}
 
 			(string path, Version version)[] existing = GetVersions(Directory.GetFiles(appData, $"{editorName}*{configExtension}", SearchOption.TopDirectoryOnly)).ToArray();
-
+			
 			if (existing.Length > 0) {
 				return existing.MaxBy(pv => pv.version).path;
 			}
@@ -101,6 +104,10 @@ namespace SharpEditorAvalonia.DataManagers {
 
 		[ObservableProperty]
 		private bool designerDisplayFields = true;
+		public event EventHandler? DesignerDisplayFieldsChanged;
+		partial void OnDesignerDisplayFieldsChanged(bool value) {
+			DesignerDisplayFieldsChanged?.Invoke(this, new EventArgs());
+		}
 
 		[ObservableProperty]
 		private bool designerViewerOpenDefault = false;
@@ -111,6 +118,10 @@ namespace SharpEditorAvalonia.DataManagers {
 
 		[ObservableProperty]
 		private bool openOnGenerate = false;
+		public event EventHandler? OpenOnGenerateChanged;
+		partial void OnOpenOnGenerateChanged(bool value) {
+			OpenOnGenerateChanged?.Invoke(this, new EventArgs());
+		}
 
 		#endregion
 
@@ -118,15 +129,31 @@ namespace SharpEditorAvalonia.DataManagers {
 
 		[ObservableProperty]
 		private bool showLineNumbers = true;
+		public event EventHandler? ShowLineNumbersChanged;
+		partial void OnShowLineNumbersChanged(bool value) {
+			ShowLineNumbersChanged?.Invoke(this, new EventArgs());
+		}
 
 		[ObservableProperty]
 		private bool showEndOfLine = false;
+		public event EventHandler? ShowEndOfLineChanged;
+		partial void OnShowEndOfLineChanged(bool value) {
+			ShowEndOfLineChanged?.Invoke(this, new EventArgs());
+		}
 
 		[ObservableProperty]
 		private bool wrapLines = false;
+		public event EventHandler? WrapLinesChanged;
+		partial void OnWrapLinesChanged(bool value) {
+			WrapLinesChanged?.Invoke(this, new EventArgs());
+		}
 
 		[ObservableProperty]
 		private double textZoom = 1.0;
+		public event EventHandler? TextZoomChanged;
+		partial void OnTextZoomChanged(double value) {
+			TextZoomChanged?.Invoke(this, new EventArgs());
+		}
 
 		#endregion
 
@@ -141,6 +168,10 @@ namespace SharpEditorAvalonia.DataManagers {
 
 		[ObservableProperty]
 		private bool warnFontLicensing = true;
+		public event EventHandler? WarnFontLicensingChanged;
+		partial void OnWarnFontLicensingChanged(bool value) {
+			WarnFontLicensingChanged?.Invoke(this, new EventArgs());
+		}
 
 		#endregion
 

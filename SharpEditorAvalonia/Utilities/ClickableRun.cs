@@ -6,20 +6,22 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using System;
 
-namespace SharpEditorAvalonia.Documentation {
+namespace SharpEditorAvalonia.Utilities {
 
 	public class ClickableRun : InlineUIContainer {
+
+		public static readonly Brush HyperlinkColor = new SolidColorBrush(Color.FromRgb(142, 148, 251));
 
 		public event EventHandler<PointerPressedEventArgs>? MouseLeftButtonDown;
 
 		private readonly TextBlock textBlock;
 
 		public ClickableRun(string? text) : base() {
-			this.Foreground = DocumentationWindow.HyperlinkColor;
+			this.Foreground = HyperlinkColor;
 
 			textBlock = new TextBlock() {
 				Text = text,
-				Foreground = DocumentationWindow.HyperlinkColor
+				Foreground = HyperlinkColor
 			};
 
 			textBlock.PointerEntered += OnPointerChanged;
