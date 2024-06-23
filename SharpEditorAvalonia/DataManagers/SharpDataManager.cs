@@ -58,7 +58,7 @@ namespace SharpEditorAvalonia.DataManagers {
 		}
 
 		private static SharpDataManager? LoadSettings(string filePath) {
-			Console.WriteLine($"Load settings from: {filePath}");
+			//Console.WriteLine($"Load settings from: {filePath}");
 			string jsonText = File.ReadAllText(filePath);
 			// TODO Need to deal better with unrecognised properties
 			return JsonSerializer.Deserialize<SharpDataManager>(jsonText, jsonSerializeoptions);
@@ -67,7 +67,7 @@ namespace SharpEditorAvalonia.DataManagers {
 		private void Save() {
 			string jsonText = JsonSerializer.Serialize(this, jsonSerializeoptions);
 			File.WriteAllText(configPath, jsonText);
-			Console.WriteLine($"Save settings to: {configPath}");
+			//Console.WriteLine($"Save settings to: {configPath}");
 		}
 
 		private static string GetCurrentConfigPath() {

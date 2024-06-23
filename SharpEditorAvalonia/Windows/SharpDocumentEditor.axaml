@@ -3,10 +3,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:avaloniaEdit="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
+			 xmlns:i="clr-namespace:Avalonia.Xaml.Interactivity;assembly=Avalonia.Xaml.Interactivity"
+			 xmlns:ia="clr-namespace:Avalonia.Xaml.Interactions.Core;assembly=Avalonia.Xaml.Interactions"
+			 xmlns:local="using:SharpEditorAvalonia.Windows"
 			 xmlns:designer="clr-namespace:SharpEditorAvalonia.Designer"
+			 x:DataType="local:SharpDocumentEditor"
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SharpEditorAvalonia.Windows.SharpDocumentEditor">
-
+		
 	<DockPanel Background="#2d2d30">
 
 		<!-- Status bar goes here -->
@@ -36,15 +40,67 @@
 				PointerWheelChanged="TextZoomBoxMouseWheel"
 				LostFocus="TextZoomBoxLostFocus"/>
 			<StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0">
-				<TextBlock Name="CursorLineText" Width="50" Margin="20,0" Text="Line"/>
-				<TextBlock Name="CursorColText" Width="50" Margin="20,0" Text="Col"/>
+				<TextBlock Name="CursorLineText" Width="50" Margin="20,0" Text="Line" VerticalAlignment="Center"/>
+				<TextBlock Name="CursorColText" Width="50" Margin="20,0" Text="Col" VerticalAlignment="Center"/>
 			</StackPanel>
 			<TextBlock
 				Grid.Column="3"
 				IsVisible="False"
 				Name="BackgroundMessageText" Margin="30,0">Parsing...</TextBlock>
-			<StackPanel Name="ErrorPanel" Grid.Column="4" IsVisible="False" Orientation="Horizontal" Margin="20,0">
-				<!-- Error panel popup goes here -->
+			<StackPanel Name="ErrorStatus" Grid.Column="4" IsVisible="False" Orientation="Horizontal">
+				<Border Padding="20,0" Background="#c00000" PointerPressed="ErrorStatusClick">
+					<StackPanel Orientation="Horizontal">
+						<Image Source="/Images/Exclamation.png" Height="16" Margin="0,0,3,0"/>
+						<TextBlock Name="ErrorCount" Foreground="Black" VerticalAlignment="Center" Margin="10,0,5,0"/>
+						<ToggleButton x:Name="ErrorPopupToggleButton" Click="ErrorPopupClick">
+							<!-- Button styling goes here -->
+						</ToggleButton>
+					</StackPanel>
+				</Border>
+				<Popup x:Name="ErrorPopup"
+						PlacementTarget="{Binding ElementName=ErrorStatus}"
+						Placement="Top"
+						IsOpen="False" IsLightDismissEnabled="True"
+						Width="200" Height="200"
+						Closed="ErrorPopupClosed"> <!-- StaysOpen="False" -->
+					<Border Background="#2d2d30" MaxWidth="400" MaxHeight="500">
+						<ListBox Name="ErrorPopupListBox"
+							ScrollViewer.VerticalScrollBarVisibility="Auto"
+							ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+							Background="#2d2d30">
+								
+							<ListBox.ItemTemplate>
+								<DataTemplate x:DataType="local:ErrorPopupEntry">
+									<Border Background="Transparent" BorderBrush="Blue" BorderThickness="2">
+										<Grid Background="Transparent">
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition MinWidth="30" Width="Auto" />
+												<ColumnDefinition Width="*" />
+											</Grid.ColumnDefinitions>
+											<TextBlock Grid.Column="0"
+												Text="{Binding Line, Mode=OneWay}"
+												Margin="5"
+												HorizontalAlignment="Center"
+												Foreground="LightGray"/>
+											<TextBlock Grid.Column="1"
+												Text="{Binding Message, Mode=OneWay}"
+												Margin="5"
+												Foreground="LightGray"
+												TextWrapping="Wrap"/>
+										</Grid>
+										<i:Interaction.Behaviors>
+											<!-- https://stackoverflow.com/a/76991334/11002708 -->
+											<ia:EventTriggerBehavior EventName="DoubleTapped">
+												<InvokeCommandAction Command="{Binding ItemCommand}"/>
+											</ia:EventTriggerBehavior>
+										</i:Interaction.Behaviors>
+									</Border>
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+
+						</ListBox>
+					</Border>
+				</Popup>
 			</StackPanel>
 		</Grid>
 
@@ -61,9 +117,32 @@
 				Background="#1e1e1e"
 				Foreground="White"
 				FontFamily="Consolas"
+				FontSize="14"
 				HorizontalScrollBarVisibility="Auto"
 				VerticalScrollBarVisibility="Auto"
-				PointerWheelChanged="OnTextPreviewMouseWheel"/>
+				KeyDown="OnPreviewKeyDown"
+				ToolTip.Placement="Pointer"
+				> <!--PointerWheelChanged="OnTextPreviewMouseWheel"-->
+				<avaloniaEdit:TextEditor.KeyBindings>
+					<KeyBinding Gesture="Ctrl+D" Command="{Binding DuplicateCommand}"/>
+				</avaloniaEdit:TextEditor.KeyBindings>
+				<!-- ToolTip goes here -->
+				<ToolTip.Tip>
+					<ToolTip Name="TextEditorToolTip" Margin="0" Padding="8,5"
+						Background="#424245"
+						BorderThickness="0.75" BorderBrush="#5e5e63"
+						MinWidth="200" MaxWidth="600"
+						IsHitTestVisible="False">
+						<StackPanel Name="ToolTipPanel" Orientation="Vertical">
+							<StackPanel.Styles>
+								<Style Selector="TextBlock">
+									<Setter Property="Foreground" Value="White"/>
+								</Style>
+							</StackPanel.Styles>
+						</StackPanel>
+					</ToolTip>
+				</ToolTip.Tip>
+			</avaloniaEdit:TextEditor>
 			<GridSplitter
 				Name="Splitter"
 				Grid.Column="1"

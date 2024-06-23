@@ -32,7 +32,7 @@ namespace SharpEditorAvalonia {
 		public override string FileFilter { get { return SharpEditorFileInfo.CardConfigFileFilter1; } }
 		public override string DefaultFilename { get { return "cardconfig"; } }
 
-		public override bool HasDesignerContent { get; } = true; // TODO Should have something here
+		public override bool HasDesignerContent { get; } = true;
 		public override bool HasGeneratedContent { get; } = false;
 
 		private CardSetConfig? CardSetConfig { get; set; }

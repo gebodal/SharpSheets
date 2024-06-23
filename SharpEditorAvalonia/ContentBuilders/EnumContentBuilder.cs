@@ -22,7 +22,6 @@ namespace SharpEditorAvalonia.ContentBuilders {
 			}
 			yield return enumBlock;
 
-			// TODO Should MakeDescriptionTextBlock be in a more generic place? We're building Tooltip content here, not documentation pages
 			if (BaseContentBuilder.MakeDescriptionTextBlock(enumValDoc?.description, indentMargin) is TextBlock valDescriptionBlock) {
 				//yield return BaseContentBuilder.GetContentTextBlock(enumValDoc.description, indentMargin);
 				yield return valDescriptionBlock;

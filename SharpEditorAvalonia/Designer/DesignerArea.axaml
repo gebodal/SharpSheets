@@ -4,17 +4,18 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SharpEditorAvalonia.Designer.DesignerArea"
-			 xmlns:designer="clr-namespace:SharpEditorAvalonia.Designer">
+			 xmlns:designer="clr-namespace:SharpEditorAvalonia.Designer"
+			 x:DataType="designer:DesignerArea">
 
 	<!-- Command bindings should be included somehow -->
 
 	<DockPanel Background="#2d2d30" KeyDown="DesignerKeyHandler">
 		<StackPanel DockPanel.Dock="Top" Background="#2d2d30" Margin="2" HorizontalAlignment="Center" Orientation="Horizontal">
-			<Button Click="CanvasPreviousPage"
+			<Button Command="{Binding BackCommand}"
 					ToolTip.Tip="Previous Page">
 				<Image Source="../Images/Previous.png" Height="32"/>
 			</Button>
-			<Button Click="CanvasNextPage"
+			<Button Command="{Binding ForwardCommand}"
 					ToolTip.Tip="Next Page">
 				<Image Source="../Images/Next.png" Height="32"/>
 			</Button>
@@ -39,11 +40,11 @@
 						   ToolTip.Tip="Document Page Count"/>
 			</StackPanel>
 			<Rectangle Width="1" Height="28" Margin="5,0" Fill="#55555a"/>
-			<Button Click="CanvasZoomOut"
+			<Button Command="{Binding ZoomOutCommand}"
 					ToolTip.Tip="Zoom Out">
 				<Image Source="../Images/ZoomOut.png" Height="32"/>
 			</Button>
-			<Button Click="CanvasZoomIn"
+			<Button Command="{Binding ZoomInCommand}"
 					ToolTip.Tip="Zoom In">
 				<Image Source="../Images/ZoomIn.png" Height="32"/>
 			</Button>
@@ -61,13 +62,13 @@
 					TextAlignment="Center"
 					Text="100%"
 					ToolTip.Tip="Designer Zoom Level"/>
-			<Button Click="SetCanvasZoomWholePage"
+			<Button Command="{Binding ZoomWholePageCommand}"
 					ToolTip.Tip="Zoom to Whole Page">
 				<Image Source="../Images/WholePage.png" Height="32"/>
 			</Button>
 			<Rectangle Width="1" Height="28" Margin="5,0" Fill="#55555a"/>
 			<ToggleButton ToolTip.Tip="Display Form Fields in Designer Toggle"
-				> <!-- Need to implement IsChecked here! -->
+				IsChecked="{Binding DataManager.DesignerDisplayFields}">
 				<Image Source="../Images/PageFields.png" Height="32" Margin="2"/>
 			</ToggleButton>
 		</StackPanel>

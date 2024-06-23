@@ -21,6 +21,16 @@ using Avalonia.Media;
 using SharpEditorAvalonia.CodeHelpers;
 using AvaloniaEdit.Editing;
 using SharpEditorAvalonia.Indentation;
+using System.IO;
+using Avalonia.Media.TextFormatting;
+using System.Collections.ObjectModel;
+using System.Windows.Input;
+using CommunityToolkit.Mvvm.Input;
+using AvaloniaEdit.CodeCompletion;
+using AvaloniaEdit;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using AvaloniaEdit.Rendering;
 
 namespace SharpEditorAvalonia.Windows {
 
@@ -31,16 +41,20 @@ namespace SharpEditorAvalonia.Windows {
 			this.Header = header;
 			this.UnsavedProgress = unsavedProgress;
 		}
+	}
 
-		private void Binding(object? sender, Avalonia.Input.PointerWheelEventArgs e) {
+	public class DocumentEditorEventArgs : EventArgs {
+		public SharpDocumentEditor Editor { get; }
+		public DocumentEditorEventArgs(SharpDocumentEditor editor) {
+			this.Editor = editor;
 		}
 	}
 
 	public partial class SharpDocumentEditor : UserControl {
 
 		public event EventHandler<UpdateHeaderEventArgs>? UpdateHeader;
-		public event EventHandler<SharpDocumentEditor>? DocumentTypeChanged;
-		public event EventHandler<SharpDocumentEditor>? RequestFocus;
+		public event EventHandler<DocumentEditorEventArgs>? DocumentTypeChanged;
+		public event EventHandler<DocumentEditorEventArgs>? RequestFocus;
 
 		public string? Header { get; private set; }
 
@@ -50,11 +64,12 @@ namespace SharpEditorAvalonia.Windows {
 		private bool intentional = true;
 		public bool IsDisposable { get { return !(intentional || TextLength > 0 || CurrentFilePath != null || HasUnsavedProgress); } }
 
-		// TODO Search panel stuff goes here
+		// Search panel stuff goes here
 
 		public SharpDocumentEditor(string? filename) {
+			InitialiseCommands();
 			InitializeComponent();
-
+			
 			this.DataContext = this;
 
 			// Search panel stuff here
@@ -70,10 +85,11 @@ namespace SharpEditorAvalonia.Windows {
 			InitializeParsingManager();
 			InitializeDesigner();
 			InitializeFoldingManager();
-			//InitializeToolTip();
-			//InitializeErrorMarkers();
+			InitializeToolTip();
+			InitializeErrorMarkers();
 			InitializeUnsavedTracker();
-			//InitializeCompletionWindow();
+			InitializeCompletionWindow();
+			InitializeContextMenu();
 
 			textEditor.Options.HighlightCurrentLine = true;
 			textEditor.Options.EnableEmailHyperlinks = textEditor.Options.EnableHyperlinks = false;
@@ -120,11 +136,12 @@ namespace SharpEditorAvalonia.Windows {
 			UninstallParsingManager();
 			UninstallDesigner();
 			UninstallFoldingManager();
-			//UninstallToolTip();
-			//UninstallErrorMarkers();
+			UninstallToolTip();
+			UninstallErrorMarkers();
 			UninstallUnsavedTracker();
-			//UninstallCompletionWindow();
+			UninstallCompletionWindow();
 			UninstallBackgroundMessages();
+			UninstallContextMenu();
 		}
 
 		#region UIElement Helpers
@@ -187,16 +204,16 @@ namespace SharpEditorAvalonia.Windows {
 
 		private void UpdateUnsavedProgress(object? sender, EventArgs e) {
 			bool previousState = HasUnsavedProgress;
-			HasUnsavedProgress = true;
+			HasUnsavedProgress = !textEditor.Document.UndoStack.IsOriginalFile; // Seems to be working now...
 			if (HasUnsavedProgress != previousState) { OnUpdateHeader(); }
 		}
 
 		void InitializeUnsavedTracker() {
-			textEditor.Document.TextChanged += UpdateUnsavedProgress;
+			textEditor.Document.UpdateFinished += UpdateUnsavedProgress;
 		}
 
 		void UninstallUnsavedTracker() {
-			textEditor.Document.TextChanged -= UpdateUnsavedProgress;
+			textEditor.Document.UpdateFinished -= UpdateUnsavedProgress;
 		}
 
 		private void Caret_PositionChanged(object? sender, EventArgs e) {
@@ -214,10 +231,14 @@ namespace SharpEditorAvalonia.Windows {
 			baseFontSize = textEditor.FontSize;
 			SetTextZoom(SharpDataManager.Instance.TextZoom);
 			SharpDataManager.Instance.TextZoomChanged += OnTextZoomChanged;
+
+			textEditor.AddHandler(InputElement.PointerWheelChangedEvent, OnTextPreviewMouseWheel, RoutingStrategies.Tunnel, false);
 		}
 
 		private void UninstallTextZoom() {
 			SharpDataManager.Instance.TextZoomChanged -= OnTextZoomChanged;
+
+			textEditor.RemoveHandler(InputElement.PointerWheelChangedEvent, OnTextPreviewMouseWheel);
 		}
 
 		private void OnTextZoomChanged(object? sender, EventArgs e) {
@@ -241,7 +262,12 @@ namespace SharpEditorAvalonia.Windows {
 		private void SetTextZoom(double zoom) {
 			DocumentLine firstVisibleLine = textEditor.TextArea.TextView.GetDocumentLineByVisualTop(textEditor.TextArea.TextView.ScrollOffset.Y);
 
-			textEditor.FontSize = baseFontSize * SharpDataManager.Instance.TextZoom;
+			textEditor.FontSize = baseFontSize * zoom; // baseFontSize * SharpDataManager.Instance.TextZoom
+			textEditor.TextArea.FontSize = baseFontSize * zoom;
+
+			foreach (LineNumberMargin margin in textEditor.TextArea.LeftMargins.OfType<LineNumberMargin>()) {
+				margin.SetValue(TextBlock.FontSizeProperty, textEditor.FontSize);
+			}
 
 			textEditor.TextArea.TextView.Redraw();
 			if (firstVisibleLine != null) {
@@ -385,7 +411,7 @@ namespace SharpEditorAvalonia.Windows {
 			string headerBase = CurrentFileName;
 
 			Header = headerBase + (HasUnsavedProgress ? "*" : "");
-
+			
 			// And call event to notify any listeners that we've changed things
 			UpdateHeader?.Invoke(this, new UpdateHeaderEventArgs(Header, HasUnsavedProgress));
 		}
@@ -478,7 +504,7 @@ namespace SharpEditorAvalonia.Windows {
 
 				CurrentDocumentType = newDocumentType;
 
-				DocumentTypeChanged?.Invoke(this, this);
+				DocumentTypeChanged?.Invoke(this, new DocumentEditorEventArgs(this));
 				OnUpdateHeader();
 			}
 		}
@@ -497,11 +523,20 @@ namespace SharpEditorAvalonia.Windows {
 
 			SetDocumentType(true, documentType);
 
+			textEditor.Document.UndoStack.ClearAll();
+			textEditor.Document.UndoStack.MarkAsOriginalFile();
+
 			OnUpdateHeader();
 		}
 
 		public void Open(string filename) {
-			textEditor.Load(filename); // This will attempt to auto-detect encoding
+			Console.WriteLine($"Open {filename}");
+
+			//textEditor.Load(filename); // This will attempt to auto-detect encoding
+			using (FileStream fs = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+				textEditor.Load(fs); // This will attempt to auto-detect encoding
+			}
+
 			textEditor.Encoding = System.Text.Encoding.UTF8; // Now force this document to be considered UTF8
 
 			CurrentFilePath = filename;
@@ -513,6 +548,10 @@ namespace SharpEditorAvalonia.Windows {
 
 			HasUnsavedProgress = false;
 			CurrentFieldSourcePath = null;
+
+			textEditor.Document.UndoStack.ClearAll();
+			textEditor.Document.UndoStack.MarkAsOriginalFile();
+
 			OnUpdateHeader();
 		}
 
@@ -527,6 +566,9 @@ namespace SharpEditorAvalonia.Windows {
 			UpdateDocumentType(false); // Check that we haven't saved with a different extension
 
 			HasUnsavedProgress = false;
+
+			textEditor.Document.UndoStack.MarkAsOriginalFile();
+
 			OnUpdateHeader();
 			return true;
 		}
@@ -575,6 +617,280 @@ namespace SharpEditorAvalonia.Windows {
 
 		#endregion CodeHelper
 
+		#region Completion Window
+
+		SharpCompletionWindow? completionWindow;
+
+		void InitializeCompletionWindow() {
+			textEditor.TextArea.TextEntering += TextAreaTextEntering;
+			textEditor.TextArea.TextEntered += TextAreaTextEntered;
+		}
+
+		void UninstallCompletionWindow() {
+			textEditor.TextArea.TextEntering -= TextAreaTextEntering;
+			textEditor.TextArea.TextEntered -= TextAreaTextEntered;
+		}
+
+		void OpenCompletionWindow() {
+			if (codeHelper != null) {
+				IList<ICompletionData> data = codeHelper.GetCompletionData();
+
+				if (data.Count > 0) {
+					int startOffset = codeHelper.GetCompletionStartOffset();
+					//Console.WriteLine($"Caret: {textEditor.CaretOffset}, Start: {startOffset}");
+					completionWindow = new SharpCompletionWindow(textEditor.TextArea) { StartOffset = startOffset };
+
+					string startingText = textEditor.Document.GetText(completionWindow.StartOffset, completionWindow.EndOffset - completionWindow.StartOffset);
+
+					completionWindow.CompletionList.CompletionData.AddRange(data);
+
+					if (!string.IsNullOrEmpty(startingText)) {
+						completionWindow.CompletionList.SelectItem(startingText);
+					}
+
+					completionWindow.Show();
+					completionWindow.Closed += delegate {
+						completionWindow = null;
+					};
+				}
+			}
+		}
+
+		void TextAreaTextEntered(object? sender, TextInputEventArgs e) {
+			if (codeHelper?.TextEnteredTriggerCompletion(e) ?? false) {
+				OpenCompletionWindow();
+			}
+			else {
+				codeHelper?.TextEntered(e);
+			}
+		}
+
+		void TextAreaTextEntering(object? sender, TextInputEventArgs e) {
+			if(e.Text is null) { return; }
+			/*
+			if (codeHelper?.TextEnteringTriggerCompletion(e) ?? false) {
+				OpenCompletionWindow();
+				// codeHelper method should be calling e.Handled if needed
+			}
+			else */
+			if (completionWindow != null && e.Text.Length > 0) {
+				/*
+				if (!char.IsLetterOrDigit(e.Text[0])) {
+					// Whenever a non-letter is typed while the completion window is open,
+					// insert the currently selected element.
+					completionWindow.CompletionList.RequestInsertion(e);
+				}
+				*/
+				/*
+				if (char.IsWhiteSpace(e.Text[0])) {
+					// Whenever a whitespace character is typed while the completion window is open,
+					// insert the currently selected element.
+					completionWindow.CompletionList.RequestInsertion(e);
+				}
+				*/
+				if (e.Text[0] == ':' || completionWindow.VisibleItemCount == 0) {
+					// Whenever a colon character is typed, or there are no more visible completion items,
+					// while the completion window is open, close the completion window with no insertions
+					completionWindow.Close();
+					// TODO Should this type of trigger be left up to the CodeHelper?
+				}
+				// do not set e.Handled=true - we still want to insert the character that was typed
+			}
+		}
+
+		private void OnPreviewKeyDown(object? sender, KeyEventArgs e) {
+			if (e.Key == Key.Space && e.KeyModifiers == KeyModifiers.Control) {
+				Console.WriteLine("Fire Ctrl+Space");
+				OpenCompletionWindow();
+				e.Handled = true; // Don't actually enter this character
+			}
+		}
+		#endregion Completion Window
+
+		#region Text Context Menu
+
+		private ContextMenu contextMenu;
+
+		[MemberNotNull(nameof(contextMenu))]
+		void InitializeContextMenu() {
+			contextMenu = new ContextMenu();
+			textEditor.ContextMenu = contextMenu;
+			//contextMenu.Style = (Style)Resources["ContextMenuStyle"];
+
+			textEditor.TextArea.PointerPressed += TextArea_PointerPressed;
+			contextMenu.Opening += ContextMenu_Opening;
+		}
+
+		void UninstallContextMenu() {
+			contextMenu.Opening -= ContextMenu_Opening;
+			textEditor.TextArea.PointerPressed -= TextArea_PointerPressed;
+		}
+
+		private void TextArea_PointerPressed(object? sender, PointerPressedEventArgs e) {
+			PointerPoint point = e.GetCurrentPoint(textEditor);
+
+			if (point.Properties.IsRightButtonPressed) {
+				TextViewPosition? pos = textEditor.GetPositionFromPoint(e.GetPosition(textEditor));
+
+				if (pos.HasValue) {
+					// Move cursor to clicked location
+					int offset = textEditor.Document.GetOffset(pos.Value);
+					textEditor.CaretOffset = offset;
+				}
+			}
+		}
+
+		private void ContextMenu_Opening(object? sender, System.ComponentModel.CancelEventArgs e) {
+
+			contextMenu.Items.Clear();
+
+			contextMenu.Items.Add(new MenuItem {
+				Header = "Cut",
+				Command = SharpEditorWindow.Instance?.CutCommand,
+				//Icon = (System.Windows.Controls.Image)Resources["CutIcon"]
+				Icon = new Image() { Source = new Bitmap(AssetLoader.Open(new Uri("avares://SharpEditorAvalonia/Images/Cut3.png"))) }
+			});
+			contextMenu.Items.Add(new MenuItem {
+				Header = "Copy",
+				Command = SharpEditorWindow.Instance?.CopyCommand,
+				//Icon = (System.Windows.Controls.Image)Resources["CopyIcon"]
+				Icon = new Image() { Source = new Bitmap(AssetLoader.Open(new Uri("avares://SharpEditorAvalonia/Images/Copy2.png"))) }
+			});
+			contextMenu.Items.Add(new MenuItem {
+				Header = "Paste",
+				Command = SharpEditorWindow.Instance?.PasteCommand,
+				//Icon = (System.Windows.Controls.Image)Resources["PasteIcon"]
+				Icon = new Image() { Source = new Bitmap(AssetLoader.Open(new Uri("avares://SharpEditorAvalonia/Images/Paste2.png"))) }
+			});
+
+			// Determine possible actions based on what we clicked on (probably from CodeHelper)
+
+			int offset = textEditor.CaretOffset;
+
+			// If there is no CodeHelper provided, we can't find necessary information
+			if (codeHelper != null) {
+
+				// Find out if we've clicked on a drawn object
+				object[]? currentDrawnObjects = designerGenerator?.DrawingMapper?.GetDrawnObjects(textEditor.TextArea.Caret.Offset)?.ToArray();
+				if (currentDrawnObjects != null && currentDrawnObjects.Length > 0) {
+					contextMenu.Items.Add(new Separator());
+
+					MenuItem jumpToDrawnObjectMenuItem = new MenuItem {
+						Header = "Show in Designer"
+					};
+					jumpToDrawnObjectMenuItem.Click += delegate {
+						if (DesignerArea?.DisplayObject(currentDrawnObjects.First(), false) ?? false) {
+							if (DesignerFloating != null) {
+								DesignerFloating.Activate();
+							}
+						}
+					};
+					contextMenu.Items.Add(jumpToDrawnObjectMenuItem);
+
+					MenuItem zoomToDrawnObjectMenuItem = new MenuItem {
+						Header = "Zoom to in Designer"
+					};
+					zoomToDrawnObjectMenuItem.Click += delegate {
+						if (DesignerArea?.DisplayObject(currentDrawnObjects.First(), true) ?? false) {
+							if (DesignerFloating != null) {
+								DesignerFloating.Activate();
+							}
+						}
+					};
+					contextMenu.Items.Add(zoomToDrawnObjectMenuItem);
+				}
+
+				string? mouseWord = textEditor.Document.GetSharpTermStringFromOffset(offset);
+				if (codeHelper.GetContextMenuItems(offset, mouseWord) is IList<Control> codeHelperMenuItems && codeHelperMenuItems.Count > 0) {
+					contextMenu.Items.Add(new Separator());
+					foreach (Control codeHelperMenuItem in codeHelperMenuItems) {
+						contextMenu.Items.Add(codeHelperMenuItem);
+					}
+				}
+			}
+		}
+
+		#endregion Text Context Menu
+
+		#region Tooltip
+
+		void InitializeToolTip() {
+			TextEditorToolTip.IsVisible = false;
+
+			textEditor.PointerHover += TextEditorMouseHover;
+			textEditor.PointerHoverStopped += TextEditorMouseHoverStopped;
+			//textEditor.PointerMoved += TextEditorMouseHoverStopped;
+			textEditor.TextArea.TextEntered += TextAreaTextEnteredTooptipClose;
+		}
+
+		void UninstallToolTip() {
+			textEditor.PointerHover -= TextEditorMouseHover;
+			textEditor.PointerHoverStopped -= TextEditorMouseHoverStopped;
+			//textEditor.PointerMoved -= TextEditorMouseHoverStopped;
+			textEditor.TextArea.TextEntered -= TextAreaTextEnteredTooptipClose;
+		}
+
+		void TextEditorMouseHover(object? sender, PointerEventArgs args) {
+			//ToolTip.SetIsOpen(textEditor, false);
+			//TextEditorToolTip.IsVisible = false;
+
+			TextViewPosition? pos = textEditor.GetPositionFromPoint(args.GetPosition(textEditor));
+			if (pos == null) return;
+			string? mouseWord = textEditor.Document.GetSharpTermStringFromViewPosition(pos.Value);
+			int posOffset = textEditor.Document.GetOffset(pos.Value);
+			if (mouseWord is not null) {
+
+				ToolTipPanel.Children.Clear();
+
+				if (codeHelper != null) {
+					foreach (Control element in codeHelper.GetToolTipContent(posOffset, mouseWord)) {
+						ToolTipPanel.Children.Add(element);
+					}
+				}
+
+				if (parsingState != null) {
+					bool madeSeparator = false;
+					foreach (string message in parsingState.GetErrors(posOffset).Select(e => e.Message).Distinct()) {
+						if (ToolTipPanel.Children.Count > 0 && !madeSeparator) {
+							ToolTipPanel.Children.Add(TooltipBuilder.MakeSeparator());
+						}
+						madeSeparator = true;
+						ToolTipPanel.Children.Add(TooltipBuilder.GetToolTipTextBlock(message));
+					}
+				}
+			}
+			else if (codeHelper != null) { // No mouse-over word
+				ToolTipPanel.Children.Clear();
+
+				foreach (Control element in codeHelper.GetFallbackToolTipContent(posOffset)) {
+					ToolTipPanel.Children.Add(element);
+				}
+			}
+
+			if (ToolTipPanel.Children.Count > 0) {
+				//TextEditorToolTip.IsOpen = true;
+				ToolTip.SetIsOpen(textEditor, true);
+				TextEditorToolTip.IsVisible = true;
+				args.Handled = true;
+			}
+			else {
+				ToolTip.SetIsOpen(textEditor, false);
+				TextEditorToolTip.IsVisible = false;
+			}
+		}
+
+		private void TextEditorMouseHoverStopped(object? sender, PointerEventArgs e) {
+			//TextEditorToolTip.IsOpen = false;
+			ToolTip.SetIsOpen(textEditor, false);
+			TextEditorToolTip.IsVisible = false;
+		}
+		private void TextAreaTextEnteredTooptipClose(object? sender, TextInputEventArgs e) {
+			//TextEditorToolTip.IsOpen = false;
+			ToolTip.SetIsOpen(textEditor, false);
+			TextEditorToolTip.IsVisible = false;
+		}
+		#endregion Tooltip
+
 		#region Folding
 		FoldingManager foldingManager;
 		IFoldingStrategy? foldingStrategy;
@@ -604,9 +920,7 @@ namespace SharpEditorAvalonia.Windows {
 		}
 
 		void UpdateFoldings() {
-			if (foldingStrategy != null) {
-				foldingStrategy.UpdateFoldings(foldingManager, textEditor.Document);
-			}
+			foldingStrategy?.UpdateFoldings(foldingManager, textEditor.Document);
 		}
 		#endregion Folding
 
@@ -672,6 +986,150 @@ namespace SharpEditorAvalonia.Windows {
 			}
 		}
 		#endregion Parsing Manager
+
+		#region Error Markers
+
+		private ObservableCollection<ErrorPopupEntry> ErrorPopupEntries { get; } = new ObservableCollection<ErrorPopupEntry>();
+
+		void InitializeErrorMarkers() {
+			parsingManager.ParseStateChanged += UpdateErrorDisplay;
+			SharpDataManager.Instance.WarnFontLicensingChanged += UpdateErrorDisplay;
+
+			ErrorPopupListBox.ItemsSource = ErrorPopupEntries;
+		}
+
+		void UninstallErrorMarkers() {
+			parsingManager.ParseStateChanged -= UpdateErrorDisplay;
+			SharpDataManager.Instance.WarnFontLicensingChanged -= UpdateErrorDisplay;
+
+			ErrorPopupListBox.ItemsSource = null;
+		}
+
+		void UpdateErrorDisplay(object? sender, EventArgs args) {
+			IParsingState? parsingState = parsingManager.GetParsingState();
+			ErrorComparer errorComparer = new ErrorComparer(parsingState);
+
+			int numErrors = parsingState?.GetErrors().Distinct(errorComparer).Count() ?? 0; // parsingState?.ErrorCount ?? 0;
+			ErrorStatus.IsVisible = numErrors > 0;
+			ErrorCount.Text = $"{numErrors} Error{(numErrors == 1 ? "" : "s")} Found";
+
+			ErrorPopupEntries.Clear();
+			if (parsingState is not null) {
+				ErrorPopupEntries.AddRange(parsingState.GetErrors()
+					.Distinct(errorComparer)
+					.Select(e => {
+						string message = e.Message;
+						DocumentSpan? location = null;
+						if (e is SharpParsingException spe && spe.Location is DocumentSpan parseLocation) {
+							location = parseLocation;
+						}
+						else if (e is SharpDrawingException sde && parsingState.DrawingMapper?.GetDrawnObjectLocation(sde.Origin) is DocumentSpan drawLocation) {
+							location = drawLocation;
+						}
+						return new ErrorPopupEntry(location, message, ErrorPopupItemMouseDoubleClick);
+					}) ?? Enumerable.Empty<ErrorPopupEntry>());
+			}
+		}
+
+		private class ErrorComparer : IEqualityComparer<SharpSheetsException> {
+
+			private readonly IParsingState? parsingState;
+
+			public ErrorComparer(IParsingState? parsingState) {
+				this.parsingState = parsingState;
+			}
+
+			public bool Equals(SharpSheetsException? x, SharpSheetsException? y) {
+				if (x is null || y is null) { return x is null & y is null; }
+				else if (x is SharpParsingException xp && y is SharpParsingException yp) {
+					if (xp.Location.HasValue && yp.Location.HasValue) {
+						return DocumentSpan.Equals(xp.Location, yp.Location) && xp.Message == yp.Message;
+					}
+					else {
+						return xp.Message == yp.Message;
+					}
+				}
+				else if (x is SharpDrawingException xd && y is SharpDrawingException yd
+					&& parsingState is not null
+					&& parsingState.DrawingMapper?.GetDrawnObjectLocation(xd.Origin) is DocumentSpan xl
+					&& parsingState.DrawingMapper?.GetDrawnObjectLocation(yd.Origin) is DocumentSpan yl) {
+					return DocumentSpan.Equals(xl, yl) && xd.Message == yd.Message;
+				}
+				else {
+					return x.Equals(y);
+				}
+			}
+
+			public int GetHashCode([DisallowNull] SharpSheetsException e) {
+				if (e is SharpParsingException ep) {
+					return HashCode.Combine(ep.Location, ep.Message);
+				}
+				else if (e is SharpDrawingException ed) {
+					return HashCode.Combine(parsingState?.DrawingMapper?.GetDrawnObjectLocation(ed.Origin), ed.Message);
+				}
+				else {
+					return e.GetHashCode();
+				}
+			}
+
+		}
+
+		public void ErrorStatusClick(object? sender, PointerPressedEventArgs e) {
+			throw new InvalidOperationException("Error found!");
+			int[]? offsets = parsingManager.GetParsingState()?.ErrorOffsets;
+
+			if (offsets is not null) {
+				Array.Sort(offsets);
+				int currentOffset = textEditor.TextArea.Caret.Offset;
+				int nextOffset = currentOffset;
+				//Console.WriteLine($"Current line: {currentLine}, next line: {nextLine}, lines = {string.Join(", ", lines.Enumerate().Select(kv => $"({kv.Key}) {kv.Value}"))}");
+				//Console.WriteLine($"lines.Length > 0 && currentLine >= lines[lines.Length - 1] = {lines.Length > 0 && currentLine >= lines[lines.Length - 1]} = {lines.Length} > {0} && {currentLine} >= {lines[lines.Length - 1]} = {lines.Length > 0} && {currentLine >= lines[lines.Length - 1]}");
+				if (offsets.Length > 0 && currentOffset >= offsets[^1]) {
+					//Console.WriteLine("Beyond last line, returning to first");
+					nextOffset = offsets[0];
+				}
+				else {
+					//Console.WriteLine("Checking all lines");
+					for (int i = 0; i < offsets.Length; i++) {
+						if (offsets[i] > currentOffset) {
+							nextOffset = offsets[i];
+							break;
+						}
+					}
+				}
+
+				//Console.WriteLine($"Checking ({nextLine} =? {currentLine})");
+				if (nextOffset != currentOffset) {
+					//Console.WriteLine($"nextLine != currentLine ({nextLine} != {currentLine})");
+					ScrollTo(nextOffset);
+				}
+			}
+		}
+
+		private void ErrorPopupClick(object sender, RoutedEventArgs e) {
+			ErrorPopup.IsOpen = true;
+		}
+
+		private void ItemTappedEvent(object? sender, TappedEventArgs e) {
+			Console.WriteLine("Tapped");
+		}
+
+		private void ErrorPopupItemMouseDoubleClick(ErrorPopupEntry errorData) {
+			if (errorData.Location is DocumentSpan location && location.Offset > 0 && location.Offset < textEditor.Document.TextLength) {
+				ScrollTo(location.Offset);
+				Dispatcher.UIThread.Invoke(() => { // InvokeAsync?
+					if (FocusEditor()) {
+						ErrorPopup.IsOpen = false;
+					}
+				});
+			}
+		}
+
+		private void ErrorPopupClosed(object sender, EventArgs e) {
+			ErrorPopupToggleButton.IsChecked = false;
+		}
+
+		#endregion Error Markers
 
 		#region Designer Area
 
@@ -918,15 +1376,15 @@ namespace SharpEditorAvalonia.Windows {
 			}
 		}
 
-		private void OnCanvasDoubleClick(object? sender, Dictionary<object, RegisteredAreas> areas) {
+		private void OnCanvasDoubleClick(object? sender, CanvasAreaEventArgs e) {
 			IDrawingMapper? drawingMapper = designerGenerator?.DrawingMapper;
-			if (drawingMapper != null && areas.Count > 0) {
+			if (drawingMapper != null && e.Areas.Count > 0) {
 				//Console.WriteLine("Areas: " + string.Join(", ", areas.Select(r => (r.Key.GetType().Name ?? "NULL") + $" ({r.Value})")));
 				//Console.WriteLine("Position: " + pos);
 				//Console.WriteLine($"Double click: {string.Join("; ", areas.Select(kv => drawingMapper.GetDrawnObjectLocation(kv.Key)).WhereNotNull().OrderBy(l => l.Line).Select(l => $"line {l.Line} offset {l.Offset}"))}");
 				//Console.WriteLine($"Double click: {string.Join("; ", areas.OrderBy(kv => kv.Value.Total.Area).ThenByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1).Select(l => $"{l.Key.GetType()}"))}");
 				//Console.WriteLine($"Double click: {string.Join("; ", areas.OrderBy(kv => kv.Value.Total.Area).ThenByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1).Select(kv => drawingMapper.GetDrawnObjectLocation(kv.Key)).Select(l => $"{l?.ToString() ?? "NULL"}"))}");
-				if (areas.OrderBy(kv => kv.Value.Total.Area).ThenByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1).Select(kv => drawingMapper.GetDrawnObjectLocation(kv.Key)).WhereNotNull().Where(l => l.Line >= 0).FirstOrDefault() is DocumentSpan location) {
+				if (e.Areas.OrderBy(kv => kv.Value.Total.Area).ThenByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1).Select(kv => drawingMapper.GetDrawnObjectLocation(kv.Key)).WhereNotNull().Where(l => l.Line >= 0).FirstOrDefault() is DocumentSpan location) {
 					//if (areas.OrderByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1).Select(kv => drawingMapper.GetDrawnObjectLocation(kv.Key)).WhereNotNull().Where(s => s.Line >= 0).FirstOrDefault() is DocumentSpan location) {
 
 					if (location.Line + 1 > 0 && location.Line + 1 <= textEditor.Document.LineCount) {
@@ -934,7 +1392,7 @@ namespace SharpEditorAvalonia.Windows {
 						textEditor.ScrollToLine(line.LineNumber);
 						textEditor.CaretOffset = TextUtilities.GetWhitespaceAfter(textEditor.Document, line.Offset).EndOffset;
 
-						RequestFocus?.Invoke(sender, this);
+						RequestFocus?.Invoke(sender, new DocumentEditorEventArgs(this));
 						//textEditor.TextArea.Focus();
 						//Keyboard.Focus(textEditor.TextArea);
 						FocusEditor();
@@ -943,11 +1401,11 @@ namespace SharpEditorAvalonia.Windows {
 			}
 		}
 
-		private void OnCanvasMouseMove(object? sender, Dictionary<object, RegisteredAreas> areas) {
+		private void OnCanvasMouseMove(object? sender, CanvasAreaEventArgs e) {
 			IDrawingMapper? drawingMapper = designerGenerator?.DrawingMapper;
 			if (drawingMapper != null) {
-				if (areas.Count > 0) {
-					object[] drawnObjects = areas.Where(kv => drawingMapper.GetDrawnObjectDepth(kv.Key).HasValue)
+				if (e.Areas.Count > 0) {
+					object[] drawnObjects = e.Areas.Where(kv => drawingMapper.GetDrawnObjectDepth(kv.Key).HasValue)
 						.OrderBy(kv => kv.Value.Total.Area)
 						.ThenByDescending(kv => drawingMapper.GetDrawnObjectDepth(kv.Key) ?? -1)
 						.Select(kv => kv.Key)
@@ -963,7 +1421,49 @@ namespace SharpEditorAvalonia.Windows {
 
 		#endregion Designer Area
 
-		void UpdateErrorDisplay(object? sender, EventArgs args) { }
+		#region Commands
+
+		public ICommand DuplicateCommand { get; private set; }
+		//public ICommand CompletionTriggerCommand { get; private set; }
+
+		[MemberNotNull(nameof(DuplicateCommand))]
+		private void InitialiseCommands() {
+			DuplicateCommand = new RelayCommand(DuplicateExecuted);
+			//CompletionTriggerCommand = new RelayCommand(CompletionTriggerExecuted);
+		}
+
+		private void DuplicateExecuted() {
+			if (textEditor is not null) {
+				DocumentLine currentLine = textEditor.Document.GetLineByOffset(textEditor.CaretOffset);
+				if (currentLine.NextLine is DocumentLine nextLine) {
+					string currentLineText = textEditor.Document.GetText(currentLine.Offset, nextLine.Offset - currentLine.Offset);
+					textEditor.Document.Insert(currentLine.Offset, currentLineText);
+				}
+			}
+		}
+
+		//private void CompletionTriggerExecuted() {
+		//	OpenCompletionWindow();
+		//}
+
+		#endregion Commands
+
+	}
+
+	public class ErrorPopupEntry {
+
+		public string Line => (Location?.Line + 1).ToString() ?? "-";
+		public DocumentSpan? Location { get; }
+		public string Message { get; }
+
+		public ICommand ItemCommand { get; }
+
+		public ErrorPopupEntry(DocumentSpan? location, string message, Action<ErrorPopupEntry> command) {
+			Location = location;
+			Message = message;
+
+			ItemCommand = new RelayCommand(() => { command(this); });
+		}
 
 	}
 

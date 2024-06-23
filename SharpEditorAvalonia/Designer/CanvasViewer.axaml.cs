@@ -82,8 +82,8 @@ namespace SharpEditorAvalonia.Designer {
 		}
 
 		public void SetScale(double scale) {
-			Scale = scale;
 			WholePageZoomOn = false;
+			Scale = scale;
 		}
 
 		//private double? canvasViewHorizontalOffset = null;
@@ -140,8 +140,6 @@ namespace SharpEditorAvalonia.Designer {
 		}
 
 		private void AlignCanvas(Point positionAtImage, Point positionAtScrollViewer) {
-			// TODO Implement align canvas
-
 			if (CanvasContent is Control canvas) {
 				// this step is critical for offset
 				//CanvasViewScroller.ScrollToHorizontalOffset(0);
@@ -218,6 +216,7 @@ namespace SharpEditorAvalonia.Designer {
 
 		public void ZoomCanvasToWholePage() {
 			//Console.WriteLine($"View size: {CanvasView.ActualHeight}, Canvas size: {TestBlock.Height}");
+			WholePageZoomOn = true;
 			if (hasValidContent && CanvasContent is Control canvas) {
 				double scale = WholePageScale(canvas);
 				//SetCanvasScale(scale);
@@ -226,7 +225,6 @@ namespace SharpEditorAvalonia.Designer {
 			else {
 				Scale = 1.0f;
 			}
-			WholePageZoomOn = true;
 
 			//UpdateCanvasZoomText();
 		}

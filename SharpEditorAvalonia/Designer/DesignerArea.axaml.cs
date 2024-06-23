@@ -10,8 +10,21 @@ using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Controls.Shapes;
+using System.Windows.Input;
+using System.Diagnostics.CodeAnalysis;
+using CommunityToolkit.Mvvm.Input;
 
 namespace SharpEditorAvalonia.Designer {
+
+	public class CanvasAreaEventArgs : EventArgs {
+
+		public readonly IReadOnlyDictionary<object, RegisteredAreas> Areas;
+
+		public CanvasAreaEventArgs(IReadOnlyDictionary<object, RegisteredAreas> areas) {
+			Areas = areas;
+		}
+
+	}
 
 	public partial class DesignerArea : UserControl {
 
@@ -24,11 +37,21 @@ namespace SharpEditorAvalonia.Designer {
 
 		DesignerPageHolder? currentPage;
 
-		public event EventHandler? CanvasChanged; // TODO Better event type?
-		public event EventHandler<Dictionary<object, RegisteredAreas>>? CanvasAreaDoubleClick;
+		public event EventHandler? CanvasChanged; // Better event type?
+		public event EventHandler<CanvasAreaEventArgs>? CanvasAreaDoubleClick;
+
+		public SharpDataManager DataManager { get; }
 
 		public DesignerArea() {
+			DataManager = SharpDataManager.Instance;
+			// Create the commands here so they're available for initialisation
+			InitialiseCommands();
+
 			InitializeComponent();
+			this.DataContext = this;
+
+			// Wire up command events here so that the components have been initialised
+			WireUpCommands();
 
 			SharpDataManager.Instance.DesignerDisplayFieldsChanged += OnDesignerDisplayFieldsChanged;
 			
@@ -57,14 +80,14 @@ namespace SharpEditorAvalonia.Designer {
 					currentPage = GetDesignerPage(currentPageCanvas);
 					DesignerViewer.CanvasContent = currentPage.PageCanvas;
 
-					//UpdateDesignerDocumentHightlight(null, EventArgs.Empty);
-					CanvasChanged?.Invoke(null, EventArgs.Empty);
-
 					PageNumber.Text = (currentDesignerPageIndex + 1).ToString();
 				}
 				else {
 					PageNumber.Text = "0";
 				}
+
+				//UpdateDesignerDocumentHightlight(null, EventArgs.Empty);
+				CanvasChanged?.Invoke(null, EventArgs.Empty);
 			}
 			/*
 			else if (newDocument == null && designerDocument != null) {
@@ -335,7 +358,7 @@ namespace SharpEditorAvalonia.Designer {
 			DesignerViewer.ZoomCanvasToWholePage();
 		}
 
-		void OnCanvasScaleChanged(object? sender, EventArgs e) { // TODO Utilise this function somewhere
+		void OnCanvasScaleChanged(object? sender, EventArgs e) {
 			if (currentPage?.Highlights != null) {
 				foreach (Shape shape in currentPage.Highlights.Children.OfType<Shape>()) {
 					shape.StrokeThickness = DesignerHighlightStrokeThickness / DesignerViewer.Scale;
@@ -362,7 +385,7 @@ namespace SharpEditorAvalonia.Designer {
 				Dictionary<object, RegisteredAreas> areas = currentPageCanvas.GetAreas(pos);
 
 				if (areas.Count > 0) {
-					CanvasAreaDoubleClick?.Invoke(sender, areas);
+					CanvasAreaDoubleClick?.Invoke(sender, new CanvasAreaEventArgs(areas));
 				}
 			}
 		}
@@ -393,7 +416,7 @@ namespace SharpEditorAvalonia.Designer {
 		}
 		*/
 
-		public event EventHandler<Dictionary<object, RegisteredAreas>>? CanvasMouseMove;
+		public event EventHandler<CanvasAreaEventArgs>? CanvasMouseMove;
 
 		private void OnDesignerViewerPointerMoved(object sender, PointerEventArgs e) {
 			if (currentPageCanvas != null && DesignerViewer.CanvasContent is IInputElement) {
@@ -402,7 +425,7 @@ namespace SharpEditorAvalonia.Designer {
 
 				Dictionary<object, RegisteredAreas> areas = currentPageCanvas.GetAreas(pos);
 
-				CanvasMouseMove?.Invoke(sender, areas);
+				CanvasMouseMove?.Invoke(sender, new CanvasAreaEventArgs(areas));
 			}
 		}
 
@@ -536,6 +559,85 @@ namespace SharpEditorAvalonia.Designer {
 			public Canvas? MouseHighlights { get; set; }
 			public Canvas? Fields { get; set; }
 		}
+
+		#region Commands
+
+		public ICommand BackCommand { get; private set; }
+		public ICommand ForwardCommand { get; private set; }
+
+		public ICommand ZoomInCommand { get; private set; }
+		public ICommand ZoomOutCommand { get; private set; }
+
+		public ICommand ZoomWholePageCommand { get; private set; }
+
+		[MemberNotNull(nameof(BackCommand), nameof(ForwardCommand),
+			nameof(ZoomInCommand), nameof(ZoomOutCommand),
+			nameof(ZoomWholePageCommand))]
+		private void InitialiseCommands() {
+			BackCommand = new RelayCommand(BackExecuted, CanGoBack);
+			ForwardCommand = new RelayCommand(ForwardExecuted, CanGoForward);
+
+			ZoomInCommand = new RelayCommand(ZoomInExecuted, CanZoomIn);
+			ZoomOutCommand = new RelayCommand(ZoomOutExecuted, CanZoomOut);
+
+			ZoomWholePageCommand = new RelayCommand(ZoomWholePageExecuted, CanZoomWholePage);
+		}
+
+		private void WireUpCommands() {
+			CanvasChanged += OnCanvasChangedNotifyCommands;
+			DesignerViewer.ScaleChanged += OnCanvasScaleChangedNotifyCommands;
+		}
+
+		private void OnCanvasChangedNotifyCommands(object? sender, EventArgs e) {
+			(BackCommand as RelayCommand)?.NotifyCanExecuteChanged();
+			(ForwardCommand as RelayCommand)?.NotifyCanExecuteChanged();
+			(ZoomInCommand as RelayCommand)?.NotifyCanExecuteChanged();
+			(ZoomOutCommand as RelayCommand)?.NotifyCanExecuteChanged();
+			(ZoomWholePageCommand as RelayCommand)?.NotifyCanExecuteChanged();
+		}
+
+		private void OnCanvasScaleChangedNotifyCommands(object? sender, EventArgs e) {
+			(ZoomInCommand as RelayCommand)?.NotifyCanExecuteChanged();
+			(ZoomOutCommand as RelayCommand)?.NotifyCanExecuteChanged();
+			(ZoomWholePageCommand as RelayCommand)?.NotifyCanExecuteChanged();
+		}
+
+		private void BackExecuted() {
+			IncrementPage(-1);
+		}
+		private bool CanGoBack() {
+			return designerDocument is not null && currentDesignerPageIndex > 0;
+		}
+
+		private void ForwardExecuted() {
+			IncrementPage(1);
+		}
+		private bool CanGoForward() {
+			return designerDocument is not null && currentDesignerPageIndex < designerDocument.PageCount - 1;
+		}
+
+		private void ZoomInExecuted() {
+			DesignerViewer.UpdateCanvasZoom(true);
+		}
+		private bool CanZoomIn() {
+			return designerDocument is not null;
+		}
+
+		private void ZoomOutExecuted() {
+			DesignerViewer.UpdateCanvasZoom(false);
+		}
+		private bool CanZoomOut() {
+			return designerDocument is not null;
+		}
+
+		private void ZoomWholePageExecuted() {
+			DesignerViewer.ZoomCanvasToWholePage();
+		}
+		private bool CanZoomWholePage() {
+			return designerDocument is not null && !DesignerViewer.WholePageZoomOn;
+		}
+
+		#endregion
 
 	}
 

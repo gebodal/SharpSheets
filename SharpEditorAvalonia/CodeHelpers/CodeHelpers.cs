@@ -50,13 +50,9 @@ namespace SharpEditorAvalonia.CodeHelpers {
 			return document.GetOffset(viewPosition.Line, viewPosition.Column);
 		}
 
-		public static ISegment? GetSharpTermSegmentFromViewPosition(this TextDocument document, TextViewPosition viewPosition) {
+		public static ISegment? GetSharpTermSegmentFromOffset(this TextDocument document, int offset) {
 
 			if (document.TextLength == 0) { return null; }
-
-			int line = viewPosition.Line;
-			int column = viewPosition.Column;
-			int offset = document.GetOffset(line, column);
 
 			if ((offset + 1) >= document.TextLength) { return null; }
 			string currentChar = document.GetText(offset, 1);
@@ -78,6 +74,17 @@ namespace SharpEditorAvalonia.CodeHelpers {
 			};
 
 			return segment; // textEditor.Document.GetText(offsetStart, offsetEnd - offsetStart);
+		}
+
+		public static ISegment? GetSharpTermSegmentFromViewPosition(this TextDocument document, TextViewPosition viewPosition) {
+
+			if (document.TextLength == 0) { return null; }
+
+			int line = viewPosition.Line;
+			int column = viewPosition.Column;
+			int offset = document.GetOffset(line, column);
+
+			return GetSharpTermSegmentFromOffset(document, offset);
 		}
 
 		public static int GetNextSharpCaretPosition(this ITextSource textSource, int offset, LogicalDirection direction) {
@@ -120,6 +127,16 @@ namespace SharpEditorAvalonia.CodeHelpers {
 
 		public static string? GetSharpTermStringFromViewPosition(this TextDocument document, TextViewPosition viewPosition) {
 			ISegment? segment = GetSharpTermSegmentFromViewPosition(document, viewPosition);
+			if (segment != null && segment.Length > 0) {
+				return document.GetText(segment.Offset, segment.Length)?.Trim();
+			}
+			else {
+				return null;
+			}
+		}
+
+		public static string? GetSharpTermStringFromOffset(this TextDocument document, int offset) {
+			ISegment? segment = GetSharpTermSegmentFromOffset(document, offset);
 			if (segment != null && segment.Length > 0) {
 				return document.GetText(segment.Offset, segment.Length)?.Trim();
 			}

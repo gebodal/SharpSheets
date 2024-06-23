@@ -22,7 +22,9 @@ namespace SharpEditorAvalonia.Utilities {
 		}
 
 		public bool CanGoBack { get { return history.Count > 0 && index > 0; } }
-		public bool CanGoForward { get { return history.Count > 0 && index > history.Count - 1; } }
+		public bool CanGoForward { get { return history.Count > 0 && index < history.Count - 1; } }
+
+		public event EventHandler? NavigationFinished;
 
 		public NavigationService() {
 			this.history = new List<T>();
@@ -36,21 +38,23 @@ namespace SharpEditorAvalonia.Utilities {
 		}
 
 		public void Navigate(T content) {
-			if(history.Count == 0) {
+			if (history.Count == 0) {
 				history.Add(content);
 				index = 0;
-				return;
 			}
-			
-			if(index < history.Count - 1) {
-				history.RemoveRange(index + 1, history.Count - index - 1);
-			}
+			else {
 
-			history.Add(content);
-			index = history.Count - 1;
+				if (index < history.Count - 1) {
+					history.RemoveRange(index + 1, history.Count - index - 1);
+				}
+
+				history.Add(content);
+				index = history.Count - 1;
+			}
 
 			OnPropertyChanged(nameof(CanGoBack));
 			OnPropertyChanged(nameof(CanGoForward));
+			NavigationFinished?.Invoke(this, new EventArgs());
 		}
 
 		public bool GoForward() {
@@ -61,6 +65,7 @@ namespace SharpEditorAvalonia.Utilities {
 				index++;
 				OnPropertyChanged(nameof(CanGoBack));
 				OnPropertyChanged(nameof(CanGoForward));
+				NavigationFinished?.Invoke(this, new EventArgs());
 				return true;
 			}
 			else {
@@ -76,6 +81,7 @@ namespace SharpEditorAvalonia.Utilities {
 				index--;
 				OnPropertyChanged(nameof(CanGoBack));
 				OnPropertyChanged(nameof(CanGoForward));
+				NavigationFinished?.Invoke(this, new EventArgs());
 				return true;
 			}
 			else {

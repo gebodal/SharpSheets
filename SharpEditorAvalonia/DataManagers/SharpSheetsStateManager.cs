@@ -57,11 +57,11 @@ namespace SharpEditorAvalonia.DataManagers {
 			filesWatcher.EnableRaisingEvents = true;
 		}
 
-		private static void OnFileChange(object? source, IReadOnlyList<string> e) {
+		private static void OnFileChange(object? source, FileWatcherEventArgs e) {
 			//Console.WriteLine($"Detect file change in {nameof(SharpSheetsStateManager)}.");
 			OnTemplateDirectoryChanged();
 		}
-		private static void OnFileRename(object? source, IReadOnlyList<(string, string)> e) {
+		private static void OnFileRename(object? source, FileWatcherRenameEventArgs e) {
 			//Console.WriteLine($"Detect file rename in {nameof(SharpSheetsStateManager)}.");
 			OnTemplateDirectoryChanged();
 		}

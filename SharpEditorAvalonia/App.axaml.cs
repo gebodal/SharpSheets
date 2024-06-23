@@ -2,11 +2,13 @@
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using SharpEditorAvalonia.Documentation;
 using SharpEditorAvalonia.ViewModels;
 using SharpEditorAvalonia.Views;
 using SharpEditorAvalonia.Windows;
 using System;
+using System.Threading.Tasks;
 
 namespace SharpEditorAvalonia;
 
@@ -28,17 +30,32 @@ public partial class App : Application {
 			desktop.MainWindow = loadingWindow;
 			loadingWindow.Show();
 
+			await Task.Delay(100); // How else to get the splash screen to render?!
+
 			// Build controller
 			AppController controller = await AppController.Create(this, desktop.Args);
 			
 			// Run controller
 			controller.Run();
 
+			// Assign application main window
+			desktop.MainWindow = controller.window;
+			controller.window.Show();
+			
+			// This does not work.
+			/*
+			controller.window.Loaded += async delegate {
+				if (!loadingWindow.IsClosed) {
+					await Task.Delay(2000);
+					loadingWindow.Close();
+				}
+			};
+			*/
+
 			// Close loading window here after main window is fully loaded
 			loadingWindow.Close();
 
-			// Assign application main window
-			desktop.MainWindow = controller.window;
+			//AppDomain.CurrentDomain.UnhandledException += OnDispatcherUnhandledException;
 		}
 		else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform) {
 			singleViewPlatform.MainView = new MainView {
@@ -50,10 +67,12 @@ public partial class App : Application {
 		base.OnFrameworkInitializationCompleted();
 	}
 
-	// TODO How to implement this?
+	// How to implement this?
 	/*
-	void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e) {
-		MessageBox.Show("Unhandled exception occurred: \n" + e.Exception.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+	void OnDispatcherUnhandledException(object sender, UnhandledExceptionEventArgs e) {
+		Dispatcher.UIThread.Invoke(async () => {
+			await MessageBoxes.Show("Unhandled exception occurred: \n" + ((e.ExceptionObject as Exception)?.Message ?? "No message."), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+		});
 	}
 	*/
 

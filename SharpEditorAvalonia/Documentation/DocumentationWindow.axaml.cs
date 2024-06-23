@@ -17,6 +17,9 @@ using Avalonia.Media;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Controls.Shapes;
+using System.Windows.Input;
+using System.Diagnostics.CodeAnalysis;
+using CommunityToolkit.Mvvm.Input;
 
 namespace SharpEditorAvalonia.Documentation {
 	/// <summary>
@@ -27,17 +30,21 @@ namespace SharpEditorAvalonia.Documentation {
 		protected readonly NavigationService<DocumentationPage> navigationService;
 
 		public DocumentationWindow() {
+			this.navigationService = new NavigationService<DocumentationPage>();
+			InitialiseCommands();
+
 			InitializeComponent();
 
-			this.navigationService = new NavigationService<DocumentationPage>();
+			DataContext = this;
 
 			this.Title = $"{SharpEditorData.GetEditorName()} Documentation";
 			TitleTextBlock.MakeFontSizeRelative(1.25);
+
+			this.AddHandler(Window.PointerPressedEvent, OnWindowPointerPressed, RoutingStrategies.Tunnel, false);
+
+			navigationService.NavigationFinished += OnNavigated;
 			
-			// TODO Implement navigation properly
-			//DocFrame.NavigationService.Navigated += NavigationFinished;
-			DataContext = this;
-			
+			// Finally, navigate to home page
 			NavigateTo(DocumentationPageBuilder.CreateHomePage(this));
 		}
 
@@ -72,39 +79,31 @@ namespace SharpEditorAvalonia.Documentation {
 		}
 
 		public void NavigateTo(DocumentationPage page) {
-			//Console.WriteLine("Navigate to " + page.Title);
-			//DocFrame.NavigationService.Navigate(page);
+			Console.WriteLine("Navigate to " + page.Title);
 			navigationService.Navigate(page);
+		}
+
+		private void OnNavigated(object? sender, EventArgs e) {
+			Console.WriteLine("OnNavigated");
 			DocFrame.Children.Clear();
 			if (navigationService.Current is DocumentationPage current) {
 				DocFrame.Children.Add(current);
 				TitleTextBlock.Text = (DocFrame.Children[0] as DocumentationPage)?.Title ?? "Documentation";
-				//Console.WriteLine("Navigated");
+				Console.WriteLine("Navigated");
 			}
 		}
 
-		/*
-		void BrowseBackExecuted(object target, ExecutedRoutedEventArgs e) {
-			Back();
-			e.Handled = true;
-		}
-		void BrowseForwardExecuted(object target, ExecutedRoutedEventArgs e) {
-			Next();
-			e.Handled = true;
-		}
-		void BrowseHomeExecuted(object target, ExecutedRoutedEventArgs e) {
-			Home();
-			e.Handled = true;
-		}
-		void RefreshExecuted(object target, ExecutedRoutedEventArgs e) {
-			Refresh();
-			e.Handled = true;
+		private void Home() {
+			if (!(DocFrame.Children[0] is DocumentationPage page && page.Title == Documentation.DocumentationRoot.name)) {
+				NavigateTo(DocumentationPageBuilder.CreateHomePage(this));
+			}
 		}
 
-		void NavigationCommandCanExecute(object? sender, CanExecuteRoutedEventArgs e) {
-			e.CanExecute = true;
+		private void Refresh() {
+			if (DocFrame.Children[0] is DocumentationPage page) {
+				page.RefreshPage();
+			}
 		}
-		*/
 
 		public void NavigateTo(ConstructorDetails constructor, Func<ConstructorDetails?>? refreshAction) {
 			if (typeof(IMarkupElement).IsAssignableFrom(constructor.DeclaringType)) {
@@ -128,98 +127,6 @@ namespace SharpEditorAvalonia.Documentation {
 		}
 		public void NavigateTo(FontFamilyName fontFamilyName) {
 			NavigateTo(FontPageBuilder.GetFontFamilyPage(fontFamilyName, this));
-		}
-
-
-		#region Navigation DependencyProperties
-
-		/*
-		public event PropertyChangedEventHandler PropertyChanged;
-
-		protected virtual void OnPropertyChanged(string propertyName) {
-			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-		}
-
-		public bool CanGoBack {
-			get {
-				return (bool)GetValue(CanGoBackProperty);
-			}
-			set {
-				SetValue(CanGoBackProperty, value);
-				OnPropertyChanged(nameof(CanGoBack));
-			}
-		}
-
-		public bool CanGoForward {
-			get {
-				return (bool)GetValue(CanGoForwardProperty);
-			}
-			set {
-				SetValue(CanGoForwardProperty, value);
-				NotifyPropertyChanged("CanGoForward");
-			}
-		}
-		*/
-
-		/*
-		private void NavigationFinished(object? sender, System.Windows.Navigation.NavigationEventArgs e) {
-			CanGoBack = DocFrame.NavigationService.CanGoBack;
-			CanGoForward = DocFrame.NavigationService.CanGoForward;
-			TitleTextBlock.Text = (DocFrame.Content as DocumentationPage)?.Title ?? "Documentation";
-			//Console.WriteLine("Navigated: " + CanGoBack + ", " + CanGoForward);
-		}
-		*/
-
-		#endregion Navigation DependencyProperties
-		
-		private void OnBackClick(object? sender, RoutedEventArgs e) => Back();
-		private void OnNextClick(object? sender, RoutedEventArgs e) => Next();
-		private void OnHomeClick(object? sender, RoutedEventArgs e) => Home();
-		private void OnRefreshClick(object? sender, RoutedEventArgs e) => Refresh();
-		
-		private void Back() {
-			//if (DocFrame.NavigationService.CanGoBack) {
-			//	DocFrame.NavigationService.GoBack();
-			//	//Console.WriteLine("Back");
-			//}
-			if (navigationService.CanGoBack) {
-				navigationService.GoBack();
-			}
-		}
-
-		private void Next() {
-			//if (DocFrame.NavigationService.CanGoForward) {
-			//	DocFrame.NavigationService.GoForward();
-			//	//Console.WriteLine("Next");
-			//}
-			if (navigationService.CanGoForward) {
-				navigationService.GoForward();
-			}
-		}
-
-		private void Home() {
-			////if (DocFrame.NavigationService.CanGoBack) {
-			////	var entry = DocFrame.NavigationService.RemoveBackEntry();
-			////	while (entry != null) {
-			////		entry = DocFrame.NavigationService.RemoveBackEntry();
-			////	}
-			////}
-
-			////while (DocFrame.NavigationService.CanGoBack) {
-			////	Console.WriteLine("Go back");
-			////	DocFrame.NavigationService.GoBack();
-			////}
-			////DocFrame.NavigationService.RemoveBackEntry();
-
-			if (!(DocFrame.Children[0] is DocumentationPage page && page.Title == Documentation.DocumentationRoot.name)) {
-				NavigateTo(DocumentationPageBuilder.CreateHomePage(this));
-			}
-		}
-
-		private void Refresh() {
-			if (DocFrame.Children[0] is DocumentationPage page) {
-				page.RefreshPage();
-			}
 		}
 
 		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(ConstructorDetails constructor, Func<ConstructorDetails?>? refreshAction) {
@@ -327,6 +234,64 @@ namespace SharpEditorAvalonia.Documentation {
 		private static Func<ConstructorDetails?> CardElementConstructorFunc(string name) {
 			return () => CardSetConfigFactory.ConfigConstructors.Get(name);
 		}
+
+		#region Commands
+
+		public ICommand BackCommand { get; private set; }
+		public ICommand ForwardCommand { get; private set; }
+
+		public ICommand HomeCommand { get; private set; }
+		public ICommand RefreshCommand { get; private set; }
+
+		[MemberNotNull(nameof(BackCommand), nameof(ForwardCommand),
+			nameof(HomeCommand), nameof(RefreshCommand))]
+		private void InitialiseCommands() {
+			BackCommand = new RelayCommand(BackExecuted, CanGoBack);
+			ForwardCommand = new RelayCommand(ForwardExecuted, CanGoForward);
+
+			HomeCommand = new RelayCommand(Home);
+			RefreshCommand = new RelayCommand(Refresh);
+
+			navigationService.PropertyChanged += OnNavigationServiceUpdate;
+		}
+
+		private void OnNavigationServiceUpdate(object? sender, PropertyChangedEventArgs e) {
+			(BackCommand as RelayCommand)?.NotifyCanExecuteChanged();
+			(ForwardCommand as RelayCommand)?.NotifyCanExecuteChanged();
+		}
+
+		private void BackExecuted() {
+			navigationService.GoBack();
+		}
+		private bool CanGoBack() {
+			return navigationService.CanGoBack;
+		}
+
+		private void ForwardExecuted() {
+			navigationService.GoForward();
+		}
+		private bool CanGoForward() {
+			return navigationService.CanGoForward;
+		}
+
+		#endregion Commands
+
+		#region Pointer events
+
+		private void OnWindowPointerPressed(object? sender, PointerPressedEventArgs e) {
+			PointerPoint point = e.GetCurrentPoint(sender as Control);
+			if (point.Properties.IsXButton1Pressed) {
+				navigationService.GoBack();
+				e.Handled = true;
+			}
+			else if (point.Properties.IsXButton2Pressed) {
+				navigationService.GoForward();
+				e.Handled = true;
+			}
+		}
+
+		#endregion Pointer events
+
 	}
 
 }

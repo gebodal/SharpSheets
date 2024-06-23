@@ -56,18 +56,14 @@ namespace SharpEditorAvalonia.ContentBuilders {
 		}
 
 		public static T AddMargin<T>(this T element, Thickness margin) where T : Control {
-			Console.WriteLine($"Add margin {margin} to {element.Margin}");
 			Thickness initial = element.Margin;
 			element.Margin = initial + margin;
-			Console.WriteLine($"Final margin {element.Margin}");
 			return element;
 		}
 
 		public static T AddIndent<T>(this T element, double indent) where T : Control {
-			Console.WriteLine($"Add indent {indent} to {element.Margin}");
 			Thickness margin = element.Margin;
 			element.Margin = margin + new Thickness(indent, 0, 0, 0);
-			Console.WriteLine($"Final margin {element.Margin}");
 			return element;
 		}
 

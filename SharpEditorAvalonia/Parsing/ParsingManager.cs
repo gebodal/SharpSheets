@@ -249,19 +249,19 @@ namespace SharpEditorAvalonia {
 		public void Start() {
 			parseDispatcher.Start();
 			loadResultDispatcher.Start();
-			//Console.WriteLine("Parsing Manager Started");
+			Console.WriteLine("Parsing Manager Started");
 		}
 		public void Stop() {
 			parseDispatcher.Stop();
 			loadResultDispatcher.Stop();
-			//Console.WriteLine("Parsing Manager Stopped");
+			Console.WriteLine("Parsing Manager Stopped");
 		}
 
 		public void Reset() {
 			resultQueue.Clear();
 			drawingErrorQueue.Clear();
 			parsingState?.Reset(); // TODO This good here?
-			//Console.WriteLine("Parsing Manager Reset");
+			Console.WriteLine("Parsing Manager Reset");
 		}
 
 		/// <summary>
@@ -276,9 +276,9 @@ namespace SharpEditorAvalonia {
 
 		void ParseDocument(object? sender, DoWorkEventArgs args) {
 			IParser? parser = parsingState?.Parser;
-			//if (parser != null && textArea.IsVisible && (textChanged || DateTime.Now.Subtract(lastParseRun) > MaximumWait)) {
+			bool textAreaIsVisible = Dispatcher.UIThread.Invoke(() => { return textArea.IsVisible; });
 
-			if (parser != null && textArea.IsVisible && (textChanged || (parsingState?.Dependencies?.Any(f => File.GetLastWriteTimeUtc(f.Path) > lastParseTime) ?? false))) {
+			if (parser != null && textAreaIsVisible && (textChanged || (parsingState?.Dependencies?.Any(f => File.GetLastWriteTimeUtc(f.Path) > lastParseTime) ?? false))) {
 				double textChangeTimeDelta;
 				lock (textChangedLock) {
 					textChangeTimeDelta = (DateTime.UtcNow - textChangedTime).TotalSeconds;

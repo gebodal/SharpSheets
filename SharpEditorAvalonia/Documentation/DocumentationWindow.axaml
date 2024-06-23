@@ -2,12 +2,15 @@
 		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:local="using:SharpEditorAvalonia.Documentation"
 		mc:Ignorable="d"
+		x:DataType="local:DocumentationWindow"
 		Title="Documentation" d:DesignWidth="700" d:DesignHeight="600"
 		Width="700" Height="600"
 		x:Class="SharpEditorAvalonia.Documentation.DocumentationWindow"
 		Background="#424245"
 		Foreground="White"
+		FontSize="13"
 		FontFamily="{StaticResource ApplicationFont}">
 
 	<DockPanel>
@@ -20,18 +23,18 @@
 				<ColumnDefinition Width="*"/>
 				<ColumnDefinition Width="Auto"/>
 			</Grid.ColumnDefinitions>
-			<Button Grid.Column="0" Click="OnBackClick" Margin="0,2"
-					IsEnabled="{Binding navigationServive.CanGoBack, Mode=OneWay}">
+			<Button Grid.Column="0" Command="{Binding BackCommand}" Margin="0,2"
+					><!--IsEnabled="{Binding navigationServive.CanGoBack, Mode=OneWay}"-->
 				<Image Source="../Images/Previous.png" Height="32"/>
 			</Button>
-			<Button Grid.Column="1" Click="OnNextClick" Margin="0,2"
-					IsEnabled="{Binding navigationServive.CanGoForward, Mode=OneWay}">
+			<Button Grid.Column="1" Command="{Binding ForwardCommand}" Margin="0,2"
+					><!--IsEnabled="{Binding navigationServive.CanGoForward, Mode=OneWay}"-->
 				<Image Source="../Images/Next.png" Height="32"/>
 			</Button>
-			<Button Grid.Column="2" Click="OnHomeClick" Margin="4,2">
+			<Button Grid.Column="2" Command="{Binding HomeCommand}" Margin="4,2">
 				<Image Source="../Images/Home.png" Height="32"/>
 			</Button>
-			<Button Grid.Column="3" Click="OnRefreshClick" Margin="0,2">
+			<Button Grid.Column="3" Command="{Binding RefreshCommand}" Margin="0,2">
 				<Image Source="../Images/Refresh.png" Height="32"/>
 			</Button>
 			<TextBlock Grid.Column="5" Name="TitleTextBlock"

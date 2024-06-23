@@ -26,7 +26,7 @@ namespace SharpEditorAvalonia.Windows {
 				SuggestedStartLocation = startLocation
 			});
 
-			return files.Select(f => f.Path.AbsolutePath).ToArray();
+			return files.Select(f => f.Path.LocalPath).ToArray();
 		}
 
 		public static async Task<string[]> OpenFilePicker(this Visual visual, string title, bool allowMultiple, string? startingLocation, string? filter) {
@@ -57,7 +57,7 @@ namespace SharpEditorAvalonia.Windows {
 				SuggestedStartLocation = startLocation
 			});
 
-			return file?.Path.AbsolutePath;
+			return file?.Path.LocalPath;
 		}
 
 		public static async Task<string?> SaveFilePicker(this Visual visual, string title, string? suggestedName, string? defaultExtension, string? startingLocation, string? filter, bool showOverwritePrompt = true) {
@@ -85,7 +85,7 @@ namespace SharpEditorAvalonia.Windows {
 				SuggestedStartLocation = startLocation
 			});
 
-			return folders.Select(f => f.Path.AbsolutePath).ToArray();
+			return folders.Select(f => f.Path.LocalPath).ToArray();
 		}
 
 		public static async Task<string[]> OpenDirectoryPicker(this Visual visual, string title, bool allowMultiple, string? startingLocation) {

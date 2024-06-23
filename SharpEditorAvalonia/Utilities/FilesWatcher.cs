@@ -8,6 +8,31 @@ using System.Threading.Tasks;
 
 namespace SharpEditorAvalonia.Utilities {
 
+	public enum FileWatcherEventType {
+		Created,
+		Changed,
+		Deleted,
+		Renamed
+	}
+
+	public class FileWatcherEventArgs : EventArgs {
+		public FileWatcherEventType Type { get; }
+		public IReadOnlyList<string> Files { get; }
+		public FileWatcherEventArgs(FileWatcherEventType type, IEnumerable<string> files) {
+			Type = type;
+			Files = files.ToList();
+		}
+		public FileWatcherEventArgs(FileWatcherEventType type, params string[] files) : this(type, (IEnumerable<string>)files) { }
+	}
+
+	public class FileWatcherRenameEventArgs : FileWatcherEventArgs {
+		public IReadOnlyList<(string oldName, string newName)> Renamed { get; }
+		public FileWatcherRenameEventArgs(IEnumerable<(string oldName, string newName)> files) : base(FileWatcherEventType.Renamed, files.Select(f => f.newName)) {
+			Renamed = files.ToList();
+		}
+		public FileWatcherRenameEventArgs(params (string oldName, string newName)[] files) : this((IEnumerable<(string, string)>)files) { }
+	}
+
 	public class FilesWatcher {
 
 		private readonly FileSystemWatcher fileWatcher;
@@ -42,13 +67,13 @@ namespace SharpEditorAvalonia.Utilities {
 		}
 
 		private readonly ThrottleTimer<string> createdThrottle;
-		public EventHandler<IReadOnlyList<string>>? Created;
+		public EventHandler<FileWatcherEventArgs>? Created;
 		private readonly ThrottleTimer<string> changedThrottle;
-		public EventHandler<IReadOnlyList<string>>? Changed;
+		public EventHandler<FileWatcherEventArgs>? Changed;
 		private readonly ThrottleTimer<string> deletedThrottle;
-		public EventHandler<IReadOnlyList<string>>? Deleted;
+		public EventHandler<FileWatcherEventArgs>? Deleted;
 		private readonly ThrottleTimer<(string oldName, string newName)> renamedThrottle;
-		public EventHandler<IReadOnlyList<(string oldName, string newName)>>? Renamed;
+		public EventHandler<FileWatcherRenameEventArgs>? Renamed;
 
 		public FilesWatcher() {
 			fileWatcher = new FileSystemWatcher {
@@ -70,10 +95,10 @@ namespace SharpEditorAvalonia.Utilities {
 			deletedThrottle = new ThrottleTimer<string>() { Interval = interval };
 			renamedThrottle = new ThrottleTimer<(string, string)>() { Interval = interval };
 
-			createdThrottle.ThrottledTick += (s, e) => { Created?.Invoke(s, e); };
-			changedThrottle.ThrottledTick += (s, e) => { Changed?.Invoke(s, e); };
-			deletedThrottle.ThrottledTick += (s, e) => { Deleted?.Invoke(s, e); };
-			renamedThrottle.ThrottledTick += (s, e) => { Renamed?.Invoke(s, e); };
+			createdThrottle.ThrottledTick += (s, e) => { Created?.Invoke(s, new FileWatcherEventArgs(FileWatcherEventType.Created, e)); };
+			changedThrottle.ThrottledTick += (s, e) => { Changed?.Invoke(s, new FileWatcherEventArgs(FileWatcherEventType.Changed, e)); };
+			deletedThrottle.ThrottledTick += (s, e) => { Deleted?.Invoke(s, new FileWatcherEventArgs(FileWatcherEventType.Deleted, e)); };
+			renamedThrottle.ThrottledTick += (s, e) => { Renamed?.Invoke(s, new FileWatcherRenameEventArgs(e)); };
 		}
 
 		private void OnFileCreated(object source, FileSystemEventArgs e) {
@@ -81,7 +106,7 @@ namespace SharpEditorAvalonia.Utilities {
 				createdThrottle.Enqueue(e.FullPath);
 			}
 			else {
-				Created?.Invoke(source, new List<string>() { e.FullPath });
+				Created?.Invoke(source, new FileWatcherEventArgs(FileWatcherEventType.Created, e.FullPath));
 			}
 		}
 
@@ -90,7 +115,7 @@ namespace SharpEditorAvalonia.Utilities {
 				changedThrottle.Enqueue(e.FullPath);
 			}
 			else {
-				Changed?.Invoke(source, new List<string>() { e.FullPath });
+				Changed?.Invoke(source, new FileWatcherEventArgs(FileWatcherEventType.Changed, e.FullPath));
 			}
 		}
 
@@ -99,7 +124,7 @@ namespace SharpEditorAvalonia.Utilities {
 				deletedThrottle.Enqueue(e.FullPath);
 			}
 			else {
-				Deleted?.Invoke(source, new List<string>() { e.FullPath });
+				Deleted?.Invoke(source, new FileWatcherEventArgs(FileWatcherEventType.Deleted, e.FullPath));
 			}
 		}
 
@@ -108,7 +133,7 @@ namespace SharpEditorAvalonia.Utilities {
 				renamedThrottle.Enqueue((e.OldFullPath, e.FullPath));
 			}
 			else {
-				Renamed?.Invoke(source, new List<(string, string)>() { (e.OldFullPath, e.FullPath) });
+				Renamed?.Invoke(source, new FileWatcherRenameEventArgs((e.OldFullPath, e.FullPath)));
 			}
 		}
 

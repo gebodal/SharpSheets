@@ -8,6 +8,9 @@ using System.IO;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using System.Threading.Tasks;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Interactivity;
+using Avalonia;
 
 namespace SharpEditorAvalonia {
 
@@ -15,7 +18,6 @@ namespace SharpEditorAvalonia {
 
 		private readonly App appInstance;
 		public readonly SharpEditorWindow window;
-		private bool windowMaximized;
 
 		public AppController(App app) {
 			this.appInstance = app;
@@ -29,23 +31,17 @@ namespace SharpEditorAvalonia {
 			
 			AppController controller = new AppController(app);
 
-			await controller.AppInitialization(controller.window);
+			await controller.AppInitialization();
 
 			// Initialise static variables in data handlers
 			SharpSheetsStateManager.Initialise();
 			SharpEditorPalette.Initialise();
 			SharpEditorRegistries.Initialise();
 
-			// TODO Implement here
-			/*
-			this.window.StateChanged += Window_StateChanged;
-			windowMaximized = SharpEditor.Properties.Settings.Default.WindowMaximized;
+			controller.window.GetObservable(Window.WindowStateProperty).Subscribe(controller.Window_StateChanged);
 
-			SharpEditorRegistries.OnRegistryErrorsChanged += OnRegistryErrorsChanged;
-			this.window.TemplateAlertEnabled = SharpEditorRegistries.HasRegistryErrors;
-
-			this.appInstance.Exit += OnApplicationExit;
-			*/
+			SharpEditorRegistries.OnRegistryErrorsChanged += controller.OnRegistryErrorsChanged;
+			controller.window.TemplateAlertEnabled = SharpEditorRegistries.HasRegistryErrors;
 
 			// If we were passed any arguments, check if they are files, and if so open them
 			if (args is not null && args.Length > 0) {
@@ -59,46 +55,34 @@ namespace SharpEditorAvalonia {
 			return controller;
 		}
 
-		// TODO Implement here
-		/*
-		private void OnApplicationExit(object? sender, ExitEventArgs e) {
-			// Save window maximised setting before exiting
-			SharpEditor.Properties.Settings.Default.WindowMaximized = windowMaximized;
-			SharpEditor.Properties.Settings.Default.Save();
-		}
-		*/
-
-		private void Window_StateChanged(object? sender, EventArgs e) {
-			if(window.WindowState == WindowState.Normal) {
-				windowMaximized = false;
+		private void Window_StateChanged(WindowState state) {
+			if (window.IsLoaded) {
+				if (state == WindowState.Normal) {
+					SharpDataManager.Instance.WindowMaximized = false;
+				}
+				else if (state == WindowState.Maximized) {
+					SharpDataManager.Instance.WindowMaximized = true;
+				}
+				// Otherwise leave unchanged
 			}
-			else if(window.WindowState == WindowState.Maximized) {
-				windowMaximized = true;
-			}
-			// Otherwise leave unchanged
 		}
 
 		public void Run() {
 			// Retrieve previous maximized state
-			if (windowMaximized) {
+			if (SharpDataManager.Instance.WindowMaximized) {
 				window.WindowState = WindowState.Maximized;
 			}
+			else {
+				window.WindowState = WindowState.Normal;
+			}
 
-			window.Show();
+			//window.Show();
 		}
 
 		public void Exit(bool closeMainWindow) {
-			if (documentationWindow != null) {
-				documentationWindow.Close();
-			}
-
-			if (templateErrorWindow != null) {
-				templateErrorWindow.Close();
-			}
-
-			if (settingsWindow != null) {
-				settingsWindow.Close();
-			}
+			documentationWindow?.Close();
+			templateErrorWindow?.Close();
+			settingsWindow?.Close();
 
 			if (closeMainWindow) {
 				window.Close();
@@ -106,14 +90,13 @@ namespace SharpEditorAvalonia {
 
 			if (window.IsClosed) {
 				// And finally, exit application
-				//System.Windows.Application.Current.Shutdown();
-				// TODO How to implement application exit here?
+				(appInstance.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown(0);
 			}
 		}
 
 		#region App Initialization
 
-		private async Task AppInitialization(Window window) {
+		private async Task AppInitialization() {
 			if (!SharpEditorPathInfo.IsTemplateDirectorySet) {
 				MessageBoxResult result = await MessageBoxes.Show($"You must select a template directory.\n\nDo you wish to select a custom directory? (The default is {SharpEditorPathInfo.GetDefaultApplicationTemplateDirectory()})\n\nThis can be changed later in Settings.", "Template Directory", MessageBoxButton.YesNo, MessageBoxImage.Information);
 
@@ -241,8 +224,6 @@ namespace SharpEditorAvalonia {
 		public SettingsWindow ActivateSettingsWindow() {
 			if (settingsWindow == null || settingsWindow.IsClosed) {
 				settingsWindow = new SettingsWindow();
-				//settingsWindow.Owner = this.window;
-				//settingsWindow.Show();
 				settingsWindow.ShowDialog(this.window);
 			}
 			else {

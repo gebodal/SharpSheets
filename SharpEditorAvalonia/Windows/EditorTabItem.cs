@@ -39,7 +39,6 @@ namespace SharpEditorAvalonia.Windows {
 				VerticalAlignment = VerticalAlignment.Center,
 				Foreground = new SolidColorBrush(Colors.White)
 			};
-			ToolTip.SetTip(headerText, editor.CurrentFilePath ?? editor.CurrentFileName);
 
 			// Close button to remove the tab
 			/*
@@ -56,8 +55,8 @@ namespace SharpEditorAvalonia.Windows {
 				VerticalAlignment = VerticalAlignment.Center
 			};
 			closeButton.Click +=
-				(sender, e) => {
-					window.CloseTab(this);
+				async (sender, e) => {
+					await window.CloseTab(this);
 				};
 
 			Grid.SetColumn(headerText, 0);
@@ -73,13 +72,15 @@ namespace SharpEditorAvalonia.Windows {
 			border.PointerPressed += HeaderPanel_PointerPressed;
 
 			editor.UpdateHeader += DocumentHeaderChanged;
+
+			ToolTip.SetTip(Header, editor.CurrentFilePath ?? editor.CurrentFileName);
 		}
 
-		private void HeaderPanel_PointerPressed(object? sender, PointerPressedEventArgs e) {
+		private async void HeaderPanel_PointerPressed(object? sender, PointerPressedEventArgs e) {
 			PointerPoint point = e.GetCurrentPoint(sender as Control);
 
 			if (point.Properties.IsMiddleButtonPressed) {
-				window.CloseTab(this);
+				await window.CloseTab(this);
 				e.Handled = true;
 			}
 		}
@@ -87,7 +88,7 @@ namespace SharpEditorAvalonia.Windows {
 		private void DocumentHeaderChanged(object? sender, UpdateHeaderEventArgs e) {
 			headerText.Text = Content.Header;
 			//headerText.ToolTip = Content.CurrentFilePath ?? Content.CurrentFileName;
-			ToolTip.SetTip(headerText, Content.CurrentFilePath ?? Content.CurrentFileName);
+			ToolTip.SetTip(Header, Content.CurrentFilePath ?? Content.CurrentFileName);
 		}
 	}
 

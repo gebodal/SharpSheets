@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using SharpSheets.Canvas;
 using SharpSheets.Exceptions;
 
@@ -42,7 +44,7 @@ namespace SharpEditorAvalonia.Designer {
 		private readonly EventHandler newStateHandler;
 		private readonly BlockingCollection<GenerateData> dataQueue;
 		private readonly CancellationTokenSource cancellationSource;
-		private CancellationToken cancellationToken;
+		private readonly CancellationToken cancellationToken;
 
 		private DesignerGenerator(Control designerArea, ParsingManager parsingManager) {
 			this.designerArea = designerArea;
@@ -102,11 +104,12 @@ namespace SharpEditorAvalonia.Designer {
 			NewContentAvailable?.Invoke(this, EventArgs.Empty);
 		}
 
-		void Run() {
+		async void Run() {
 			while (!cancellationToken.IsCancellationRequested && !dataQueue.IsCompleted) {
 
 				GenerateData data;
 				try {
+					//Console.WriteLine("Generator checking for content...");
 					data = dataQueue.Take(cancellationToken);
 					// If there are more recent entries, get the most recent one
 					while (dataQueue.TryTake(out GenerateData? newerData, 100, cancellationToken)) {
@@ -117,7 +120,9 @@ namespace SharpEditorAvalonia.Designer {
 					break;
 				}
 
-				if (!cancellationToken.IsCancellationRequested && designerArea.IsVisible && data != null && data.DocumentContent != null && !ReferenceEquals(LastProcessedDocumentContent, data.DocumentContent) && !ReferenceEquals(DocumentContent, data.DocumentContent)) {
+				bool designerAreaIsVisible = Dispatcher.UIThread.Invoke(() => { return designerArea.IsVisible; });
+
+				if (!cancellationToken.IsCancellationRequested && designerAreaIsVisible && data != null && data.DocumentContent != null && !ReferenceEquals(LastProcessedDocumentContent, data.DocumentContent) && !ReferenceEquals(DocumentContent, data.DocumentContent)) {
 
 					GenerationStarted?.Invoke(GenerationState.NONE);
 					GenerationState success = GenerationState.NONE;
@@ -129,8 +134,12 @@ namespace SharpEditorAvalonia.Designer {
 
 					try {
 						SharpAvaloniaDrawingDocument nextDocument = new SharpAvaloniaDrawingDocument();
+						SharpDrawingException[] drawingErrors = new SharpDrawingException[0];
 
-						newContent.DrawTo(nextDocument, out SharpDrawingException[] drawingErrors, cancellationToken);
+						// This currently causes application to hang while drawing
+						await Dispatcher.UIThread.InvokeAsync(() => {
+							newContent.DrawTo(nextDocument, out drawingErrors, cancellationToken);
+						}, DispatcherPriority.ApplicationIdle);
 
 						if (cancellationToken.IsCancellationRequested) { break; }
 
@@ -143,14 +152,16 @@ namespace SharpEditorAvalonia.Designer {
 
 						if (drawingErrors.Length > 0) {
 							parsingManager.LoadDrawingErrors(drawingErrors);
+							Console.WriteLine(string.Join("\n\n", drawingErrors.Select(e => e.ToString())));
 						}
 						else { parsingManager.ResetDrawingErrors(); }
 					}
-					catch (Exception) {
+					catch (Exception e) {
 						Document = null;
 						DrawingMapper = null;
 						parsingManager.LoadDrawingErrors(new SharpDrawingException[] { new SharpDrawingException(this, "Unknown drawing error.") });
 						success = GenerationState.ERROR;
+						Console.WriteLine(e);
 					}
 					finally {
 						if (!cancellationToken.IsCancellationRequested) {
