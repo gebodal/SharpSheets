@@ -56,13 +56,13 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			titleBlock.Inlines.AddRange(inlines);
 
 			titleBlock.MakeFontSizeRelative(level switch {
-				int i when i <= 0 => 3.0,
-				1 => 2.5,
-				2 => 2.0,
-				3 => 1.5,
-				4 => 1.25,
-				5 => 1.15,
-				_ => 1.1
+				int i when i <= 0 => TextBlockClass.H1, // 3.0
+				1 => TextBlockClass.H2, // 2.5
+				2 => TextBlockClass.H3, // 2.0
+				3 => TextBlockClass.H4, // 1.5
+				4 => TextBlockClass.H5, // 1.25
+				5 => TextBlockClass.H6, // 1.15
+				_ => TextBlockClass.H7 // 1.1
 			});
 
 			return titleBlock;

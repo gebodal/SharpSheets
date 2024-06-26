@@ -109,7 +109,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
 			titleBlock.Inlines?.Add(new Run(")"));
 
-			titleBlock.MakeFontSizeRelative(1.1);
+			titleBlock.MakeFontSizeRelative(TextBlockClass.H7);
 
 			argPanel.Children.Add(titleBlock);
 
@@ -159,7 +159,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				titleBlock.Inlines?.Add(new Run(")"));
 			}
 
-			titleBlock.MakeFontSizeRelative(1.1);
+			titleBlock.MakeFontSizeRelative(TextBlockClass.H7);
 
 			argPanel.Children.Add(titleBlock);
 

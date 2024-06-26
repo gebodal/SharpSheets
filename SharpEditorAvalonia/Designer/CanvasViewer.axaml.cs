@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AvaloniaEdit.Utils;
 using System;
@@ -12,6 +13,7 @@ namespace SharpEditorAvalonia.Designer {
 
 	// FrameworkElement -> Control
 	// MouseButtonEventHandler -> EventHandler<PointerPressedEventArgs>
+	// .ActualWidth -> .Bounds.Width
 
 	public partial class CanvasViewer : UserControl {
 
@@ -229,46 +231,52 @@ namespace SharpEditorAvalonia.Designer {
 			//UpdateCanvasZoomText();
 		}
 
-		//private static readonly double ShowAreaBorderFactor = 0.1;
+		private static readonly double ShowAreaBorderFactor = 0.1;
 		public void ShowArea(double x1, double y1, double x2, double y2, bool zoomToArea) {
-			// TODO Implement show area
-			/*
 			if (!hasValidContent) { return; }
 
-			double xMin = Math.Min(x1, x2);
-			double xMax = Math.Max(x1, x2);
-			double yMin = Math.Min(y1, y2);
-			double yMax = Math.Max(y1, y2);
-			double areaWidth = xMax - xMin;
-			double areaHeight = yMax - yMin;
-			double x = xMin + 0.5 * (xMax - xMin); // Centre x
-			double y = yMin + 0.5 * (yMax - yMin); // Centre y
+			Dispatcher.UIThread.Invoke(() => { // Send to dispatcher so that whole operation is atomic with regards to UI (no flicker)
+				double xMin = Math.Min(x1, x2);
+				double xMax = Math.Max(x1, x2);
+				double yMin = Math.Min(y1, y2);
+				double yMax = Math.Max(y1, y2);
+				double areaWidth = xMax - xMin;
+				double areaHeight = yMax - yMin;
+				double cx = xMin + 0.5 * (xMax - xMin); // Centre x
+				double cy = yMin + 0.5 * (yMax - yMin); // Centre y
 
-			double border = ShowAreaBorderFactor * Math.Max(areaWidth, areaHeight);
-			double areaXScale = CanvasView.ActualWidth / (2 * border + areaWidth);
-			double areaYScale = CanvasView.ActualHeight / (2 * border + areaHeight);
-			double areaScale = Math.Min(areaXScale, areaYScale);
+				double border = ShowAreaBorderFactor * Math.Max(areaWidth, areaHeight);
+				double areaXScale = CanvasViewScroller.Bounds.Width / (2 * border + areaWidth);
+				double areaYScale = CanvasViewScroller.Bounds.Height / (2 * border + areaHeight);
+				double areaScale = Math.Min(areaXScale, areaYScale);
 
-			if (zoomToArea || areaScale < Scale) {
-				double wholePageScale = WholePageScale((Control)CanvasContent);
-				double finalScale = Math.Max(areaScale, wholePageScale);
+				double finalScale = Scale;
+				if (zoomToArea || areaScale < Scale) {
+					double wholePageScale = WholePageScale(CanvasContent!);
+					finalScale = Math.Max(areaScale, wholePageScale); // Don't zoom out more than "whole page" level
+				}
+
+				//Console.WriteLine($"CanvasView > x: {CanvasView.HorizontalOffset:F3}, y: {CanvasView.VerticalOffset:F3}, w: {CanvasView.ActualWidth:F3}, h: {CanvasView.ActualHeight:F3}");
+				//Console.WriteLine($"CanvasView.Scrollable > w: {CanvasView.ScrollableWidth:F3}, h: {CanvasView.ScrollableHeight:F3}");
+				//Console.WriteLine($"CanvasContent > w: {CanvasContent.Width:F3} ({CanvasContent.ActualWidth:F3}), h: {CanvasContent.Height:F3} ({CanvasContent.ActualHeight:F3})");
+				//Console.WriteLine($"CanvasContent (scaled) > w: {Scale * CanvasContent.Width:F3}, h: {Scale * CanvasContent.Height:F3}");
+
+				double horizontalCenter = ((CanvasViewScroller.Viewport.Width / 2) - (areaWidth * finalScale / 2));
+				double horizontalOffset = finalScale * (cx - 0.5 * areaWidth) - horizontalCenter;
+
+				double verticalCenter = ((CanvasViewScroller.Viewport.Height / 2) - (areaHeight * finalScale / 2));
+				double verticalOffset = finalScale * (cy - 0.5 * areaHeight) - verticalCenter;
+
+				//CanvasViewScroller.ScrollToHorizontalOffset(horizontalOffset);
+				//CanvasViewScroller.ScrollToVerticalOffset(verticalOffset);
+
+				//Console.WriteLine($"({horizontalOffset}, {verticalOffset})");
+
 				SetScale(finalScale);
-			}
-
-			//Console.WriteLine($"CanvasView > x: {CanvasView.HorizontalOffset:F3}, y: {CanvasView.VerticalOffset:F3}, w: {CanvasView.ActualWidth:F3}, h: {CanvasView.ActualHeight:F3}");
-			//Console.WriteLine($"CanvasView.Scrollable > w: {CanvasView.ScrollableWidth:F3}, h: {CanvasView.ScrollableHeight:F3}");
-			//Console.WriteLine($"CanvasContent > w: {CanvasContent.Width:F3} ({CanvasContent.ActualWidth:F3}), h: {CanvasContent.Height:F3} ({CanvasContent.ActualHeight:F3})");
-			//Console.WriteLine($"CanvasContent (scaled) > w: {Scale * CanvasContent.Width:F3}, h: {Scale * CanvasContent.Height:F3}");
-
-			double horizontalCenter = ((CanvasView.ViewportWidth / 2) - (areaWidth * Scale / 2));
-			double horizontalOffset = Scale * (x-0.5*areaWidth) - horizontalCenter;
-
-			double verticalCenter = ((CanvasView.ViewportHeight / 2) - (areaHeight * Scale / 2));
-			double verticalOffset = Scale * (y-0.5*areaHeight) - verticalCenter;
-
-			CanvasView.ScrollToHorizontalOffset(horizontalOffset);
-			CanvasView.ScrollToVerticalOffset(verticalOffset);
-			*/
+				// Why does this need to be called twice to not break in some cases?
+				CanvasViewScroller.Offset = new Vector(horizontalOffset, verticalOffset);
+				CanvasViewScroller.Offset = new Vector(horizontalOffset, verticalOffset); // Second call seems to be needed for some reason...
+			}, DispatcherPriority.Background);
 		}
 
 		private void OnCanvasSizeChanged(object? sender, SizeChangedEventArgs e) {

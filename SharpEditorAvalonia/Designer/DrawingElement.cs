@@ -8,7 +8,7 @@ namespace SharpEditorAvalonia.Designer {
 	// https://stackoverflow.com/a/16876915/11002708
 	public class DrawingElement : Control {
 		
-		private readonly DrawingGroup drawing;
+		public readonly DrawingGroup drawing;
 
 		public DrawingElement(DrawingGroup drawing) {
 			this.drawing = drawing;

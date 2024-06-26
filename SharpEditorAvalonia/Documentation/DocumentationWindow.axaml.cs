@@ -38,7 +38,7 @@ namespace SharpEditorAvalonia.Documentation {
 			DataContext = this;
 
 			this.Title = $"{SharpEditorData.GetEditorName()} Documentation";
-			TitleTextBlock.MakeFontSizeRelative(1.25);
+			TitleTextBlock.MakeFontSizeRelative(TextBlockClass.H5);
 
 			this.AddHandler(Window.PointerPressedEvent, OnWindowPointerPressed, RoutingStrategies.Tunnel, false);
 

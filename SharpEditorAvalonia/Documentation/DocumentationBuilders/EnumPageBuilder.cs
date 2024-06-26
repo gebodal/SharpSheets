@@ -6,6 +6,7 @@ using static SharpEditorAvalonia.Documentation.DocumentationBuilders.BaseDocumen
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Controls.Documents;
+using SharpEditorAvalonia.ContentBuilders;
 
 namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
@@ -31,7 +32,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			TextBlock headerBlock = GetContentTextBlock(TextBlockMargin);
 			headerBlock.Text = enumDoc.type;
 			headerBlock.Foreground = SharpEditorPalette.TypeBrush;
-			headerBlock.MakeFontSizeRelative(2.0);
+			headerBlock.MakeFontSizeRelative(TextBlockClass.H3);
 			stack.Children.Add(headerBlock);
 
 			if (MakeDescriptionTextBlock(enumDoc.description, window) is TextBlock descriptionBlock) {

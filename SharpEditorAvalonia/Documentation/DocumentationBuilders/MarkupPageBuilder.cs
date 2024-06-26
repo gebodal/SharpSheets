@@ -33,7 +33,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
 			TextBlock headerBlock = GetContentTextBlock(XMLContentBuilder.MakeMarkupTypeHeader(constructor), TextBlockMargin);
-			headerBlock.MakeFontSizeRelative(2.0);
+			headerBlock.MakeFontSizeRelative(TextBlockClass.H3);
 			stack.Children.Add(headerBlock);
 
 			if (MakeDescriptionTextBlock(constructor.Description, window) is TextBlock descriptionBlock) {

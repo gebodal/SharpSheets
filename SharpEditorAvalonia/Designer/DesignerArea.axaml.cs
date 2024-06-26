@@ -13,6 +13,7 @@ using Avalonia.Controls.Shapes;
 using System.Windows.Input;
 using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Mvvm.Input;
+using Avalonia.Collections;
 
 namespace SharpEditorAvalonia.Designer {
 
@@ -54,7 +55,8 @@ namespace SharpEditorAvalonia.Designer {
 			WireUpCommands();
 
 			SharpDataManager.Instance.DesignerDisplayFieldsChanged += OnDesignerDisplayFieldsChanged;
-			
+
+			this.AddHandler(UserControl.PointerPressedEvent, OnDesignerPointerPressed, RoutingStrategies.Tunnel, false);
 			this.DesignerViewer.ScaleChanged += OnCanvasScaleChanged;
 		}
 
@@ -152,11 +154,13 @@ namespace SharpEditorAvalonia.Designer {
 
 			pageHolder.Fields = MakeNewFieldCanvas(page.CanvasRect.Width, page.CanvasRect.Height);
 			foreach (AvaloniaCanvasField field in page.Fields.Values.Where(f => f.Rect.Width > 0 && f.Rect.Height > 0)) {
+				/*
 				Rectangle rect = new Rectangle() {
 					Width = field.Rect.Width,
 					Height = field.Rect.Height,
 					//ToolTip = GetFieldTooltip(field)
 				};
+				//Console.WriteLine($"Width: {rect.Width} vs {field.Rect.Width} and Height: {rect.Height} vs {field.Rect.Height}");
 				ToolTip.SetTip(rect, GetFieldTooltip(field));
 				if (field.Type == FieldType.IMAGE) {
 					rect.StrokeDashArray = new Avalonia.Collections.AvaloniaList<double> { 3, 3 };
@@ -170,8 +174,16 @@ namespace SharpEditorAvalonia.Designer {
 				pageHolder.Fields.Children.Add(rect);
 				Canvas.SetLeft(rect, field.Rect.X);
 				Canvas.SetTop(rect, page.CanvasRect.Height - field.Rect.Y - field.Rect.Height);
+				
+				//Console.WriteLine($"Left: {Canvas.GetLeft(rect)} vs {field.Rect.X} and Top: {Canvas.GetTop(rect)} vs {page.CanvasRect.Height - field.Rect.Y - field.Rect.Height}");
+				*/
 
-
+				pageHolder.Fields.AddHighlight(field.Rect,
+					stroke: field.Type == FieldType.IMAGE ? new SolidColorBrush(Colors.DarkGray) { Opacity = 0.5 } : null,
+					strokeThickness: field.Type == FieldType.IMAGE ? 1 : 0,
+					strokeDashArray: field.Type == FieldType.IMAGE ? new AvaloniaList<double> { 3, 3 } : null,
+					fill: new SolidColorBrush(field.Type == FieldType.IMAGE ? Colors.LightGray : Colors.Blue) { Opacity = 0.1 },
+					toolTip: GetFieldTooltip(field));
 			}
 			pageHolder.PageCanvas.Children.Add(pageHolder.Fields);
 			Canvas.SetLeft(pageHolder.Fields, 0);
@@ -251,7 +263,7 @@ namespace SharpEditorAvalonia.Designer {
 
 		private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e) {
 			if (e.KeyModifiers == KeyModifiers.None) { // Only try and scroll if no modifiers are pressed
-														   //Console.WriteLine($"Hello {e.Handled} ({e.Delta}) {DesignerViewer.CanvasView.VerticalOffset} / {DesignerViewer.CanvasView.ScrollableHeight}");
+													   //Console.WriteLine($"Hello {e.Handled} ({e.Delta}) {DesignerViewer.CanvasView.VerticalOffset} / {DesignerViewer.CanvasView.ScrollableHeight}");
 				if (designerDocument != null && designerDocument.PageCount > 0) {
 					//Console.WriteLine("Here");
 
@@ -359,15 +371,10 @@ namespace SharpEditorAvalonia.Designer {
 		}
 
 		void OnCanvasScaleChanged(object? sender, EventArgs e) {
-			if (currentPage?.Highlights != null) {
-				foreach (Shape shape in currentPage.Highlights.Children.OfType<Shape>()) {
-					shape.StrokeThickness = DesignerHighlightStrokeThickness / DesignerViewer.Scale;
-				}
-			}
-			if (currentPage?.MouseHighlights != null) {
-				foreach (Shape shape in currentPage.MouseHighlights.Children.OfType<Shape>()) {
-					shape.StrokeThickness = DesignerMouseHighlightStrokeThickness / DesignerViewer.Scale;
-				}
+			if (currentPage is not null) {
+				double newStrokeThickness = DesignerHighlightStrokeThickness / DesignerViewer.Scale;
+				currentPage.Highlights?.UpdateHighlightStrokeWidth(newStrokeThickness);
+				currentPage.MouseHighlights?.UpdateHighlightStrokeWidth(newStrokeThickness);
 			}
 
 			UpdateCanvasZoomText();
@@ -465,6 +472,7 @@ namespace SharpEditorAvalonia.Designer {
 								if (areas.Inner.Length > 0) {
 									foreach (SharpSheets.Layouts.Rectangle innerRect in areas.Inner) {
 										if (innerRect.Width < 0f || innerRect.Height < 0f) { continue; } // Ignore malformed areas
+										/*
 										Rectangle adjustedHighlight = new Rectangle() {
 											Width = innerRect.Width,
 											Height = innerRect.Height,
@@ -475,10 +483,13 @@ namespace SharpEditorAvalonia.Designer {
 										highlightCanvas.Children.Add(adjustedHighlight);
 										Canvas.SetLeft(adjustedHighlight, innerRect.Left);
 										Canvas.SetTop(adjustedHighlight, currentPageCanvas.CanvasRect.Height - innerRect.Top);
+										*/
+										highlightCanvas.AddRect(innerRect, new SolidColorBrush(innerColor) { Opacity = 0.8 * opacity }, lineThickness / DesignerViewer.Scale);
 									}
 								}
 
 								if (areas.Adjusted is not null && areas.Original != areas.Adjusted && areas.Adjusted.Width >= 0f && areas.Adjusted.Height >= 0f) {
+									/*
 									Rectangle adjustedHighlight = new Rectangle() {
 										Width = areas.Adjusted.Width,
 										Height = areas.Adjusted.Height,
@@ -489,9 +500,12 @@ namespace SharpEditorAvalonia.Designer {
 									highlightCanvas.Children.Add(adjustedHighlight);
 									Canvas.SetLeft(adjustedHighlight, areas.Adjusted.Left);
 									Canvas.SetTop(adjustedHighlight, currentPageCanvas.CanvasRect.Height - areas.Adjusted.Top);
+									*/
+									highlightCanvas.AddRect(areas.Adjusted, new SolidColorBrush(adjustedColor) { Opacity = opacity }, lineThickness / DesignerViewer.Scale);
 								}
 
 								if (areas.Original.Width >= 0f && areas.Original.Height >= 0f) {
+									/*
 									Rectangle originalHighlight = new Rectangle() {
 										Width = areas.Original.Width,
 										Height = areas.Original.Height,
@@ -502,6 +516,8 @@ namespace SharpEditorAvalonia.Designer {
 									highlightCanvas.Children.Add(originalHighlight);
 									Canvas.SetLeft(originalHighlight, areas.Original.Left);
 									Canvas.SetTop(originalHighlight, currentPageCanvas.CanvasRect.Height - areas.Original.Top);
+									*/
+									highlightCanvas.AddRect(areas.Original, new SolidColorBrush(originalColor) { Opacity = opacity }, lineThickness / DesignerViewer.Scale);
 								}
 							}
 						}
@@ -638,6 +654,100 @@ namespace SharpEditorAvalonia.Designer {
 		}
 
 		#endregion
+
+		#region Pointer events
+
+		private void OnDesignerPointerPressed(object? sender, PointerPressedEventArgs e) {
+			PointerPoint point = e.GetCurrentPoint(sender as Control);
+			if (point.Properties.IsXButton1Pressed) {
+				if (CanGoBack()) {
+					BackExecuted();
+				}
+				e.Handled = true;
+			}
+			else if (point.Properties.IsXButton2Pressed) {
+				if (CanGoForward()) {
+					ForwardExecuted();
+				}
+				e.Handled = true;
+			}
+		}
+
+		#endregion Pointer events
+
+	}
+
+	public static class HighlightingUtils {
+
+		public static void AddHighlight(this Canvas canvas, SharpSheets.Layouts.Rectangle rect, Brush? stroke, double? strokeThickness, AvaloniaList<double>? strokeDashArray, Brush? fill, object? toolTip) {
+			/*
+			Rectangle highlight = new Rectangle() {
+				Width = rect.Width,
+				Height = rect.Height,
+				Stroke = stroke,
+				StrokeThickness = strokeThickness ?? 0.0,
+				StrokeDashArray = strokeDashArray,
+				Fill = fill,
+				IsHitTestVisible = false
+			};
+
+			canvas.Children.Add(highlight);
+
+			Canvas.SetLeft(highlight, rect.Left);
+			//Canvas.SetTop(highlight, currentPageCanvas.CanvasRect.Height - rect.Top);
+			Canvas.SetTop(highlight, canvas.Height - rect.Top);
+
+			if (toolTip is not null) {
+				ToolTip.SetTip(highlight, toolTip);
+			}
+			*/
+
+			GeometryDrawing drawing = new GeometryDrawing {
+				Geometry = new RectangleGeometry(new Rect(rect.X, canvas.Height - rect.Top, rect.Width, rect.Height)),
+				Pen = stroke is not null && strokeThickness > 0 ? new Pen(stroke, strokeThickness ?? 0) {
+					DashStyle = new DashStyle(strokeDashArray, 0.0)
+				} : null,
+				Brush = fill
+			};
+
+			DrawingGroup drawingGroup = new DrawingGroup() {
+				Children = { drawing }
+			};
+
+			DrawingElement element = new DrawingElement(drawingGroup) {
+				//LayoutTransform = TestBlock.LayoutTransform,
+				Width = canvas.Width,
+				Height = canvas.Height
+			};
+
+			if (toolTip is not null) {
+				ToolTip.SetTip(element, toolTip);
+			}
+
+			canvas.Children.Add(element);
+		}
+
+		public static void AddRect(this Canvas canvas, SharpSheets.Layouts.Rectangle rect, Brush? stroke, double? strokeThickness) {
+			AddHighlight(canvas, rect, stroke, strokeThickness, null, null, null);
+		}
+
+		public static void UpdateHighlightStrokeWidth(this Canvas canvas, double strokeThickness) {
+			/*
+			foreach (Shape shape in canvas.Children.OfType<Shape>()) {
+				shape.StrokeThickness = strokeThickness;
+			}
+			*/
+
+			foreach(DrawingElement element in canvas.Children.OfType<DrawingElement>()) {
+				foreach(Drawing i in element.drawing.Children) {
+					if(i is GeometryDrawing g && g.Pen is Pen p) {
+						//g.Pen?.Thickness = strokeThickness;
+						g.Pen = new Pen(p.Brush, strokeThickness, p.DashStyle, p.LineCap, p.LineJoin, p.MiterLimit);
+						element.InvalidateVisual();
+					}
+				}
+			}
+		}
 
 	}
 

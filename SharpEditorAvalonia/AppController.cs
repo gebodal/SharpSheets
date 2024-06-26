@@ -80,6 +80,8 @@ namespace SharpEditorAvalonia {
 		}
 
 		public void Exit(bool closeMainWindow) {
+			Console.WriteLine("AppController.Exit");
+
 			documentationWindow?.Close();
 			templateErrorWindow?.Close();
 			settingsWindow?.Close();
@@ -90,6 +92,7 @@ namespace SharpEditorAvalonia {
 
 			if (window.IsClosed) {
 				// And finally, exit application
+				Console.WriteLine("Shutdown");
 				(appInstance.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown(0);
 			}
 		}

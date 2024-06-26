@@ -46,6 +46,7 @@
 			<TextBlock
 				Grid.Column="3"
 				IsVisible="False"
+				VerticalAlignment="Center" TextAlignment="Center"
 				Name="BackgroundMessageText" Margin="30,0">Parsing...</TextBlock>
 			<StackPanel Name="ErrorStatus" Grid.Column="4" IsVisible="False" Orientation="Horizontal">
 				<Border Padding="20,0" Background="#c00000" PointerPressed="ErrorStatusClick">
@@ -71,30 +72,28 @@
 								
 							<ListBox.ItemTemplate>
 								<DataTemplate x:DataType="local:ErrorPopupEntry">
-									<Border Background="Transparent" BorderBrush="Blue" BorderThickness="2">
-										<Grid Background="Transparent">
-											<Grid.ColumnDefinitions>
-												<ColumnDefinition MinWidth="30" Width="Auto" />
-												<ColumnDefinition Width="*" />
-											</Grid.ColumnDefinitions>
-											<TextBlock Grid.Column="0"
-												Text="{Binding Line, Mode=OneWay}"
-												Margin="5"
-												HorizontalAlignment="Center"
-												Foreground="LightGray"/>
-											<TextBlock Grid.Column="1"
-												Text="{Binding Message, Mode=OneWay}"
-												Margin="5"
-												Foreground="LightGray"
-												TextWrapping="Wrap"/>
-										</Grid>
+									<Grid Background="Transparent">
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition MinWidth="30" Width="Auto" />
+											<ColumnDefinition Width="*" />
+										</Grid.ColumnDefinitions>
+										<TextBlock Grid.Column="0"
+											Text="{Binding Line, Mode=OneWay}"
+											Margin="5"
+											HorizontalAlignment="Center"
+											Foreground="LightGray"/>
+										<TextBlock Grid.Column="1"
+											Text="{Binding Message, Mode=OneWay}"
+											Margin="5"
+											Foreground="LightGray"
+											TextWrapping="Wrap"/>
 										<i:Interaction.Behaviors>
 											<!-- https://stackoverflow.com/a/76991334/11002708 -->
 											<ia:EventTriggerBehavior EventName="DoubleTapped">
 												<InvokeCommandAction Command="{Binding ItemCommand}"/>
 											</ia:EventTriggerBehavior>
 										</i:Interaction.Behaviors>
-									</Border>
+									</Grid>
 								</DataTemplate>
 							</ListBox.ItemTemplate>
 

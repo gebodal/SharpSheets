@@ -2,6 +2,7 @@
 using Avalonia.Media;
 using GeboPdf.Fonts;
 using GeboPdf.Fonts.TrueType;
+using SharpEditorAvalonia.Utilities;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Exceptions;
@@ -770,88 +771,6 @@ namespace SharpEditorAvalonia.Designer {
 
 		#region Text
 
-		private static Geometry? GetGlyphGeometry(ushort glyph, TrueTypeFontFileOutlines glyphOutlines, float fontsize) {
-			// Create a geometry for the glyph
-			PathGeometry geometry = new PathGeometry() { FillRule = FillRule.NonZero };
-
-			double ProcessShort(short value) {
-				return (fontsize * (1000.0 * (value / (double)glyphOutlines.UnitsPerEm))) / 1000.0;
-			}
-
-			if (glyphOutlines.glyf?.glyphOutlines[glyph] is TrueTypeGlyphOutline gOutline) {
-				PathFigures figures = new PathFigures();
-				geometry.Figures = figures;
-
-				int p = 0, c = 0;
-				bool first = true;
-				while (p < gOutline.PointCount) {
-					if (gOutline.onCurve[p]) {
-						double x = ProcessShort(gOutline.xCoordinates[p]);
-						double y = ProcessShort(gOutline.yCoordinates[p]);
-
-						if (first) {
-							figures.Add(new PathFigure() { StartPoint = new Point(x, y), IsClosed = true, IsFilled = true, Segments = new PathSegments() });
-							first = false;
-						}
-						else if (p > 0 && !gOutline.onCurve[p - 1]) {
-							double cx = ProcessShort(gOutline.xCoordinates[p - 1]);
-							double cy = ProcessShort(gOutline.yCoordinates[p - 1]);
-
-							figures[^1].Segments?.Add(new QuadraticBezierSegment() { Point1 = new Point(cx, cy), Point2 = new Point(x, y) });
-						}
-						else {
-							figures[^1].Segments?.Add(new LineSegment() { Point = new Point(x, y) });
-						}
-					}
-
-					if (c < gOutline.endPtsOfContours.Count && p == gOutline.endPtsOfContours[c]) {
-						c += 1;
-						first = true;
-					}
-
-					p += 1;
-				}
-			}
-			else if (glyphOutlines.cff?.glyphs[glyph] is Type2Glyph g2Outline) {
-				PathFigures figures = new PathFigures();
-				geometry.Figures = figures;
-
-				int p = 0, c = 0;
-				bool first = true;
-				while (p < g2Outline.PointCount) {
-					if (g2Outline.OnCurve[p]) {
-						double x = ProcessShort(g2Outline.Xs[p]);
-						double y = ProcessShort(g2Outline.Ys[p]);
-
-						if (first) {
-							figures.Add(new PathFigure() { StartPoint = new Point(x, y), IsClosed = true, IsFilled = true, Segments = new PathSegments() });
-							first = false;
-						}
-						else if (p > 1 && !g2Outline.OnCurve[p - 1]) {
-							double cx1 = ProcessShort(g2Outline.Xs[p - 2]);
-							double cy1 = ProcessShort(g2Outline.Ys[p - 2]);
-							double cx2 = ProcessShort(g2Outline.Xs[p - 1]);
-							double cy2 = ProcessShort(g2Outline.Ys[p - 1]);
-
-							figures[^1].Segments?.Add(new BezierSegment() { Point1 = new Point(cx1, cy1), Point2 = new Point(cx2, cy2), Point3 = new Point(x, y) });
-						}
-						else {
-							figures[^1].Segments?.Add(new LineSegment() { Point = new Point(x, y) });
-						}
-					}
-
-					if (c < g2Outline.EndPtsOfContours.Count && p == g2Outline.EndPtsOfContours[c]) {
-						c += 1;
-						first = true;
-					}
-
-					p += 1;
-				}
-			}
-
-			return geometry;
-		}
-
 		private bool FillText {
 			get {
 				SharpSheets.Canvas.TextRenderingMode current = gsState.textRenderingMode;
@@ -901,7 +820,7 @@ namespace SharpEditorAvalonia.Designer {
 			for (int i = 0; i < glyphRun.Count; i++) {
 				ushort g = glyphRun[i];
 
-				Geometry? glyphGeometry = GetGlyphGeometry(g, glyphOutlines, fontsize);
+				Geometry? glyphGeometry = glyphOutlines.GetGlyphGeometry(g, fontsize);
 
 				if (glyphGeometry is not null) {
 					(short xPlacement, short yPlacement) = glyphRun.GetPlacement(i);

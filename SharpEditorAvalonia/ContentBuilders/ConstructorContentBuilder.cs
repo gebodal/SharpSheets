@@ -86,11 +86,15 @@ namespace SharpEditorAvalonia.ContentBuilders {
 				Inline defaultInline = BaseContentBuilder.GetValueInline(arg.Type.DisplayType, arg.DefaultValue, true);
 
 				if (currentValueLocation.HasValue) {
-					Span defaultSpan = new Span();
-					defaultSpan.Inlines.Add(new Run(SharpValueHandler.NO_BREAK_SPACE.ToString() + SharpValueHandler.NO_BREAK_CHAR + "[" + SharpValueHandler.NO_BREAK_CHAR) { Foreground = SharpEditorPalette.DefaultValueBrush });
-					defaultSpan.Inlines.Add(defaultInline);
-					defaultSpan.Inlines.Add(new Run(SharpValueHandler.NO_BREAK_CHAR + "]") { Foreground = SharpEditorPalette.DefaultValueBrush });
-					yield return defaultSpan;
+					// For some reason color blocks won't render inside Span (this should be fine, though?)
+					//Span defaultSpan = new Span();
+					//defaultSpan.Inlines.Add(new Run(SharpValueHandler.NO_BREAK_SPACE.ToString() + SharpValueHandler.NO_BREAK_CHAR + "[" + SharpValueHandler.NO_BREAK_CHAR) { Foreground = SharpEditorPalette.DefaultValueBrush });
+					//defaultSpan.Inlines.Add(defaultInline);
+					//defaultSpan.Inlines.Add(new Run(SharpValueHandler.NO_BREAK_CHAR + "]") { Foreground = SharpEditorPalette.DefaultValueBrush });
+					//yield return defaultSpan;
+					yield return new Run(SharpValueHandler.NO_BREAK_SPACE.ToString() + SharpValueHandler.NO_BREAK_CHAR + "[" + SharpValueHandler.NO_BREAK_CHAR) { Foreground = SharpEditorPalette.DefaultValueBrush };
+					yield return defaultInline;
+					yield return new Run(SharpValueHandler.NO_BREAK_CHAR + "]") { Foreground = SharpEditorPalette.DefaultValueBrush };
 				}
 				else {
 					yield return defaultInline;

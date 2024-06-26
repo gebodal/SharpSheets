@@ -109,8 +109,6 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
 			List<Control> contents = new List<Control>();
 
-			//contents.Add(new TextBlock() { Text = (string.IsNullOrWhiteSpace(documentationFile.location) ? "root" : documentationFile.location) + ", " + documentationFile.title });
-
 			foreach (DocumentationSection section in documentationFile.sections) {
 				Control sectionElement = CreateDocumentationSection(section, window);
 				contents.Add(sectionElement);
@@ -196,12 +194,6 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 					inline = clickable;
 				}
 				else if (run.IsCode) {
-					/*
-					inline = new Run(run.text) {
-						Background = CodeBackgroundBrush,
-						FontFamily = CodeFontFamily
-					};
-					*/
 					TextBlock codeBlock = new TextBlock() {
 						Text = run.text,
 						FontFamily = CodeFontFamily
@@ -271,41 +263,8 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			}
 		}
 
-		private static Control MakeDocumentationCodeBlock1(DocumentationCode documentationCode) {
-			string codeText = documentationCode.code; // .Replace("\t", "    ");
-
-			//TextBlock codeBlock = new TextBlock() { Text = codeText, TextWrapping = TextWrapping.Wrap, FontFamily = SystemFonts.MessageFontFamily };
-
-			TextBox codeBox = new TextBox() { Foreground = Brushes.White, Text = codeText, TextWrapping = TextWrapping.Wrap, BorderThickness = default, IsReadOnly = true, Background = Brushes.Transparent };
-
-			Border codeBorder = new Border {
-				Child = codeBox,
-				Background = CodeBackgroundBrush,
-				Padding = new Thickness(10.0, 5.0, 10.0, 5.0),
-				Margin = ParagraphMargin,
-				CornerRadius = new CornerRadius(5.0)
-			};
-
-			return codeBorder;
-		}
-
 		private static Control MakeDocumentationCodeBlock(DocumentationCode documentationCode) {
 			string codeText = documentationCode.code; // .Replace("\t", "    ");
-
-			/*
-			TextEditor textEditor = new TextEditor {
-				IsReadOnly = true,
-				Text = codeText,
-				Encoding = System.Text.Encoding.UTF8,
-				Focusable = false,
-				HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-				VerticalScrollBarVisibility = ScrollBarVisibility.Disabled
-			};
-			textEditor.TextArea.Focusable = false;
-			textEditor.IsHitTestVisible = false;
-
-			return textEditor;
-			*/
 
 			TextDocument document = new TextDocument() { Text = codeText };
 			TextArea textArea = new TextArea() {
@@ -344,13 +303,9 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
 			ScrollViewer codeScroller = new ScrollViewer() {
 				VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-				HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
+				HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+				Content = textArea
 			};
-
-			// TODO Is this right?
-			//codeScroller.PointerWheelChanged += CodeScroller_PreviewMouseWheel;
-			codeScroller.AddHandler(InputElement.PointerWheelChangedEvent, CodeScroller_PreviewMouseWheel, RoutingStrategies.Tunnel, false);
-			codeScroller.Content = textArea;
 
 			Border codeBorder = new Border {
 				Child = codeScroller,
@@ -361,20 +316,6 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			};
 
 			return codeBorder;
-		}
-
-		private static void CodeScroller_PreviewMouseWheel(object? sender, PointerWheelEventArgs e) {
-			if (sender is ScrollViewer && !e.Handled) {
-				// TODO What to do here? This is to ensure that it's the inner scrollview is the one that scrolls first
-				/*
-				e.Handled = true;
-				var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta);
-				eventArg.RoutedEvent = UIElement.MouseWheelEvent;
-				eventArg.Source = sender;
-				var parent = ((System.Windows.Controls.Control)sender).Parent as UIElement;
-				parent?.RaiseEvent(eventArg);
-				*/
-			}
 		}
 
 		class ReadOnlySectionDocument : IReadOnlySectionProvider {

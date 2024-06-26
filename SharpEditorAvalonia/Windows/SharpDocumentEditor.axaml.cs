@@ -165,9 +165,25 @@ namespace SharpEditorAvalonia.Windows {
 
 		#region TextEditor Dependency Properties
 
+		[MemberNotNull(nameof(lineNumberControls))]
 		void InitializeTextEditorDependencyProperties() {
 			// Line numbers
-			textEditor.ShowLineNumbers = SharpDataManager.Instance.ShowLineNumbers;
+			textEditor.ShowLineNumbers = true;
+			List<Control> lineNumberControlsList = new List<Control>();
+			ObservableCollection<Control> leftMargins = textEditor.TextArea.LeftMargins;
+			for (int i = 0; i < leftMargins.Count; i++) {
+				if (leftMargins[i] is LineNumberMargin) {
+					lineNumberControlsList.Add(leftMargins[i]);
+					if (i + 1 < leftMargins.Count && DottedLineMargin.IsDottedLineMargin(leftMargins[i + 1])) {
+						lineNumberControlsList.Add(leftMargins[i + 1]);
+					}
+					break;
+				}
+			}
+			lineNumberControls = lineNumberControlsList.ToArray();
+			//ShowLineNumbers = SharpDataManager.Instance.ShowLineNumbers;
+			this.textEditor.Loaded += OnLoadedAdjustShowLineNumbers;
+
 			SharpDataManager.Instance.ShowLineNumbersChanged += OnShowLineNumbersChanged;
 
 			// Word wrap
@@ -185,8 +201,24 @@ namespace SharpEditorAvalonia.Windows {
 			SharpDataManager.Instance.ShowEndOfLineChanged -= OnShowEndOfLineChanged;
 		}
 
+		private Control[] lineNumberControls;
+		private bool ShowLineNumbers {
+			get {
+				return lineNumberControls.Any(c => c.IsVisible);
+			}
+			set {
+				foreach(Control c in lineNumberControls) {
+					c.IsVisible = value;
+				}
+			}
+		}
+
+		private void OnLoadedAdjustShowLineNumbers(object? sender, RoutedEventArgs e) {
+			ShowLineNumbers = SharpDataManager.Instance.ShowLineNumbers;
+		}
+
 		private void OnShowLineNumbersChanged(object? sender, EventArgs e) {
-			this.textEditor.ShowLineNumbers = SharpDataManager.Instance.ShowLineNumbers;
+			this.ShowLineNumbers = SharpDataManager.Instance.ShowLineNumbers;
 		}
 
 		private void OnWrapLinesChanged(object? sender, EventArgs e) {
@@ -560,7 +592,9 @@ namespace SharpEditorAvalonia.Windows {
 				CurrentGeneratePath = null;
 			}
 
-			textEditor.Save(filename); // We have manually set document to UTF8, so it will be saved as such
+			using (FileStream fs = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write)) {
+				textEditor.Save(fs); // We have manually set document to UTF8, so it will be saved as such
+			}
 			CurrentFilePath = filename;
 
 			UpdateDocumentType(false); // Check that we haven't saved with a different extension
@@ -1075,7 +1109,6 @@ namespace SharpEditorAvalonia.Windows {
 		}
 
 		public void ErrorStatusClick(object? sender, PointerPressedEventArgs e) {
-			throw new InvalidOperationException("Error found!");
 			int[]? offsets = parsingManager.GetParsingState()?.ErrorOffsets;
 
 			if (offsets is not null) {

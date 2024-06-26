@@ -289,31 +289,39 @@ namespace SharpEditorAvalonia.Windows {
 		#region Application
 		public bool IsClosed { get; private set; } = false;
 
-		private void OnWindowClosing(object? sender, WindowClosingEventArgs e) {
-			Console.WriteLine("OnWindowClosing");
-			controller.Exit(false);
-		}
-
-		private void ExitClick(object? sender, RoutedEventArgs e) {
-			Console.WriteLine("ExitClick");
-			controller.Exit(true);
-		}
-
-		protected override async void OnClosing(WindowClosingEventArgs e) {
-			Console.WriteLine("OnClosing");
+		private async Task<bool> CloseAllTabsForExit() {
 			foreach (EditorTabItem item in editorTabs.ToArray()) {
 				if (item.Content.HasUnsavedProgress) {
 					FocusOnEditor(item.Content);
 				}
 				if (!(await CloseTab(item))) {
 					// Something has happened to prevent a tab from closing, so return, just in case
-					e.Cancel = true;
-					return;
+					return false;
 				}
 			}
+			return true;
+		}
 
+		private void OnWindowClosing(object? sender, WindowClosingEventArgs e) {
+			Console.WriteLine("SharpEditorWindow.OnWindowClosing");
+			controller.Exit(false);
+		}
+
+		private void ExitClick(object? sender, RoutedEventArgs e) {
+			Console.WriteLine("SharpEditorWindow.ExitClick");
+			controller.Exit(true);
+		}
+
+		protected override async void OnClosing(WindowClosingEventArgs e) {
+			Console.WriteLine("SharpEditorWindow.OnClosing"); await Console.Out.FlushAsync();
+			if(!(await CloseAllTabsForExit())) {
+				e.Cancel = true;
+				return;
+			}
+			
 			generator.Stop();
 
+			Console.WriteLine("Window.OnClosing");
 			base.OnClosing(e);
 
 			IsClosed = !e.Cancel;

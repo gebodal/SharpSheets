@@ -14,28 +14,40 @@ namespace SharpEditorAvalonia.Utilities {
 
 		public event EventHandler<PointerPressedEventArgs>? MouseLeftButtonDown;
 
+		private readonly Border border;
 		private readonly TextBlock textBlock;
+
+		public string? Text {
+			get => textBlock.Text;
+			set => textBlock.Text = value;
+		}
 
 		public ClickableRun(string? text) : base() {
 			this.Foreground = HyperlinkColor;
 
 			textBlock = new TextBlock() {
 				Text = text,
-				Foreground = HyperlinkColor
+				Foreground = HyperlinkColor,
+				IsHitTestVisible = false
 			};
 
-			textBlock.PointerEntered += OnPointerChanged;
-			textBlock.PointerExited += OnPointerChanged;
+			border = new Border() {
+				Child = textBlock,
+				Background = Brushes.Transparent
+			};
 
-			textBlock.PointerPressed += OnPointerPressed;
+			border.PointerEntered += OnPointerChanged;
+			border.PointerExited += OnPointerChanged;
 
-			this.Child = textBlock;
+			border.PointerPressed += OnPointerPressed;
+
+			this.Child = border;
 		}
 
 		public ClickableRun() : this(null) { }
 
 		protected void OnPointerChanged(object? sender, PointerEventArgs e) {
-			if (textBlock.IsPointerOver) {
+			if (border.IsPointerOver) {
 				textBlock.TextDecorations = Avalonia.Media.TextDecorations.Underline;
 				textBlock.Cursor = new Cursor(StandardCursorType.Arrow);
 			}

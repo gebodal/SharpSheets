@@ -19,6 +19,10 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
+using SharpEditorAvalonia.Designer;
+using Avalonia.Controls.Shapes;
+using Avalonia.Input;
 
 namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
@@ -52,8 +56,6 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 		}
 
 		private static Control GetFontPageContent(FontName fontName, DocumentationWindow window) {
-			return new TextBlock() { Text = "Font content" };
-			/*
 			if (fontName is null) {
 				return MakeErrorContent("Invalid font name.");
 			}
@@ -68,19 +70,22 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				.Where(f => f != fontName.Name && path.Equals(FontPathRegistry.FindFontPath(f)))
 				.OrderBy(f => f).ToArray();
 
-			TrueTypeFontFileData fontData;
+			TrueTypeFontFile fontFile;
+			TrueTypeFontFileOutlines fontOutlines;
+			CollectedFontData collectedFontData;
 			TrueTypePostTable? postTable;
 			OpenTypeGlyphSubstitutionTable? gsubTable;
 			OpenTypeLayoutTagSet layoutTags;
 			IReadOnlyDictionary<uint, ushort> cidMap;
-			Uri fontUri;
 
 			try {
-				fontData = FontPathRegistry.OpenFontFile(path);
+				fontOutlines = FontGraphicsRegistry.GetFontOutlines(path);
 
 				TrueTypeCMapTable? cmap;
 
 				if (path.FontIndex >= 0) {
+					fontFile = TrueTypeCollection.Open(path.Path, path.FontIndex);
+
 					postTable = TrueTypeCollection.OpenPost(path.Path, path.FontIndex);
 					gsubTable = TrueTypeCollection.OpenGSUB(path.Path, path.FontIndex);
 					layoutTags = TrueTypeCollection.ReadOpenTypeTags(path.Path, path.FontIndex);
@@ -88,6 +93,8 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 					cmap = TrueTypeCollection.OpenCmap(path.Path, path.FontIndex);
 				}
 				else {
+					fontFile = TrueTypeFontFile.Open(path.Path);
+
 					postTable = TrueTypeFontFile.OpenPost(path.Path);
 					gsubTable = TrueTypeFontFile.OpenGSUB(path.Path);
 					layoutTags = TrueTypeFontFile.ReadOpenTypeTags(path.Path);
@@ -96,7 +103,8 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				}
 
 				cidMap = cmap is null ? new Dictionary<uint, ushort>() : CIDFontFactory.GetCmapDict(cmap);
-				fontUri = TypefaceGrouping.GetFontUri(path);
+
+				collectedFontData = new CollectedFontData(fontFile, fontOutlines);
 			}
 			catch (FormatException) {
 				return MakeErrorContent("Could not read font file.");
@@ -109,13 +117,12 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
-			TextBlock nameTitleBlock = GetContentTextBlock(fontName.Name, TextBlockMargin, 2.0);
-			nameTitleBlock.ToolTip = path.Path;
+			TextBlock nameTitleBlock = GetContentTextBlock(fontName.Name, TextBlockMargin, TextBlockClass.H3);
+			ToolTip.SetTip(nameTitleBlock, path.Path);
 			stack.Children.Add(nameTitleBlock);
 
-			if (GetFontText(fontData, NameID.SampleText, NameID.FontFamily) is string sampleText) {
-				GlyphTypeface glyphTypeface = new GlyphTypeface(fontUri);
-				Control sampleElem = MakeGlyphsBox(glyphTypeface, Array.Empty<ushort>(), sampleText.Select(c => cidMap.GetValueOrDefault(c, (ushort)0)).ToArray(), Array.Empty<ushort>());
+			if (GetFontText(fontFile, NameID.SampleText, NameID.FontFamily) is string sampleText) {
+				Control sampleElem = MakeGlyphsBox(collectedFontData, Array.Empty<ushort>(), sampleText.Select(c => cidMap.GetValueOrDefault(c, (ushort)0)).ToArray(), Array.Empty<ushort>());
 				sampleElem.HorizontalAlignment = HorizontalAlignment.Left;
 				sampleElem.Margin = IndentedMargin;
 				stack.Children.Add(sampleElem);
@@ -126,43 +133,43 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			if (aliases.Length > 0) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Aliases", string.Join(", ", aliases)));
 			}
-			if (GetFontText(fontData, NameID.PreferredFamily, NameID.FontFamily) is string family) {
+			if (GetFontText(fontFile, NameID.PreferredFamily, NameID.FontFamily) is string family) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Font Family", family));
 			}
-			if (GetFontText(fontData, NameID.PreferredSubfamily, NameID.FontSubfamily) is string subfamily) {
+			if (GetFontText(fontFile, NameID.PreferredSubfamily, NameID.FontSubfamily) is string subfamily) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Font Subfamily", subfamily));
 			}
-			if (GetFontText(fontData, NameID.Designer) is string designer) {
+			if (GetFontText(fontFile, NameID.Designer) is string designer) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Designer", designer));
 			}
-			if (GetFontText(fontData, NameID.ManufacturerName) is string manufacturer) {
+			if (GetFontText(fontFile, NameID.ManufacturerName) is string manufacturer) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Manufacturer", manufacturer));
 			}
-			if (GetFontText(fontData, NameID.NameTableVersion) is string version) {
+			if (GetFontText(fontFile, NameID.NameTableVersion) is string version) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Version", GetVersionNumber(version)));
 			}
-			if (GetFontText(fontData, NameID.TrademarkNotice) is string trademark) {
+			if (GetFontText(fontFile, NameID.TrademarkNotice) is string trademark) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Trademark Notice", trademark));
 			}
-			fontProperties.Children.Add(GetFontPropertyBlock("Glyph Layout", fontData.OutlineLayout.ToString()));
-			fontProperties.Children.Add(GetFontPropertyBlock("Embedding Notices", MakeEmbeddingNotice(fontData.EmbeddingFlags)));
+			fontProperties.Children.Add(GetFontPropertyBlock("Glyph Layout", fontFile.OutlineLayout.ToString()));
+			fontProperties.Children.Add(GetFontPropertyBlock("Embedding Notices", MakeEmbeddingNotice(fontFile.EmbeddingFlags)));
 			fontProperties.Children.Add(GetFontPropertyBlock("OpenType", $"{layoutTags.FeatureTags.Count} OpenType features detected."));
 
-			fontProperties.Children.Add(GetFontPropertyBlock("Glyph Count", $"{fontData.numGlyphs}"));
+			fontProperties.Children.Add(GetFontPropertyBlock("Glyph Count", $"{fontFile.numGlyphs}"));
 
 			if (fontProperties.Children.Count > 0) {
 				stack.Children.Add(fontProperties.AddMargin(ParagraphSpacingMargin));
 			}
 
-			if (GetFontText(fontData, NameID.Description) is string description) {
-				stack.Children.Add(GetContentTextBlock("Description", TextBlockMargin, 1.5));
+			if (GetFontText(fontFile, NameID.Description) is string description) {
+				stack.Children.Add(GetContentTextBlock("Description", TextBlockMargin, TextBlockClass.H4));
 				stack.Children.Add(GetContentTextBlock(description, ParagraphMargin).AddMargin(ParagraphSpacingMargin));
 			}
 
-			string? license = GetFontText(fontData, NameID.LicenseDescription);
-			string? licenseURL = GetFontText(fontData, NameID.LicenseInformationURL);
+			string? license = GetFontText(fontFile, NameID.LicenseDescription);
+			string? licenseURL = GetFontText(fontFile, NameID.LicenseInformationURL);
 			if(license is not null || licenseURL is not null) {
-				stack.Children.Add(GetContentTextBlock("License", TextBlockMargin, 1.5));
+				stack.Children.Add(GetContentTextBlock("License", TextBlockMargin, TextBlockClass.H4));
 			}
 			if (license is not null) {
 				stack.Children.Add(GetContentTextBlock(license, ParagraphMargin));
@@ -174,28 +181,26 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			stack.Children.Add(MakeSeparator());
 
 			WrapPanel panel = new WrapPanel() { Orientation = Orientation.Horizontal }.AddMargin(ParagraphMargin);
-			PopulateGlyphPanel(panel, fontData, cidMap, fontUri, glyphNames);
+			PopulateGlyphPanel(panel, collectedFontData, cidMap, glyphNames);
 			stack.Children.Add(panel);
 
 			if (layoutTags.ScriptTags.Count > 0 || layoutTags.FeatureTags.Count > 0) {
 				stack.Children.Add(MakeSeparator());
 
 				if (layoutTags.ScriptTags.Count > 0) {
-					stack.Children.Add(GetContentTextBlock("OpenType Scripts", TextBlockMargin, 1.5));
+					stack.Children.Add(GetContentTextBlock("OpenType Scripts", TextBlockMargin, TextBlockClass.H4));
 					stack.Children.Add(MakeScriptsTable(fontName.Name, layoutTags, window));
 				}
 				if (layoutTags.FeatureTags.Count > 0) {
-					stack.Children.Add(GetContentTextBlock("OpenType Features", TextBlockMargin, 1.5));
+					stack.Children.Add(GetContentTextBlock("OpenType Features", TextBlockMargin, TextBlockClass.H4));
 
 					stack.Children.Add(MakeFeaturesTable(layoutTags.FeatureTags));
 				}
 			}
 
 			return stack;
-			*/
 		}
 
-		/*
 		private static Control MakeScriptsTable(string fontName, OpenTypeLayoutTagSet layoutTags, DocumentationWindow window) {
 
 			TextBlock[] tableHeader = new TextBlock[] {
@@ -251,7 +256,6 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 					}).ToArray())
 				);
 		}
-		*/
 
 		#endregion Font Page
 
@@ -278,8 +282,6 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 		}
 
 		private static Control GetFontFamilyPageContent(FontFamilyName familyName, DocumentationWindow window) {
-			return new TextBlock() { Text = "Font family content" };
-			/*
 			if (familyName is null) {
 				return MakeErrorContent("Invalid font family name.");
 			}
@@ -292,7 +294,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
-			TextBlock nameTitleBlock = GetContentTextBlock(familyName.Name, TextBlockMargin, 2.0);
+			TextBlock nameTitleBlock = GetContentTextBlock(familyName.Name, TextBlockMargin, TextBlockClass.H3);
 			stack.Children.Add(nameTitleBlock);
 
 			stack.Children.Add(GetContentTextBlock("The following fonts are available within this family:", ParagraphMargin));
@@ -320,33 +322,34 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				stack.Children.Add(new TextBlock() { Margin = new Thickness(0, 1, 0, 1), Inlines = new InlineCollection() { fontClickable } }.AddMargin(IndentedMargin));
 
 				// Font example graphic
-				TrueTypeFontFileData fontData;
+				CollectedFontData collectedFontData;
 				IReadOnlyDictionary<uint, ushort> cidMap;
-				Uri fontUri;
 
 				try {
-					fontData = FontPathRegistry.OpenFontFile(path);
+					TrueTypeFontFile fontFile;
+					TrueTypeFontFileOutlines fontOutlines = FontGraphicsRegistry.GetFontOutlines(path);
 
 					TrueTypeCMapTable? cmap;
 					if (path.FontIndex >= 0) {
+						fontFile = TrueTypeCollection.Open(path.Path, path.FontIndex);
 						cmap = TrueTypeCollection.OpenCmap(path.Path, path.FontIndex);
 					}
 					else {
+						fontFile = TrueTypeFontFile.Open(path.Path);
 						cmap = TrueTypeFontFile.OpenCmap(path.Path);
 					}
 					cidMap = cmap is null ? new Dictionary<uint, ushort>() : CIDFontFactory.GetCmapDict(cmap);
 
-					fontUri = TypefaceGrouping.GetFontUri(path);
+					collectedFontData = new CollectedFontData(fontFile, fontOutlines);
 				}
 				catch (Exception) {
 					return;
 				}
 
-				GlyphTypeface glyphTypeface = new GlyphTypeface(fontUri);
-				Control sampleElem = MakeGlyphsBox(glyphTypeface, Array.Empty<ushort>(), fontName.Select(c => cidMap.GetValueOrDefault(c, (ushort)0)).ToArray(), Array.Empty<ushort>());
+				Control sampleElem = MakeGlyphsBox(collectedFontData, Array.Empty<ushort>(), fontName.Select(c => cidMap.GetValueOrDefault(c, (ushort)0)).ToArray(), Array.Empty<ushort>());
 				sampleElem.HorizontalAlignment = HorizontalAlignment.Left;
 				sampleElem.Margin = IndentedMargin;
-				sampleElem.MouseLeftButtonDown += window.MakeNavigationDelegate(new FontName(fontName));
+				sampleElem.PointerPressed += MouseEventHandlers.MakeLeftClickHandler(window.MakeNavigationDelegate(new FontName(fontName)));
 				stack.Children.Add(sampleElem);
 			}
 
@@ -356,7 +359,6 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			ListFont(family.BoldItalic, "Bold Italic");
 
 			return stack;
-			*/
 		}
 
 		#endregion Font Family Page
@@ -372,8 +374,6 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 		}
 
 		private static Control GetOpenTypeFeaturesPageContent(OpenTypeFontSetting fontSetting, DocumentationWindow window) {
-			return new TextBlock() { Text = "OpenType features content" };
-			/*
 			if (fontSetting is null) {
 				return MakeErrorContent("Invalid OpenType font setting.");
 			}
@@ -384,21 +384,28 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				return MakeErrorContent("Could not find font path.");
 			}
 
+			CollectedFontData collectedFontData;
 			TrueTypePostTable? postTable;
 			OpenTypeGlyphSubstitutionTable? gsubTable;
 			IReadOnlySet<string>? features;
 			IReadOnlyDictionary<uint, ushort> cidMap;
-			Uri fontUri;
 
 			try {
+				TrueTypeFontFile fontFile;
+				TrueTypeFontFileOutlines fontOutlines = FontGraphicsRegistry.GetFontOutlines(path);
+
 				TrueTypeCMapTable? cmap;
 
 				if (path.FontIndex >= 0) {
+					fontFile = TrueTypeCollection.Open(path.Path, path.FontIndex);
+
 					postTable = TrueTypeCollection.OpenPost(path.Path, path.FontIndex);
 					gsubTable = TrueTypeCollection.OpenGSUB(path.Path, path.FontIndex);
 					cmap = TrueTypeCollection.OpenCmap(path.Path, path.FontIndex);
 				}
 				else {
+					fontFile = TrueTypeFontFile.Open(path.Path);
+
 					postTable = TrueTypeFontFile.OpenPost(path.Path);
 					gsubTable = TrueTypeFontFile.OpenGSUB(path.Path);
 					cmap = TrueTypeFontFile.OpenCmap(path.Path);
@@ -412,7 +419,8 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				}
 
 				cidMap = cmap is null ? new Dictionary<uint, ushort>() : CIDFontFactory.GetCmapDict(cmap);
-				fontUri = TypefaceGrouping.GetFontUri(path);
+
+				collectedFontData = new CollectedFontData(fontFile, fontOutlines);
 			}
 			catch (FormatException) {
 				return MakeErrorContent("Could not read font file.");
@@ -422,7 +430,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
-			TextBlock nameTitleBlock = GetContentTextBlock(fontSetting.FontName, TextBlockMargin, 2.0);
+			TextBlock nameTitleBlock = GetContentTextBlock(fontSetting.FontName, TextBlockMargin, TextBlockClass.H3);
 			stack.Children.Add(nameTitleBlock);
 
 			StackPanel fontProperties = new StackPanel() { Orientation = Orientation.Vertical, Margin = IndentedMargin };
@@ -442,20 +450,18 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			if (gsubTable is not null && features is not null && features.Count > 0) {
 				stack.Children.Add(MakeFeaturesTable(features.Where(DisplayedFeature)));
 
-				PopulateSubstitutions(stack, fontSetting.ScriptTag, fontSetting.LangSysTag, features, gsubTable, cidMap, fontUri, glyphNames);
+				PopulateSubstitutions(stack, collectedFontData, fontSetting.ScriptTag, fontSetting.LangSysTag, features, gsubTable, cidMap, glyphNames);
 			}
 
 			return stack;
-			*/
 		}
 
 		#endregion OpenType Features Page
 
-		/*
 		#region Utilities
 
-		private static string? GetFontText(TrueTypeFontFileData fontData, NameID nameID) {
-			if (fontData.name.nameRecords.TryGetValue(nameID, out TrueTypeName[]? nameRecords)) {
+		private static string? GetFontText(TrueTypeFontFile fontFile, NameID nameID) {
+			if (fontFile.name.nameRecords.TryGetValue(nameID, out TrueTypeName[]? nameRecords)) {
 				return GetFontName(nameRecords);
 			}
 			else {
@@ -463,9 +469,9 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			}
 		}
 
-		private static string? GetFontText(TrueTypeFontFileData fontData, params NameID[] nameIDwithFallbacks) {
+		private static string? GetFontText(TrueTypeFontFile fontFile, params NameID[] nameIDwithFallbacks) {
 			for (int i = 0; i < nameIDwithFallbacks.Length; i++) {
-				if (GetFontText(fontData, nameIDwithFallbacks[i]) is string name) {
+				if (GetFontText(fontFile, nameIDwithFallbacks[i]) is string name) {
 					return name;
 				}
 			}
@@ -482,27 +488,21 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			TextBlock block = GetContentTextBlock(TextBlockMargin);
 			block.Inlines?.Add(new Run(property + ": ") { FontStyle = FontStyle.Italic });
 			if (hyperlink) {
-				try {
-					Uri? uri = new Uri((Regex.IsMatch(value, @"^https?\:\/\/") ? "" : "http://") + value);
-					Hyperlink link = new Hyperlink(new Run(value)) {
-						NavigateUri = uri
-					};
-					link.RequestNavigate += RequestNavigateHyperlink;
-					block.Inlines?.Add(link);
-				}
-				catch (UriFormatException) {
-					block.Inlines?.Add(new Run(value));
-				}
+				string uriString = (Regex.IsMatch(value, @"^https?\:\/\/") ? "" : "http://") + value;
+
+				ClickableRun link = new ClickableRun(value) {
+					Foreground = Brushes.MediumPurple
+				};
+				link.MouseLeftButtonDown += (s, e) => {
+					System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uriString) { UseShellExecute = true });
+					e.Handled = true;
+				};
+				block.Inlines?.Add(link);
 			}
 			else {
 				block.Inlines?.Add(new Run(value));
 			}
 			return block;
-		}
-
-		private static void RequestNavigateHyperlink(object sender, RequestNavigateEventArgs e) {
-			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri.ToString()) { UseShellExecute = true });
-			e.Handled = true;
 		}
 
 		private static readonly Regex versionRegex = new Regex(@"^(?:version)\s*([0-9\.]+)$", RegexOptions.IgnoreCase);
@@ -530,33 +530,31 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 		}
 
 		private static readonly double GlyphElementSize = 50;
-		private static readonly double GlyphFontSize = 30;
+		private static readonly float GlyphFontSize = 30;
 
 		private static readonly int MaxGlyphCount = 8000;
 		private static readonly int GlyphLoadChunkSize = 100;
 
-		private async static void PopulateGlyphPanel(WrapPanel panel, TrueTypeFontFileData fontData, IReadOnlyDictionary<uint, ushort> cidMap, Uri fontUri, IReadOnlyDictionary<ushort, string> glyphNames) {
+		private async static void PopulateGlyphPanel(WrapPanel panel, CollectedFontData fontData, IReadOnlyDictionary<uint, ushort> cidMap, IReadOnlyDictionary<ushort, string> glyphNames) {
 			SortedDictionary<ushort, uint> gidToUnicode = CMapWriter.GetGIDToUnicodeMap(cidMap);
 			HashSet<ushort> unicodeKnown = new HashSet<ushort>(gidToUnicode.Keys);
-
-			GlyphTypeface glyphTypeface = new GlyphTypeface(fontUri);
 
 			List<Control> elementsToAdd = new List<Control>();
 
 			int panelCount = 0;
-			foreach (ushort glyphIdx in unicodeKnown.OrderBy(i => gidToUnicode[i]).Concat(Range(fontData.numGlyphs).Where(i => !unicodeKnown.Contains(i)))) {
+			foreach (ushort glyphIdx in unicodeKnown.OrderBy(i => gidToUnicode[i]).Concat(Range(fontData.NumGlyphs).Where(i => !unicodeKnown.Contains(i)))) {
 
-				Control glyphElement = MakeGlyphBox(glyphTypeface, glyphIdx, gidToUnicode, glyphNames).AddMargin(new Thickness(1));
+				Control glyphElement = MakeGlyphBox(fontData, glyphIdx, gidToUnicode, glyphNames).AddMargin(new Thickness(1));
 
 				elementsToAdd.Add(glyphElement);
 
 				if (elementsToAdd.Count > GlyphLoadChunkSize) {
-					await panel.Dispatcher.InvokeAsync(() => {
-						foreach (UIElement element in elementsToAdd) {
+					await Dispatcher.UIThread.InvokeAsync(() => {
+						foreach (Control element in elementsToAdd) {
 							panel.Children.Add(element);
 						}
 						elementsToAdd.Clear();
-					}, System.Windows.Threading.DispatcherPriority.Background);
+					}, DispatcherPriority.Background);
 					elementsToAdd = new List<Control>();
 				}
 				
@@ -564,7 +562,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
 				if (panelCount >= MaxGlyphCount) {
 					TextBlock warningBlock = new TextBlock() {
-						Text = $"... and {fontData.numGlyphs - panelCount} more glyphs.",
+						Text = $"... and {fontData.NumGlyphs - panelCount} more glyphs.",
 						Margin = new Thickness(10, 10, 0, 0)
 					};
 					elementsToAdd.Add(warningBlock);
@@ -573,15 +571,15 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			}
 
 			if (elementsToAdd.Count > 0) {
-				await panel.Dispatcher.InvokeAsync(() => {
-					foreach (UIElement element in elementsToAdd) {
+				await Dispatcher.UIThread.InvokeAsync(() => {
+					foreach (Control element in elementsToAdd) {
 						panel.Children.Add(element);
 					}
-				}, System.Windows.Threading.DispatcherPriority.Background);
+				}, DispatcherPriority.Background);
 			}
 		}
 
-		private static Control MakeGlyphBox(GlyphTypeface glyphTypeface, ushort glyphIdx, IReadOnlyDictionary<ushort, uint> gidToUnicode, IReadOnlyDictionary<ushort, string> glyphNames) {
+		private static Control MakeGlyphBox(CollectedFontData fontData, ushort glyphIdx, IReadOnlyDictionary<ushort, uint> gidToUnicode, IReadOnlyDictionary<ushort, string> glyphNames) {
 			Border border = new Border {
 				Width = GlyphElementSize,
 				Height = GlyphElementSize,
@@ -590,16 +588,18 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				//BorderThickness = new Thickness(1),
 			};
 
-			double glyphHeight = GlyphFontSize * glyphTypeface.Baseline;
-			double glyphWidth = GlyphFontSize * (glyphTypeface.AdvanceWidths.TryGetValue(glyphIdx, out double val) ? val : 0.0);
+			float glyphHeight = fontData.GetAscent(GlyphFontSize);
+			float glyphWidth = fontData.GetWidth(glyphIdx, GlyphFontSize);
 
 			// Calculate the margin to center the Path within the Border
 			double horizontalOffset = (border.Width - glyphWidth) / 2;
 			double verticalOffset = (border.Height + glyphHeight) / 2;
 
-			Geometry geometry = glyphTypeface.GetGlyphOutline(glyphIdx, GlyphFontSize, GlyphFontSize);
-			geometry.Transform = new TranslateTransform(horizontalOffset, verticalOffset);
-			border.Child = new Path() { Data = geometry, Fill = Brushes.Black };
+			Geometry? geometry = fontData.GetGlyphGeometry(glyphIdx, GlyphFontSize);
+			if (geometry is not null) {
+				geometry.Transform = new TransformGroup() { Children = { new ScaleTransform(1, -1), new TranslateTransform(horizontalOffset, verticalOffset) } };
+			}
+			border.Child = new Path() { Data = geometry ?? new PathGeometry(), Fill = Brushes.Black };
 
 			string tooltip = $"Glyph {glyphIdx}";
 			if (gidToUnicode.TryGetValue(glyphIdx, out uint unicode)) {
@@ -612,24 +612,24 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				tooltip += $"\nName: {trimmedGlyphName}";
 			}
 
-			border.ToolTip = tooltip;
+			ToolTip.SetTip(border, tooltip);
 
 			return border;
 		}
 
-		private static Control MakeGlyphsBox(GlyphTypeface glyphTypeface, ushort[] backtrack, ushort[] glyphIdxs, ushort[] lookahead) {
-			
-			double glyphHeight = GlyphFontSize * glyphTypeface.Baseline;
+		private static Control MakeGlyphsBox(CollectedFontData fontData, ushort[] backtrack, ushort[] glyphIdxs, ushort[] lookahead) {
+
+			double glyphHeight = fontData.GetAscent(GlyphFontSize);
 
 			double runWidth = 0.0;
 			double[] glyphWidths = new double[backtrack.Length + glyphIdxs.Length + lookahead.Length];
 
 			GeometryGroup beforeGroup = new GeometryGroup() { FillRule = FillRule.NonZero };
 			for (int b = 0; b < backtrack.Length; b++) {
-				double width = GlyphFontSize * (glyphTypeface.AdvanceWidths.TryGetValue(backtrack[b], out double val) ? val : 0.0);
+				double width = fontData.GetWidth(backtrack[b], GlyphFontSize);
 
-				Geometry geometry = glyphTypeface.GetGlyphOutline(backtrack[b], GlyphFontSize, GlyphFontSize);
-				geometry.Transform = new TranslateTransform(runWidth, 0.0);
+				Geometry? geometry = fontData.GetGlyphGeometry(backtrack[b], GlyphFontSize);
+				geometry.Transform = new TransformGroup() { Children = { new ScaleTransform(1, -1), new TranslateTransform(runWidth, 0.0) } };
 
 				runWidth += width;
 				glyphWidths[b] = width;
@@ -638,10 +638,11 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			}
 			GeometryGroup middleGroup = new GeometryGroup() { FillRule = FillRule.NonZero };
 			for (int g=0; g<glyphIdxs.Length; g++) {
-				double width = GlyphFontSize * (glyphTypeface.AdvanceWidths.TryGetValue(glyphIdxs[g], out double val) ? val : 0.0);
+				double width = fontData.GetWidth(glyphIdxs[g], GlyphFontSize);
 
-				Geometry geometry = glyphTypeface.GetGlyphOutline(glyphIdxs[g], GlyphFontSize, GlyphFontSize);
-				geometry.Transform = new TranslateTransform(runWidth, 0.0);
+				Geometry geometry = fontData.GetGlyphGeometry(glyphIdxs[g], GlyphFontSize);
+				geometry.Transform = new TransformGroup() { Children = { new ScaleTransform(1, -1), new TranslateTransform(runWidth, 0.0) } };
+
 
 				runWidth += width;
 				glyphWidths[backtrack.Length + g] = width;
@@ -650,10 +651,10 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			}
 			GeometryGroup afterGroup = new GeometryGroup() { FillRule = FillRule.NonZero };
 			for (int a = 0; a < lookahead.Length; a++) {
-				double width = GlyphFontSize * (glyphTypeface.AdvanceWidths.TryGetValue(lookahead[a], out double val) ? val : 0.0);
+				double width = fontData.GetWidth(lookahead[a], GlyphFontSize);
 
-				Geometry geometry = glyphTypeface.GetGlyphOutline(lookahead[a], GlyphFontSize, GlyphFontSize);
-				geometry.Transform = new TranslateTransform(runWidth, 0.0);
+				Geometry geometry = fontData.GetGlyphGeometry(lookahead[a], GlyphFontSize);
+				geometry.Transform = new TransformGroup() { Children = { new ScaleTransform(1, -1), new TranslateTransform(runWidth, 0.0) } };
 
 				runWidth += width;
 				glyphWidths[backtrack.Length + glyphIdxs.Length + a] = width;
@@ -679,9 +680,9 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			}
 
 			DrawingGroup drawings = new DrawingGroup();
-			drawings.Children.Add(new GeometryDrawing(Brushes.Gray, null, beforeGroup));
-			drawings.Children.Add(new GeometryDrawing(Brushes.Gray, null, afterGroup));
-			drawings.Children.Add(new GeometryDrawing(Brushes.Black, null, middleGroup)); // So it's on top
+			drawings.Children.Add(new GeometryDrawing() { Brush = Brushes.Gray, Pen = null, Geometry = beforeGroup });
+			drawings.Children.Add(new GeometryDrawing() { Brush = Brushes.Gray, Pen = null, Geometry = afterGroup });
+			drawings.Children.Add(new GeometryDrawing() { Brush = Brushes.Black, Pen = null, Geometry = middleGroup }); // So it's on top
 
 			DrawingElement elem = new DrawingElement(drawings);
 
@@ -691,9 +692,9 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				BorderBrush = Brushes.White,
 				Background = Brushes.White,
 				//BorderThickness = new Thickness(1),
-				ToolTip = tooltip,
 				Child = elem
 			};
+			ToolTip.SetTip(border, tooltip);
 
 			return border;
 		}
@@ -710,17 +711,15 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				|| (featureTag.StartsWith("cv") && char.IsDigit(featureTag[2]) && char.IsDigit(featureTag[3])));
 		}
 
-		private async static void PopulateSubstitutions(StackPanel stack, string scriptTag, string? langSysTag, IReadOnlySet<string> features, OpenTypeGlyphSubstitutionTable gsubTable, IReadOnlyDictionary<uint, ushort> cidMap, Uri fontUri, IReadOnlyDictionary<ushort, string> glyphNames) {
+		private async static void PopulateSubstitutions(StackPanel stack, CollectedFontData fontData, string scriptTag, string? langSysTag, IReadOnlySet<string> features, OpenTypeGlyphSubstitutionTable gsubTable, IReadOnlyDictionary<uint, ushort> cidMap, IReadOnlyDictionary<ushort, string> glyphNames) {
 			SortedDictionary<ushort, uint> gidToUnicode = CMapWriter.GetGIDToUnicodeMap(cidMap);
 
-			GlyphTypeface glyphTypeface = new GlyphTypeface(fontUri);
-
 			Control GetGlyphsBox(ushort[] before, ushort[] gids, ushort[] after) {
-				return MakeGlyphsBox(glyphTypeface, before, gids, after);
+				return MakeGlyphsBox(fontData, before, gids, after);
 			}
 
 			Control GetGlyphsBoxSingle(ushort[] gids) {
-				return MakeGlyphsBox(glyphTypeface, Array.Empty<ushort>(), gids, Array.Empty<ushort>());
+				return MakeGlyphsBox(fontData, Array.Empty<ushort>(), gids, Array.Empty<ushort>());
 			}
 
 			Control GetContents(Control[] initial, Control[] final, char connection, string? note) {
@@ -741,7 +740,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 					VerticalAlignment = VerticalAlignment.Center,
 					HorizontalAlignment = HorizontalAlignment.Center
 				};
-				connectionBlock.MakeFontSizeRelative(2);
+				connectionBlock.MakeFontSizeRelative(TextBlockClass.H3);
 				glyphsPanel.Children.Add(connectionBlock);
 				glyphsPanel.Children.AddRange(final);
 
@@ -756,7 +755,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
 			Control GetGlyphs2(ushort[] initial, ushort[] final, char connection, string? note) {
 				WrapPanel glyphsPanel = new WrapPanel() { Orientation = Orientation.Horizontal };
-				glyphsPanel.Children.AddRange(MakeGlyphSet(glyphTypeface, gidToUnicode, glyphNames, initial));
+				glyphsPanel.Children.AddRange(MakeGlyphSet(fontData, gidToUnicode, glyphNames, initial));
 				if (!string.IsNullOrEmpty(note)) {
 					glyphsPanel.Children.Add(new TextBlock() {
 						Text = note,
@@ -772,9 +771,9 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 					VerticalAlignment = VerticalAlignment.Center,
 					HorizontalAlignment = HorizontalAlignment.Center
 				};
-				connectionBlock.MakeFontSizeRelative(2);
+				connectionBlock.MakeFontSizeRelative(TextBlockClass.H3);
 				glyphsPanel.Children.Add(connectionBlock);
-				glyphsPanel.Children.AddRange(MakeGlyphSet(glyphTypeface, gidToUnicode, glyphNames, final));
+				glyphsPanel.Children.AddRange(MakeGlyphSet(fontData, gidToUnicode, glyphNames, final));
 
 				return new Border() {
 					Margin = new Thickness(10, 4, 10, 4),
@@ -787,11 +786,11 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
 			GlyphComparer comparer = new GlyphComparer(gidToUnicode);
 
-			stack.Children.Add(GetContentTextBlock("Substitutions", TextBlockMargin, 1.5));
+			stack.Children.Add(GetContentTextBlock("Substitutions", TextBlockMargin, TextBlockClass.H4));
 
 			foreach ((string feature, GlyphSubstitutionLookupSet lookups) in GetFeatures(scriptTag, langSysTag, features, gsubTable)) {
 
-				stack.Children.Add(GetContentTextBlock($"{feature.TrimEnd()}\u2002\u2013\u2002{OpenTypeLayoutTags.FeatureTagsRegistry.GetValueOrDefault(feature, "Unknown Feature")}", TextBlockMargin, 1.5));
+				stack.Children.Add(GetContentTextBlock($"{feature.TrimEnd()}\u2002\u2013\u2002{OpenTypeLayoutTags.FeatureTagsRegistry.GetValueOrDefault(feature, "Unknown Feature")}", TextBlockMargin, TextBlockClass.H4));
 
 				WrapPanel subsPanel = new WrapPanel() { Orientation = Orientation.Horizontal, Margin = ParagraphMargin };
 				stack.Children.Add(subsPanel);
@@ -842,29 +841,29 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 					}
 
 					if (elementsToAdd.Count > GlyphLoadChunkSize) {
-						await subsPanel.Dispatcher.InvokeAsync(() => {
-							foreach (UIElement element in elementsToAdd) {
+						await Dispatcher.UIThread.InvokeAsync(() => {
+							foreach (Control element in elementsToAdd) {
 								subsPanel.Children.Add(element);
 							}
 							elementsToAdd.Clear();
-						}, System.Windows.Threading.DispatcherPriority.Background);
+						}, DispatcherPriority.Background);
 						elementsToAdd = new List<Control>();
 					}
 				}
 
 				if (elementsToAdd.Count > 0) {
-					await subsPanel.Dispatcher.InvokeAsync(() => {
-						foreach (UIElement element in elementsToAdd) {
+					await Dispatcher.UIThread.InvokeAsync(() => {
+						foreach (Control element in elementsToAdd) {
 							subsPanel.Children.Add(element);
 						}
-					}, System.Windows.Threading.DispatcherPriority.Background);
+					}, DispatcherPriority.Background);
 				}
 			}
 		}
 
-		private static IEnumerable<Control> MakeGlyphSet(GlyphTypeface glyphTypeface, IReadOnlyDictionary<ushort, uint> gidToUnicode, IReadOnlyDictionary<ushort, string> glyphNames, params ushort[] glyphs) {
+		private static IEnumerable<Control> MakeGlyphSet(CollectedFontData fontData, IReadOnlyDictionary<ushort, uint> gidToUnicode, IReadOnlyDictionary<ushort, string> glyphNames, params ushort[] glyphs) {
 			for (int i = 0; i < glyphs.Length; i++) {
-				yield return MakeGlyphBox(glyphTypeface, glyphs[i], gidToUnicode, glyphNames);
+				yield return MakeGlyphBox(fontData, glyphs[i], gidToUnicode, glyphNames);
 			}
 		}
 
@@ -1042,7 +1041,77 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 		}
 
 		#endregion Unicode Names
-		*/
+
+		private class CollectedFontData {
+
+			public readonly TrueTypeFontFile fontFile;
+			public readonly TrueTypeFontFileOutlines outlines;
+
+			public readonly int[] advanceWidths;
+			public readonly int[] ascents;
+			public readonly int[] descents;
+
+			public readonly int ascent;
+			public readonly int descent;
+
+			public ushort NumGlyphs => fontFile.numGlyphs;
+
+			public CollectedFontData(TrueTypeFontFile fontFile, TrueTypeFontFileOutlines outlines) {
+				this.fontFile = fontFile;
+				this.outlines = outlines;
+
+				(ushort[] advanceWidths, short[] ascents, short[] descents, _) = fontFile.GetMetrics();
+				this.advanceWidths = ProcessUShort(advanceWidths, fontFile.UnitsPerEm);
+				this.ascents = ProcessShort(ascents, fontFile.UnitsPerEm);
+				this.descents = ProcessShort(descents, fontFile.UnitsPerEm);
+
+				this.ascent = ProcessShort(fontFile.head.yMax, fontFile.UnitsPerEm);
+				this.descent = ProcessShort(fontFile.head.yMin, fontFile.UnitsPerEm);
+			}
+
+			public Geometry GetGlyphGeometry(ushort glyphId, float fontSize) {
+				return outlines.GetGlyphGeometry(glyphId, fontSize) ?? new PathGeometry();
+			}
+
+			public float GetWidth(ushort glyph, float fontsize) {
+				return (advanceWidths[glyph] * fontsize) / 1000f;
+			}
+			public float GetAscent(ushort glyph, float fontsize) {
+				return (ascents[glyph] * fontsize) / 1000f;
+			}
+			public float GetDescent(ushort glyph, float fontsize) {
+				return (descents[glyph] * fontsize) / 1000f;
+			}
+
+			public float GetAscent(float fontsize) {
+				return (ascent * fontsize) / 1000f;
+			}
+			public float GetDescent(float fontsize) {
+				return (descent * fontsize) / 1000f;
+			}
+
+			private static int ProcessShort(short value, ushort unitsPerEm) {
+				return (int)(1000 * (value / (double)unitsPerEm));
+			}
+			private static int[] ProcessShort(short[] values, ushort unitsPerEm) {
+				int[] result = new int[values.Length];
+				for (int i = 0; i < values.Length; i++) {
+					result[i] = ProcessShort(values[i], unitsPerEm);
+				}
+				return result;
+			}
+			private static int ProcessUShort(ushort value, ushort unitsPerEm) {
+				return (int)(1000 * ((int)value / (double)unitsPerEm));
+			}
+			private static int[] ProcessUShort(ushort[] values, ushort unitsPerEm) {
+				int[] result = new int[values.Length];
+				for (int i = 0; i < values.Length; i++) {
+					result[i] = ProcessUShort(values[i], unitsPerEm);
+				}
+				return result;
+			}
+
+		}
 	}
 
 	public class FontName {

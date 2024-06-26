@@ -44,7 +44,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
 			TextBlock headerBlock = GetContentTextBlock(ConstructorContentBuilder.MakeConstructorHeaderBlock(constructor), TextBlockMargin);
-			headerBlock.MakeFontSizeRelative(2.0);
+			headerBlock.MakeFontSizeRelative(TextBlockClass.H3);
 
 			if (constructor is MarkupConstructorDetails markupConstructor) {
 				Grid headerGrid = MakeExternalLinkHeader(headerBlock, "Open Pattern File...", out Button patternSourceButton, window);
@@ -343,7 +343,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 					LayoutTransform = GetLayoutTransform(40, 40, 145, 145, element.Width, element.Height)
 				};
 
-				return new Border() { Child = layoutTransformControl, Margin = CanvasMargin };
+				return new Border() { Child = layoutTransformControl, Margin = CanvasMargin, HorizontalAlignment = HorizontalAlignment.Center };
 			}
 			catch (Exception e) {
 				Console.WriteLine(e.Message);

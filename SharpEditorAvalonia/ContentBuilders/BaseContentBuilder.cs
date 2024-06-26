@@ -12,13 +12,31 @@ using Avalonia.Media;
 using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Data;
+using System.Linq;
 
 namespace SharpEditorAvalonia.ContentBuilders {
 
 	// FrameworkElement -> Control
 	// UIElement -> Control
 
+	public enum TextBlockClass {
+		None,
+		H1,
+		H2,
+		H3,
+		H4,
+		H5,
+		H6,
+		H7
+	}
+
 	public static class BaseContentBuilder {
+
+		private static readonly HashSet<string> TextBlockClassNames;
+
+		static BaseContentBuilder() {
+			TextBlockClassNames = new HashSet<string>(Enum.GetNames(typeof(TextBlockClass)).Where(n => n != TextBlockClass.None.ToString()).Select(n => n.ToLower()));
+		}
 
 		public static TextBlock GetContentTextBlock(Thickness margin) {
 			return new TextBlock() {
@@ -35,10 +53,10 @@ namespace SharpEditorAvalonia.ContentBuilders {
 			return block;
 		}
 
-		public static TextBlock GetContentTextBlock(string? text, Thickness margin, double sizeRatio) {
+		public static TextBlock GetContentTextBlock(string? text, Thickness margin, TextBlockClass blockClass) {
 			TextBlock block = GetContentTextBlock(margin);
 			if (text is not null) { block.Text = text; }
-			MakeFontSizeRelative(block, sizeRatio);
+			MakeFontSizeRelative(block, blockClass);
 			return block;
 		}
 
@@ -48,10 +66,16 @@ namespace SharpEditorAvalonia.ContentBuilders {
 			return block;
 		}
 
-		public static T MakeFontSizeRelative<T>(this T block, double ratio) where T : TextBlock {
-			//block.LayoutTransform = new ScaleTransform(ratio, ratio);
-			block.RenderTransform = new ScaleTransform(ratio, ratio); // TODO Is this going to work?
-			block.RenderTransformOrigin = new RelativePoint(0, 1, RelativeUnit.Relative);
+		public static T MakeFontSizeRelative<T>(this T block, TextBlockClass blockClass) where T : TextBlock {
+			////block.LayoutTransform = new ScaleTransform(ratio, ratio);
+			//block.RenderTransform = new ScaleTransform(ratio, ratio); // Is this going to work?
+			//block.RenderTransformOrigin = new RelativePoint(0, 1, RelativeUnit.Relative);
+
+			block.Classes.RemoveAll(TextBlockClassNames);
+			if (blockClass != TextBlockClass.None) {
+				block.Classes.Add(blockClass.ToString().ToLower());
+			}
+
 			return block;
 		}
 
@@ -138,7 +162,9 @@ namespace SharpEditorAvalonia.ContentBuilders {
 				finalColorSymbol = canvas;
 			}
 			else {
-				finalColorSymbol = colorBlock;
+				Canvas canvas = new Canvas() { Height = 10.0, Width = 10.0 };
+				canvas.Children.Add(colorBlock);
+				finalColorSymbol = canvas;
 			}
 
 			DockPanel panel = new DockPanel() { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };

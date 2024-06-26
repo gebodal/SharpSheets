@@ -13,6 +13,33 @@
 		FontSize="13"
 		FontFamily="{StaticResource ApplicationFont}">
 
+	<Window.Styles>
+		<Style Selector="TextBlock">
+			<Setter Property="FontSize" Value="13.5"/> <!-- x1.0 -->
+		</Style>
+		<Style Selector="TextBlock.h1">
+			<Setter Property="FontSize" Value="40.5"/> <!-- x3.0 -->
+		</Style>
+		<Style Selector="TextBlock.h2">
+			<Setter Property="FontSize" Value="33.75"/> <!-- x2.5 -->
+		</Style>
+		<Style Selector="TextBlock.h3">
+			<Setter Property="FontSize" Value="27"/> <!-- x2.0 -->
+		</Style>
+		<Style Selector="TextBlock.h4">
+			<Setter Property="FontSize" Value="20.25"/> <!-- x1.5 -->
+		</Style>
+		<Style Selector="TextBlock.h5">
+			<Setter Property="FontSize" Value="16.875"/> <!-- x1.25 -->
+		</Style>
+		<Style Selector="TextBlock.h6">
+			<Setter Property="FontSize" Value="15.525"/> <!-- x1.15 -->
+		</Style>
+		<Style Selector="TextBlock.h7">
+			<Setter Property="FontSize" Value="14.85"/> <!-- x1.1 -->
+		</Style>
+	</Window.Styles>
+		
 	<DockPanel>
 		<Grid DockPanel.Dock="Top" Background="#2d2d30">
 			<Grid.ColumnDefinitions>
