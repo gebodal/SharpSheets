@@ -1468,10 +1468,14 @@ namespace SharpEditorAvalonia.Windows {
 		private void DuplicateExecuted() {
 			if (textEditor is not null) {
 				DocumentLine currentLine = textEditor.Document.GetLineByOffset(textEditor.CaretOffset);
+				string currentLineText;
 				if (currentLine.NextLine is DocumentLine nextLine) {
-					string currentLineText = textEditor.Document.GetText(currentLine.Offset, nextLine.Offset - currentLine.Offset);
-					textEditor.Document.Insert(currentLine.Offset, currentLineText);
+					currentLineText = textEditor.Document.GetText(currentLine.Offset, nextLine.Offset - currentLine.Offset);
 				}
+				else {
+					currentLineText = textEditor.Document.GetText(currentLine.Offset, currentLine.TotalLength) + "\n";
+				}
+				textEditor.Document.Insert(currentLine.Offset, currentLineText);
 			}
 		}
 

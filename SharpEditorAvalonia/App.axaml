@@ -15,6 +15,7 @@
 		<FontFamily x:Key="NotoSansFont">avares://SharpEditorAvalonia/Assets/Fonts#Noto Sans</FontFamily>
 		<FontFamily x:Key="OpenSansFont">avares://SharpEditorAvalonia/Assets/Fonts#Open Sans</FontFamily>
 		<FontFamily x:Key="ApplicationFont">avares://SharpEditorAvalonia/Assets/Fonts#Open Sans</FontFamily>
-		<FontFamily x:Key="EditorFont">avares://SharpEditorAvalonia/Assets/Fonts#DejaVu Sans Mono</FontFamily>
+		<FontFamily x:Key="EditorFontCustom">avares://SharpEditorAvalonia/Assets/Fonts#DejaVu Sans Mono</FontFamily>
+		<FontFamily x:Key="EditorFont">Consolas</FontFamily>
 	</Application.Resources>
 </Application>

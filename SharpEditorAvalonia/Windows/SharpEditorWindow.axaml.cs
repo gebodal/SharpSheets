@@ -1,7 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -54,6 +57,7 @@ namespace SharpEditorAvalonia.Windows {
 
 			InitialiseTemplateFileList();
 			InitialiseEditorInterfaces();
+			InitialiseDragDrop();
 			
 			GenerateEnabled = false;
 			//SavePossible = false;
@@ -69,9 +73,6 @@ namespace SharpEditorAvalonia.Windows {
 			EditorTabControl.SelectionChanged += TabSelectionChanged;
 
 			EditorStateChanged += (o, e) => { EditorCursorChanged?.Invoke(o, e); };
-
-			// TODO Should this be in AppController?
-			OpenEmptyDocument(DocumentType.SHARPCONFIG, false, true);
 			
 			if (Instance == null) { Instance = this; } // This seems a little suspect...
 		}
@@ -82,6 +83,55 @@ namespace SharpEditorAvalonia.Windows {
 			// See: https://github.com/AvaloniaUI/Avalonia/issues/11312
 			throw new NotImplementedException();
 		}
+
+		#region Application
+		public bool IsClosed { get; private set; } = false;
+
+		private async Task<bool> CloseAllTabsForExit() {
+			foreach (EditorTabItem item in editorTabs.ToArray()) {
+				if (item.Content.HasUnsavedProgress) {
+					FocusOnEditor(item.Content);
+				}
+				if (!(await CloseTab(item))) {
+					// Something has happened to prevent a tab from closing, so return, just in case
+					return false;
+				}
+			}
+			return true;
+		}
+
+		private void OnWindowClosing(object? sender, WindowClosingEventArgs e) {
+			//Console.WriteLine("SharpEditorWindow.OnWindowClosing");
+			controller.Exit(false);
+		}
+
+		private void ExitClick(object? sender, RoutedEventArgs e) {
+			//Console.WriteLine("SharpEditorWindow.ExitClick");
+			controller.Exit(true);
+		}
+
+		protected override async void OnClosing(WindowClosingEventArgs e) {
+			//Console.WriteLine("SharpEditorWindow.OnClosing"); await Console.Out.FlushAsync();
+
+			if (NumTabs > 0) {
+				e.Cancel = true;
+
+				await CloseAllTabsForExit();
+
+				if (NumTabs == 0) {
+					this.Close();
+				}
+				return;
+			}
+
+			generator.Stop();
+
+			//Console.WriteLine("Window.OnClosing");
+			base.OnClosing(e);
+
+			IsClosed = !e.Cancel;
+		}
+		#endregion Application
 
 		#region Window Activation Handlers
 
@@ -205,58 +255,6 @@ namespace SharpEditorAvalonia.Windows {
 			EditorCursorChanged?.Invoke(sender, e);
 		}
 
-		// TODO Implement draggable tab items
-		/*
-		private void TabItem_MouseMove(object? sender, MouseEventArgs e) {
-			if (e.Source is not TabItem tabItem) {
-				return;
-			}
-
-			if (Mouse.PrimaryDevice.LeftButton == MouseButtonState.Pressed) {
-				DragDrop.DoDragDrop(EditorTabControl, tabItem, DragDropEffects.All);
-
-				e.Handled = true; // TODO Is this all we need?
-			}
-		}
-
-		private void TabItem_Drop(object? sender, DragEventArgs e) {
-			if (e.Source is TabItem tabItemTarget &&
-				e.Data.GetData(typeof(TabItem)) is TabItem tabItemSource &&
-				tabItemTarget.Content is EditorTabItem editorTabTarget &&
-				tabItemSource.Content is EditorTabItem editorTabSource) {
-
-				if (!tabItemTarget.Equals(tabItemSource) &&
-					editorTabs.IndexOf(editorTabTarget) is int tabItemTargetIdx && tabItemTargetIdx != -1 &&
-					editorTabs.IndexOf(editorTabSource) is int tabItemSourceIdx && tabItemSourceIdx != -1
-					) {
-
-					if (editorTabs.Remove(editorTabSource)) {
-						editorTabs.Insert(tabItemTargetIdx, editorTabSource);
-						EditorTabControl.SelectedIndex = tabItemTargetIdx;
-					}
-
-				}
-
-				e.Handled = true;
-			}
-		}
-
-		private void EditorTabPanel_Drop(object? sender, DragEventArgs e) {
-			if (e.Source is TabPanel &&
-				e.Data.GetData(typeof(TabItem)) is TabItem tabItemSource &&
-				tabItemSource.Content is EditorTabItem editorTabSource &&
-				editorTabs.IndexOf(editorTabSource) is int tabItemSourceIdx && tabItemSourceIdx != -1
-				) {
-
-				if (editorTabs.Remove(editorTabSource)) {
-					editorTabs.Add(editorTabSource);
-					EditorTabControl.SelectedIndex = editorTabs.Count - 1;
-				}
-
-				e.Handled = true;
-			}
-		}
-		*/
 		#endregion Tab Handling
 
 		#region Editor Interfaces
@@ -285,48 +283,6 @@ namespace SharpEditorAvalonia.Windows {
 			}
 		}
 		#endregion Editor Interfaces
-
-		#region Application
-		public bool IsClosed { get; private set; } = false;
-
-		private async Task<bool> CloseAllTabsForExit() {
-			foreach (EditorTabItem item in editorTabs.ToArray()) {
-				if (item.Content.HasUnsavedProgress) {
-					FocusOnEditor(item.Content);
-				}
-				if (!(await CloseTab(item))) {
-					// Something has happened to prevent a tab from closing, so return, just in case
-					return false;
-				}
-			}
-			return true;
-		}
-
-		private void OnWindowClosing(object? sender, WindowClosingEventArgs e) {
-			Console.WriteLine("SharpEditorWindow.OnWindowClosing");
-			controller.Exit(false);
-		}
-
-		private void ExitClick(object? sender, RoutedEventArgs e) {
-			Console.WriteLine("SharpEditorWindow.ExitClick");
-			controller.Exit(true);
-		}
-
-		protected override async void OnClosing(WindowClosingEventArgs e) {
-			Console.WriteLine("SharpEditorWindow.OnClosing"); await Console.Out.FlushAsync();
-			if(!(await CloseAllTabsForExit())) {
-				e.Cancel = true;
-				return;
-			}
-			
-			generator.Stop();
-
-			Console.WriteLine("Window.OnClosing");
-			base.OnClosing(e);
-
-			IsClosed = !e.Cancel;
-		}
-		#endregion Application
 
 		#region Files
 
@@ -419,22 +375,6 @@ namespace SharpEditorAvalonia.Windows {
 		}
 
 		private void NewFileClick(object? sender, RoutedEventArgs e) {
-			/*
-			if (unsavedProgress) {
-				MessageBoxResult result = MessageBox.Show("You have unsaved changes. Do you wish to save?", "Unsaved Changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-
-				if (result == MessageBoxResult.Yes) {
-					saveFileClick(this, null);
-					if (unsavedProgress) { return; } // If still unsaved somehow, return, just in case
-				}
-				else if (result == MessageBoxResult.Cancel) {
-					e.Handled = true;
-					return;
-				}
-				// Else if result == No, then just continue
-			}
-			*/
-
 			OpenEditorDocument(null, true);
 		}
 
@@ -573,27 +513,6 @@ namespace SharpEditorAvalonia.Windows {
 			}
 		}
 
-		// TODO Implement window drag and drop
-		/*
-		private void WindowDrop(object? sender, DragEventArgs e) {
-			if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
-				if (e.Data.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0) {
-					foreach (string filepath in files) {
-						if (SharpEditorFileInfo.GetDocumentType(filepath) != DocumentType.UNKNOWN) {
-							OpenEditorDocument(filepath, true);
-						}
-						else if (TemplateImports.IsKnownTemplateFileType(filepath)) {
-							MessageBoxResult result = MessageBox.Show($"Import {System.IO.Path.GetFileName(filepath)} into templates?", "Import Templates", MessageBoxButton.YesNo, MessageBoxImage.Question);
-							if (result == MessageBoxResult.Yes) {
-								ImportTemplateFile(filepath);
-							}
-						}
-					}
-				}
-			}
-		}
-		*/
-
 		private async void ImportTemplateFiles(string? initialDirectory) {
 			string[] filenames = await this.OpenFilePicker(
 				title: "Import",
@@ -627,6 +546,58 @@ namespace SharpEditorAvalonia.Windows {
 		}
 
 		#endregion Files
+
+		#region DragDrop
+
+		private void InitialiseDragDrop() {
+			DragDrop.SetAllowDrop(this, true);
+			AddHandler(DragDrop.DropEvent, OnWindowDrop);
+			AddHandler(DragDrop.DragEnterEvent, OnWindowDragEnter);
+			AddHandler(DragDrop.DragLeaveEvent, OnWindowDragLeave);
+		}
+
+		private void OnWindowDragEnter(object? sender, DragEventArgs e) {
+			Console.WriteLine("Drag enter");
+			MainGrid.Background = Brushes.Red;
+		}
+		private void OnWindowDragLeave(object? sender, DragEventArgs e) {
+			Console.WriteLine("Drag leave");
+			MainGrid.Background = Brushes.Green;
+		}
+
+		private async void OnWindowDrop(object? sender, DragEventArgs e) {
+			if (e.Data.GetDataFormats().Contains(DataFormats.Files)) {
+				if (GetFilePaths(e.Data.GetFiles()) is string[] files && files.Length > 0) {
+					foreach (string filepath in files) {
+						if (SharpEditorFileInfo.GetDocumentType(filepath) != DocumentType.UNKNOWN) {
+							OpenEditorDocument(filepath, true);
+						}
+						else if (TemplateImports.IsKnownTemplateFileType(filepath)) {
+							MessageBoxResult result = await MessageBoxes.Show($"Import {System.IO.Path.GetFileName(filepath)} into templates?", "Import Templates", MessageBoxButton.YesNo, MessageBoxImage.Question);
+							if (result == MessageBoxResult.Yes) {
+								ImportTemplateFile(filepath);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		private static string[]? GetFilePaths(IEnumerable<IStorageItem>? items) {
+			if(items is null) { return null; }
+
+			List<string> files = new List<string>();
+
+			foreach(IStorageItem item in items) {
+				if(item.TryGetLocalPath() is string itemPath && File.Exists(itemPath)) {
+					files.Add(itemPath);
+				}
+			}
+
+			return files.ToArray();
+		}
+
+		#endregion DragDrop
 
 		#region Generate
 

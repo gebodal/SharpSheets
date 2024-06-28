@@ -1,10 +1,13 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Data;
+using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Styling;
 using System;
+using System.Globalization;
 
 namespace SharpEditorAvalonia.Utilities {
 
@@ -33,6 +36,8 @@ namespace SharpEditorAvalonia.Utilities {
 
 			border = new Border() {
 				Child = textBlock,
+				Padding = new Thickness(0),
+				Margin = new Thickness(0),
 				Background = Brushes.Transparent
 			};
 
@@ -42,6 +47,16 @@ namespace SharpEditorAvalonia.Utilities {
 			border.PointerPressed += OnPointerPressed;
 
 			this.Child = border;
+
+
+			var binding = new Binding("Foreground") {
+				Source = this,
+				Mode = BindingMode.OneWay,
+				Converter = new FallbackColorConverter(),
+				ConverterParameter = HyperlinkColor
+			};
+
+			textBlock.Bind(TextBlock.ForegroundProperty, binding);
 		}
 
 		public ClickableRun() : this(null) { }
@@ -63,6 +78,22 @@ namespace SharpEditorAvalonia.Utilities {
 				MouseLeftButtonDown?.Invoke(sender, e);
 				e.Handled = true;
 			}
+		}
+
+		private class FallbackColorConverter : IValueConverter {
+
+			public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) {
+				if (value is IBrush parentForeground) {
+					return parentForeground;
+				}
+
+				return parameter as IBrush ?? HyperlinkColor;
+			}
+
+			public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) {
+				throw new NotImplementedException();
+			}
+
 		}
 
 	}

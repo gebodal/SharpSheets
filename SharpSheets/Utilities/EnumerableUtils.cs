@@ -323,5 +323,9 @@ namespace SharpSheets.Utilities {
 			}
 		}
 
+		public static IEnumerable<T> Sort<T>(this IEnumerable<T> source) where T : IComparable<T> {
+			return source.OrderBy(i => i);
+		}
+
 	}
 }

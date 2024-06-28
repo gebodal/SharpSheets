@@ -107,9 +107,9 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				},
 				//Background = Brushes.Transparent,
 				//Style = window.FindResource("SubtleButton") as Style, // TODO How to deal with this?
-				Opacity = 0.5,
-				//ToolTip = tooltip // TODO How to do this?
+				Opacity = 0.5
 			};
+			ToolTip.SetTip(linkButton, tooltip);
 
 			Grid.SetColumn(linkButton, 1);
 			Grid.SetRow(linkButton, 0);

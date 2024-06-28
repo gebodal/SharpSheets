@@ -79,17 +79,17 @@ namespace SharpEditorAvalonia.Documentation {
 		}
 
 		public void NavigateTo(DocumentationPage page) {
-			Console.WriteLine("Navigate to " + page.Title);
+			//Console.WriteLine("Navigate to " + page.Title);
 			navigationService.Navigate(page);
 		}
 
 		private void OnNavigated(object? sender, EventArgs e) {
-			Console.WriteLine("OnNavigated");
+			//Console.WriteLine("OnNavigated");
 			DocFrame.Children.Clear();
 			if (navigationService.Current is DocumentationPage current) {
 				DocFrame.Children.Add(current);
 				TitleTextBlock.Text = (DocFrame.Children[0] as DocumentationPage)?.Title ?? "Documentation";
-				Console.WriteLine("Navigated");
+				//Console.WriteLine("Navigated");
 			}
 		}
 

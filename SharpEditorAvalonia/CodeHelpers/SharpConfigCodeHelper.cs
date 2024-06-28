@@ -537,12 +537,12 @@ namespace SharpEditorAvalonia.CodeHelpers {
 					}
 				}
 				else if (argType == typeof(FontPath)) {
-					foreach (string fontname in FontPathRegistry.GetAllRegisteredFonts()) {
+					foreach (string fontname in FontPathRegistry.GetAllRegisteredFonts().Sort()) {
 						data.Add(new CompletionEntry(fontname));
 					}
 				}
 				else if (argType == typeof(FontPathGrouping)) {
-					foreach (string fontname in FontPathRegistry.GetAllRegisteredFamilies().Concat(FontPathRegistry.GetAllRegisteredFonts())) {
+					foreach (string fontname in FontPathRegistry.GetAllRegisteredFamilies().Concat(FontPathRegistry.GetAllRegisteredFonts()).Sort()) {
 						data.Add(new CompletionEntry(fontname));
 					}
 				}

@@ -7,7 +7,8 @@
         x:Class="SharpEditorAvalonia.Windows.SharpEditorWindow"
 		x:DataType="local:SharpEditorWindow"
         Title="SharpEditorWindow"
-		Closing="OnWindowClosing">
+		Closing="OnWindowClosing"
+		FontFamily="{StaticResource ApplicationFont}">
 
 	<Window.KeyBindings>
 		<KeyBinding Gesture="F1" Command="{Binding HelpCommand}"/>
@@ -17,6 +18,10 @@
 		<KeyBinding Gesture="Ctrl+G" Command="{Binding GenerateCommand}"/>
 		<KeyBinding Gesture="Ctrl+Shift+G" Command="{Binding GeneratePopulateCommand}"/>
 	</Window.KeyBindings>
+
+	<Window.Styles>
+		<StyleInclude Source="avares://Avalonia.Xaml.Interactions.Draggable/Styles.axaml"/>
+	</Window.Styles>
 
 	<DockPanel Background="#2d2d30">
 
@@ -314,7 +319,7 @@
 			
 		<Grid Name="MainGrid" Background="#2d2d30">
 
-			<TabControl Name="EditorTabControl" Padding="0" Margin="0" BorderThickness="0">
+			<TabControl Name="EditorTabControl" Classes="draggable" Padding="0" Margin="0" BorderThickness="0">
 				<TabControl.Styles>
 					<Style Selector="TabControl WrapPanel">
 						<Setter Property="Margin" Value="0,0,0,0"/>
@@ -326,12 +331,18 @@
 				</TabControl.Styles>
 				<TabControl.ItemTemplate>
 					<DataTemplate>
-						<UserControl Content="{Binding Header, DataType={x:Type local:EditorTabItem}}" Margin="0" Padding="0" BorderThickness="0"/>
+						<UserControl
+							Content="{Binding Header, DataType={x:Type local:EditorTabItem}}"
+							Margin="0" Padding="0" BorderThickness="0"
+							FontSize="{Binding FontSize, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
 					</DataTemplate>
 				</TabControl.ItemTemplate>
 				<TabControl.ContentTemplate>
 					<DataTemplate>
-						<UserControl Content="{Binding Content, DataType={x:Type local:EditorTabItem}}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+						<UserControl
+							Content="{Binding Content, DataType={x:Type local:EditorTabItem}}"
+							HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+							HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
 					</DataTemplate>
 				</TabControl.ContentTemplate>
 			</TabControl>

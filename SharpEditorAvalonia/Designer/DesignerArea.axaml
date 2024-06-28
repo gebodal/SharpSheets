@@ -22,8 +22,7 @@
 			<StackPanel Orientation="Horizontal" Margin="10,0">
 				<TextBox
 						x:Name="PageNumber"
-						Width="36"
-						Height="25"
+						Width="50" Height="30"
 						Background="#333337"
 						Foreground="LightGray"
 						VerticalContentAlignment="Center"
@@ -32,7 +31,8 @@
 						LostFocus="UpdatedDesignerPageNumber"
 						TextAlignment="Center"
 						Text="0"
-						ToolTip.Tip="Current Page Number"/>
+						ToolTip.Tip="Current Page Number"
+						ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
 				<TextBlock Text="/" Padding="5,0" VerticalAlignment="Center" Foreground="LightGray"/>
 				<TextBlock Name="PageCountTextBlock"
 						   VerticalAlignment="Center" Foreground="LightGray"
@@ -50,8 +50,7 @@
 			</Button>
 			<TextBox
 					x:Name="CanvasZoomLevelText"
-					Width="50"
-					Height="25"
+					Width="75" Height="30"
 					Margin="10,0"
 					Background="#333337"
 					Foreground="LightGray"
@@ -61,7 +60,8 @@
 					LostFocus="UpdateCanvasZoomLevel"
 					TextAlignment="Center"
 					Text="100%"
-					ToolTip.Tip="Designer Zoom Level"/>
+					ToolTip.Tip="Designer Zoom Level"
+					ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
 			<Button Command="{Binding ZoomWholePageCommand}"
 					ToolTip.Tip="Zoom to Whole Page">
 				<Image Source="../Images/WholePage.png" Height="32"/>

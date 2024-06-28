@@ -35,7 +35,7 @@ namespace SharpEditorAvalonia.Windows {
 				Text = editor.Header,
 				Margin = new Thickness(10, 0, 10, 0),
 				Width = double.NaN,
-				FontSize = 8,
+				//FontSize = 8,
 				VerticalAlignment = VerticalAlignment.Center,
 				Foreground = new SolidColorBrush(Colors.White)
 			};

@@ -39,6 +39,7 @@ namespace SharpEditorAvalonia {
 			SharpEditorRegistries.Initialise();
 
 			controller.window.GetObservable(Window.WindowStateProperty).Subscribe(controller.Window_StateChanged);
+			controller.window.Resized += controller.Window_Resized;
 
 			SharpEditorRegistries.OnRegistryErrorsChanged += controller.OnRegistryErrorsChanged;
 			controller.window.TemplateAlertEnabled = SharpEditorRegistries.HasRegistryErrors;
@@ -49,20 +50,34 @@ namespace SharpEditorAvalonia {
 					if (File.Exists(arg)) {
 						controller.window.OpenEditorDocument(arg, true);
 					}
+					// TODO What to do about invalid arguments?
 				}
+			}
+			else {
+				controller.window.OpenEmptyDocument(DocumentType.SHARPCONFIG, false, true);
 			}
 
 			return controller;
 		}
 
+		private void Window_Resized(object? sender, WindowResizedEventArgs e) {
+			UpdateWindowState();
+		}
+
 		private void Window_StateChanged(WindowState state) {
+			UpdateWindowState();
+		}
+
+		private void UpdateWindowState() {
 			if (window.IsLoaded) {
-				if (state == WindowState.Normal) {
-					SharpDataManager.Instance.WindowMaximized = false;
-				}
-				else if (state == WindowState.Maximized) {
-					SharpDataManager.Instance.WindowMaximized = true;
-				}
+				_ = Dispatcher.UIThread.InvokeAsync(() => {
+					if (window.WindowState == WindowState.Normal) {
+						SharpDataManager.Instance.WindowMaximized = false;
+					}
+					else if (window.WindowState == WindowState.Maximized) {
+						SharpDataManager.Instance.WindowMaximized = true;
+					}
+				});
 				// Otherwise leave unchanged
 			}
 		}
@@ -80,7 +95,7 @@ namespace SharpEditorAvalonia {
 		}
 
 		public void Exit(bool closeMainWindow) {
-			Console.WriteLine("AppController.Exit");
+			//Console.WriteLine("AppController.Exit");
 
 			documentationWindow?.Close();
 			templateErrorWindow?.Close();
@@ -92,7 +107,7 @@ namespace SharpEditorAvalonia {
 
 			if (window.IsClosed) {
 				// And finally, exit application
-				Console.WriteLine("Shutdown");
+				//Console.WriteLine("Shutdown");
 				(appInstance.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown(0);
 			}
 		}
