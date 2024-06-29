@@ -198,6 +198,10 @@ namespace GeboPdf.Fonts.TrueType {
 			return (xt, yt);
 		}
 
+		public override string ToString() {
+			return $"[{a}, {b}, {c}, {d}, {e}, {f}]";
+		}
+
 	}
 
 	public class TrueTypeGlyphContourTable {
