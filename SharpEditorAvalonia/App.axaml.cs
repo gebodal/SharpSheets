@@ -33,7 +33,7 @@ public partial class App : Application {
 			await Task.Delay(100); // How else to get the splash screen to render?!
 
 			// Build controller
-			AppController controller = await AppController.Create(this, desktop.Args);
+			AppController controller = await AppController.Create(this, loadingWindow, desktop.Args);
 			
 			// Run controller
 			controller.Run();

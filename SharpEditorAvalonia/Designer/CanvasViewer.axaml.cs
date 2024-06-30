@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
@@ -177,8 +178,7 @@ namespace SharpEditorAvalonia.Designer {
 			double currentScale = Scale;
 
 			if (CanvasContent is Control canvas) {
-				double scaleX = CanvasViewScroller.Viewport.Width / canvas.Width; // CanvasView.ViewportWidth / canvas.Width;
-				double scaleY = CanvasViewScroller.Viewport.Height / canvas.Height; // CanvasView.ViewportHeight / canvas.Height;
+				(double scaleX, double scaleY) = WholePageScales(canvas);
 
 				double[] zoomLevels = canvasZoomLevels.Concat(new double[] { scaleX, scaleY }).OrderBy(d => d).ToArray();
 
@@ -209,9 +209,15 @@ namespace SharpEditorAvalonia.Designer {
 			}
 		}
 
-		private double WholePageScale(Control canvas) {
+		private (double x, double y) WholePageScales(Control canvas) {
 			double scaleX = CanvasViewScroller.Bounds.Width / canvas.Width; // CanvasView.ActualWidth / canvas.Width;
 			double scaleY = CanvasViewScroller.Bounds.Height / canvas.Height; // CanvasView.ActualHeight / canvas.Height;
+			//return (scaleX * 0.99, scaleY * 0.99);
+			return (scaleX * 0.999, scaleY * 0.999);
+		}
+
+		private double WholePageScale(Control canvas) {
+			(double scaleX, double scaleY) = WholePageScales(canvas);
 			double scale = Math.Min(scaleX, scaleY);
 			return scale;
 		}

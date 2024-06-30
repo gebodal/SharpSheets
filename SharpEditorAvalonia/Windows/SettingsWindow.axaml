@@ -7,58 +7,33 @@
 		x:DataType="managers:SharpDataManager"
         mc:Ignorable="d"
         Title="Settings"
-		d:DesignWidth="800" d:DesignHeight="450"
+		d:DesignWidth="600" d:DesignHeight="450"
 		Width="600" Height="450"
 		MinWidth="300" MinHeight="200"
 		WindowStartupLocation="CenterOwner"
 		ShowInTaskbar="False"
 		SystemDecorations="None"
 		Background="#424245">
-
+	
 	<Design.DataContext>
 		<managers:SharpDataManager/>
 	</Design.DataContext>
 
 	<Window.Styles>
-		<Style Selector="HeaderedContentControl">
-			<Setter Property="Template">
-				<Setter.Value>
-					<ControlTemplate>
-						<Grid>
-							<Grid.RowDefinitions>
-								<RowDefinition Height="Auto"/>
-								<RowDefinition Height="*"/>
-							</Grid.RowDefinitions>
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition Width="Auto"/>
-								<ColumnDefinition Width="*"/>
-							</Grid.ColumnDefinitions>
-							<Border ZIndex="1" Padding="5,0,5,0" Background="White" Margin="5,0,0,0">
-								<TextBlock TextBlock.FontWeight="Bold" Text="{TemplateBinding Header}" />
-							</Border>
-							<Border Grid.RowSpan="2" Grid.ColumnSpan="2" Margin="0,10,0,0"
-								BorderBrush="{TemplateBinding Background}"
-								BorderThickness="1">
-								<ContentPresenter Content="{TemplateBinding Content}" />
-							</Border>
-						</Grid>
-					</ControlTemplate>
-				</Setter.Value>
-			</Setter>
-		</Style>
+		<StyleInclude Source="/SettingsStyles.axaml"/>
 	</Window.Styles>
 
 	<DockPanel x:Name="MainPanel">
 		<StackPanel DockPanel.Dock="Bottom" Margin="10" Orientation="Horizontal" HorizontalAlignment="Right">
-			<Button Content="OK" Click="ExitClick" Padding="0,2" Width="80"/>
+			<Button Content="OK" Click="ExitClick"/>
 		</StackPanel>
 
-		<ScrollViewer
+		<ScrollViewer Padding="10"
 			HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
 			KeyboardNavigation.TabNavigation="Cycle">
 			<StackPanel Orientation="Vertical">
 
-				<HeaderedContentControl Header="Designer" Padding="8">
+				<HeaderedContentControl Classes="settings" Header="Designer" Padding="8">
 					<StackPanel>
 						<CheckBox
 							Content="Show Fields In Designer"
@@ -71,14 +46,14 @@
 					</StackPanel>
 				</HeaderedContentControl>
 
-				<HeaderedContentControl Header="Generator" Padding="8">
+				<HeaderedContentControl Classes="settings" Header="Generator" Padding="8">
 					<CheckBox
 						Content="Open After Generate"
 						Foreground="White" HorizontalAlignment="Left" Margin="4"
 						IsChecked="{Binding OpenOnGenerate}"/>
 				</HeaderedContentControl>
 
-				<HeaderedContentControl Header="Templates Directory" Padding="8">
+				<HeaderedContentControl Classes="settings" Header="Templates Directory" Padding="8">
 					<StackPanel>
 						<Grid Margin="4">
 							<Grid.ColumnDefinitions>
@@ -90,10 +65,10 @@
 							</Grid.ColumnDefinitions>
 							<TextBox x:Name="TemplateDirectoryTextBox" TextChanged="OnTemplateDirectoryTextChanged"/>
 							<Button
-								Grid.Column="2" Content="..." Padding="8,2"
+								Grid.Column="2" Content="..." Padding="8,4" MinWidth="10"
 								Click="BrowseTemplateDirectoryClick"/>
 							<Button
-								Grid.Column="4" Content="Reset" Padding="12,2" Width="80"
+								Grid.Column="4" Content="Reset"
 								ToolTip.Tip="Reset field to current template directory path."
 								Click="ResetTemplateDirectoryClick"/>
 						</Grid>
@@ -108,13 +83,13 @@
 							<Button
 								x:Name="ApplyButton"
 								Content="Apply"
-								Grid.Column="0" Padding="12,2" Width="80"
+								Grid.Column="0"
 								IsEnabled="False"
 								Click="TemplateDirectoryApplyClick"
 								/>
 							<Button
 								Content="Restore Application Default"
-								Grid.Column="2" Padding="12,2" MinWidth="80"
+								Grid.Column="2"
 								Click="RestoreTemplateDirectoryApplicationDefaultClick"/>
 							<TextBlock
 								x:Name="TemplatePathErrorTextBlock"
@@ -125,7 +100,7 @@
 					</StackPanel>
 				</HeaderedContentControl>
 
-				<HeaderedContentControl Header="Fonts" Padding="8">
+				<HeaderedContentControl Classes="settings" Header="Fonts" Padding="8">
 					<CheckBox
 						Content="Generate Warnings For Licensed Fonts (recommended for any commercial works)"
 						Foreground="White" HorizontalAlignment="Left" Margin="4"

@@ -152,7 +152,7 @@ namespace SharpEditorAvalonia.Designer {
 
 						if (drawingErrors.Length > 0) {
 							parsingManager.LoadDrawingErrors(drawingErrors);
-							Console.WriteLine(string.Join("\n\n", drawingErrors.Select(e => e.ToString())));
+							//Console.WriteLine(string.Join("\n\n", drawingErrors.Select(e => e.ToString())));
 						}
 						else { parsingManager.ResetDrawingErrors(); }
 					}

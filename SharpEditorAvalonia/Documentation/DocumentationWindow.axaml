@@ -14,6 +14,8 @@
 		FontFamily="{StaticResource ApplicationFont}">
 
 	<Window.Styles>
+		<StyleInclude Source="/AppStyles.axaml"/>
+
 		<Style Selector="TextBlock">
 			<Setter Property="FontSize" Value="13.5"/> <!-- x1.0 -->
 		</Style>

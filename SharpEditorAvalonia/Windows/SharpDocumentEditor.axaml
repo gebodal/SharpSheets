@@ -40,7 +40,8 @@
 				KeyDown="TextZoomBoxKeyDown"
 				PointerWheelChanged="TextZoomBoxMouseWheel"
 				LostFocus="TextZoomBoxLostFocus"
-				ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
+				ScrollViewer.VerticalScrollBarVisibility="Disabled"
+				ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
 			<StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0">
 				<TextBlock Name="CursorLineText" Width="50" Margin="20,0" Text="Line" VerticalAlignment="Center"/>
 				<TextBlock Name="CursorColText" Width="50" Margin="20,0" Text="Col" VerticalAlignment="Center"/>
@@ -55,7 +56,7 @@
 					<StackPanel Orientation="Horizontal">
 						<Image Source="/Images/Exclamation.png" Height="16" Margin="0,0,3,0"/>
 						<TextBlock Name="ErrorCount" Foreground="Black" VerticalAlignment="Center" Margin="10,0,5,0"/>
-						<ToggleButton x:Name="ErrorPopupToggleButton" Click="ErrorPopupClick">
+						<ToggleButton x:Name="ErrorPopupToggleButton" Click="ErrorPopupClick" Classes="errorPopupToggleButton">
 							<!-- Button styling goes here -->
 						</ToggleButton>
 					</StackPanel>

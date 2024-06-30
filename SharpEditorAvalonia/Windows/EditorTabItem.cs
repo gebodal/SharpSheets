@@ -21,14 +21,14 @@ namespace SharpEditorAvalonia.Windows {
 			this.Content = editor;
 
 			Border border = new Border() {
-				Padding = new Thickness(2)
+				Padding = new Thickness(2),
+				IsHitTestVisible = true,
+				Background = Brushes.Transparent // Apparently this is needed for hit testing
 			};
 
 			Grid grid = new Grid() {
 				RowDefinitions = { new RowDefinition(GridLength.Auto) },
-				ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) },
-				IsHitTestVisible = true,
-				Background = Brushes.Transparent // Apparently this is needed for hit testing
+				ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) }
 			};
 
 			headerText = new TextBlock() {
@@ -49,7 +49,7 @@ namespace SharpEditorAvalonia.Windows {
 			};
 			*/
 			Button closeButton = new Button() {
-				Content = "Close",
+				Classes = { "tabCloseButton" },
 				FontSize = 8,
 				Height = 20,
 				VerticalAlignment = VerticalAlignment.Center

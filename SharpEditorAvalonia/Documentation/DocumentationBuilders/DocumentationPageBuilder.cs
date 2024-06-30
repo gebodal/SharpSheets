@@ -179,7 +179,15 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 		}
 
 		public static readonly Brush CodeBackgroundBrush = new SolidColorBrush(Color.FromRgb(30, 30, 30)); // new SolidColorBrush(Color.FromRgb(114, 114, 118));
-		public static readonly FontFamily CodeFontFamily = new FontFamily("Consolas");
+
+		public static FontFamily GetCodeFontFamily() {
+			if ((App.Current?.TryGetResource("EditorFont", out object? editorFont) ?? false) && editorFont is FontFamily codeFamily) {
+				return codeFamily;
+			}
+			else {
+				return new FontFamily("Consolas"); // Better fallback needed
+			}
+		}
 
 		private static TextBlock MakeDocumentationParagraph(DocumentationParagraph documentationParagraph, DocumentationWindow window) {
 			TextBlock text = new TextBlock() { TextWrapping = TextWrapping.Wrap, Margin = ParagraphMargin, Inlines = new InlineCollection() };
@@ -196,7 +204,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 				else if (run.IsCode) {
 					TextBlock codeBlock = new TextBlock() {
 						Text = run.text,
-						FontFamily = CodeFontFamily
+						FontFamily = GetCodeFontFamily()
 					};
 					Border codeBorder = new Border() {
 						Child = codeBlock,
@@ -269,7 +277,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			TextDocument document = new TextDocument() { Text = codeText };
 			TextArea textArea = new TextArea() {
 				Document = document,
-				FontFamily = CodeFontFamily
+				FontFamily = GetCodeFontFamily()
 			};
 
 			IHighlightingDefinition? highlightingDefinition;
