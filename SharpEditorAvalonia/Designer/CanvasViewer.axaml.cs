@@ -40,23 +40,6 @@ namespace SharpEditorAvalonia.Designer {
 			}
 		}
 
-		public string OverlayText {
-			get {
-				return CanvasOverlay.Text ?? "";
-			}
-			set {
-				CanvasOverlay.Text = value;
-			}
-		}
-		public bool OverlayVisible {
-			get {
-				return CanvasOverlay.IsVisible;
-			}
-			set {
-				CanvasOverlay.IsVisible = value;
-			}
-		}
-
 		public CanvasViewer() {
 			InitializeComponent();
 

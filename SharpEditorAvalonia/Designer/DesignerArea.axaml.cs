@@ -214,22 +214,6 @@ namespace SharpEditorAvalonia.Designer {
 			return field.Name + (!string.IsNullOrEmpty(field.Tooltip) ? $"\n\n{field.Tooltip}" : "");
 		}
 
-		public string OverlayText {
-			get {
-				return DesignerViewer.OverlayText;
-			}
-			set {
-				if (!string.IsNullOrWhiteSpace(value)) {
-					DesignerViewer.OverlayText = value;
-					DesignerViewer.OverlayVisible = true;
-				}
-				else {
-					DesignerViewer.OverlayText = "";
-					DesignerViewer.OverlayVisible = false;
-				}
-			}
-		}
-
 		private int IncrementPage(int increment) {
 			int initialPageIndex = currentDesignerPageIndex;
 			PageNumber.Text = (int.Parse(PageNumber.Text ?? "0") + increment).Clamp(designerDocument != null ? 1 : 0, designerDocument != null ? designerDocument.Pages.Count : 0).ToString();

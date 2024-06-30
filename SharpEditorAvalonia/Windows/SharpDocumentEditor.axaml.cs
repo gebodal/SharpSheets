@@ -973,7 +973,6 @@ namespace SharpEditorAvalonia.Windows {
 
 			//parsingManager.ParseEnded += s => Dispatcher.Invoke(() => { RedrawAfterParse(); });
 			parsingManager.ResultLoaded += RedrawAfterParse;
-			parsingManager.ResultLoaded += () => Dispatcher.UIThread.Invoke(() => { UpdateDesignerOverlay(); }); // Dispatcher necessary?
 
 			parsingManager.Start();
 		}
@@ -1007,18 +1006,6 @@ namespace SharpEditorAvalonia.Windows {
 			parsingManager?.OptionalTrigger();
 		}
 
-		// TODO Feels janky that this is here, referencing the designer...
-		void UpdateDesignerOverlay() {
-			if (DesignerArea != null) {
-				SharpDrawingException[]? errors = parsingManager?.GetParsingState()?.GetDrawingErrors().ToArray();
-				if (errors != null && errors.Length > 0) {
-					DesignerArea.OverlayText = string.Join("\n", errors.Select(e => e.Message).WhereNotEmpty());
-				}
-				else {
-					DesignerArea.OverlayText = ""; // null
-				}
-			}
-		}
 		#endregion Parsing Manager
 
 		#region Error Markers

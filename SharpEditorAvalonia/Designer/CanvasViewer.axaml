@@ -32,20 +32,5 @@
 				</LayoutTransformControl>
 			</Grid>
 		</ScrollViewer>
-		<Grid Grid.Row="0" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-			<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Height="NaN" Width="NaN">
-				<TextBlock 
-						x:Name="CanvasOverlay"
-						TextAlignment="Center"
-						TextWrapping="Wrap"
-						MaxWidth="350"
-						Padding="20"
-						FontSize="25"
-						Opacity="0.75" 
-						Background="#77FF4500" 
-						Foreground="Red" 
-						IsVisible="False"/>
-			</StackPanel>
-		</Grid>
 	</Grid>
 </UserControl>
