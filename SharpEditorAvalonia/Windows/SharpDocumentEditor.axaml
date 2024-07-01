@@ -46,11 +46,7 @@
 				<TextBlock Name="CursorLineText" Width="50" Margin="20,0" Text="Line" VerticalAlignment="Center"/>
 				<TextBlock Name="CursorColText" Width="50" Margin="20,0" Text="Col" VerticalAlignment="Center"/>
 			</StackPanel>
-			<TextBlock
-				Grid.Column="3"
-				IsVisible="False"
-				VerticalAlignment="Center" TextAlignment="Center"
-				Name="BackgroundMessageText" Margin="30,0">Parsing...</TextBlock>
+			<local:ToolbarMessageBox Grid.Column="3" Name="BackgroundMessageControl" VerticalAlignment="Center" Margin="30,0"/>
 			<StackPanel Name="ErrorStatus" Grid.Column="4" IsVisible="False" Orientation="Horizontal">
 				<Border Padding="20,0" Background="#c00000" PointerPressed="ErrorStatusClick">
 					<StackPanel Orientation="Horizontal">

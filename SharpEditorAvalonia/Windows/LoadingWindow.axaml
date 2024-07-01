@@ -7,14 +7,14 @@
         d:DesignWidth="385" d:DesignHeight="200"
         Height="200" Width="385"
 		Title="Loading Sharp Sheets..."
+		Icon="/Images/Icon.ico"
 		Background="#424245"
 		BorderThickness="0"
 		WindowStartupLocation="CenterScreen"
 		CanResize="False"
 		SystemDecorations="None"
-		Topmost="True"
 		FontFamily="{StaticResource ApplicationFont}"
-		FontSize="12">
+		FontSize="12"> <!--Topmost="True"-->
 
 	<DockPanel Margin="4">
 		<TextBlock DockPanel.Dock="Top"></TextBlock>

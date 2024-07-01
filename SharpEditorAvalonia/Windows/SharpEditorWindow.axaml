@@ -30,7 +30,7 @@
 
 	<DockPanel Background="#2d2d30">
 
-		<Menu DockPanel.Dock="Top" Padding="3"
+		<Menu DockPanel.Dock="Top" Padding="5"
 			Background="#2d2d30" Foreground="LightGray">
 			
 			<MenuItem Header="_File">

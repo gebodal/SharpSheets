@@ -41,7 +41,7 @@ namespace SharpEditorAvalonia.Documentation {
 			TitleTextBlock.MakeFontSizeRelative(TextBlockClass.H5);
 
 			this.AddHandler(Window.PointerPressedEvent, OnWindowPointerPressed, RoutingStrategies.Tunnel, false);
-
+			
 			navigationService.NavigationFinished += OnNavigated;
 			
 			// Finally, navigate to home page
@@ -243,14 +243,26 @@ namespace SharpEditorAvalonia.Documentation {
 		public ICommand HomeCommand { get; private set; }
 		public ICommand RefreshCommand { get; private set; }
 
+		public ICommand LineUpCommand { get; private set; }
+		public ICommand LineDownCommand { get; private set; }
+		public ICommand PageUpCommand { get; private set; }
+		public ICommand PageDownCommand { get; private set; }
+
 		[MemberNotNull(nameof(BackCommand), nameof(ForwardCommand),
-			nameof(HomeCommand), nameof(RefreshCommand))]
+			nameof(HomeCommand), nameof(RefreshCommand),
+			nameof(LineUpCommand), nameof(LineDownCommand),
+			nameof(PageUpCommand), nameof(PageDownCommand))]
 		private void InitialiseCommands() {
 			BackCommand = new RelayCommand(BackExecuted, CanGoBack);
 			ForwardCommand = new RelayCommand(ForwardExecuted, CanGoForward);
 
 			HomeCommand = new RelayCommand(Home);
 			RefreshCommand = new RelayCommand(Refresh);
+
+			LineUpCommand = new RelayCommand(LineUpExecuted);
+			LineDownCommand = new RelayCommand(LineDownExecuted);
+			PageUpCommand = new RelayCommand(PageUpExecuted);
+			PageDownCommand = new RelayCommand(PageDownExecuted);
 
 			navigationService.PropertyChanged += OnNavigationServiceUpdate;
 		}
@@ -272,6 +284,28 @@ namespace SharpEditorAvalonia.Documentation {
 		}
 		private bool CanGoForward() {
 			return navigationService.CanGoForward;
+		}
+
+		private void LineUpExecuted() {
+			if (DocFrame.Children[0] is DocumentationPage page) {
+				page.LineUp();
+			}
+		}
+		private void LineDownExecuted() {
+			if (DocFrame.Children[0] is DocumentationPage page) {
+				page.LineDown();
+			}
+		}
+
+		private void PageUpExecuted() {
+			if (DocFrame.Children[0] is DocumentationPage page) {
+				page.PageUp();
+			}
+		}
+		private void PageDownExecuted() {
+			if (DocFrame.Children[0] is DocumentationPage page) {
+				page.PageDown();
+			}
 		}
 
 		#endregion Commands

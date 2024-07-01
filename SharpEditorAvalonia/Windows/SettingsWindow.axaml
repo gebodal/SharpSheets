@@ -7,13 +7,17 @@
 		x:DataType="managers:SharpDataManager"
         mc:Ignorable="d"
         Title="Settings"
+		Icon="/Images/Icon.ico"
 		d:DesignWidth="600" d:DesignHeight="450"
 		Width="600" Height="450"
 		MinWidth="300" MinHeight="200"
 		WindowStartupLocation="CenterOwner"
 		ShowInTaskbar="False"
-		SystemDecorations="None"
-		Background="#424245">
+		SystemDecorations="Full"
+		Topmost="True"
+		CanResize="True"
+		Background="#424245"
+		FontFamily="{StaticResource ApplicationFont}">
 	
 	<Design.DataContext>
 		<managers:SharpDataManager/>

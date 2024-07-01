@@ -152,7 +152,7 @@
 						Background="{TemplateBinding Background}"
 						BorderBrush="Transparent"
 						BorderThickness="0"
-						Padding="3"
+						Padding="3,1"
 						CornerRadius="{TemplateBinding CornerRadius}">
 					<Panel>
 						<ContentPresenter Name="PART_HeaderPresenter"

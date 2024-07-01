@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Threading;
 using SharpSheets.Canvas;
 using SharpSheets.Exceptions;
@@ -134,7 +135,7 @@ namespace SharpEditorAvalonia.Designer {
 
 					try {
 						SharpAvaloniaDrawingDocument nextDocument = new SharpAvaloniaDrawingDocument();
-						SharpDrawingException[] drawingErrors = new SharpDrawingException[0];
+						SharpDrawingException[] drawingErrors = Array.Empty<SharpDrawingException>();
 
 						// This currently causes application to hang while drawing
 						await Dispatcher.UIThread.InvokeAsync(() => {

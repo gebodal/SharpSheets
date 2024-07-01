@@ -1,11 +1,10 @@
 ﻿using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using SharpEditorAvalonia.Documentation;
-using SharpEditorAvalonia.ViewModels;
-using SharpEditorAvalonia.Views;
 using SharpEditorAvalonia.Windows;
 using System;
 using System.Threading.Tasks;
@@ -29,6 +28,7 @@ public partial class App : Application {
 			LoadingWindow loadingWindow = new LoadingWindow();
 			desktop.MainWindow = loadingWindow;
 			loadingWindow.Show();
+			loadingWindow.BringIntoView();
 
 			await Task.Delay(100); // How else to get the splash screen to render?!
 
@@ -58,8 +58,14 @@ public partial class App : Application {
 			//AppDomain.CurrentDomain.UnhandledException += OnDispatcherUnhandledException;
 		}
 		else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform) {
-			singleViewPlatform.MainView = new MainView {
-				DataContext = new MainViewModel()
+			singleViewPlatform.MainView = new Grid() {
+				Children = {
+					new TextBlock() {
+						Text = "Application only valid for a classic desktop style application lifetime.",
+						VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+						HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+					}
+				}
 			};
 			//throw new InvalidOperationException("Application only valid for a classic desktop style application lifetime.");
 		}

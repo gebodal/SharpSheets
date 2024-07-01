@@ -69,7 +69,11 @@ namespace SharpEditorAvalonia.Windows {
 		}
 
 		private Control GetErrorElement(TemplateError error) {
-			TextBlock errorBlock = new TextBlock() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 5.0), Inlines = new InlineCollection() };
+			TextBlock errorBlock = new TextBlock() {
+				TextWrapping = TextWrapping.Wrap,
+				Margin = new Thickness(0, 0, 0, 5.0),
+				VerticalAlignment = VerticalAlignment.Center,
+				Inlines = new InlineCollection() };
 
 			string filename = System.IO.Path.GetFileName(error.filePath);
 			ClickableRun fileButton = new ClickableRun(filename) { Foreground = Brushes.CornflowerBlue };

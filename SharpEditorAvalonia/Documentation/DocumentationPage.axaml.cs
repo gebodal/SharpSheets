@@ -37,6 +37,22 @@ namespace SharpEditorAvalonia.Documentation {
 			}
 		}
 
+		public void LineUp() {
+			Scroller.LineUp();
+		}
+
+		public void LineDown() {
+			Scroller.LineDown();
+		}
+
+		public void PageUp() {
+			Scroller.PageUp();
+		}
+
+		public void PageDown() {
+			Scroller.PageDown();
+		}
+
 	}
 
 }

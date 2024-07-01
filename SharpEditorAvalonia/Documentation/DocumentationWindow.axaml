@@ -7,12 +7,20 @@
 		x:DataType="local:DocumentationWindow"
 		Title="Documentation" d:DesignWidth="700" d:DesignHeight="600"
 		Width="700" Height="600"
+		Icon="/Images/Icon.ico"
 		x:Class="SharpEditorAvalonia.Documentation.DocumentationWindow"
 		Background="#424245"
 		Foreground="White"
 		FontSize="13"
 		FontFamily="{StaticResource ApplicationFont}">
 
+	<Window.KeyBindings>
+		<KeyBinding Gesture="Up" Command="{Binding LineUpCommand}"/>
+		<KeyBinding Gesture="Down" Command="{Binding LineDownCommand}"/>
+		<KeyBinding Gesture="PageUp" Command="{Binding PageUpCommand}"/>
+		<KeyBinding Gesture="PageDown" Command="{Binding PageDownCommand}"/>
+	</Window.KeyBindings>
+	
 	<Window.Styles>
 		<StyleInclude Source="/AppStyles.axaml"/>
 

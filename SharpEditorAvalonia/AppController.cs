@@ -224,7 +224,9 @@ namespace SharpEditorAvalonia {
 		private void OnRegistryErrorsChanged() {
 			bool registryErrorsAvailable = SharpEditorRegistries.HasRegistryErrors;
 
-			this.window.TemplateAlertEnabled = registryErrorsAvailable;
+			Dispatcher.UIThread.Invoke(() => {
+				this.window.TemplateAlertEnabled = registryErrorsAvailable;
+			});
 
 			if (templateErrorWindow != null) {
 				//templateErrorWindow.Dispatcher.Invoke(() => {
@@ -248,7 +250,8 @@ namespace SharpEditorAvalonia {
 		public SettingsWindow ActivateSettingsWindow() {
 			if (settingsWindow == null || settingsWindow.IsClosed) {
 				settingsWindow = new SettingsWindow();
-				settingsWindow.ShowDialog(this.window);
+				//settingsWindow.ShowDialog(this.window);
+				settingsWindow.Show();
 			}
 			else {
 				if (settingsWindow.WindowState == WindowState.Minimized) {

@@ -362,76 +362,30 @@ namespace SharpEditorAvalonia.Windows {
 		#endregion Text Zoom
 
 		#region Background Messages
-		private DispatcherTimer backgroundMessageTimer;
-		public TimeSpan BackgroundMessageDuration => backgroundMessageTimer.Interval;
-		private BackgroundMessage? currentMessage;
-		private readonly object backgroundMessageLock = new object();
-
 		private static readonly int LowestMessagePriority = int.MinValue;
 		public static readonly int ParsingMessagePriority = 100;
-		public static readonly int DesignerMessagePriority = 50;
+		public static readonly int DrawingMessagePriority = 50;
+		public static readonly int ParsedMessagePriority = 10;
+		public static readonly int DrawnMessagePriority = 10; // 5
 
-		private class BackgroundMessage {
-			public readonly string Message;
-			public readonly int Priority;
-			public BackgroundMessage(string message, int priority) {
-				Message = message;
-				Priority = priority;
-			}
-		}
+		public static readonly int ErrorMessageDuration = 5;
+		public static readonly int InfoMessageDuration = 3;
+		public static readonly int AwaitingMessageDuration = 120;
 
-		[MemberNotNull(nameof(backgroundMessageTimer))]
 		void InitializeBackgroundMessages() {
-			backgroundMessageTimer = new DispatcherTimer() { Interval = new TimeSpan(0, 0, 3) };
-			backgroundMessageTimer.Tick += new EventHandler((o, s) => BackgroundMessageTick());
-
-			currentMessage = null;
-			BackgroundMessageText.Text = "";
+			BackgroundMessageControl.Start();
 		}
 
 		void UninstallBackgroundMessages() {
-			backgroundMessageTimer.IsEnabled = false;
+			BackgroundMessageControl.Stop();
 		}
 
-		private void BackgroundMessageTick() {
-			Dispatcher.UIThread.Invoke(() => {
-				lock (backgroundMessageLock) {
-					backgroundMessageTimer.IsEnabled = false;
-					BackgroundMessageText.IsVisible = false;
-					BackgroundMessageText.Text = "";
-				}
-			});
+		private ToolbarMessage DisplayBackgroundMessage(string message, int priority, int duration) {
+			return BackgroundMessageControl.LogMessage(message, duration, priority);
 		}
 
-		private BackgroundMessage? DisplayBackgroundMessage(string message, int priority, bool withTimer) {
-			if (priority >= (currentMessage?.Priority ?? LowestMessagePriority)) {
-				lock (backgroundMessageLock) {
-					Dispatcher.UIThread.Invoke(() => {
-						backgroundMessageTimer.IsEnabled = false;
-						BackgroundMessageText.IsVisible = true;
-						BackgroundMessageText.Text = message;
-						if (withTimer) { backgroundMessageTimer.Start(); }
-					});
-					currentMessage = new BackgroundMessage(message, priority);
-					return currentMessage;
-				}
-			}
-			else {
-				return null;
-			}
-		}
-
-		private void FinishBackgroundMessage(BackgroundMessage? message) {
-			lock (backgroundMessageLock) {
-				if (message == currentMessage) {
-					Dispatcher.UIThread.Invoke(() => {
-						backgroundMessageTimer.IsEnabled = false;
-						BackgroundMessageText.IsVisible = false;
-						BackgroundMessageText.Text = "";
-					});
-					currentMessage = null;
-				}
-			}
+		private bool FinishBackgroundMessage(ToolbarMessage? message) {
+			return BackgroundMessageControl.RemoveMessage(message);
 		}
 		#endregion Background Messages
 
@@ -982,18 +936,19 @@ namespace SharpEditorAvalonia.Windows {
 			ParsingManager.Uninstall(parsingManager);
 		}
 
-		BackgroundMessage? currentParsingMessage;
+		ToolbarMessage? currentParsingMessage;
 
 		private void ParseStart() {
-			currentParsingMessage = DisplayBackgroundMessage("Parsing...", ParsingMessagePriority, false);
+			currentParsingMessage = DisplayBackgroundMessage("Parsing...", ParsingMessagePriority, AwaitingMessageDuration);
 		}
 
 		private void ParseEnd(ParseState state) {
+			FinishBackgroundMessage(currentParsingMessage);
 			if (state == ParseState.NONE || state == ParseState.SUCCESS || state == ParseState.TERMINATED) {
-				FinishBackgroundMessage(currentParsingMessage);
+				DisplayBackgroundMessage("Parsing complete", ParsedMessagePriority, InfoMessageDuration);
 			}
 			else {
-				DisplayBackgroundMessage("Parsing error", ParsingMessagePriority, true); // TODO Better message
+				DisplayBackgroundMessage("Parsing error", ParsingMessagePriority, ErrorMessageDuration); // TODO Better message
 			}
 		}
 
@@ -1345,18 +1300,19 @@ namespace SharpEditorAvalonia.Windows {
 			DesignerArea.CanvasChanged += UpdateDesignerDocumentHightlight;
 		}
 
-		BackgroundMessage? currentBackgroundMessage;
+		ToolbarMessage? currentBackgroundMessage;
 
 		private void DesignerGenerateStart() {
-			currentBackgroundMessage = DisplayBackgroundMessage("Drawing...", DesignerMessagePriority, false);
+			currentBackgroundMessage = DisplayBackgroundMessage("Drawing...", DrawingMessagePriority, AwaitingMessageDuration);
 		}
 
 		private void DesignerGenerateEnd(GenerationState state) {
+			FinishBackgroundMessage(currentBackgroundMessage);
 			if (state == GenerationState.NONE || state == GenerationState.SUCCESS || state == GenerationState.TERMINATED) {
-				FinishBackgroundMessage(currentBackgroundMessage);
+				DisplayBackgroundMessage("Drawing complete", DrawnMessagePriority, InfoMessageDuration);
 			}
 			else {
-				DisplayBackgroundMessage("Drawing error", DesignerMessagePriority, true); // TODO Better message
+				DisplayBackgroundMessage("Drawing error", DrawingMessagePriority, ErrorMessageDuration);
 			}
 		}
 

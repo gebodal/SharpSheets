@@ -4,9 +4,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
         x:Class="SharpEditorAvalonia.Windows.TemplateErrorWindow"
-        Title="Designer" Height="450" Width="400"
+        Title="Template Errors" Height="450" Width="400"
+		Icon="/Images/Icon.ico"
 		Background="#424245"
-		Foreground="White">
+		Foreground="White"
+		FontFamily="{StaticResource ApplicationFont}">
 
 	<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 		<StackPanel x:Name="ErrorPanel" Orientation="Vertical" Margin="15">
