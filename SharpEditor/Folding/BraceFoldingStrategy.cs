@@ -17,10 +17,10 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Collections.Generic;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Folding;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Folding;
 
-namespace ICSharpCode.AvalonEdit.Sample {
+namespace SharpEditor.Folding {
 	/// <summary>
 	/// Allows producing foldings from a document based on braces.
 	/// </summary>

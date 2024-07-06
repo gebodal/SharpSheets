@@ -7,18 +7,25 @@ using SharpSheets.Shapes;
 using SharpSheets.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Media;
 using SharpSheets.Layouts;
 using SharpSheets.Widgets;
 using SharpEditor.DataManagers;
 using System.Diagnostics.CodeAnalysis;
 using static SharpEditor.ContentBuilders.BaseContentBuilder;
 using static SharpEditor.Documentation.DocumentationBuilders.BaseDocumentationBuilder;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Controls.Documents;
+using Avalonia.Media;
+using SharpEditor.Designer;
+using SharpEditor.Utilities;
+using SharpEditor.Windows;
+using SharpEditor.Designer.DrawingCanvas;
 
 namespace SharpEditor.Documentation.DocumentationBuilders {
+
+	// UIElement -> Control
+	// FrameworkElement -> Control
 
 	public static class ConstructorPageBuilder {
 
@@ -30,7 +37,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return MakePage(GetConstructorPageContent(constructor, window), constructor.Name, () => GetConstructorPageContent(refreshAction?.Invoke(), window));
 		}
 
-		private static UIElement GetConstructorPageContent(ConstructorDetails? constructor, DocumentationWindow window) {
+		private static Control GetConstructorPageContent(ConstructorDetails? constructor, DocumentationWindow window) {
 			if (constructor == null) {
 				return MakeErrorContent("Invalid constructor.");
 			}
@@ -38,10 +45,10 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
 			TextBlock headerBlock = GetContentTextBlock(ConstructorContentBuilder.MakeConstructorHeaderBlock(constructor), TextBlockMargin);
-			headerBlock.MakeFontSizeRelative(2.0);
+			headerBlock.MakeFontSizeRelative(TextBlockClass.H3);
 
 			if (constructor is MarkupConstructorDetails markupConstructor) {
-				System.Windows.Controls.Grid headerGrid = MakeExternalLinkHeader(headerBlock, "Open Pattern File...", out Button patternSourceButton, window);
+				Avalonia.Controls.Grid headerGrid = MakeExternalLinkHeader(headerBlock, "Open Pattern File...", out Button patternSourceButton, window);
 				patternSourceButton.Click += delegate { SharpEditorWindow.Instance?.OpenEditorDocument(markupConstructor.Pattern.source.Path, true); };
 				stack.Children.Add(headerGrid);
 			}
@@ -55,7 +62,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 
 			if (typeof(IShape).IsAssignableFrom(constructor.DeclaringType) || typeof(IWidget).IsAssignableFrom(constructor.DeclaringType)) {
-				FrameworkElement? graphicElement = MakeExampleGraphic(constructor);
+				Control? graphicElement = MakeExampleGraphic(constructor);
 				if (graphicElement != null) {
 					stack.Children.Add(graphicElement);
 				}
@@ -72,7 +79,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return stack;
 		}
 
-		public static FrameworkElement MakeSingleArgumentElement(ConstructorArgumentDetails argument, DocumentationWindow window) {
+		public static Control MakeSingleArgumentElement(ConstructorArgumentDetails argument, DocumentationWindow window) {
 			StackPanel argPanel = new StackPanel() { Orientation = Orientation.Vertical };
 
 			argPanel.Children.Add(MakeArgumentHeaderBlock(argument, window));
@@ -99,20 +106,20 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		public static TextBlock MakeArgumentHeaderBlock(ConstructorArgumentDetails argument, DocumentationWindow window) {
 			TextBlock argumentBlock = GetContentTextBlock(TextBlockMargin);
 
-			argumentBlock.Inlines.Add(GetArgumentTypeInline(argument, window));
+			argumentBlock.Inlines?.Add(GetArgumentTypeInline(argument, window));
 
-			argumentBlock.Inlines.Add(new Run(SharpValueHandler.NO_BREAK_SPACE + argument.ConstructorName) { Foreground = SharpEditorPalette.GetTypeBrush(argument.DeclaringType) });
+			argumentBlock.Inlines?.Add(new Run(SharpValueHandler.NO_BREAK_SPACE + argument.ConstructorName) { Foreground = SharpEditorPalette.GetTypeBrush(argument.DeclaringType) });
 
 			ArgumentDetails arg = argument.Argument;
 			//while (arg != null && arg is PrefixedArgumentDetails prefixed) { arg = prefixed.Basis; } // What was this supposed to be doing?
 
-			argumentBlock.Inlines.Add(new Run("." + arg.Name) { });
+			argumentBlock.Inlines?.Add(new Run("." + arg.Name) { });
 
 			if (argument.Implied != null) {
-				argumentBlock.Inlines.Add(new Run("." + argument.Implied));
+				argumentBlock.Inlines?.Add(new Run("." + argument.Implied));
 			}
 
-			argumentBlock.Inlines.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(argument.Argument, null));
+			argumentBlock.Inlines?.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(argument.Argument, null));
 
 			return argumentBlock;
 		}
@@ -129,7 +136,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		}
 
 		private static readonly float ExampleGraphicDefaultMargin = 0.1f;
-		public static FrameworkElement? MakeExampleGraphic(ConstructorDetails constructor) {
+		public static Control? MakeExampleGraphic(ConstructorDetails constructor) {
 			if (!typeof(IShape).IsAssignableFrom(constructor.DeclaringType) && !typeof(IWidget).IsAssignableFrom(constructor.DeclaringType)) {
 				return null;
 			}
@@ -140,7 +147,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 
 			try {
-				SharpWPFDrawingDocument wpfDocument = new SharpWPFDrawingDocument();
+				SharpGeometryDrawingDocument exampleDocument = new SharpGeometryDrawingDocument();
 				ISharpCanvas canvas;
 				List<Rectangle> displayRects = new List<Rectangle>();
 
@@ -229,7 +236,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 						shapeRect = GetShape(pageSize);
 					}
 
-					canvas = wpfDocument.AddNewPage(pageSize);
+					canvas = exampleDocument.AddNewPage(pageSize);
 
 					if (shape is IDetail detail) {
 						// TODO This needs improving so we can see vertical version too
@@ -295,7 +302,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 						widgetRect = GetShape(pageSize);
 					}
 
-					canvas = wpfDocument.AddNewPage(pageSize);
+					canvas = exampleDocument.AddNewPage(pageSize);
 
 					widget.Draw(canvas, widgetRect, default);
 
@@ -324,17 +331,20 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					}
 				}
 
-				SharpWPFDrawingCanvas page = wpfDocument.Pages[0];
+				SharpGeometryDrawingCanvas page = exampleDocument.Pages[0];
 
-				DrawingElement element = new DrawingElement(page.drawingGroup) {
+				DrawingElement element = new DrawingElement(page.drawingGroup.BuildGroup()) {
 					//LayoutTransform = TestBlock.LayoutTransform,
 					Width = page.CanvasRect.Width,
 					Height = page.CanvasRect.Height
 				};
 
-				element.LayoutTransform = GetLayoutTransform(40, 40, 145, 145, element.Width, element.Height);
+				LayoutTransformControl layoutTransformControl = new LayoutTransformControl() {
+					Child = element,
+					LayoutTransform = GetLayoutTransform(40, 40, 145, 145, element.Width, element.Height)
+				};
 
-				return new Border() { Child = element, Margin = CanvasMargin };
+				return new Border() { Child = layoutTransformControl, Margin = CanvasMargin, HorizontalAlignment = HorizontalAlignment.Center };
 			}
 			catch (Exception e) {
 				Console.WriteLine(e.Message);

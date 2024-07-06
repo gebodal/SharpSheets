@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Rendering;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Rendering;
 using SharpSheets.Utilities;
 using SharpSheets.Parsing;
 using SharpSheets.Cards.Definitions;
@@ -541,9 +541,7 @@ namespace SharpEditor {
 						elem.VisualColumn + elem.VisualLength, // endOffset
 						(VisualLineElement element) => {
 							double origRend = element.TextRunProperties.FontRenderingEmSize;
-							double origHint = element.TextRunProperties.FontHintingEmSize;
 							element.TextRunProperties.SetFontRenderingEmSize(origRend * multiplier);
-							element.TextRunProperties.SetFontHintingEmSize(origHint * multiplier);
 						});
 				}
 			}

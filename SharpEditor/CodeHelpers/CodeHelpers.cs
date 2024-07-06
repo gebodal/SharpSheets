@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Input;
-using ICSharpCode.AvalonEdit;
-using ICSharpCode.AvalonEdit.CodeCompletion;
-using ICSharpCode.AvalonEdit.Document;
+using Avalonia.Controls;
+using Avalonia.Input;
+using AvaloniaEdit;
+using AvaloniaEdit.CodeCompletion;
+using AvaloniaEdit.Document;
 using SharpSheets.Documentation;
 using SharpSheets.Shapes;
 
@@ -16,20 +14,20 @@ namespace SharpEditor.CodeHelpers {
 
 		IList<ICompletionData> GetCompletionData();
 		int GetCompletionStartOffset();
-		bool TextEnteredTriggerCompletion(TextCompositionEventArgs e);
+		bool TextEnteredTriggerCompletion(TextInputEventArgs e);
 		//bool TextEnteringTriggerCompletion(TextCompositionEventArgs e);
 
-		void TextEntered(TextCompositionEventArgs e);
+		void TextEntered(TextInputEventArgs e);
 
-		IList<UIElement> GetToolTipContent(int offset, string word);
-		IList<UIElement> GetFallbackToolTipContent(int offset);
+		IList<Control> GetToolTipContent(int offset, string word);
+		IList<Control> GetFallbackToolTipContent(int offset);
 		IList<Control> GetContextMenuItems(int offset, string? word);
 
 		bool SupportsIncrementComment { get; }
 		void IncrementComment(int offset, int length);
 		void DecrementComment(int offset, int length);
 
-		void TextPasted(DataObjectPastingEventArgs args, int offset);
+		void TextPasted(EventArgs args, int offset);
 
 	}
 
@@ -52,13 +50,9 @@ namespace SharpEditor.CodeHelpers {
 			return document.GetOffset(viewPosition.Line, viewPosition.Column);
 		}
 
-		public static ISegment? GetSharpTermSegmentFromViewPosition(this TextDocument document, TextViewPosition viewPosition) {
+		public static ISegment? GetSharpTermSegmentFromOffset(this TextDocument document, int offset) {
 
 			if (document.TextLength == 0) { return null; }
-
-			int line = viewPosition.Line;
-			int column = viewPosition.Column;
-			int offset = document.GetOffset(line, column);
 
 			if ((offset + 1) >= document.TextLength) { return null; }
 			string currentChar = document.GetText(offset, 1);
@@ -80,6 +74,17 @@ namespace SharpEditor.CodeHelpers {
 			};
 
 			return segment; // textEditor.Document.GetText(offsetStart, offsetEnd - offsetStart);
+		}
+
+		public static ISegment? GetSharpTermSegmentFromViewPosition(this TextDocument document, TextViewPosition viewPosition) {
+
+			if (document.TextLength == 0) { return null; }
+
+			int line = viewPosition.Line;
+			int column = viewPosition.Column;
+			int offset = document.GetOffset(line, column);
+
+			return GetSharpTermSegmentFromOffset(document, offset);
 		}
 
 		public static int GetNextSharpCaretPosition(this ITextSource textSource, int offset, LogicalDirection direction) {
@@ -122,6 +127,16 @@ namespace SharpEditor.CodeHelpers {
 
 		public static string? GetSharpTermStringFromViewPosition(this TextDocument document, TextViewPosition viewPosition) {
 			ISegment? segment = GetSharpTermSegmentFromViewPosition(document, viewPosition);
+			if (segment != null && segment.Length > 0) {
+				return document.GetText(segment.Offset, segment.Length)?.Trim();
+			}
+			else {
+				return null;
+			}
+		}
+
+		public static string? GetSharpTermStringFromOffset(this TextDocument document, int offset) {
+			ISegment? segment = GetSharpTermSegmentFromOffset(document, offset);
 			if (segment != null && segment.Length > 0) {
 				return document.GetText(segment.Offset, segment.Length)?.Trim();
 			}

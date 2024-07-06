@@ -2,12 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using ICSharpCode.AvalonEdit;
-using ICSharpCode.AvalonEdit.CodeCompletion;
-using ICSharpCode.AvalonEdit.Document;
+using AvaloniaEdit;
+using AvaloniaEdit.CodeCompletion;
+using AvaloniaEdit.Document;
 using SharpSheets.Cards.Definitions;
 using SharpSheets.Parsing;
 using SharpSheets.Utilities;
@@ -15,6 +12,10 @@ using SharpSheets.Cards.CardSubjects;
 using SharpSheets.Cards.CardConfigs;
 using SharpEditor.DataManagers;
 using SharpSheets.Evaluations;
+using Avalonia.Input;
+using Avalonia.Controls;
+using SharpEditor.Windows;
+using Avalonia.Threading;
 
 namespace SharpEditor.CodeHelpers {
 
@@ -102,7 +103,7 @@ namespace SharpEditor.CodeHelpers {
 			return data;
 		}
 
-		public bool TextEnteredTriggerCompletion(TextCompositionEventArgs e) {
+		public bool TextEnteredTriggerCompletion(TextInputEventArgs e) {
 			if (e.Text == "$") {
 				return true;
 			}
@@ -118,8 +119,8 @@ namespace SharpEditor.CodeHelpers {
 		#endregion
 
 		#region Tooltip
-		public IList<UIElement> GetToolTipContent(int offset, string word) {
-			List<UIElement> contents = new List<UIElement>();
+		public IList<Control> GetToolTipContent(int offset, string word) {
+			List<Control> contents = new List<Control>();
 
 			//IDocumentEntity entity = parsingState.GetEntity(Document.GetLineByOffset(offset));
 			IDocumentEntity? entity = parsingState.GetSpansAtOffset(offset)
@@ -138,8 +139,8 @@ namespace SharpEditor.CodeHelpers {
 			return contents;
 		}
 
-		public IList<UIElement> GetFallbackToolTipContent(int offset) {
-			return Array.Empty<UIElement>();
+		public IList<Control> GetFallbackToolTipContent(int offset) {
+			return Array.Empty<Control>();
 		}
 
 		public static IEnumerable<TextBlock> MakeCardEntityEntries(ICardDocumentEntity cardEntity) {
@@ -185,7 +186,8 @@ namespace SharpEditor.CodeHelpers {
 						Header = "Insert Full Text"
 					};
 
-					insertFullTextMenuItem.Click += (s,e) => textEditor.Dispatcher.Invoke(() => {
+					//insertFullTextMenuItem.Click += (s,e) => textEditor.Dispatcher.Invoke(() => {
+					insertFullTextMenuItem.Click += (s,e) => Dispatcher.UIThread.InvokeAsync(() => { // Yes async?
 						Console.WriteLine("Replacing title with full text");
 						textEditor.Document.Replace(line, subject.ToText() + "\n");
 					});
@@ -212,12 +214,12 @@ namespace SharpEditor.CodeHelpers {
 			MenuItem definitionFileMenuItem = new MenuItem {
 				Header = "Open Definition File..."
 			};
-			definitionFileMenuItem.Click += delegate {
+			definitionFileMenuItem.Click += async delegate {
 				if (cardSetDefinition.origin.IsFile) {
 					SharpEditorWindow.Instance?.OpenEditorDocument(cardSetDefinition.origin.Path, true);
 				}
 				else {
-					MessageBox.Show("Could not find file.", "Could Not Find File", MessageBoxButton.OK, MessageBoxImage.Error);
+					await MessageBoxes.Show("Could not find file.", "Could Not Find File", MessageBoxButton.OK, MessageBoxImage.Error);
 				}
 			};
 			yield return definitionFileMenuItem;
@@ -234,7 +236,7 @@ namespace SharpEditor.CodeHelpers {
 		#endregion
 
 		#region Text Entered
-		public void TextEntered(TextCompositionEventArgs e) {
+		public void TextEntered(TextInputEventArgs e) {
 			int carat = textEditor.CaretOffset;
 			if (e.Text == "{") {
 				textEditor.Document.Insert(carat, "}", AnchorMovementType.BeforeInsertion);
@@ -291,7 +293,7 @@ namespace SharpEditor.CodeHelpers {
 
 		#region Pasting
 
-		public void TextPasted(DataObjectPastingEventArgs args, int offset) {
+		public void TextPasted(EventArgs args, int offset) {
 
 		}
 

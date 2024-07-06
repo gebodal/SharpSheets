@@ -18,11 +18,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Controls;
-using ICSharpCode.AvalonEdit.CodeCompletion;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Editing;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
+using AvaloniaEdit.CodeCompletion;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Editing;
 
 namespace SharpEditor {
 	/// <summary>
@@ -34,7 +35,7 @@ namespace SharpEditor {
 			this.Text = text;
 		}
 
-		public System.Windows.Media.ImageSource? Image { get { return null; } }
+		public IImage? Image { get { return null; } }
 
 		public string Text { get; private set; }
 
@@ -44,14 +45,14 @@ namespace SharpEditor {
 		// Use this property if you want to show a fancy UIElement in the drop down list.
 		public object Content { get { return this.Text; } }
 
-		public FrameworkElement[]? DescriptionElements { private get; set; }
+		public Control[]? DescriptionElements { private get; set; }
 		private StackPanel? descriptionPanel = null;
 		public object? Description {
 			get {
 				if (descriptionPanel == null && DescriptionElements != null) {
 					//Console.WriteLine("Making panel");
 					descriptionPanel = new StackPanel() { Orientation = Orientation.Vertical };
-					foreach (FrameworkElement element in DescriptionElements) {
+					foreach (Control element in DescriptionElements) {
 						if (element.Parent is Panel panel) {
 							panel.Children.Remove(element);
 						}

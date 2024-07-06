@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Rendering;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Rendering;
 using SharpSheets.Utilities;
 using SharpSheets.Parsing;
 using SharpSheets.Cards.Definitions;
@@ -116,7 +116,7 @@ namespace SharpEditor {
 				Dictionary<int, TSpan> lineSpans = new Dictionary<int, TSpan>();
 				TSpan? MakeSpan(DocumentSpan location, int indentLevel) {
 					try {
-						if(lineSpans.TryGetValue(location.Line, out TSpan? existing)) { return existing; }
+						if (lineSpans.TryGetValue(location.Line, out TSpan? existing)) { return existing; }
 						int startOffset = Document.GetOffset(location.Line + 1, location.Column + 1);
 						TSpan span = Create(startOffset, location.Length);
 						span.IndentLevel = indentLevel;

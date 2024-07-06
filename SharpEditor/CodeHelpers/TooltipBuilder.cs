@@ -7,11 +7,12 @@ using SharpSheets.Utilities;
 using System.Collections.Generic;
 using System;
 using System.Linq;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Media;
 using SharpEditor.DataManagers;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Controls.Documents;
+using Avalonia.Layout;
 
 namespace SharpEditor.CodeHelpers {
 
@@ -41,7 +42,7 @@ namespace SharpEditor.CodeHelpers {
 			return BaseContentBuilder.MakeDescriptionTextBlock(descriptionString, IndentedMargin);
 		}
 
-		public static IEnumerable<FrameworkElement> MakeConstructorEntry(ConstructorDetails constructor, IContext? constructorContext, bool includeArguments, ITypeDetailsCollection? impliedConstructors) {
+		public static IEnumerable<Control> MakeConstructorEntry(ConstructorDetails constructor, IContext? constructorContext, bool includeArguments, ITypeDetailsCollection? impliedConstructors) {
 			yield return BaseContentBuilder.GetContentTextBlock(ConstructorContentBuilder.MakeConstructorHeaderBlock(constructor), TextBlockMargin);
 			
 			if (BaseContentBuilder.MakeDescriptionTextBlock(constructor.Description, IndentedMargin) is TextBlock descriptionBlock) {
@@ -53,7 +54,7 @@ namespace SharpEditor.CodeHelpers {
 
 			ArgumentDetails[] arguments = constructor.Arguments.GroupBy(a => $"{SharpValueHandler.GetTypeName(a.Type)} {a.Name}").Select(g => g.First()).ToArray(); // What breaks if we don't do this?
 			TextBlock argumentBlock = BaseContentBuilder.GetContentTextBlock(GetArgumentListInlines(arguments, constructorContext), TextBlockMargin); // GetToolTipTextBlock();
-			if (argumentBlock.Inlines.Count > 0) { yield return argumentBlock; }
+			if (argumentBlock.Inlines?.Count > 0) { yield return argumentBlock; }
 
 			if (constructorContext != null && impliedConstructors != null) {
 				ArgumentDetails[] impliedArguments = arguments.Where(a => a.Implied != null).ToArray();
@@ -84,7 +85,7 @@ namespace SharpEditor.CodeHelpers {
 							ArgumentDetails[] impliedConstructorArguments = impliedConstructor.Arguments.GroupBy(a => $"{SharpValueHandler.GetTypeName(a.Type)} {a.Name}").Select(g => g.First()).ToArray(); // What breaks if we don't do this?
 							IContext impliedContext = new NamedContext(constructorContext, impliedArg.Name);
 							TextBlock impliedArgumentBlock = BaseContentBuilder.GetContentTextBlock(GetArgumentListInlines(impliedConstructorArguments, impliedContext), TextBlockMargin); // GetToolTipTextBlock();
-							if (impliedArgumentBlock.Inlines.Count > 0) { yield return impliedArgumentBlock; }
+							if (impliedArgumentBlock.Inlines?.Count > 0) { yield return impliedArgumentBlock; }
 						}
 					}
 				}
@@ -123,16 +124,16 @@ namespace SharpEditor.CodeHelpers {
 
 		public static TextBlock MakeArgumentHeaderBlock(ConstructorArgumentDetails argument, IContext? context, bool withMargin) {
 			TextBlock argumentBlock = BaseContentBuilder.GetContentTextBlock(withMargin ? TextBlockMargin : default); // GetToolTipTextBlock(withMargin: withMargin);
-			argumentBlock.Inlines.Add(new Run(SharpValueHandler.GetTypeName(argument.ArgumentType)) { Foreground = SharpEditorPalette.TypeBrush });
-			argumentBlock.Inlines.Add(new Run(SharpValueHandler.NO_BREAK_SPACE + argument.ConstructorName) { Foreground = SharpEditorPalette.GetTypeBrush(argument.DeclaringType) });
+			argumentBlock.Inlines?.Add(new Run(SharpValueHandler.GetTypeName(argument.ArgumentType)) { Foreground = SharpEditorPalette.TypeBrush });
+			argumentBlock.Inlines?.Add(new Run(SharpValueHandler.NO_BREAK_SPACE + argument.ConstructorName) { Foreground = SharpEditorPalette.GetTypeBrush(argument.DeclaringType) });
 
 			ArgumentDetails arg = argument.Argument;
 			//while (arg is PrefixedArgumentDetails prefixed) { arg = prefixed.Basis; }
 
-			argumentBlock.Inlines.Add(new Run("."));
-			argumentBlock.Inlines.Add(GetArgumentNameInline(arg));
+			argumentBlock.Inlines?.Add(new Run("."));
+			argumentBlock.Inlines?.Add(GetArgumentNameInline(arg));
 
-			argumentBlock.Inlines.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(argument.Argument, context));
+			argumentBlock.Inlines?.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(argument.Argument, context));
 
 			return argumentBlock;
 		}
@@ -150,7 +151,7 @@ namespace SharpEditor.CodeHelpers {
 			}
 		}
 
-		public static IEnumerable<FrameworkElement> MakeMultipleArgumentBlocks(IEnumerable<ConstructorArgumentDetails> allArgs, IContext? context) {
+		public static IEnumerable<Control> MakeMultipleArgumentBlocks(IEnumerable<ConstructorArgumentDetails> allArgs, IContext? context) {
 			foreach (IGrouping<DocumentationString?, ConstructorArgumentDetails> descriptionGrouping in allArgs.GroupBy(t => t.ArgumentDescription)) {
 				StackPanel argumentList = new StackPanel() {
 					Orientation = Orientation.Vertical,
@@ -184,7 +185,7 @@ namespace SharpEditor.CodeHelpers {
 			return EnumContentBuilder.MakeEnumOptionsBlock(enumDoc, indented ? IndentedMargin : TextBlockMargin);
 		}
 
-		public static FrameworkElement MakeCardDefinitionBlocks(Definition definition, IEnvironment? environment) {
+		public static Control MakeCardDefinitionBlocks(Definition definition, IEnvironment? environment) {
 			return DefinitionContentBuilder.MakeDefinitionElement(definition, environment, TextBlockMargin, IndentedMargin);
 		}
 

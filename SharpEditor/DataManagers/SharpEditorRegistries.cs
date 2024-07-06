@@ -1,5 +1,6 @@
 ﻿using SharpEditor.Program;
 using SharpEditor.Registries;
+using SharpEditor.Windows;
 using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Exceptions;
 using SharpSheets.Markup.Parsing;

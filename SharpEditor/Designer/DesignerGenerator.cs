@@ -1,17 +1,23 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
+using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Threading;
+using SharpEditor.Designer.DrawingCanvas;
 using SharpSheets.Canvas;
 using SharpSheets.Exceptions;
 
-namespace SharpEditor {
+namespace SharpEditor.Designer {
 
 	public enum GenerationState { NONE, SUCCESS, ERROR, TERMINATED }
 	public delegate void DesignerEventHandler(GenerationState state);
 
 	public class DesignerGenerator {
+
+		// UIElement -> Control
 
 		private class GenerateData {
 			public IParsingState? ParsingState { get; }
@@ -24,10 +30,10 @@ namespace SharpEditor {
 			}
 		}
 
-		private readonly UIElement designerArea;
+		private readonly Control designerArea;
 		private readonly ParsingManager parsingManager;
 
-		public SharpWPFDrawingDocument? Document { get; private set; }
+		public SharpGeometryDrawingDocument? Document { get; private set; }
 		public IDocumentContent? DocumentContent { get; private set; }
 		private IDocumentContent? LastProcessedDocumentContent { get; set; }
 		public IDrawingMapper? DrawingMapper { get; private set; }
@@ -40,9 +46,9 @@ namespace SharpEditor {
 		private readonly EventHandler newStateHandler;
 		private readonly BlockingCollection<GenerateData> dataQueue;
 		private readonly CancellationTokenSource cancellationSource;
-		private CancellationToken cancellationToken;
+		private readonly CancellationToken cancellationToken;
 
-		private DesignerGenerator(UIElement designerArea, ParsingManager parsingManager) {
+		private DesignerGenerator(Control designerArea, ParsingManager parsingManager) {
 			this.designerArea = designerArea;
 			this.parsingManager = parsingManager;
 
@@ -55,7 +61,7 @@ namespace SharpEditor {
 		}
 
 		#region Installation
-		public static DesignerGenerator Install(UIElement designerArea, ParsingManager parsingManager) {
+		public static DesignerGenerator Install(Control designerArea, ParsingManager parsingManager) {
 			DesignerGenerator generator = new DesignerGenerator(designerArea, parsingManager);
 
 			parsingManager.ParseStateChanged += generator.newStateHandler;
@@ -105,6 +111,7 @@ namespace SharpEditor {
 
 				GenerateData data;
 				try {
+					//Console.WriteLine("Generator checking for content...");
 					data = dataQueue.Take(cancellationToken);
 					// If there are more recent entries, get the most recent one
 					while (dataQueue.TryTake(out GenerateData? newerData, 100, cancellationToken)) {
@@ -115,7 +122,9 @@ namespace SharpEditor {
 					break;
 				}
 
-				if (!cancellationToken.IsCancellationRequested && designerArea.IsVisible && data != null && data.DocumentContent != null && !ReferenceEquals(LastProcessedDocumentContent, data.DocumentContent) && !ReferenceEquals(DocumentContent, data.DocumentContent)) {
+				bool designerAreaIsVisible = Dispatcher.UIThread.Invoke(() => { return designerArea.IsVisible; });
+
+				if (!cancellationToken.IsCancellationRequested && designerAreaIsVisible && data != null && data.DocumentContent != null && !ReferenceEquals(LastProcessedDocumentContent, data.DocumentContent) && !ReferenceEquals(DocumentContent, data.DocumentContent)) {
 
 					GenerationStarted?.Invoke(GenerationState.NONE);
 					GenerationState success = GenerationState.NONE;
@@ -126,13 +135,12 @@ namespace SharpEditor {
 					LastProcessedDocumentContent = newContent;
 
 					try {
-						SharpWPFDrawingDocument nextDocument = new SharpWPFDrawingDocument();
+						SharpGeometryDrawingDocument nextDocument = new SharpGeometryDrawingDocument();
+						SharpDrawingException[] drawingErrors = Array.Empty<SharpDrawingException>();
 
-						newContent.DrawTo(nextDocument, out SharpDrawingException[] drawingErrors, cancellationToken);
+						newContent.DrawTo(nextDocument, out drawingErrors, cancellationToken);
 
 						if (cancellationToken.IsCancellationRequested) { break; }
-
-						nextDocument.Freeze();
 
 						DocumentContent = newContent;
 						Document = nextDocument;
@@ -141,14 +149,16 @@ namespace SharpEditor {
 
 						if (drawingErrors.Length > 0) {
 							parsingManager.LoadDrawingErrors(drawingErrors);
+							//Console.WriteLine(string.Join("\n\n", drawingErrors.Select(e => e.ToString())));
 						}
 						else { parsingManager.ResetDrawingErrors(); }
 					}
-					catch (Exception) {
+					catch (Exception e) {
 						Document = null;
 						DrawingMapper = null;
 						parsingManager.LoadDrawingErrors(new SharpDrawingException[] { new SharpDrawingException(this, "Unknown drawing error.") });
 						success = GenerationState.ERROR;
+						Console.WriteLine(e);
 					}
 					finally {
 						if (!cancellationToken.IsCancellationRequested) {

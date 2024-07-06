@@ -1,10 +1,16 @@
 ﻿using SharpEditor.Documentation;
-using SharpEditor.SharpSettingsWindow;
 using SharpEditor.DataManagers;
+using SharpEditor.Windows;
 using System;
 using System.Linq;
 using System.Windows;
 using System.IO;
+using Avalonia.Controls;
+using Avalonia.Threading;
+using System.Threading.Tasks;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Interactivity;
+using Avalonia;
 
 namespace SharpEditor {
 
@@ -12,74 +18,88 @@ namespace SharpEditor {
 
 		private readonly App appInstance;
 		public readonly SharpEditorWindow window;
-		private bool windowMaximized;
 
-		public AppController(App app, string[] args) {
+		public AppController(App app) {
 			this.appInstance = app;
 
-			AppInitialization();
+			this.window = new SharpEditorWindow(this);
+		}
 
+		public static async Task<AppController> Create(App app, Visual currentVisual, string[]? args) {
 			// Initialise static variables in data handlers
 			SharpDataManager.Initialise();
+
+			await AppInitialization(currentVisual);
+
+			AppController controller = new AppController(app);
+
+			// Initialise static variables in data handlers
 			SharpSheetsStateManager.Initialise();
 			SharpEditorPalette.Initialise();
 			SharpEditorRegistries.Initialise();
 
-			this.window = new SharpEditorWindow(this);
+			controller.window.GetObservable(Window.WindowStateProperty).Subscribe(controller.Window_StateChanged);
+			controller.window.Resized += controller.Window_Resized;
 
-			this.window.StateChanged += Window_StateChanged;
-			windowMaximized = SharpEditor.Properties.Settings.Default.WindowMaximized;
-
-			SharpEditorRegistries.OnRegistryErrorsChanged += OnRegistryErrorsChanged;
-			this.window.TemplateAlertEnabled = SharpEditorRegistries.HasRegistryErrors;
-
-			this.appInstance.Exit += OnApplicationExit;
+			SharpEditorRegistries.OnRegistryErrorsChanged += controller.OnRegistryErrorsChanged;
+			controller.window.TemplateAlertEnabled = SharpEditorRegistries.HasRegistryErrors;
 
 			// If we were passed any arguments, check if they are files, and if so open them
-			foreach (string arg in args) {
-				if (File.Exists(arg)) {
-					window.OpenEditorDocument(arg, true);
+			if (args is not null && args.Length > 0) {
+				foreach (string arg in args) {
+					if (File.Exists(arg)) {
+						controller.window.OpenEditorDocument(arg, true);
+					}
+					// TODO What to do about invalid arguments?
 				}
 			}
+			else {
+				controller.window.OpenEmptyDocument(DocumentType.SHARPCONFIG, false, true);
+			}
+
+			return controller;
 		}
 
-		private void OnApplicationExit(object? sender, ExitEventArgs e) {
-			// Save window maximised setting before exiting
-			SharpEditor.Properties.Settings.Default.WindowMaximized = windowMaximized;
-			SharpEditor.Properties.Settings.Default.Save();
+		private void Window_Resized(object? sender, WindowResizedEventArgs e) {
+			UpdateWindowState();
 		}
 
-		private void Window_StateChanged(object? sender, EventArgs e) {
-			if(window.WindowState == WindowState.Normal) {
-				windowMaximized = false;
+		private void Window_StateChanged(WindowState state) {
+			UpdateWindowState();
+		}
+
+		private void UpdateWindowState() {
+			if (window.IsLoaded) {
+				_ = Dispatcher.UIThread.InvokeAsync(() => {
+					if (window.WindowState == WindowState.Normal) {
+						SharpDataManager.Instance.WindowMaximized = false;
+					}
+					else if (window.WindowState == WindowState.Maximized) {
+						SharpDataManager.Instance.WindowMaximized = true;
+					}
+				});
+				// Otherwise leave unchanged
 			}
-			else if(window.WindowState == WindowState.Maximized) {
-				windowMaximized = true;
-			}
-			// Otherwise leave unchanged
 		}
 
 		public void Run() {
 			// Retrieve previous maximized state
-			if (windowMaximized) {
+			if (SharpDataManager.Instance.WindowMaximized) {
 				window.WindowState = WindowState.Maximized;
 			}
+			else {
+				window.WindowState = WindowState.Normal;
+			}
 
-			window.Show();
+			//window.Show();
 		}
 
 		public void Exit(bool closeMainWindow) {
-			if (documentationWindow != null) {
-				documentationWindow.Close();
-			}
+			//Console.WriteLine("AppController.Exit");
 
-			if (templateErrorWindow != null) {
-				templateErrorWindow.Close();
-			}
-
-			if (settingsWindow != null) {
-				settingsWindow.Close();
-			}
+			documentationWindow?.Close();
+			templateErrorWindow?.Close();
+			settingsWindow?.Close();
 
 			if (closeMainWindow) {
 				window.Close();
@@ -87,72 +107,57 @@ namespace SharpEditor {
 
 			if (window.IsClosed) {
 				// And finally, exit application
-				System.Windows.Application.Current.Shutdown();
+				//Console.WriteLine("Shutdown");
+				(appInstance.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown(0);
 			}
 		}
 
 		#region App Initialization
 
-		private void AppInitialization() {
+		private static async Task AppInitialization(Visual visual) {
+			Console.WriteLine("Checking template directory...");
 			if (!SharpEditorPathInfo.IsTemplateDirectorySet) {
-				MessageBoxResult result = MessageBox.Show($"You must select a template directory.\n\nDo you wish to select a custom directory? (The default is {SharpEditorPathInfo.GetDefaultApplicationTemplateDirectory()})\n\nThis can be changed later in Settings.", "Template Directory", MessageBoxButton.YesNo, MessageBoxImage.Information);
+				Console.WriteLine("Template directory not set.");
+				MessageBoxResult result = await MessageBoxes.Show($"You must select a template directory.\n\nDo you wish to select a custom directory? (The default is {SharpEditorPathInfo.GetDefaultApplicationTemplateDirectory()})\n\nThis can be changed later in Settings.", "Template Directory", MessageBoxButton.YesNo, MessageBoxImage.Information);
 
 				if (result == MessageBoxResult.Yes) {
-					System.Windows.Forms.FolderBrowserDialog dlg = new System.Windows.Forms.FolderBrowserDialog {
-						Description = "Select template directory.",
-						SelectedPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal),
-						ShowNewFolderButton = true
-					};
+					string? selectedPath = (await visual.OpenDirectoryPicker(
+						title: "Select template directory.",
+						allowMultiple: false,
+						startingLocation: Environment.GetFolderPath(Environment.SpecialFolder.Personal)
+						)).FirstOrDefault();
 
-					if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK) {
-						if (!string.IsNullOrWhiteSpace(dlg.SelectedPath)) {
-							SharpEditorPathInfo.TemplateDirectory = dlg.SelectedPath;
-						}
+					if (!string.IsNullOrWhiteSpace(selectedPath)) {
+						SharpEditorPathInfo.TemplateDirectory = selectedPath;
 					}
 				}
 				else {
 					SharpEditorPathInfo.TemplateDirectory = SharpEditorPathInfo.GetDefaultApplicationTemplateDirectory();
 				}
 
-				MessageBox.Show($"The template directory has been set to {SharpEditorPathInfo.TemplateDirectory} (this can be changed in Settings). This directory will now be created if it does not exist.", "Template Directory", MessageBoxButton.OK, MessageBoxImage.Information);
+				await MessageBoxes.Show($"The template directory has been set to {SharpEditorPathInfo.TemplateDirectory} (this can be changed in Settings). This directory will now be created if it does not exist.", "Template Directory", MessageBoxButton.OK, MessageBoxImage.Information);
 			}
 			else if (!Directory.Exists(SharpEditorPathInfo.TemplateDirectory)) {
+				Console.WriteLine("Template directory does not exist.");
 				SharpEditorPathInfo.TemplateDirectory = SharpEditorPathInfo.GetDefaultApplicationTemplateDirectory();
-				MessageBox.Show($"Stored template directory path does not exist. Setting to {SharpEditorPathInfo.TemplateDirectory} (this can be changed in Settings).", "Template Directory", MessageBoxButton.OK, MessageBoxImage.Error);
+				await MessageBoxes.Show($"Stored template directory path does not exist. Setting to {SharpEditorPathInfo.TemplateDirectory} (this can be changed in Settings).", "Template Directory", MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 
 			if (!Directory.Exists(SharpEditorPathInfo.TemplateDirectory)) {
+				Console.WriteLine("Creating template directory...");
 				CreateTemplateDirectory();
 			}
+
+			Console.WriteLine("Finished checking template directory.");
 		}
 
-		private void CreateTemplateDirectory() {
+		private static void CreateTemplateDirectory() {
 			string templateDirectory = SharpEditorPathInfo.TemplateDirectory;
 			if (templateDirectory != null && !Directory.Exists(templateDirectory)) {
 				Directory.CreateDirectory(templateDirectory);
 				Console.WriteLine("Create directory: " + templateDirectory);
-
-				//string cardDefinitionDir = Path.Combine(templateDirectory, "CardDefinitions");
-				//Directory.CreateDirectory(cardDefinitionDir);
-				//CopyResourceToFile("SharpEditor.ProgramData.SpellCardDefinition.scd", Path.Combine(cardDefinitionDir, "SpellCardDefinition.scd"));
 			}
 		}
-
-		/*
-		private static void CopyResourceToFile(string resourceName, string filepath, bool overwrite) {
-			if(File.Exists(filepath) && !overwrite) {
-				return;
-			}
-
-			using (Stream resource = typeof(SharpEditorWindow).Assembly.GetManifestResourceStream(resourceName)) {
-				if (resource == null) { throw new InvalidOperationException("Could not find embedded resource."); }
-				using (FileStream fileStream = File.Create(filepath)) {
-					resource.Seek(0, SeekOrigin.Begin);
-					resource.CopyTo(fileStream);
-				}
-			}
-		}
-		*/
 
 		#endregion
 
@@ -208,7 +213,8 @@ namespace SharpEditor {
 				templateErrorWindow.Activate();
 			}
 
-			templateErrorWindow.Dispatcher.Invoke(() => {
+			//templateErrorWindow.Dispatcher.Invoke(() => {
+			Dispatcher.UIThread.Invoke(() => {
 				templateErrorWindow.SetErrors(SharpEditorRegistries.RegistryErrors);
 			});
 
@@ -218,10 +224,13 @@ namespace SharpEditor {
 		private void OnRegistryErrorsChanged() {
 			bool registryErrorsAvailable = SharpEditorRegistries.HasRegistryErrors;
 
-			this.window.TemplateAlertEnabled = registryErrorsAvailable;
+			Dispatcher.UIThread.Invoke(() => {
+				this.window.TemplateAlertEnabled = registryErrorsAvailable;
+			});
 
 			if (templateErrorWindow != null) {
-				templateErrorWindow.Dispatcher.Invoke(() => {
+				//templateErrorWindow.Dispatcher.Invoke(() => {
+				Dispatcher.UIThread.Invoke(() => {
 					if (registryErrorsAvailable) {
 						templateErrorWindow.SetErrors(SharpEditorRegistries.RegistryErrors);
 					}
@@ -241,7 +250,7 @@ namespace SharpEditor {
 		public SettingsWindow ActivateSettingsWindow() {
 			if (settingsWindow == null || settingsWindow.IsClosed) {
 				settingsWindow = new SettingsWindow();
-				settingsWindow.Owner = this.window;
+				//settingsWindow.ShowDialog(this.window);
 				settingsWindow.Show();
 			}
 			else {

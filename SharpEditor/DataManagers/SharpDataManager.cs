@@ -1,254 +1,191 @@
-﻿using System;
-using System.Windows;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using SharpSheets.Utilities;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Configuration;
 using System.IO;
+using System.Linq;
+using System.Text.Json;
 
 namespace SharpEditor.DataManagers {
 
-	public class SharpDataManager : DependencyObject {
+	public partial class SharpDataManager : ObservableObject {
+
+		private static readonly string configPath;
+		private static readonly string configExtension = ".conf";
+		private static readonly JsonSerializerOptions jsonSerializeoptions = new JsonSerializerOptions() {
+			IncludeFields = true
+		};
 
 		public static void Initialise() { } // Dummy method to force static initialisation
 
 		public static SharpDataManager Instance { get; }
 
 		static SharpDataManager() {
-			CheckSettingsFile(); // Upgrade settings file if required
-			Instance = new SharpDataManager();
-			InitialiseInstance();
+
+			// Does the settings file exist?
+			// If yes, load it
+			// If not, check for an earlier version, load that if it exists and save a new copy with the new version
+			// If no earlier version exists, create an empty object
+			// Save the object in Instance
+
+			configPath = GetCurrentConfigPath();
+
+			if (File.Exists(configPath)) {
+				Console.WriteLine("Load existing config.");
+				Instance = LoadSettings(configPath) ?? new SharpDataManager();
+			}
+			else if (GetOldConfigPath() is string oldConfigPath) {
+				Console.WriteLine("Load old config.");
+				Instance = LoadSettings(oldConfigPath) ?? new SharpDataManager();
+				Instance.Save();
+			}
+			else {
+				Console.WriteLine("Create new config.");
+				Instance = new SharpDataManager();
+				Instance.Save();
+			}
+
 		}
 
-		private SharpDataManager() { }
+		public SharpDataManager() { } // I don't like this being public
 
-		private static void CheckSettingsFile() {
-			// With thanks to: https://stackoverflow.com/a/74227345/11002708
-			string configPath = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoamingAndLocal).FilePath;
-			if (!File.Exists(configPath)) {
-				//Existing user config does not exist, so load settings from previous assembly
-				SharpEditor.Properties.Settings.Default.Upgrade();
-				SharpEditor.Properties.Settings.Default.Reload();
-				SharpEditor.Properties.Settings.Default.Save();
+		protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
+			base.OnPropertyChanged(e);
+			
+			Save();
+		}
+
+		private static SharpDataManager? LoadSettings(string filePath) {
+			//Console.WriteLine($"Load settings from: {filePath}");
+			string jsonText = File.ReadAllText(filePath);
+			// TODO Need to deal better with unrecognised properties
+			return JsonSerializer.Deserialize<SharpDataManager>(jsonText, jsonSerializeoptions);
+		}
+
+		private void Save() {
+			string jsonText = JsonSerializer.Serialize(this, jsonSerializeoptions);
+			File.WriteAllText(configPath, jsonText);
+			//Console.WriteLine($"Save settings to: {configPath}");
+		}
+
+		private static string GetCurrentConfigPath() {
+			string filename = SharpEditorData.GetEditorName() + SharpEditorData.GetVersionString() + configExtension;
+			string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			return Path.Combine(appData, filename);
+		}
+
+		private static string? GetOldConfigPath() {
+			string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			string editorName = SharpEditorData.GetEditorName();
+
+			IEnumerable<(string path, Version version)> GetVersions(IEnumerable<string> paths) {
+				foreach (string path in paths) {
+					string filename = Path.GetFileName(path);
+					string versionStr = filename[editorName.Length..^configExtension.Length];
+					if (Version.TryParse(versionStr, out Version? parsed)) {
+						yield return (path, parsed);
+					}
+				}
+			}
+
+			(string path, Version version)[] existing = GetVersions(Directory.GetFiles(appData, $"{editorName}*{configExtension}", SearchOption.TopDirectoryOnly)).ToArray();
+			
+			if (existing.Length > 0) {
+				return existing.MaxBy(pv => pv.version).path;
+			}
+			else {
+				return null;
 			}
 		}
 
-		private static void InitialiseInstance() {
-			Instance.SetValue(DesignerDisplayFieldsProperty, SharpEditor.Properties.Settings.Default.DesignerDisplayFields);
-			Instance.SetValue(DesignerViewerOpenDefaultProperty, SharpEditor.Properties.Settings.Default.DesignerViewerOpenDefault);
-			Instance.SetValue(OpenOnGenerateProperty, SharpEditor.Properties.Settings.Default.OpenOnGenerate);
-			Instance.SetValue(ShowLineNumbersProperty, SharpEditor.Properties.Settings.Default.ShowLineNumbers);
-			Instance.SetValue(ShowEndOfLineProperty, SharpEditor.Properties.Settings.Default.ShowEndOfLine);
-			Instance.SetValue(WrapLinesProperty, SharpEditor.Properties.Settings.Default.WrapLines);
-			Instance.SetValue(TextZoomProperty, SharpEditor.Properties.Settings.Default.TextZoom);
-			Instance.SetValue(WarnFontLicensingProperty, SharpEditor.Properties.Settings.Default.WarnFontLicensing);
-		}
+		#region Designer properties
 
-		#region DesignerDisplayFields
-
-		public static readonly DependencyProperty DesignerDisplayFieldsProperty =
-			DependencyProperty.Register("DesignerDisplayFields", typeof(bool),
-			typeof(SharpDataManager), new UIPropertyMetadata(true, OnDesignerDisplayFieldsChanged));
+		[ObservableProperty]
+		private bool designerDisplayFields = true;
 		public event EventHandler? DesignerDisplayFieldsChanged;
-
-		public bool DesignerDisplayFields {
-			get {
-				return (bool)GetValue(DesignerDisplayFieldsProperty);
-			}
-			set {
-				SetValue(DesignerDisplayFieldsProperty, value);
-			}
+		partial void OnDesignerDisplayFieldsChanged(bool value) {
+			DesignerDisplayFieldsChanged?.Invoke(this, new EventArgs());
 		}
 
-		private static void OnDesignerDisplayFieldsChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e) {
-			if (sender is SharpDataManager manager) {
-				SharpEditor.Properties.Settings.Default.DesignerDisplayFields = manager.DesignerDisplayFields;
-				SharpEditor.Properties.Settings.Default.Save();
-				manager.DesignerDisplayFieldsChanged?.Invoke(sender, EventArgs.Empty);
-			}
-		}
+		[ObservableProperty]
+		private bool designerViewerOpenDefault = false;
 
 		#endregion
 
-		#region DesignerViewerOpenDefault
+		#region Generator settings
 
-		public static readonly DependencyProperty DesignerViewerOpenDefaultProperty =
-			DependencyProperty.Register("DesignerViewerOpenDefault", typeof(bool),
-			typeof(SharpDataManager), new UIPropertyMetadata(true, OnDesignerViewerOpenDefaultChanged));
-		public event EventHandler? DesignerViewerOpenDefaultChanged;
-
-		public bool DesignerViewerOpenDefault {
-			get {
-				return (bool)GetValue(DesignerViewerOpenDefaultProperty);
-			}
-			set {
-				SetValue(DesignerViewerOpenDefaultProperty, value);
-			}
-		}
-
-		private static void OnDesignerViewerOpenDefaultChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e) {
-			if (sender is SharpDataManager manager) {
-				SharpEditor.Properties.Settings.Default.DesignerViewerOpenDefault = Instance.DesignerViewerOpenDefault;
-				SharpEditor.Properties.Settings.Default.Save();
-				manager.DesignerViewerOpenDefaultChanged?.Invoke(sender, EventArgs.Empty);
-			}
-		}
-
-		#endregion
-
-		#region OpenOnGenerate
-
-		public static readonly DependencyProperty OpenOnGenerateProperty =
-			DependencyProperty.Register("OpenOnGenerate", typeof(bool),
-			typeof(SharpDataManager), new UIPropertyMetadata(false, OnOpenOnGenerateChanged));
+		[ObservableProperty]
+		private bool openOnGenerate = false;
 		public event EventHandler? OpenOnGenerateChanged;
-
-		public bool OpenOnGenerate {
-			get {
-				return (bool)GetValue(OpenOnGenerateProperty);
-			}
-			set {
-				SetValue(OpenOnGenerateProperty, value);
-			}
-		}
-
-		private static void OnOpenOnGenerateChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e) {
-			if (sender is SharpDataManager manager) {
-				SharpEditor.Properties.Settings.Default.OpenOnGenerate = manager.OpenOnGenerate;
-				SharpEditor.Properties.Settings.Default.Save();
-				manager.OpenOnGenerateChanged?.Invoke(sender, EventArgs.Empty);
-			}
+		partial void OnOpenOnGenerateChanged(bool value) {
+			OpenOnGenerateChanged?.Invoke(this, new EventArgs());
 		}
 
 		#endregion
 
-		#region ShowLineNumbers
+		#region Editor settings
 
-		public static readonly DependencyProperty ShowLineNumbersProperty =
-			DependencyProperty.Register("ShowLineNumbers", typeof(bool),
-			typeof(SharpDataManager), new UIPropertyMetadata(true, OnShowLineNumbersChanged));
+		[ObservableProperty]
+		private bool showLineNumbers = true;
 		public event EventHandler? ShowLineNumbersChanged;
-
-		public bool ShowLineNumbers {
-			get {
-				return (bool)GetValue(ShowLineNumbersProperty);
-			}
-			set {
-				SetValue(ShowLineNumbersProperty, value);
-			}
+		partial void OnShowLineNumbersChanged(bool value) {
+			ShowLineNumbersChanged?.Invoke(this, new EventArgs());
 		}
 
-		private static void OnShowLineNumbersChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e) {
-			if (sender is SharpDataManager manager) {
-				SharpEditor.Properties.Settings.Default.ShowLineNumbers = Instance.ShowLineNumbers;
-				SharpEditor.Properties.Settings.Default.Save();
-				manager.ShowLineNumbersChanged?.Invoke(sender, EventArgs.Empty);
-			}
-		}
-
-		#endregion
-
-		#region ShowLineNumbers
-
-		public static readonly DependencyProperty ShowEndOfLineProperty =
-			DependencyProperty.Register("ShowEndOfLine", typeof(bool),
-			typeof(SharpDataManager), new UIPropertyMetadata(false, OnShowEndOfLineChanged));
+		[ObservableProperty]
+		private bool showEndOfLine = false;
 		public event EventHandler? ShowEndOfLineChanged;
-
-		public bool ShowEndOfLine {
-			get {
-				return (bool)GetValue(ShowEndOfLineProperty);
-			}
-			set {
-				SetValue(ShowEndOfLineProperty, value);
-			}
+		partial void OnShowEndOfLineChanged(bool value) {
+			ShowEndOfLineChanged?.Invoke(this, new EventArgs());
 		}
 
-		private static void OnShowEndOfLineChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e) {
-			if (sender is SharpDataManager manager) {
-				SharpEditor.Properties.Settings.Default.ShowEndOfLine = Instance.ShowEndOfLine;
-				SharpEditor.Properties.Settings.Default.Save();
-				manager.ShowEndOfLineChanged?.Invoke(sender, EventArgs.Empty);
-			}
-		}
-
-		#endregion
-		
-		#region ShowLineNumbers
-
-		public static readonly DependencyProperty WrapLinesProperty =
-			DependencyProperty.Register("WrapLines", typeof(bool),
-			typeof(SharpDataManager), new UIPropertyMetadata(false, OnWrapLinesChanged));
+		[ObservableProperty]
+		private bool wrapLines = false;
 		public event EventHandler? WrapLinesChanged;
-
-		public bool WrapLines {
-			get {
-				return (bool)GetValue(WrapLinesProperty);
-			}
-			set {
-				SetValue(WrapLinesProperty, value);
-			}
+		partial void OnWrapLinesChanged(bool value) {
+			WrapLinesChanged?.Invoke(this, new EventArgs());
 		}
 
-		private static void OnWrapLinesChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e) {
-			if (sender is SharpDataManager manager) {
-				SharpEditor.Properties.Settings.Default.WrapLines = Instance.WrapLines;
-				SharpEditor.Properties.Settings.Default.Save();
-				manager.WrapLinesChanged?.Invoke(sender, EventArgs.Empty);
-			}
-		}
-
-		#endregion
-
-		#region TextZoom
-
-		public static readonly DependencyProperty TextZoomProperty =
-			DependencyProperty.Register("TextZoom", typeof(double),
-			typeof(SharpDataManager), new UIPropertyMetadata(1.0, OnTextZoomChanged));
+		[ObservableProperty]
+		private double textZoom = 1.0;
 		public event EventHandler? TextZoomChanged;
-
-		public double TextZoom {
-			get {
-				return (double)GetValue(TextZoomProperty);
-			}
-			set {
-				SetValue(TextZoomProperty, value);
-			}
-		}
-
-		private static void OnTextZoomChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e) {
-			if (sender is SharpDataManager manager) {
-				SharpEditor.Properties.Settings.Default.TextZoom = Instance.TextZoom;
-				SharpEditor.Properties.Settings.Default.Save();
-				manager.TextZoomChanged?.Invoke(sender, EventArgs.Empty);
-			}
+		partial void OnTextZoomChanged(double value) {
+			TextZoomChanged?.Invoke(this, new EventArgs());
 		}
 
 		#endregion
 
-		#region WarnFontLicensing
+		#region Window settings
 
-		public static readonly DependencyProperty WarnFontLicensingProperty =
-			DependencyProperty.Register("WarnFontLicensing", typeof(bool),
-			typeof(SharpDataManager), new UIPropertyMetadata(true, OnWarnFontLicensingChanged));
+		[ObservableProperty]
+		private bool windowMaximized = true;
+
+		#endregion
+
+		#region Warning and error settings
+
+		[ObservableProperty]
+		private bool warnFontLicensing = true;
 		public event EventHandler? WarnFontLicensingChanged;
-
-		public bool WarnFontLicensing {
-			get {
-				return (bool)GetValue(WarnFontLicensingProperty);
-			}
-			set {
-				SetValue(WarnFontLicensingProperty, value);
-			}
-		}
-
-		private static void OnWarnFontLicensingChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e) {
-			if (sender is SharpDataManager manager) {
-				SharpEditor.Properties.Settings.Default.WarnFontLicensing = Instance.WarnFontLicensing;
-				SharpEditor.Properties.Settings.Default.Save();
-				manager.WarnFontLicensingChanged?.Invoke(sender, EventArgs.Empty);
-			}
+		partial void OnWarnFontLicensingChanged(bool value) {
+			WarnFontLicensingChanged?.Invoke(this, new EventArgs());
 		}
 
 		#endregion
 
+		#region File system settings
+
+		[ObservableProperty]
+		private string lastFileDirectory = "";
+
+		[ObservableProperty]
+		private string templateDirectory = "";
+
+		#endregion
+
+		/*
 		public static readonly DependencyProperty TestColorProperty =
 			DependencyProperty.Register("TestColor", typeof(System.Windows.Media.Color),
 			typeof(SharpDataManager), new UIPropertyMetadata(System.Windows.Media.Colors.Red, OnTestColorChanged));
@@ -268,6 +205,7 @@ namespace SharpEditor.DataManagers {
 				manager.TestColorChanged?.Invoke(sender, EventArgs.Empty);
 			}
 		}
+		*/
 	}
 
 }

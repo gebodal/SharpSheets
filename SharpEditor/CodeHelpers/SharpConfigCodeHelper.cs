@@ -2,12 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using ICSharpCode.AvalonEdit;
-using ICSharpCode.AvalonEdit.CodeCompletion;
-using ICSharpCode.AvalonEdit.Document;
+using AvaloniaEdit;
+using AvaloniaEdit.CodeCompletion;
+using AvaloniaEdit.Document;
 using SharpSheets.Widgets;
 using SharpSheets.Utilities;
 using SharpSheets.Layouts;
@@ -22,6 +19,9 @@ using SharpEditor.DataManagers;
 using SharpEditor.Documentation.DocumentationBuilders;
 using SharpEditor.ContentBuilders;
 using System.Text;
+using Avalonia.Controls;
+using Avalonia.Input;
+using SharpEditor.Windows;
 
 namespace SharpEditor.CodeHelpers {
 
@@ -96,8 +96,8 @@ namespace SharpEditor.CodeHelpers {
 
 		// TODO Do these need to be reset occasionally?
 		private readonly Dictionary<string, ConstructorDetails> _registeredConstructorDetails = new Dictionary<string, ConstructorDetails>(StringComparer.InvariantCultureIgnoreCase);
-		private readonly Dictionary<ConstructorDetails, FrameworkElement[]> _constructorDescriptions = new Dictionary<ConstructorDetails, FrameworkElement[]>();
-		protected FrameworkElement[]? GetConstructorDescription(ConstructorDetails constructorDetails) {
+		private readonly Dictionary<ConstructorDetails, Control[]> _constructorDescriptions = new Dictionary<ConstructorDetails, Control[]>();
+		protected Control[]? GetConstructorDescription(ConstructorDetails constructorDetails) {
 			if(constructorDetails == null) { return null; }
 			else if(ReferenceEquals(_registeredConstructorDetails.GetValueOrFallback(constructorDetails.FullName, null), constructorDetails)) {
 				return _constructorDescriptions.GetValueOrFallback(constructorDetails, null);
@@ -107,7 +107,7 @@ namespace SharpEditor.CodeHelpers {
 					_constructorDescriptions.Remove(alreadyRegistered);
 				}
 
-				FrameworkElement[] description = TooltipBuilder.MakeConstructorEntry(constructorDetails, null, false, impliedConstructors).ToArray();
+				Control[] description = TooltipBuilder.MakeConstructorEntry(constructorDetails, null, false, impliedConstructors).ToArray();
 				_registeredConstructorDetails[constructorDetails.FullName] = constructorDetails;
 				_constructorDescriptions[constructorDetails] = description;
 				return description;
@@ -537,12 +537,12 @@ namespace SharpEditor.CodeHelpers {
 					}
 				}
 				else if (argType == typeof(FontPath)) {
-					foreach (string fontname in FontPathRegistry.GetAllRegisteredFonts()) {
+					foreach (string fontname in FontPathRegistry.GetAllRegisteredFonts().Sort()) {
 						data.Add(new CompletionEntry(fontname));
 					}
 				}
 				else if (argType == typeof(FontPathGrouping)) {
-					foreach (string fontname in FontPathRegistry.GetAllRegisteredFamilies().Concat(FontPathRegistry.GetAllRegisteredFonts())) {
+					foreach (string fontname in FontPathRegistry.GetAllRegisteredFamilies().Concat(FontPathRegistry.GetAllRegisteredFonts()).Sort()) {
 						data.Add(new CompletionEntry(fontname));
 					}
 				}
@@ -564,9 +564,11 @@ namespace SharpEditor.CodeHelpers {
 			return data;
 		}
 
-		protected abstract bool CustomTextEnteredTriggerCompletion(TextCompositionEventArgs e, string currentLineText);
+		protected abstract bool CustomTextEnteredTriggerCompletion(TextInputEventArgs e, string currentLineText);
 
-		public virtual bool TextEnteredTriggerCompletion(TextCompositionEventArgs e) {
+		public virtual bool TextEnteredTriggerCompletion(TextInputEventArgs e) {
+			if(e.Text is null) { return false; }
+
 			string currentLineText = Document.GetText(Document.GetLineByOffset(textEditor.CaretOffset)).Trim();
 			if (e.Text.EndsWith("@") && currentLineText == "@") {
 				return true;
@@ -597,8 +599,8 @@ namespace SharpEditor.CodeHelpers {
 
 		#region Tooltip
 
-		protected abstract bool GetCustomToolTipContent(TSpan span, string word, List<UIElement> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext);
-		protected abstract void GetAdditionalToolTipContent(TSpan span, string word, List<UIElement> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext);
+		protected abstract bool GetCustomToolTipContent(TSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext);
+		protected abstract void GetAdditionalToolTipContent(TSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext);
 
 		// TODO This is in progress?
 		/*
@@ -609,8 +611,8 @@ namespace SharpEditor.CodeHelpers {
 		}
 		*/
 
-		public IList<UIElement> GetToolTipContent(int offset, string word) {
-			List<UIElement> content = new List<UIElement>();
+		public IList<Control> GetToolTipContent(int offset, string word) {
+			List<Control> content = new List<Control>();
 
 			foreach (TSpan span in GetParseSpans(offset)) { // Must be inside registered span
 
@@ -658,8 +660,8 @@ namespace SharpEditor.CodeHelpers {
 			return content;
 		}
 
-		public IList<UIElement> GetFallbackToolTipContent(int offset) {
-			List<UIElement> content = new List<UIElement>();
+		public IList<Control> GetFallbackToolTipContent(int offset) {
+			List<Control> content = new List<Control>();
 
 			TSpan? firstSpan = parsingState.ConfigSpans.Where(s => s.Type == SharpConfigSpanType.DIV).OrderBy(s => s.StartOffset).FirstOrDefault();
 
@@ -694,36 +696,36 @@ namespace SharpEditor.CodeHelpers {
 				.FirstOrDefault();
 		}
 
-		protected IEnumerable<FrameworkElement> MakeNamedChildEntry(TSpan span) {
+		protected IEnumerable<Control> MakeNamedChildEntry(TSpan span) {
 			IContext? context = parsingState.GetContext(Document.GetLineByOffset(span.StartOffset));
 
-			if (context is null || context.Parent is null) { return Enumerable.Empty<FrameworkElement>(); }
+			if (context is null || context.Parent is null) { return Enumerable.Empty<Control>(); }
 
 			ConstructorArgumentDetails[] arguments = context.Parent.TraverseSelfAndChildren()
 				.Select(p => divTypes.Get(p.SimpleName)).WhereNotNull()
 				.Select(c => GetNamedChildArg(span, c)).WhereNotNull().ToArray();
 
-			if (arguments.Length == 0) { return Enumerable.Empty<FrameworkElement>(); }
+			if (arguments.Length == 0) { return Enumerable.Empty<Control>(); }
 
 			return TooltipBuilder.MakeMultipleArgumentBlocks(arguments, null);
 		}
 
-		protected IEnumerable<FrameworkElement> MakeEntryEntry(TSpan span) {
+		protected IEnumerable<Control> MakeEntryEntry(TSpan span) {
 			IContext? context = parsingState.GetContext(Document.GetLineByOffset(span.StartOffset));
 
-			if (context is null) { return Enumerable.Empty<FrameworkElement>(); }
+			if (context is null) { return Enumerable.Empty<Control>(); }
 
 			ConstructorDetails constructor = divTypes.Get(context.SimpleName) ?? fallbackType;
 
 			ConstructorArgumentDetails[] arguments = constructor.ConstructorArguments
 				.Where(a => a.ArgumentType.IsList).ToArray() ?? Array.Empty<ConstructorArgumentDetails>();
 
-			if (arguments.Length == 0) { return Enumerable.Empty<FrameworkElement>(); }
+			if (arguments.Length == 0) { return Enumerable.Empty<Control>(); }
 
 			return TooltipBuilder.MakeMultipleArgumentBlocks(arguments, null);
 		}
 
-		protected IEnumerable<FrameworkElement> MakePropertyEntry(TSpan span, string word, IContext? context) {
+		protected IEnumerable<Control> MakePropertyEntry(TSpan span, string word, IContext? context) {
 
 			ConstructorArgumentDetails[] allArgs = GetAllArguments(span, GetOwnerConstructors(span));
 
@@ -741,7 +743,7 @@ namespace SharpEditor.CodeHelpers {
 				}
 			}
 			else {
-				foreach(FrameworkElement propertyElem in TooltipBuilder.MakeMultipleArgumentBlocks(allArgs, context)) {
+				foreach(Control propertyElem in TooltipBuilder.MakeMultipleArgumentBlocks(allArgs, context)) {
 					yield return propertyElem;
 				}
 			}
@@ -813,7 +815,7 @@ namespace SharpEditor.CodeHelpers {
 
 		#region Text Entered
 
-		public void TextEntered(TextCompositionEventArgs e) { }
+		public void TextEntered(TextInputEventArgs e) { }
 
 		#endregion
 
@@ -872,7 +874,7 @@ namespace SharpEditor.CodeHelpers {
 
 		#region Pasting
 
-		public void TextPasted(DataObjectPastingEventArgs args, int offset) {
+		public void TextPasted(EventArgs args, int offset) {
 			/*
 			string? text = args.DataObject.GetData(typeof(string)) as string;
 
@@ -942,15 +944,15 @@ namespace SharpEditor.CodeHelpers {
 			return false;
 		}
 
-		protected override bool CustomTextEnteredTriggerCompletion(TextCompositionEventArgs e, string currentLineText) {
+		protected override bool CustomTextEnteredTriggerCompletion(TextInputEventArgs e, string currentLineText) {
 			return false;
 		}
 
-		protected override bool GetCustomToolTipContent(SharpConfigSpan span, string word, List<UIElement> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
+		protected override bool GetCustomToolTipContent(SharpConfigSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
 			return false;
 		}
 
-		protected override void GetAdditionalToolTipContent(SharpConfigSpan span, string word, List<UIElement> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
+		protected override void GetAdditionalToolTipContent(SharpConfigSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
 			return;
 		}
 	}
@@ -999,12 +1001,12 @@ namespace SharpEditor.CodeHelpers {
 				if (parsingState.GetVariableDefinitionBox(currentLine.context) is IVariableDefinitionBox variables) {
 					foreach (KeyValuePair<EvaluationName, EvaluationType> variableReturn in variables.GetReturnTypes()) {
 						data.Add(new CompletionEntry(variableReturn.Key.ToString()) {
-							DescriptionElements = new FrameworkElement[] { new TextBlock() { Text = SharpValueHandler.GetTypeName(variableReturn.Value) } },
+							DescriptionElements = new Control[] { new TextBlock() { Text = SharpValueHandler.GetTypeName(variableReturn.Value) } },
 						});
 					}
 					foreach (IEnvironmentFunctionInfo functionInfo in variables.GetFunctionInfos()) {
 						data.Add(new CompletionEntry(functionInfo.Name.ToString()) {
-							DescriptionElements = new FrameworkElement[] { new TextBlock() { Text = functionInfo.Description ?? "Environment function." } },
+							DescriptionElements = new Control[] { new TextBlock() { Text = functionInfo.Description ?? "Environment function." } },
 						});
 					}
 				}
@@ -1013,7 +1015,7 @@ namespace SharpEditor.CodeHelpers {
 			return false;
 		}
 
-		protected override bool CustomTextEnteredTriggerCompletion(TextCompositionEventArgs e, string currentLineText) {
+		protected override bool CustomTextEnteredTriggerCompletion(TextInputEventArgs e, string currentLineText) {
 			return false;
 		}
 
@@ -1025,7 +1027,7 @@ namespace SharpEditor.CodeHelpers {
 			else { return word; }
 		}
 
-		protected override bool GetCustomToolTipContent(CardConfigSpan span, string word, List<UIElement> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
+		protected override bool GetCustomToolTipContent(CardConfigSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
 			DocumentLine currentLine = Document.GetLineByOffset(span.StartOffset);
 			string variableWord = GetVariableNameFromWord(word);
 			if ((span.IsExpression || Document.GetText(span).Contains(variableWord.StartsWith("$") ? variableWord : "$" + variableWord)) && ParsingState != null) {
@@ -1042,7 +1044,7 @@ namespace SharpEditor.CodeHelpers {
 			return false;
 		}
 
-		protected override void GetAdditionalToolTipContent(CardConfigSpan span, string word, List<UIElement> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
+		protected override void GetAdditionalToolTipContent(CardConfigSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
 			if (constructor != null) {
 				if (constructor.FullName == CardSetConfigFactory.BackgroundConstructor1.FullName) {
 					if ((constructorContext ?? Context.Empty).TraverseParents().Any(c => CardSetConfigFactory.SegmentConfigConstructors.ContainsKey(c.SimpleName))) {

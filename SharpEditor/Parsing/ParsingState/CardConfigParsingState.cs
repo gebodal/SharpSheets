@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using ICSharpCode.AvalonEdit.Document;
+using AvaloniaEdit.Document;
 using SharpSheets.Utilities;
 using SharpSheets.Parsing;
 using SharpSheets.Cards.Definitions;
@@ -32,7 +32,7 @@ namespace SharpEditor {
 		public override string FileFilter { get { return SharpEditorFileInfo.CardConfigFileFilter1; } }
 		public override string DefaultFilename { get { return "cardconfig"; } }
 
-		public override bool HasDesignerContent { get; } = true; // TODO Should have something here
+		public override bool HasDesignerContent { get; } = true;
 		public override bool HasGeneratedContent { get; } = false;
 
 		private CardSetConfig? CardSetConfig { get; set; }

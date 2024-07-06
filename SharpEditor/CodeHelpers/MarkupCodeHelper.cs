@@ -1,6 +1,6 @@
-﻿using ICSharpCode.AvalonEdit;
-using ICSharpCode.AvalonEdit.CodeCompletion;
-using ICSharpCode.AvalonEdit.Document;
+﻿using AvaloniaEdit;
+using AvaloniaEdit.CodeCompletion;
+using AvaloniaEdit.Document;
 using SharpEditor.ContentBuilders;
 using SharpSheets.Documentation;
 using SharpSheets.Evaluations;
@@ -14,10 +14,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
 using SharpEditor.DataManagers;
+using Avalonia.Controls;
+using Avalonia.Input;
+using SharpEditor.Windows;
 
 namespace SharpEditor.CodeHelpers {
 
@@ -59,7 +59,7 @@ namespace SharpEditor.CodeHelpers {
 			return data;
 		}
 
-		public bool TextEnteredTriggerCompletion(TextCompositionEventArgs e) {
+		public bool TextEnteredTriggerCompletion(TextInputEventArgs e) {
 			if (e.Text == "$") {
 				return true;
 			}
@@ -69,8 +69,8 @@ namespace SharpEditor.CodeHelpers {
 		#endregion
 
 		#region Tooltip
-		public IList<UIElement> GetToolTipContent(int offset, string word) {
-			List<UIElement> contents = new List<UIElement>();
+		public IList<Control> GetToolTipContent(int offset, string word) {
+			List<Control> contents = new List<Control>();
 
 			if(word[0] == '<') {
 				// TODO This is horrible. Any better of solving this one? Better handling of punctuation in word-finding?
@@ -133,7 +133,7 @@ namespace SharpEditor.CodeHelpers {
 					}
 				}
 
-				List<UIElement> variableBlocks = new List<UIElement>();
+				List<Control> variableBlocks = new List<Control>();
 				if (GetOwningDiv(span) is DivElement divElement) {
 					variableBlocks.Add(TooltipBuilder.GetToolTipTextBlock("Available variables:"));
 					variableBlocks.Add(TooltipBuilder.GetVariableBoxEntries(divElement.Variables));
@@ -185,8 +185,8 @@ namespace SharpEditor.CodeHelpers {
 			return contents;
 		}
 
-		public IList<UIElement> GetFallbackToolTipContent(int offset) {
-			return Array.Empty<UIElement>();
+		public IList<Control> GetFallbackToolTipContent(int offset) {
+			return Array.Empty<Control>();
 		}
 
 		private IEnumerable<MarkupSpan> GetElementSpans(int offset) {
@@ -275,7 +275,7 @@ namespace SharpEditor.CodeHelpers {
 
 		#region Text Entered
 
-		public void TextEntered(TextCompositionEventArgs e) {
+		public void TextEntered(TextInputEventArgs e) {
 			int carat = textEditor.CaretOffset;
 			DocumentLine currentLine = textEditor.Document.GetLineByOffset(carat);
 			int startLimit = 0; // currentLine?.PreviousLine?.Offset ?? currentLine?.Offset ?? 0;
@@ -495,7 +495,7 @@ namespace SharpEditor.CodeHelpers {
 
 		#region Pasting
 
-		public void TextPasted(DataObjectPastingEventArgs args, int offset) {
+		public void TextPasted(EventArgs args, int offset) {
 
 		}
 

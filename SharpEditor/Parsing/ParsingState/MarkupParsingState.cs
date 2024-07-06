@@ -1,5 +1,5 @@
-﻿using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Rendering;
+﻿using AvaloniaEdit.Document;
+using AvaloniaEdit.Rendering;
 using SharpSheets.Canvas;
 using SharpSheets.Evaluations;
 using SharpSheets.Exceptions;

@@ -17,14 +17,13 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Input;
-using System.Windows.Media;
-using ICSharpCode.AvalonEdit.CodeCompletion;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Editing;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Media;
+using AvaloniaEdit.CodeCompletion;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Editing;
 
 namespace SharpEditor {
 	/// <summary>
@@ -44,41 +43,47 @@ namespace SharpEditor {
 		/// </summary>
 		public SharpCompletionWindow(TextArea textArea) : base(textArea) {
 			// keep height automatic
-			this.SizeToContent = SizeToContent.Height;
+			//this.SizeToContent = SizeToContent.Height;
 			this.MaxHeight = 300;
 			this.Width = 225;
-			this.Content = CompletionList;
+			this.Child = CompletionList; // this.Content = CompletionList;
 			// prevent user from resizing window to 0x0
 			this.MinHeight = 15;
 			this.MinWidth = 30;
 
-			toolTip.PlacementTarget = this;
-			toolTip.Placement = PlacementMode.Right;
-			toolTip.Closed += ToolTip_Closed;
+			//toolTip.PlacementTarget = this;
+			//toolTip.Placement = PlacementMode.Right;
+			ToolTip.SetPlacement(this, PlacementMode.Right);
+			//toolTip.Closed += ToolTip_Closed; // What do?
 
 			this.CloseWhenCaretAtBeginning = true; // Yes?
 			
 			////// MAKE PRETTY
-			toolTip.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#424245"));
+			toolTip.Background = new SolidColorBrush(new Color(0xff, 0x42, 0x42, 0x45)); // "#424245"
 			toolTip.Foreground = Brushes.White;
 			toolTip.BorderThickness = new Thickness(0.75);
 			toolTip.MaxWidth = 600;
 
-			CompletionList.ListBox.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#252526"));
+			CompletionList.ListBox.Background = new SolidColorBrush(new Color(0xff, 0x25, 0x25, 0x26)); // "#252526"
 			CompletionList.ListBox.Foreground = Brushes.White;
 			CompletionList.ListBox.BorderThickness = new Thickness(0.75);
 			CompletionList.BorderThickness = new Thickness(0);
+			/*
+			// How to do this in Avalonia?
 			this.BorderThickness = new Thickness(0);
 			this.WindowStyle = WindowStyle.None;
 			this.ShowInTaskbar = false;
 			this.AllowsTransparency = true;
 			this.Background = Brushes.Transparent;
+			*/
 			//////// MADE PRETTY
 			
 			AttachEvents();
 		}
 
 		#region ToolTip handling
+		/*
+		// Can we do this in Avalonia?
 		void ToolTip_Closed(object? sender, RoutedEventArgs e) {
 			// Clear content after tooltip is closed.
 			// We cannot clear is immediately when setting IsOpen=false
@@ -86,8 +91,11 @@ namespace SharpEditor {
 			if (toolTip != null)
 				toolTip.Content = null;
 		}
+		*/
 
 		void CompletionList_SelectionChanged(object? sender, SelectionChangedEventArgs e) {
+			/*
+			// What to do here?
 			if(toolTip is null) { return; } // The completion window has already been closed
 			ICompletionData item = CompletionList.SelectedItem;
 			if (item == null) { return; }
@@ -107,6 +115,7 @@ namespace SharpEditor {
 			else {
 				toolTip.IsOpen = false;
 			}
+			*/
 		}
 		#endregion
 
@@ -124,8 +133,8 @@ namespace SharpEditor {
 			this.CompletionList.InsertionRequested += CompletionList_InsertionRequested;
 			this.CompletionList.SelectionChanged += CompletionList_SelectionChanged;
 			this.TextArea.Caret.PositionChanged += CaretPositionChanged;
-			this.TextArea.MouseWheel += TextArea_MouseWheel;
-			this.TextArea.PreviewTextInput += TextArea_PreviewTextInput;
+			this.TextArea.PointerWheelChanged += TextArea_PointerWheelChanged;
+			this.TextArea.TextInput += TextArea_TextInput;
 		}
 
 		/// <inheritdoc/>
@@ -133,18 +142,21 @@ namespace SharpEditor {
 			this.CompletionList.InsertionRequested -= CompletionList_InsertionRequested;
 			this.CompletionList.SelectionChanged -= CompletionList_SelectionChanged;
 			this.TextArea.Caret.PositionChanged -= CaretPositionChanged;
-			this.TextArea.MouseWheel -= TextArea_MouseWheel;
-			this.TextArea.PreviewTextInput -= TextArea_PreviewTextInput;
+			this.TextArea.PointerWheelChanged -= TextArea_PointerWheelChanged;
+			this.TextArea.TextInput -= TextArea_TextInput;
 			base.DetachEvents();
 		}
 
 		/// <inheritdoc/>
-		protected override void OnClosed(EventArgs e) {
-			base.OnClosed(e);
+		protected override void OnClosed() {
+			base.OnClosed();
+			/*
+			// What to do here?
 			if (toolTip != null) {
 				toolTip.IsOpen = false;
 				toolTip = null;
 			}
+			*/
 		}
 
 		/// <inheritdoc/>
@@ -155,21 +167,21 @@ namespace SharpEditor {
 			}
 		}
 
-		void TextArea_PreviewTextInput(object? sender, TextCompositionEventArgs e) {
-			e.Handled = RaiseEventPair(this, PreviewTextInputEvent, TextInputEvent,
-									   new TextCompositionEventArgs(e.Device, e.TextComposition));
+		void TextArea_TextInput(object? sender, TextInputEventArgs e) {
+			e.Handled = RaiseEventPair(this, TextInputEvent, TextInputEvent,
+									   new TextInputEventArgs() { Source = e.Source, Text = e.Text });
 		}
 
-		void TextArea_MouseWheel(object? sender, MouseWheelEventArgs e) {
+		void TextArea_PointerWheelChanged(object? sender, PointerWheelEventArgs e) {
 			e.Handled = RaiseEventPair(GetScrollEventTarget(),
-									   PreviewMouseWheelEvent, MouseWheelEvent,
-									   new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta));
+									   PointerWheelChangedEvent, PointerWheelChangedEvent, // Yes?
+									   e);
 		}
 
-		UIElement GetScrollEventTarget() {
+		Control GetScrollEventTarget() {
 			if (CompletionList == null)
 				return this;
-			return CompletionList.ScrollViewer ?? CompletionList.ListBox ?? (UIElement)CompletionList;
+			return CompletionList.ScrollViewer ?? CompletionList.ListBox ?? (Control)CompletionList;
 		}
 
 		/// <summary>

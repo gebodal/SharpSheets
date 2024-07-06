@@ -2,11 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
 using SharpEditor.Utilities;
 using SharpSheets.Documentation;
 using SharpEditor.ContentBuilders;
@@ -15,20 +10,29 @@ using SharpSheets.Markup.Parsing;
 using SharpSheets.Markup.Elements;
 using SharpSheets.Cards.CardConfigs;
 using SharpEditor.DataManagers;
-using ICSharpCode.AvalonEdit.Editing;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Highlighting;
 using static SharpEditor.ContentBuilders.BaseContentBuilder;
 using static SharpEditor.Documentation.DocumentationBuilders.BaseDocumentationBuilder;
+using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Media;
+using Avalonia;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Editing;
+using AvaloniaEdit.Highlighting;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 
 namespace SharpEditor.Documentation.DocumentationBuilders {
+
+	// UIElement -> Control
+	// FrameworkElement -> Control
 
 	public static class DocumentationPageBuilder {
 
 		public static DocumentationPage CreateHomePage(DocumentationWindow window) {
 			return CreateDocumentationPageForNode(Documentation.DocumentationRoot, window);
 		}
-
 
 		public static DocumentationPage CreateDocumentationPageForNode(DocumentationNode documentationNode, DocumentationWindow window) {
 			return MakePage(
@@ -37,11 +41,11 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				() => CreateDocumentationContentForNode(documentationNode, window));
 		}
 
-		private static UIElement CreateDocumentationContentForNode(DocumentationNode documentationNode, DocumentationWindow window) {
+		private static Control CreateDocumentationContentForNode(DocumentationNode documentationNode, DocumentationWindow window) {
 
 			StackPanel stack = new StackPanel();
-
-			if (documentationNode.HasSubsections && GetContents(documentationNode, window) is FrameworkElement contentsElement) {
+			
+			if (documentationNode.HasSubsections && GetContents(documentationNode, window) is Control contentsElement) {
 				TextBlock contentsTitleBlock = MakeTitleBlock("Contents", 2);
 				stack.Children.Add(contentsTitleBlock);
 
@@ -53,18 +57,18 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			if (documentationNode.main != null) {
 				stack.Children.AddRange(CreateDocumentationPageElements(documentationNode.main, window));
 			}
-
+			
 			return stack;
 		}
 
 		private static TextBlock MakeContentsTextBlock(Inline inline) {
-			TextBlock contentsBlock = new TextBlock() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 1, 0, 1) };
+			TextBlock contentsBlock = new TextBlock() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 1, 0, 1), Inlines = new InlineCollection() };
 			contentsBlock.Inlines.Add(new Run("\u2013\u2002") { Foreground = Brushes.Gray });
 			contentsBlock.Inlines.Add(inline);
 			return contentsBlock;
 		}
 
-		private static FrameworkElement? GetContents(DocumentationNode documentationNode, DocumentationWindow window) {
+		private static Control? GetContents(DocumentationNode documentationNode, DocumentationWindow window) {
 			StackPanel stack = new StackPanel() { Margin = ContentsBlockMargin };
 
 			foreach (DocumentationFile file in documentationNode.files.Values.OrderBy(f => f.index)) {
@@ -80,7 +84,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				TextBlock nodeBlock = MakeContentsTextBlock(nodeClickable);
 				stack.Children.Add(nodeBlock);
 
-				if (GetContents(node, window) is UIElement uiElement) {
+				if (GetContents(node, window) is Control uiElement) {
 					stack.Children.Add(uiElement);
 				}
 			}
@@ -95,27 +99,25 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				() => CreateDocumentationPageContents(documentationFile, window));
 		}
 
-		private static UIElement CreateDocumentationPageContents(DocumentationFile documentationFile, DocumentationWindow window) {
+		private static Control CreateDocumentationPageContents(DocumentationFile documentationFile, DocumentationWindow window) {
 			StackPanel stack = new StackPanel();
 			stack.Children.AddRange(CreateDocumentationPageElements(documentationFile, window));
 			return stack;
 		}
 
-		private static IEnumerable<FrameworkElement> CreateDocumentationPageElements(DocumentationFile documentationFile, DocumentationWindow window) {
+		private static IEnumerable<Control> CreateDocumentationPageElements(DocumentationFile documentationFile, DocumentationWindow window) {
 
-			List<FrameworkElement> contents = new List<FrameworkElement>();
-
-			//contents.Add(new TextBlock() { Text = (string.IsNullOrWhiteSpace(documentationFile.location) ? "root" : documentationFile.location) + ", " + documentationFile.title });
+			List<Control> contents = new List<Control>();
 
 			foreach (DocumentationSection section in documentationFile.sections) {
-				FrameworkElement sectionElement = CreateDocumentationSection(section, window);
+				Control sectionElement = CreateDocumentationSection(section, window);
 				contents.Add(sectionElement);
 			}
 
 			return contents;
 		}
 
-		private static FrameworkElement CreateDocumentationSection(DocumentationSection documentationSection, DocumentationWindow window) {
+		private static Control CreateDocumentationSection(DocumentationSection documentationSection, DocumentationWindow window) {
 			StackPanel stack = new StackPanel() { Margin = SectionMargin };
 
 			TextBlock titleBlock = MakeTitleBlock(documentationSection.title, documentationSection.level);
@@ -123,7 +125,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			stack.Children.Add(titleBlock);
 
 			foreach (IDocumentationSegment segment in documentationSection.segments) {
-				FrameworkElement segmentElement = CreateDocumentationSegment(segment, window);
+				Control segmentElement = CreateDocumentationSegment(segment, window);
 				segmentElement.AddIndent(10);
 				stack.Children.Add(segmentElement);
 			}
@@ -131,7 +133,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return stack;
 		}
 
-		private static FrameworkElement CreateDocumentationSegment(IDocumentationSegment documentationSegment, DocumentationWindow window) {
+		private static Control CreateDocumentationSegment(IDocumentationSegment documentationSegment, DocumentationWindow window) {
 			if (documentationSegment is DocumentationParagraph paragraph) {
 				return MakeDocumentationParagraph(paragraph, window);
 			}
@@ -177,29 +179,32 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		}
 
 		public static readonly Brush CodeBackgroundBrush = new SolidColorBrush(Color.FromRgb(30, 30, 30)); // new SolidColorBrush(Color.FromRgb(114, 114, 118));
-		public static readonly FontFamily CodeFontFamily = new FontFamily("Consolas");
+
+		public static FontFamily GetCodeFontFamily() {
+			if ((App.Current?.TryGetResource("EditorFont", out object? editorFont) ?? false) && editorFont is FontFamily codeFamily) {
+				return codeFamily;
+			}
+			else {
+				return new FontFamily("Consolas"); // Better fallback needed
+			}
+		}
 
 		private static TextBlock MakeDocumentationParagraph(DocumentationParagraph documentationParagraph, DocumentationWindow window) {
-			TextBlock text = new TextBlock() { TextWrapping = TextWrapping.Wrap, Margin = ParagraphMargin };
+			TextBlock text = new TextBlock() { TextWrapping = TextWrapping.Wrap, Margin = ParagraphMargin, Inlines = new InlineCollection() };
 			foreach (DocumentationRun run in documentationParagraph.parts) {
 				Inline inline;
 				if (run.link != null) {
-					inline = new ClickableRun(run.text ?? run.link.location) {
-						FontStyle = (run.format & MarkdownFormat.ITALIC) == MarkdownFormat.ITALIC ? FontStyles.Italic : FontStyles.Normal,
-						FontWeight = (run.format & MarkdownFormat.BOLD) == MarkdownFormat.BOLD ? FontWeights.Bold : FontWeights.Normal
+					ClickableRun clickable = new ClickableRun(run.text ?? run.link.location) {
+						FontStyle = (run.format & MarkdownFormat.ITALIC) == MarkdownFormat.ITALIC ? FontStyle.Italic : FontStyle.Normal,
+						FontWeight = (run.format & MarkdownFormat.BOLD) == MarkdownFormat.BOLD ? FontWeight.Bold : FontWeight.Normal
 					};
-					inline.MouseLeftButtonDown += window.MakeNavigationDelegate(run.link);
+					clickable.MouseLeftButtonDown += window.MakeNavigationDelegate(run.link);
+					inline = clickable;
 				}
 				else if (run.IsCode) {
-					/*
-					inline = new Run(run.text) {
-						Background = CodeBackgroundBrush,
-						FontFamily = CodeFontFamily
-					};
-					*/
 					TextBlock codeBlock = new TextBlock() {
 						Text = run.text,
-						FontFamily = CodeFontFamily
+						FontFamily = GetCodeFontFamily()
 					};
 					Border codeBorder = new Border() {
 						Child = codeBlock,
@@ -211,8 +216,8 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				}
 				else {
 					inline = new Run(run.text) {
-						FontStyle = (run.format & MarkdownFormat.ITALIC) == MarkdownFormat.ITALIC ? FontStyles.Italic : FontStyles.Normal,
-						FontWeight = (run.format & MarkdownFormat.BOLD) == MarkdownFormat.BOLD ? FontWeights.Bold : FontWeights.Normal
+						FontStyle = (run.format & MarkdownFormat.ITALIC) == MarkdownFormat.ITALIC ? FontStyle.Italic : FontStyle.Normal,
+						FontWeight = (run.format & MarkdownFormat.BOLD) == MarkdownFormat.BOLD ? FontWeight.Bold : FontWeight.Normal
 					};
 				}
 
@@ -221,7 +226,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return text;
 		}
 
-		private static FrameworkElement GetConstructorLinks(IEnumerable<ConstructorDetails> details, Func<string, ConstructorDetails?>? refreshAction, DocumentationWindow window) {
+		private static Control GetConstructorLinks(IEnumerable<ConstructorDetails> details, Func<string, ConstructorDetails?>? refreshAction, DocumentationWindow window) {
 			StackPanel contentsStack = new StackPanel() { Margin = ParagraphMargin };
 
 			foreach (IGrouping<string, ConstructorDetails> constructorGroup in details.GroupBy(c => c is MarkupConstructorDetails markupConstructor && !string.IsNullOrEmpty(markupConstructor.Pattern.Library) ? markupConstructor.Pattern.Library : "").OrderBy(g => g.Key)) {
@@ -233,20 +238,26 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				foreach (ConstructorDetails constructor in constructorGroup.OrderBy(c => c.Name)) {
 					ClickableRun constructorClickable = new ClickableRun(GetConstructorPrintedName(constructor));
 					constructorClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(constructor, () => refreshAction?.Invoke(constructor.FullName));
-					groupStack.Children.Add(new TextBlock(constructorClickable) { Margin = new Thickness(0, 1, 0, 1) });
+					groupStack.Children.Add(new TextBlock() {
+						Margin = new Thickness(0, 1, 0, 1),
+						Inlines = new InlineCollection() { constructorClickable }
+					});
 				}
 				contentsStack.Children.Add(groupStack);
 			}
 			return contentsStack;
 		}
 
-		private static FrameworkElement GetConstructorLinks(IEnumerable<CardSetConfig> configs, Func<string, CardSetConfig?>? refreshAction, DocumentationWindow window) {
+		private static Control GetConstructorLinks(IEnumerable<CardSetConfig> configs, Func<string, CardSetConfig?>? refreshAction, DocumentationWindow window) {
 			StackPanel contentsStack = new StackPanel() { Margin = ParagraphMargin };
 
 			foreach (CardSetConfig config in configs.OrderBy(d => d.name)) {
 				ClickableRun constructorClickable = new ClickableRun(config.name);
 				constructorClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(config, () => refreshAction?.Invoke(config.name));
-				contentsStack.Children.Add(new TextBlock(constructorClickable) { Margin = new Thickness(0, 1, 0, 1) });
+				contentsStack.Children.Add(new TextBlock() {
+					Margin = new Thickness(0, 1, 0, 1),
+					Inlines = new InlineCollection() { constructorClickable }
+				});
 			}
 			return contentsStack;
 		}
@@ -260,46 +271,13 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 		}
 
-		private static FrameworkElement MakeDocumentationCodeBlock1(DocumentationCode documentationCode) {
+		private static Control MakeDocumentationCodeBlock(DocumentationCode documentationCode) {
 			string codeText = documentationCode.code; // .Replace("\t", "    ");
-
-			//TextBlock codeBlock = new TextBlock() { Text = codeText, TextWrapping = TextWrapping.Wrap, FontFamily = SystemFonts.MessageFontFamily };
-
-			System.Windows.Controls.TextBox codeBox = new System.Windows.Controls.TextBox() { Foreground = Brushes.White, Text = codeText, TextWrapping = TextWrapping.Wrap, BorderThickness = default, IsReadOnly = true, Background = Brushes.Transparent };
-
-			Border codeBorder = new Border {
-				Child = codeBox,
-				Background = CodeBackgroundBrush,
-				Padding = new Thickness(10.0, 5.0, 10.0, 5.0),
-				Margin = ParagraphMargin,
-				CornerRadius = new CornerRadius(5.0)
-			};
-
-			return codeBorder;
-		}
-
-		private static FrameworkElement MakeDocumentationCodeBlock(DocumentationCode documentationCode) {
-			string codeText = documentationCode.code; // .Replace("\t", "    ");
-
-			/*
-			TextEditor textEditor = new TextEditor {
-				IsReadOnly = true,
-				Text = codeText,
-				Encoding = System.Text.Encoding.UTF8,
-				Focusable = false,
-				HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-				VerticalScrollBarVisibility = ScrollBarVisibility.Disabled
-			};
-			textEditor.TextArea.Focusable = false;
-			textEditor.IsHitTestVisible = false;
-
-			return textEditor;
-			*/
 
 			TextDocument document = new TextDocument() { Text = codeText };
 			TextArea textArea = new TextArea() {
 				Document = document,
-				FontFamily = CodeFontFamily
+				FontFamily = GetCodeFontFamily()
 			};
 
 			IHighlightingDefinition? highlightingDefinition;
@@ -333,11 +311,9 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			ScrollViewer codeScroller = new ScrollViewer() {
 				VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-				HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
+				HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+				Content = textArea
 			};
-
-			codeScroller.PreviewMouseWheel += CodeScroller_PreviewMouseWheel;
-			codeScroller.Content = textArea;
 
 			Border codeBorder = new Border {
 				Child = codeScroller,
@@ -348,18 +324,6 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			};
 
 			return codeBorder;
-		}
-
-		private static void CodeScroller_PreviewMouseWheel(object sender, MouseWheelEventArgs e) {
-			if (sender is ScrollViewer && !e.Handled) {
-				e.Handled = true;
-				var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta);
-				eventArg.RoutedEvent = UIElement.MouseWheelEvent;
-				eventArg.Source = sender;
-				var parent = ((System.Windows.Controls.Control)sender).Parent as UIElement;
-				parent?.RaiseEvent(eventArg);
-
-			}
 		}
 
 		class ReadOnlySectionDocument : IReadOnlySectionProvider {

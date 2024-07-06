@@ -1,39 +1,35 @@
-﻿using System;
-using System.Windows;
-using System.Windows.Media;
+﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
+using System;
 
-namespace SharpEditor {
+namespace SharpEditor.Designer {
+
 	// https://stackoverflow.com/a/16876915/11002708
-	public class DrawingElement : FrameworkElement {
+	public class DrawingElement : Control {
 		
-		private readonly TranslateTransform translation = new TranslateTransform();
+		public readonly Drawing drawing;
 
-		private readonly DrawingGroup drawing;
-
-		public DrawingElement(DrawingGroup drawing) {
+		public DrawingElement(Drawing drawing) {
 			this.drawing = drawing;
 		}
 
-		private TranslateTransform? GetTransform() {
+		private Matrix GetTransform() {
 			if (Margin.Left == 0 && Margin.Top == 0) {
-				return null;
+				return Matrix.Identity;
 			}
-			translation.X = Margin.Left;
-			translation.Y = Margin.Top;
-			return translation;
+
+			return Matrix.CreateTranslation(Margin.Left, Margin.Top);
 		}
 
 		protected override Size MeasureOverride(Size _) {
-			Size sz = drawing.Bounds.Size;
-			Size final = new Size {
-				Width = sz.Width + Margin.Left + Margin.Right,
-				Height = sz.Height + Margin.Top + Margin.Bottom,
-			};
+			Size sz = drawing.GetBounds().Size;
+			Size final = new Size(sz.Width + Margin.Left + Margin.Right, sz.Height + Margin.Top + Margin.Bottom);
 			//Console.WriteLine($"MeasureOverride size: {sz}, Margin: {Margin}, Final: {final}");
 			return final;
 		}
 
-		protected override void OnRender(DrawingContext context) {
+		public override void Render(DrawingContext context) {
 			/*
 			TranslateTransform? transform = GetTransform();
 			if (transform != null) {
@@ -46,81 +42,53 @@ namespace SharpEditor {
 			*/
 			//Console.WriteLine("OnRender called");
 
-			TranslateTransform? overallTransform = GetTransform();
-			if (overallTransform != null) {
-				context.PushTransform(overallTransform);
+			using(context.PushTransform(GetTransform())) {
+				RenderDrawing(drawing, context);
 			}
 
-			//RenderDrawingGroup(drawing.Clone(), context);
-			RenderDrawingGroup(drawing, context);
+			base.Render(context);
+		}
 
-			if (overallTransform != null) {
-				context.Pop();
+		protected static void RenderDrawing(Drawing drawing, DrawingContext context) {
+			if (drawing is GeometryDrawing geomDrawing && geomDrawing.Geometry is Geometry geometry) {
+				context.DrawGeometry(geomDrawing.Brush, geomDrawing.Pen, geometry);
+			}
+			else if (drawing is DrawingGroup drawingGroup) {
+				RenderDrawingGroup(drawingGroup, context);
+			}
+			else if (drawing is ImageDrawing image && image.ImageSource is IImage imageSource) {
+				context.DrawImage(imageSource, image.Rect);
+			}
+		}
+
+		protected static void RenderDrawingGroup(DrawingGroup drawingGroup, DrawingContext context) {
+
+			if (drawingGroup.ClipGeometry is Geometry clipGeometry) {
+				using (context.PushGeometryClip(clipGeometry)) {
+					using (context.PushTransform(drawingGroup.Transform?.Value ?? Matrix.Identity)) {
+						RenderDrawingCollection(drawingGroup.Children, context);
+					}
+				}
+			}
+			else {
+				using (context.PushTransform(drawingGroup.Transform?.Value ?? Matrix.Identity)) {
+					RenderDrawingCollection(drawingGroup.Children, context);
+				}
 			}
 
 		}
 
-		protected static void RenderDrawingGroup(DrawingGroup drawingGroup, DrawingContext context) {
-			/*
-			bool clipped = false;
-			if (drawingGroup.ClipGeometry is Geometry clipGeometry) {
-				context.PushClip(clipGeometry);
-				clipped = true;
-			}
-
-			foreach (Drawing? child in drawingGroup.Children) {
-				if (child is GeometryDrawing drawing) {
-					Transform tr = drawing.Geometry.Transform;
-					drawing.Geometry.Transform = Transform.Identity;
-
-					if (drawing.Brush is not null) {
-						Matrix trInvert = tr.Value;
-						trInvert.Invert();
-						drawing.Brush.Transform = new MatrixTransform(drawing.Brush.Transform.Value * trInvert);
-					}
-
-					if (drawing.Pen is not null && drawing.Pen.Brush is not null) {
-						Matrix trInvert = tr.Value;
-						trInvert.Invert();
-						drawing.Pen.Brush.Transform = new MatrixTransform(drawing.Pen.Brush.Transform.Value * trInvert);
-					}
-
-					context.PushTransform(tr);
-					context.DrawGeometry(drawing.Brush, drawing.Pen, drawing.Geometry);
-					context.Pop();
+		protected static void RenderDrawingCollection(DrawingCollection drawingCollection, DrawingContext context) {
+			foreach (Drawing? child in drawingCollection) {
+				if (child is GeometryDrawing drawing && drawing.Geometry is Geometry geometry) {
+					context.DrawGeometry(drawing.Brush, drawing.Pen, geometry);
 				}
 				else if (child is DrawingGroup childGroup) {
 					RenderDrawingGroup(childGroup, context);
 				}
-			}
-
-			if (clipped) {
-				context.Pop();
-			}
-			*/
-
-			bool clipped = false;
-			if (drawingGroup.ClipGeometry is Geometry clipGeometry) {
-				context.PushClip(clipGeometry);
-				clipped = true;
-			}
-			context.PushTransform(drawingGroup.Transform);
-
-			foreach (Drawing? child in drawingGroup.Children) {
-				if (child is GeometryDrawing drawing) {
-					context.DrawGeometry(drawing.Brush, drawing.Pen, drawing.Geometry);
+				else if (child is ImageDrawing image && image.ImageSource is IImage imageSource) {
+					context.DrawImage(imageSource, image.Rect);
 				}
-				else if (child is DrawingGroup childGroup) {
-					RenderDrawingGroup(childGroup, context);
-				}
-				else if (child is ImageDrawing image) {
-					context.DrawDrawing(image);
-				}
-			}
-
-			context.Pop();
-			if (clipped) {
-				context.Pop();
 			}
 		}
 

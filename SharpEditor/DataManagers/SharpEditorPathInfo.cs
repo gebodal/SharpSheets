@@ -17,22 +17,21 @@ namespace SharpEditor.DataManagers {
 
 		public static bool IsTemplateDirectorySet {
 			get {
-				return !string.IsNullOrWhiteSpace(SharpEditor.Properties.Settings.Default.TemplateDirectory);
+				return !string.IsNullOrWhiteSpace(SharpDataManager.Instance.TemplateDirectory);
 			}
 		}
 
 		public static string TemplateDirectory {
 			get {
-				string templateDirectory = SharpEditor.Properties.Settings.Default.TemplateDirectory;
+				string templateDirectory = SharpDataManager.Instance.TemplateDirectory;
 				return string.IsNullOrWhiteSpace(templateDirectory) ? GetDefaultApplicationTemplateDirectory() : templateDirectory;
 			}
 			set {
-				string oldTemplateDirectory = SharpEditor.Properties.Settings.Default.TemplateDirectory ?? "";
+				string oldTemplateDirectory = SharpDataManager.Instance.TemplateDirectory ?? "";
 				string newTemplateDirectory = string.IsNullOrWhiteSpace(value) ? "" : Path.GetFullPath(value);
 
 				if(!string.Equals(newTemplateDirectory, oldTemplateDirectory, StringComparison.OrdinalIgnoreCase)) { // Best comparison for paths
-					SharpEditor.Properties.Settings.Default.TemplateDirectory = newTemplateDirectory;
-					SharpEditor.Properties.Settings.Default.Save();
+					SharpDataManager.Instance.TemplateDirectory = newTemplateDirectory;
 
 					lastTemplateDirectory = null;
 
@@ -50,12 +49,11 @@ namespace SharpEditor.DataManagers {
 
 		public static string? LastFileDirectory {
 			get {
-				string lastFileDirectory = SharpEditor.Properties.Settings.Default.LastFileDirectory;
+				string lastFileDirectory = SharpDataManager.Instance.LastFileDirectory;
 				return string.IsNullOrWhiteSpace(lastFileDirectory) ? null : lastFileDirectory;
 			}
 			set {
-				SharpEditor.Properties.Settings.Default.LastFileDirectory = string.IsNullOrWhiteSpace(value) ? "" : value;
-				SharpEditor.Properties.Settings.Default.Save();
+				SharpDataManager.Instance.LastFileDirectory = string.IsNullOrWhiteSpace(value) ? "" : value;
 			}
 		}
 

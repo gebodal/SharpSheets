@@ -1,13 +1,12 @@
 ﻿using SharpSheets.Documentation;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
 using SharpEditor.DataManagers;
-using SharpEditor.Documentation;
 using System.Diagnostics.CodeAnalysis;
 using System;
+using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia;
 
 namespace SharpEditor.ContentBuilders {
 
@@ -17,13 +16,12 @@ namespace SharpEditor.ContentBuilders {
 			//if (enumDoc != null || enumValDoc != null)
 
 			TextBlock enumBlock = BaseContentBuilder.GetContentTextBlock(textMargin);
-			enumBlock.Inlines.Add(new Run(enumValDoc?.type ?? enumDoc.type) { Foreground = SharpEditorPalette.TypeBrush });
+			enumBlock.Inlines?.Add(new Run(enumValDoc?.type ?? enumDoc.type) { Foreground = SharpEditorPalette.TypeBrush });
 			if (enumValDoc != null) {
-				enumBlock.Inlines.Add(new Run("." + SharpValueHandler.GetEnumString(enumValDoc.name)) { });
+				enumBlock.Inlines?.Add(new Run("." + SharpValueHandler.GetEnumString(enumValDoc.name)) { });
 			}
 			yield return enumBlock;
 
-			// TODO Should MakeDescriptionTextBlock be in a more generic place? We're building Tooltip content here, not documentation pages
 			if (BaseContentBuilder.MakeDescriptionTextBlock(enumValDoc?.description, indentMargin) is TextBlock valDescriptionBlock) {
 				//yield return BaseContentBuilder.GetContentTextBlock(enumValDoc.description, indentMargin);
 				yield return valDescriptionBlock;

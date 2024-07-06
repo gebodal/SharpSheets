@@ -1,9 +1,6 @@
 ﻿using SharpEditor.ContentBuilders;
 using System;
 using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
 using SharpSheets.Cards.Definitions;
 using SharpSheets.Cards.CardConfigs;
 using SharpEditor.DataManagers;
@@ -12,8 +9,16 @@ using static SharpEditor.Documentation.DocumentationBuilders.BaseDocumentationBu
 using SharpSheets.Evaluations;
 using System.Linq;
 using SharpEditor.Utilities;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Controls.Documents;
+using SharpEditor.Windows;
 
 namespace SharpEditor.Documentation.DocumentationBuilders {
+
+	// UIElement -> Control
+	// FrameworkElement -> Control
 
 	public static class CardConfigPageBuilder {
 
@@ -25,7 +30,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return MakePage(GetCardSetConfigPageContent(cardSetConfig, window), cardSetConfig.name, () => GetCardSetConfigPageContent(refreshAction?.Invoke(), window));
 		}
 
-		private static UIElement GetCardSetConfigPageContent(CardSetConfig? cardSetConfig, DocumentationWindow window) {
+		private static Control GetCardSetConfigPageContent(CardSetConfig? cardSetConfig, DocumentationWindow window) {
 			if (cardSetConfig == null) {
 				return MakeErrorContent("Invalid card configuration.");
 			}
@@ -69,11 +74,11 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 					TextBlock segmentHeaderBlock = MakeTitleBlock(2);
 					if (!string.IsNullOrWhiteSpace(card.Value.name)) {
-						segmentHeaderBlock.Inlines.Add(new Run("[Card] ") { Foreground = SharpEditorPalette.DefaultValueBrush });
-						segmentHeaderBlock.Inlines.Add(new Run(card.Value.name) { Foreground = SharpEditorPalette.RectBrush });
+						segmentHeaderBlock.Inlines?.Add(new Run("[Card] ") { Foreground = SharpEditorPalette.DefaultValueBrush });
+						segmentHeaderBlock.Inlines?.Add(new Run(card.Value.name) { Foreground = SharpEditorPalette.RectBrush });
 					}
 					else {
-						segmentHeaderBlock.Inlines.Add(new Run("[Unnamed Card]") { Foreground = SharpEditorPalette.DefaultValueBrush });
+						segmentHeaderBlock.Inlines?.Add(new Run("[Unnamed Card]") { Foreground = SharpEditorPalette.DefaultValueBrush });
 					}
 					stack.Children.Add(segmentHeaderBlock);
 
@@ -87,7 +92,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					// TODO Need to add card definitions here (but exclude cardSetConfig definitions!)
 					List<Definition> cardOnlyDefs = card.Value.definitions.GetLocalDefinitions().ToList();
 					if (cardOnlyDefs.Count > 0) {
-						FrameworkElement cardDefsElem = GetConfigDefinitionList(cardOnlyDefs, 5).AddMargin(TextBlockMargin);
+						Control cardDefsElem = GetConfigDefinitionList(cardOnlyDefs, 5).AddMargin(TextBlockMargin);
 						cardDefsElem.AddIndent(10);
 						stack.Children.Add(cardDefsElem);
 					}
@@ -118,7 +123,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 		}
 
-		private static IEnumerable<FrameworkElement> GetSegmentElements(IEnumerable<Conditional<AbstractCardSegmentConfig>> segments, int titleLevel, bool includeSeparator, DocumentationWindow window) {
+		private static IEnumerable<Control> GetSegmentElements(IEnumerable<Conditional<AbstractCardSegmentConfig>> segments, int titleLevel, bool includeSeparator, DocumentationWindow window) {
 			bool first = true;
 			foreach (Conditional<AbstractCardSegmentConfig> segment in segments) {
 				if (!(segment.Value is DynamicCardSegmentConfig dynamic && dynamic.AlwaysInclude)) {
@@ -164,16 +169,16 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 		}
 
-		public static FrameworkElement MakeCardSegmentElement(Conditional<AbstractCardSegmentConfig> segment, int titleLevel, DocumentationWindow window) {
+		public static Control MakeCardSegmentElement(Conditional<AbstractCardSegmentConfig> segment, int titleLevel, DocumentationWindow window) {
 			StackPanel segmentPanel = new StackPanel() { Orientation = Orientation.Vertical };
 
 			TextBlock segmentHeaderBlock = MakeTitleBlock(titleLevel);
 			if (!string.IsNullOrWhiteSpace(segment.Value.name)) {
-				segmentHeaderBlock.Inlines.Add(new Run("[Segment] ") { Foreground = SharpEditorPalette.DefaultValueBrush });
-				segmentHeaderBlock.Inlines.Add(new Run(segment.Value.name) { Foreground = SharpEditorPalette.RectBrush });
+				segmentHeaderBlock.Inlines?.Add(new Run("[Segment] ") { Foreground = SharpEditorPalette.DefaultValueBrush });
+				segmentHeaderBlock.Inlines?.Add(new Run(segment.Value.name) { Foreground = SharpEditorPalette.RectBrush });
 			}
 			else {
-				segmentHeaderBlock.Inlines.Add(new Run("[Unnamed Segment]") { Foreground = SharpEditorPalette.DefaultValueBrush });
+				segmentHeaderBlock.Inlines?.Add(new Run("[Unnamed Segment]") { Foreground = SharpEditorPalette.DefaultValueBrush });
 			}
 			segmentPanel.Children.Add(segmentHeaderBlock);
 
@@ -184,7 +189,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				segmentPanel.Children.Add(MakeConditionBlock(segment.Condition));
 			}
 			if (segment.Value.definitions.Count > 0) {
-				FrameworkElement defElem = GetConfigDefinitionList(segment.Value.definitions, titleLevel+2).AddMargin(TextBlockMargin);
+				Control defElem = GetConfigDefinitionList(segment.Value.definitions, titleLevel+2).AddMargin(TextBlockMargin);
 				defElem.AddIndent(10);
 				segmentPanel.Children.Add(defElem);
 			}
@@ -202,16 +207,16 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return segmentPanel;
 		}
 
-		public static FrameworkElement MakeCardFeatureElements(Conditional<CardFeatureConfig> feature, int titleLevel, DocumentationWindow window) {
+		public static Control MakeCardFeatureElements(Conditional<CardFeatureConfig> feature, int titleLevel, DocumentationWindow window) {
 			StackPanel featurePanel = new StackPanel() { Orientation = Orientation.Vertical };
 
 			TextBlock featureHeaderBlock = MakeTitleBlock(titleLevel);
 			if (!string.IsNullOrWhiteSpace(feature.Value.name)) {
-				featureHeaderBlock.Inlines.Add(new Run("[Feature] ") { Foreground = SharpEditorPalette.DefaultValueBrush });
-				featureHeaderBlock.Inlines.Add(new Run(feature.Value.name) { Foreground = SharpEditorPalette.RectBrush });
+				featureHeaderBlock.Inlines?.Add(new Run("[Feature] ") { Foreground = SharpEditorPalette.DefaultValueBrush });
+				featureHeaderBlock.Inlines?.Add(new Run(feature.Value.name) { Foreground = SharpEditorPalette.RectBrush });
 			}
 			else {
-				featureHeaderBlock.Inlines.Add(new Run("[Unnamed Feature]") { Foreground = SharpEditorPalette.DefaultValueBrush });
+				featureHeaderBlock.Inlines?.Add(new Run("[Unnamed Feature]") { Foreground = SharpEditorPalette.DefaultValueBrush });
 			}
 			featurePanel.Children.Add(featureHeaderBlock);
 
@@ -224,7 +229,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 
 			if (feature.Value.definitions.Count > 0) {
-				FrameworkElement defElem = GetConfigDefinitionList(feature.Value.definitions, titleLevel + 1).AddMargin(TextBlockMargin);
+				Control defElem = GetConfigDefinitionList(feature.Value.definitions, titleLevel + 1).AddMargin(TextBlockMargin);
 				defElem.AddIndent(10);
 				featurePanel.Children.Add(defElem);
 			}
@@ -238,24 +243,24 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 		private static TextBlock MakeConditionBlock(BoolExpression condition) {
 			TextBlock conditionBlock = GetContentTextBlock(IndentedMargin);
-			conditionBlock.Inlines.Add(new Run("Condition: ") { Foreground = SharpEditorPalette.DefaultValueBrush });
-			conditionBlock.Inlines.Add(new Run(condition.ToString()) { Foreground = SharpEditorPalette.DefaultValueBrush });
+			conditionBlock.Inlines?.Add(new Run("Condition: ") { Foreground = SharpEditorPalette.DefaultValueBrush });
+			conditionBlock.Inlines?.Add(new Run(condition.ToString()) { Foreground = SharpEditorPalette.DefaultValueBrush });
 			return conditionBlock;
 		}
 
-		private static FrameworkElement MakeValueDefinitionElement(ValueDefinition definition) {
-			FrameworkElement defElem = DefinitionContentBuilder.MakeDefinitionElement(definition, null, TextBlockMargin, IndentedMargin);
+		private static Control MakeValueDefinitionElement(ValueDefinition definition) {
+			Control defElem = DefinitionContentBuilder.MakeDefinitionElement(definition, null, TextBlockMargin, IndentedMargin);
 			defElem.Margin = ParagraphSpacingMargin;
 			return defElem;
 		}
 
-		private static FrameworkElement MakeFunctionDefinitionElement(FunctionDefinition definition) {
-			FrameworkElement defElem = DefinitionContentBuilder.MakeDefinitionElement(definition, null, TextBlockMargin, IndentedMargin);
+		private static Control MakeFunctionDefinitionElement(FunctionDefinition definition) {
+			Control defElem = DefinitionContentBuilder.MakeDefinitionElement(definition, null, TextBlockMargin, IndentedMargin);
 			defElem.Margin = ParagraphSpacingMargin;
 			return defElem;
 		}
 
-		private static FrameworkElement GetConfigDefinitionList(IEnumerable<Definition> definitions, int titleLevel) {
+		private static Control GetConfigDefinitionList(IEnumerable<Definition> definitions, int titleLevel) {
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
 			SeparateDefinitions(definitions,
@@ -269,7 +274,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				stack.Children.Add(attributesHeaderBlock);
 
 				foreach (ConstantDefinition definition in required) {
-					FrameworkElement defElem = MakeValueDefinitionElement(definition);
+					Control defElem = MakeValueDefinitionElement(definition);
 					defElem.AddIndent(10);
 					stack.Children.Add(defElem);
 				}
@@ -280,7 +285,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				stack.Children.Add(attributesHeaderBlock);
 
 				foreach (FallbackDefinition definition in optional) {
-					FrameworkElement defElem = MakeValueDefinitionElement(definition);
+					Control defElem = MakeValueDefinitionElement(definition);
 					defElem.AddIndent(10);
 					stack.Children.Add(defElem);
 				}
@@ -291,7 +296,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				stack.Children.Add(attributesHeaderBlock);
 
 				foreach (ValueDefinition definition in available) {
-					FrameworkElement defElem = MakeValueDefinitionElement(definition);
+					Control defElem = MakeValueDefinitionElement(definition);
 					defElem.AddIndent(10);
 					stack.Children.Add(defElem);
 				}
@@ -302,7 +307,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				stack.Children.Add(attributesHeaderBlock);
 
 				foreach (FunctionDefinition definition in functions) {
-					FrameworkElement defElem = MakeFunctionDefinitionElement(definition);
+					Control defElem = MakeFunctionDefinitionElement(definition);
 					defElem.AddIndent(10);
 					stack.Children.Add(defElem);
 				}

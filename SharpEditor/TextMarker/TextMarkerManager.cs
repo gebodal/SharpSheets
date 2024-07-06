@@ -21,12 +21,13 @@ using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Linq;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Threading;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Editing;
-using ICSharpCode.AvalonEdit.Rendering;
+using Avalonia;
+using Avalonia.Media;
+using Avalonia.Threading;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Editing;
+using AvaloniaEdit.Rendering;
+using AvaloniaEdit.Utils;
 
 namespace SharpEditor.TextMarker {
 	/// <summary>
@@ -50,7 +51,7 @@ namespace SharpEditor.TextMarker {
 			TextMarkerManager manager = new TextMarkerManager(textArea);
 			manager.textArea.TextView.BackgroundRenderers.Add(manager);
 			manager.textArea.TextView.LineTransformers.Add(manager);
-			IServiceContainer? services = (IServiceContainer?)manager.textArea.Document.ServiceProvider.GetService(typeof(IServiceContainer));
+			AvaloniaEdit.Utils.IServiceContainer? services = manager.textArea.Document.GetService<AvaloniaEdit.Utils.IServiceContainer>();
 			if (services != null)
 				services.AddService(typeof(TextMarkerManager), manager);
 			return manager;
@@ -59,7 +60,7 @@ namespace SharpEditor.TextMarker {
 		public static void Uninstall(TextMarkerManager manager) {
 			manager.textArea.TextView.BackgroundRenderers.Remove(manager);
 			manager.textArea.TextView.LineTransformers.Remove(manager);
-			IServiceContainer? services = (IServiceContainer?)manager.textArea.Document.ServiceProvider.GetService(typeof(IServiceContainer));
+			AvaloniaEdit.Utils.IServiceContainer? services = manager.textArea.Document.GetService<AvaloniaEdit.Utils.IServiceContainer>();
 			if (services != null)
 				services.RemoveService(typeof(TextMarkerManager));
 		}
@@ -157,7 +158,7 @@ namespace SharpEditor.TextMarker {
 		/// </summary>
 		internal void Redraw(ISegment segment) {
 			foreach (var view in textViews) {
-				view.Redraw(segment, DispatcherPriority.Normal);
+				view.Redraw(segment); // DispatcherPriority.Normal
 			}
 			if (RedrawRequested != null)
 				RedrawRequested(this, EventArgs.Empty);
@@ -176,7 +177,7 @@ namespace SharpEditor.TextMarker {
 				Brush? foregroundBrush = null;
 				if (marker.ForegroundColor != null) {
 					foregroundBrush = new SolidColorBrush(marker.ForegroundColor.Value);
-					foregroundBrush.Freeze();
+					foregroundBrush.ToImmutable();
 				}
 				ChangeLinePart(
 					Math.Max(marker.StartOffset, lineStart),
@@ -228,7 +229,7 @@ namespace SharpEditor.TextMarker {
 					if (geometry != null) {
 						Color color = marker.BackgroundColor.Value;
 						SolidColorBrush brush = new SolidColorBrush(color);
-						brush.Freeze();
+						brush.ToImmutable();
 						drawingContext.DrawGeometry(brush, null, geometry);
 					}
 				}
@@ -239,7 +240,7 @@ namespace SharpEditor.TextMarker {
 						Point endPoint = r.BottomRight;
 
 						Brush usedBrush = new SolidColorBrush(marker.MarkerColor);
-						usedBrush.Freeze();
+						usedBrush.ToImmutable();
 						if ((marker.MarkerTypes & TextMarkerTypes.SquigglyUnderline) != 0) {
 							double offset = 2.5;
 
@@ -248,25 +249,29 @@ namespace SharpEditor.TextMarker {
 							StreamGeometry geometry = new StreamGeometry();
 
 							using (StreamGeometryContext ctx = geometry.Open()) {
-								ctx.BeginFigure(startPoint, false, false);
-								ctx.PolyLineTo(CreatePoints(startPoint, endPoint, offset, count).ToArray(), true, false);
+								ctx.BeginFigure(startPoint, false);
+								
+								//ctx.PolyLineTo(CreatePoints(startPoint, endPoint, offset, count).ToArray(), true, false);
+								foreach(Point p in CreatePoints(startPoint, endPoint, offset, count)) {
+									ctx.LineTo(p);
+								}
 							}
 
-							geometry.Freeze();
+							//geometry.Freeze();
 
 							Pen usedPen = new Pen(usedBrush, 1);
-							usedPen.Freeze();
+							usedPen.ToImmutable();
 							drawingContext.DrawGeometry(Brushes.Transparent, usedPen, geometry);
 						}
 						if ((marker.MarkerTypes & TextMarkerTypes.NormalUnderline) != 0) {
 							Pen usedPen = new Pen(usedBrush, 1);
-							usedPen.Freeze();
+							usedPen.ToImmutable();
 							drawingContext.DrawLine(usedPen, startPoint, endPoint);
 						}
 						if ((marker.MarkerTypes & TextMarkerTypes.DottedUnderline) != 0) {
 							Pen usedPen = new Pen(usedBrush, 1);
-							usedPen.DashStyle = DashStyles.Dot;
-							usedPen.Freeze();
+							usedPen.DashStyle = DashStyle.Dot;
+							usedPen.ToImmutable();
 							drawingContext.DrawLine(usedPen, startPoint, endPoint);
 						}
 					}

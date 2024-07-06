@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Class="SharpEditor.Windows.LoadingWindow"
+        mc:Ignorable="d"
+        d:DesignWidth="385" d:DesignHeight="200"
+        Height="200" Width="385"
+		Title="Loading Sharp Sheets..."
+		Icon="/Images/Icon.ico"
+		Background="#424245"
+		BorderThickness="0"
+		WindowStartupLocation="CenterScreen"
+		CanResize="False"
+		SystemDecorations="None"
+		FontFamily="{StaticResource ApplicationFont}"
+		FontSize="12"> <!--Topmost="True"-->
+	
+	<DockPanel Margin="4">
+		<TextBlock DockPanel.Dock="Top"></TextBlock>
+		<TextBlock DockPanel.Dock="Bottom" Name="VersionTextBlock" Foreground="Gray" HorizontalAlignment="Left" Padding="6,0,0,0">Version 0.0.0.0</TextBlock>
+		<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,2">
+			<Image Source="/Images/Logo.png" Height="150"/>
+			<TextBlock
+				Margin="0,20,0,0"
+				VerticalAlignment="Center"
+				Foreground="White"
+				FontSize="50"
+				FontFamily="{StaticResource TypeWriterFont}">
+				Sharp<LineBreak/>Sheets
+			</TextBlock>
+		</StackPanel>
+	</DockPanel>
+
+</Window>

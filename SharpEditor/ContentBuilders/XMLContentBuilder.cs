@@ -9,13 +9,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Media;
 using SharpEditor.DataManagers;
 using SharpSheets.Widgets;
 using SharpSheets.Parsing;
 using System.Windows;
+using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Media;
 
 namespace SharpEditor.ContentBuilders {
 
@@ -25,20 +25,20 @@ namespace SharpEditor.ContentBuilders {
 			TextBlock block = BaseContentBuilder.GetContentTextBlock(default);
 			//Paragraph block = new Paragraph();
 
-			block.Inlines.Add(new Run("<" + SharpValueHandler.NO_BREAK_CHAR) { Foreground = SharpEditorPalette.MarkupPunctuationBrush });
-			block.Inlines.Add(MakeXMLRun(constructor.Name, SharpEditorPalette.MarkupElementBrush, false));
+			block.Inlines?.Add(new Run("<" + SharpValueHandler.NO_BREAK_CHAR) { Foreground = SharpEditorPalette.MarkupPunctuationBrush });
+			block.Inlines?.Add(MakeXMLRun(constructor.Name, SharpEditorPalette.MarkupElementBrush, false));
 
 			foreach (ArgumentDetails attributeArg in constructor.Arguments) {
-				block.Inlines.Add(" ");
+				block.Inlines?.Add(" ");
 
-				block.Inlines.AddRange(GetXMLArgumentInlines(attributeArg, element));
+				block.Inlines?.AddRange(GetXMLArgumentInlines(attributeArg, element));
 			}
 
 			if (element != null && element.EndTag == null) {
-				block.Inlines.Add(new Run("/>") { Foreground = SharpEditorPalette.MarkupPunctuationBrush });
+				block.Inlines?.Add(new Run("/>") { Foreground = SharpEditorPalette.MarkupPunctuationBrush });
 			}
 			else {
-				block.Inlines.Add(new Run(">") { Foreground = SharpEditorPalette.MarkupPunctuationBrush });
+				block.Inlines?.Add(new Run(">") { Foreground = SharpEditorPalette.MarkupPunctuationBrush });
 			}
 
 			return block;
@@ -53,7 +53,7 @@ namespace SharpEditor.ContentBuilders {
 		public static TextBlock GetXMLArgumentBlock(ArgumentDetails attributeArg, XMLElement element) {
 			TextBlock block = BaseContentBuilder.GetContentTextBlock(default);
 
-			block.Inlines.AddRange(GetXMLArgumentInlines(attributeArg, element));
+			block.Inlines?.AddRange(GetXMLArgumentInlines(attributeArg, element));
 
 			return block;
 		}
@@ -101,7 +101,7 @@ namespace SharpEditor.ContentBuilders {
 				run.Foreground = foreground;
 			}
 			if (underline) {
-				run.TextDecorations = System.Windows.TextDecorations.Underline;
+				run.TextDecorations = TextDecorations.Underline; // System.Windows.TextDecorations.Underline;
 			}
 			return run;
 		}
@@ -212,8 +212,8 @@ namespace SharpEditor.ContentBuilders {
 			Run typeRun = new Run(typeStr) { Foreground = SharpEditorPalette.MarkupPunctuationBrush };
 			if (concrete) {
 				//typeRun.TextDecorations = System.Windows.TextDecorations.Underline;
-				typeRun.FontStyle = System.Windows.FontStyles.Italic;
-				typeRun.FontWeight = System.Windows.FontWeights.Bold;
+				typeRun.FontStyle = FontStyle.Italic; // System.Windows.FontStyles.Italic;
+				typeRun.FontWeight = FontWeight.Bold; // System.Windows.FontWeights.Bold;
 			}
 			if(!arg.IsOptional) {
 				typeRun.TextDecorations = TextDecorations.Underline;

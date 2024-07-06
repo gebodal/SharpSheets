@@ -1,11 +1,11 @@
 ﻿using SharpSheets.Evaluations;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
 using SharpEditor.DataManagers;
 using SharpSheets.Utilities;
+using Avalonia.Controls;
+using Avalonia;
+using Avalonia.Controls.Documents;
 
 namespace SharpEditor.ContentBuilders {
 
@@ -17,9 +17,9 @@ namespace SharpEditor.ContentBuilders {
 			bool first = true;
 			foreach (KeyValuePair<EvaluationName, EvaluationType> returnType in variables.GetReturnTypes()) {
 				if (first) { first = false; }
-				else { variablesBlock.Inlines.Add(new Run(", ")); }
+				else { variablesBlock.Inlines?.Add(new Run(", ")); }
 
-				variablesBlock.Inlines.AddRange(VariableInlines(returnType.Key.ToString(), returnType.Value));
+				variablesBlock.Inlines?.AddRange(VariableInlines(returnType.Key.ToString(), returnType.Value));
 			}
 
 			return variablesBlock;

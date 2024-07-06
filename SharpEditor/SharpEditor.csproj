@@ -1,29 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <!--If you are willing to use Windows/MacOS native APIs you will need to create 3 projects.
+    One for Windows with net7.0-windows TFM, one for MacOS with net7.0-macos and one with net7.0 TFM for Linux.-->
+    <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <UseWPF>true</UseWPF>
-    <StartupObject>SharpEditor.App</StartupObject>
-    <Version>0.1.1.0</Version>
-    <Company></Company>
-    <Authors>Gebodal</Authors>
+    <LangVersion>latest</LangVersion>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationIcon>Images\Icon.ico</ApplicationIcon>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <!--<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>-->
+    <Version>0.1.0.0</Version>
   </PropertyGroup>
-	
-  <PropertyGroup>
-    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
-  </PropertyGroup>
-
-	<!--
+  
   <ItemGroup>
-    <None Remove="SharpSheets.xml" />
+    <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
-  -->
 
+  
   <ItemGroup>
     <None Remove="Documentation\Content\1 Tutorial\1 Data Types.sd" />
     <None Remove="Documentation\Content\1 Tutorial\2 Graphics State.sd" />
@@ -44,25 +38,23 @@
     <None Remove="Documentation\Content\5 Cards\2 Subjects Tutorial.sd" />
     <None Remove="Documentation\Content\5 Cards\3 Configuration Elements.sd" />
     <None Remove="Documentation\Content\5 Cards\4 Environments.sd" />
+    <None Remove="Documentation\Content\5 Cards\Main.sd" />
     <None Remove="Documentation\Content\6 Markup\1 Paths.sd" />
     <None Remove="Documentation\Content\6 Markup\2 Additional Features.sd" />
     <None Remove="Documentation\Content\6 Markup\7 Environments.sd" />
     <None Remove="Documentation\Content\6 Markup\8 Cookbook.sd" />
     <None Remove="Documentation\Content\6 Markup\9 Markup Elements.sd" />
     <None Remove="Documentation\Content\6 Markup\Main.sd" />
-    <None Remove="Documentation\Content\5 Cards\Main.sd" />
     <None Remove="Documentation\Content\7 Fonts\1 Font List.sd" />
     <None Remove="Documentation\Content\7 Fonts\2 Font Families.sd" />
     <None Remove="Documentation\Content\7 Fonts\Main.sd" />
     <None Remove="Documentation\Content\Main.sd" />
-    <None Remove="Documentation\Content\Usage Notes.sd" />
     <None Remove="Documentation\DocumentationBuilders\resources\Unicode\UnicodeData15-1-0.txt" />
     <None Remove="Highlighting\CardDefinitionHighlighting.xshd" />
     <None Remove="Highlighting\CardSubjectHighlighting.xshd" />
     <None Remove="Highlighting\CharacterSheetHighlighting.xshd" />
     <None Remove="Highlighting\SBMLHighlighting.xshd" />
     <None Remove="Highlighting\SharpConfigHighlighting.xshd" />
-    <None Remove="Icon.ico" />
     <None Remove="Images\CommentAdd.png" />
     <None Remove="Images\CommentRemove.png" />
     <None Remove="Images\Copy.png" />
@@ -134,13 +126,14 @@
     <None Remove="Images\ZoomOut.png" />
   </ItemGroup>
 
+  
   <ItemGroup>
     <EmbeddedResource Include="Documentation\Content\1 Tutorial\1 Data Types.sd" />
     <EmbeddedResource Include="Documentation\Content\1 Tutorial\2 Graphics State.sd" />
-    <EmbeddedResource Include="Documentation\Content\1 Tutorial\4 Form Fields.sd" />
-    <EmbeddedResource Include="Documentation\Content\1 Tutorial\Main.sd" />
-    <EmbeddedResource Include="Documentation\Content\1 Tutorial\5 Using the Editor.sd" />
     <EmbeddedResource Include="Documentation\Content\1 Tutorial\3 Handling Text.sd" />
+    <EmbeddedResource Include="Documentation\Content\1 Tutorial\4 Form Fields.sd" />
+    <EmbeddedResource Include="Documentation\Content\1 Tutorial\5 Using the Editor.sd" />
+    <EmbeddedResource Include="Documentation\Content\1 Tutorial\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\3 Widgets\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\4 Shapes\1 Boxes.sd" />
     <EmbeddedResource Include="Documentation\Content\4 Shapes\2 Labelled Boxes.sd" />
@@ -154,13 +147,13 @@
     <EmbeddedResource Include="Documentation\Content\5 Cards\2 Subjects Tutorial.sd" />
     <EmbeddedResource Include="Documentation\Content\5 Cards\3 Configuration Elements.sd" />
     <EmbeddedResource Include="Documentation\Content\5 Cards\4 Environments.sd" />
+    <EmbeddedResource Include="Documentation\Content\5 Cards\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\1 Paths.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\2 Additional Features.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\7 Environments.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\8 Cookbook.sd" />
-    <EmbeddedResource Include="Documentation\Content\6 Markup\Main.sd" />
-    <EmbeddedResource Include="Documentation\Content\5 Cards\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\9 Markup Elements.sd" />
+    <EmbeddedResource Include="Documentation\Content\6 Markup\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\7 Fonts\1 Font List.sd" />
     <EmbeddedResource Include="Documentation\Content\7 Fonts\2 Font Families.sd" />
     <EmbeddedResource Include="Documentation\Content\7 Fonts\Main.sd" />
@@ -171,80 +164,21 @@
     <EmbeddedResource Include="Highlighting\CharacterSheetHighlighting.xshd" />
     <EmbeddedResource Include="Highlighting\SBMLHighlighting.xshd" />
     <EmbeddedResource Include="Highlighting\SharpConfigHighlighting.xshd" />
-    <Resource Include="Icon.ico" />
-    <Resource Include="Images\CommentAdd.png" />
-    <Resource Include="Images\CommentRemove.png" />
-    <Resource Include="Images\Copy.png" />
-    <Resource Include="Images\Copy2.png" />
-    <Resource Include="Images\Cut.png" />
-    <Resource Include="Images\Cut2.png" />
-    <Resource Include="Images\Cut3.png" />
-    <Resource Include="Images\Delete.png" />
-    <Resource Include="Images\Delete2.png" />
-    <Resource Include="Images\Delete3.png" />
-    <Resource Include="Images\Delete4.png" />
-    <Resource Include="Images\Designer.png" />
-    <Resource Include="Images\Designer2.png" />
-    <Resource Include="Images\Designer3.png" />
-    <Resource Include="Images\Designer4.png" />
-    <Resource Include="Images\Exclamation.png" />
-    <Resource Include="Images\ExclamationWhite.png" />
-    <Resource Include="Images\ExternalLink.png" />
-    <Resource Include="Images\GeneratePopulate.png" />
-    <Resource Include="Images\Home.png" />
-    <Resource Include="Images\Icon.ico" />
-    <Resource Include="Images\Icon.png" />
-    <Resource Include="Images\Icon_old.ico" />
-    <Resource Include="Images\Info.png" />
-    <Resource Include="Images\Logo.png" />
-    <Resource Include="Images\New.png" />
-    <Resource Include="Images\New2.png" />
-    <Resource Include="Images\NewCardDefinition.png" />
-    <Resource Include="Images\NewCardDefinition2.png" />
-    <Resource Include="Images\NewCardDefinition3.png" />
-    <Resource Include="Images\NewCardSubject.png" />
-    <Resource Include="Images\NewCardSubject2.png" />
-    <Resource Include="Images\NewCharacterSheet.png" />
-    <Resource Include="Images\NewCharacterSheet2.png" />
-    <Resource Include="Images\NewMarkup.png" />
-    <Resource Include="Images\NewMarkup2.png" />
-    <Resource Include="Images\NewMarkup3.png" />
-    <Resource Include="Images\Next.png" />
-    <Resource Include="Images\Open.png" />
-    <Resource Include="Images\Open2.png" />
-    <Resource Include="Images\Open3.png" />
-    <Resource Include="Images\PageFields.png" />
-    <Resource Include="Images\PageHighlight.png" />
-    <Resource Include="Images\Paste.png" />
-    <Resource Include="Images\Paste2.png" />
-    <Resource Include="Images\Previous.png" />
-    <Resource Include="Images\Redo.png" />
-    <Resource Include="Images\Redo2.png" />
-    <Resource Include="Images\Refresh.png" />
-    <Resource Include="Images\RightArrow.png" />
-    <Resource Include="Images\RightArrow2.png" />
-    <Resource Include="Images\Run.png" />
-    <Resource Include="Images\Run2.png" />
-    <Resource Include="Images\Run3.png" />
-    <Resource Include="Images\Save.png" />
-    <Resource Include="Images\Save2.png" />
-    <Resource Include="Images\SaveAll.png" />
-    <Resource Include="Images\Settings.png" />
-    <Resource Include="Images\Settings1.png" />
-    <Resource Include="Images\Settings2.png" />
-    <Resource Include="Images\Settings3.png" />
-    <Resource Include="Images\Tick.png" />
-    <Resource Include="Images\Undo.png" />
-    <Resource Include="Images\Undo2.png" />
-    <Resource Include="Images\WholePage.png" />
-    <Resource Include="Images\WordWrap.png" />
-    <Resource Include="Images\WordWrap2.png" />
-    <Resource Include="Images\ZoomIn.png" />
-    <Resource Include="Images\ZoomOut.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
+    <PackageReference Include="Avalonia" Version="11.0.11" />
+    <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.0.6" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.0.11" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.11" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.11" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.0.11" />
+    <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.0.10.9" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+
+    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.11" />
+    <PackageReference Include="MessageBox.Avalonia" Version="3.1.5.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -253,18 +187,97 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Properties\Settings.Designer.cs">
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
+    <AvaloniaResource Include="Images\CommentAdd.png" />
+    <AvaloniaResource Include="Images\CommentRemove.png" />
+    <AvaloniaResource Include="Images\Copy.png" />
+    <AvaloniaResource Include="Images\Copy2.png" />
+    <AvaloniaResource Include="Images\Cut.png" />
+    <AvaloniaResource Include="Images\Cut2.png" />
+    <AvaloniaResource Include="Images\Cut3.png" />
+    <AvaloniaResource Include="Images\Delete.png" />
+    <AvaloniaResource Include="Images\Delete2.png" />
+    <AvaloniaResource Include="Images\Delete3.png" />
+    <AvaloniaResource Include="Images\Delete4.png" />
+    <AvaloniaResource Include="Images\Designer.png" />
+    <AvaloniaResource Include="Images\Designer2.png" />
+    <AvaloniaResource Include="Images\Designer3.png" />
+    <AvaloniaResource Include="Images\Designer4.png" />
+    <AvaloniaResource Include="Images\Exclamation.png" />
+    <AvaloniaResource Include="Images\ExclamationWhite.png" />
+    <AvaloniaResource Include="Images\ExternalLink.png" />
+    <AvaloniaResource Include="Images\GeneratePopulate.png" />
+    <AvaloniaResource Include="Images\Home.png" />
+    <AvaloniaResource Include="Images\Icon.ico" />
+    <AvaloniaResource Include="Images\Icon.png" />
+    <AvaloniaResource Include="Images\Icon_old.ico" />
+    <AvaloniaResource Include="Images\Info.png" />
+    <AvaloniaResource Include="Images\Logo.png" />
+    <AvaloniaResource Include="Images\New.png" />
+    <AvaloniaResource Include="Images\New2.png" />
+    <AvaloniaResource Include="Images\NewCardDefinition.png" />
+    <AvaloniaResource Include="Images\NewCardDefinition2.png" />
+    <AvaloniaResource Include="Images\NewCardDefinition3.png" />
+    <AvaloniaResource Include="Images\NewCardSubject.png" />
+    <AvaloniaResource Include="Images\NewCardSubject2.png" />
+    <AvaloniaResource Include="Images\NewCharacterSheet.png" />
+    <AvaloniaResource Include="Images\NewCharacterSheet2.png" />
+    <AvaloniaResource Include="Images\NewMarkup.png" />
+    <AvaloniaResource Include="Images\NewMarkup2.png" />
+    <AvaloniaResource Include="Images\NewMarkup3.png" />
+    <AvaloniaResource Include="Images\Next.png" />
+    <AvaloniaResource Include="Images\Open.png" />
+    <AvaloniaResource Include="Images\Open2.png" />
+    <AvaloniaResource Include="Images\Open3.png" />
+    <AvaloniaResource Include="Images\PageFields.png" />
+    <AvaloniaResource Include="Images\PageHighlight.png" />
+    <AvaloniaResource Include="Images\Paste.png" />
+    <AvaloniaResource Include="Images\Paste2.png" />
+    <AvaloniaResource Include="Images\Previous.png" />
+    <AvaloniaResource Include="Images\Redo.png" />
+    <AvaloniaResource Include="Images\Redo2.png" />
+    <AvaloniaResource Include="Images\Refresh.png" />
+    <AvaloniaResource Include="Images\RightArrow.png" />
+    <AvaloniaResource Include="Images\RightArrow2.png" />
+    <AvaloniaResource Include="Images\Run.png" />
+    <AvaloniaResource Include="Images\Run2.png" />
+    <AvaloniaResource Include="Images\Run3.png" />
+    <AvaloniaResource Include="Images\Save.png" />
+    <AvaloniaResource Include="Images\Save2.png" />
+    <AvaloniaResource Include="Images\SaveAll.png" />
+    <AvaloniaResource Include="Images\Settings.png" />
+    <AvaloniaResource Include="Images\Settings1.png" />
+    <AvaloniaResource Include="Images\Settings2.png" />
+    <AvaloniaResource Include="Images\Settings3.png" />
+    <AvaloniaResource Include="Images\Tick.png" />
+    <AvaloniaResource Include="Images\Undo.png" />
+    <AvaloniaResource Include="Images\Undo2.png" />
+    <AvaloniaResource Include="Images\WholePage.png" />
+    <AvaloniaResource Include="Images\WordWrap.png" />
+    <AvaloniaResource Include="Images\WordWrap2.png" />
+    <AvaloniaResource Include="Images\ZoomIn.png" />
+    <AvaloniaResource Include="Images\ZoomOut.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Images\Icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Documentation\DocumentationWindow.axaml.cs">
+      <DependentUpon>DocumentationWindow.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Documentation\DocumentationPage.axaml.cs">
+      <DependentUpon>DocumentationPage.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Windows\TemplateErrorWindow.axaml.cs">
+      <DependentUpon>TemplateErrorWindow.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Windows\ToolbarMessageBox.axaml.cs">
+      <DependentUpon>ToolbarMessageBox.axaml</DependentUpon>
     </Compile>
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
+    <Folder Include="Assets\Fonts\" />
   </ItemGroup>
-
 </Project>

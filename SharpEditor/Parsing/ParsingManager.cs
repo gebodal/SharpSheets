@@ -4,16 +4,17 @@ using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Linq;
-using System.Windows.Threading;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Editing;
-using ICSharpCode.AvalonEdit.Rendering;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Editing;
+using AvaloniaEdit.Rendering;
 using SharpSheets.Utilities;
 using SharpSheets.Parsing;
 using System.IO;
 using SharpSheets.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 using SharpEditor.DataManagers;
+using AvaloniaEdit.Utils;
+using Avalonia.Threading;
 
 namespace SharpEditor {
 
@@ -58,7 +59,7 @@ namespace SharpEditor {
 			manager.textArea.TextView.BackgroundRenderers.Add(manager.backgroundRenderer);
 			manager.textArea.TextView.BackgroundRenderers.Add(manager.errorRenderer);
 			manager.textArea.TextView.LineTransformers.Add(manager.colorizingLineTransformer);
-			IServiceContainer? services = (IServiceContainer?)manager.textArea.Document.ServiceProvider.GetService(typeof(IServiceContainer));
+            AvaloniaEdit.Utils.IServiceContainer? services = manager.textArea.Document.GetService<AvaloniaEdit.Utils.IServiceContainer>();
 			if (services != null) {
 				services.AddService(typeof(ParsingManager), manager);
 			}
@@ -74,7 +75,7 @@ namespace SharpEditor {
 			manager.textArea.TextView.BackgroundRenderers.Remove(manager.errorRenderer);
 			manager.textArea.TextView.BackgroundRenderers.Remove(manager.backgroundRenderer);
 			manager.textArea.TextView.LineTransformers.Remove(manager.colorizingLineTransformer);
-			IServiceContainer? services = (IServiceContainer?)manager.textArea.Document.ServiceProvider.GetService(typeof(IServiceContainer));
+			AvaloniaEdit.Utils.IServiceContainer? services = manager.textArea.Document.GetService<AvaloniaEdit.Utils.IServiceContainer>();
 			if (services != null) {
 				services.RemoveService(typeof(ParsingManager));
 			}
@@ -248,19 +249,19 @@ namespace SharpEditor {
 		public void Start() {
 			parseDispatcher.Start();
 			loadResultDispatcher.Start();
-			//Console.WriteLine("Parsing Manager Started");
+			Console.WriteLine("Parsing Manager Started");
 		}
 		public void Stop() {
 			parseDispatcher.Stop();
 			loadResultDispatcher.Stop();
-			//Console.WriteLine("Parsing Manager Stopped");
+			Console.WriteLine("Parsing Manager Stopped");
 		}
 
 		public void Reset() {
 			resultQueue.Clear();
 			drawingErrorQueue.Clear();
 			parsingState?.Reset(); // TODO This good here?
-			//Console.WriteLine("Parsing Manager Reset");
+			Console.WriteLine("Parsing Manager Reset");
 		}
 
 		/// <summary>
@@ -275,9 +276,9 @@ namespace SharpEditor {
 
 		void ParseDocument(object? sender, DoWorkEventArgs args) {
 			IParser? parser = parsingState?.Parser;
-			//if (parser != null && textArea.IsVisible && (textChanged || DateTime.Now.Subtract(lastParseRun) > MaximumWait)) {
+			bool textAreaIsVisible = Dispatcher.UIThread.Invoke(() => { return textArea.IsVisible; });
 
-			if (parser != null && textArea.IsVisible && (textChanged || (parsingState?.Dependencies?.Any(f => File.GetLastWriteTimeUtc(f.Path) > lastParseTime) ?? false))) {
+			if (parser != null && textAreaIsVisible && (textChanged || (parsingState?.Dependencies?.Any(f => File.GetLastWriteTimeUtc(f.Path) > lastParseTime) ?? false))) {
 				double textChangeTimeDelta;
 				lock (textChangedLock) {
 					textChangeTimeDelta = (DateTime.UtcNow - textChangedTime).TotalSeconds;
@@ -343,7 +344,7 @@ namespace SharpEditor {
 		/// </summary>
 		private void Redraw(ISegment segment, DispatcherPriority redrawPriority) {
 			foreach (TextView view in textViews) {
-				view.Redraw(segment, redrawPriority);
+				view.Redraw(segment); // redrawPriority
 			}
 			RedrawRequested?.Invoke(this, EventArgs.Empty);
 		}

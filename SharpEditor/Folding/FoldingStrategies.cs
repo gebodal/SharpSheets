@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Folding;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Folding;
 
-namespace SharpEditor {
+namespace SharpEditor.Folding {
 
 	public interface IFoldingStrategy {
 		void UpdateFoldings(FoldingManager manager, TextDocument document);

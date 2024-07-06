@@ -1,5 +1,5 @@
-﻿using ICSharpCode.AvalonEdit.Highlighting;
-using ICSharpCode.AvalonEdit.Highlighting.Xshd;
+﻿using AvaloniaEdit.Highlighting;
+using AvaloniaEdit.Highlighting.Xshd;
 using SharpSheets.Shapes;
 using SharpSheets.Widgets;
 using System;
@@ -7,12 +7,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows.Media;
 using System.Xml;
 using SharpSheets.Utilities;
 using SharpEditor.Highlighting;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Cards.CardConfigs;
+using Avalonia.Media;
+using SharpEditor.Utilities;
 
 namespace SharpEditor.DataManagers {
 
@@ -167,9 +168,7 @@ namespace SharpEditor.DataManagers {
 		private static IHighlightingDefinition LoadSharpConfigHighlighting(string style, int styleRuleRulesetIndex) {
 			// Load our custom highlighting definition
 			IHighlightingDefinition customHighlighting;
-			using (Stream s = typeof(SharpEditorWindow).Assembly.GetManifestResourceStream("SharpEditor.Highlighting.SharpConfigHighlighting.xshd")!) {
-				if (s == null)
-					throw new InvalidOperationException("Could not find embedded resource");
+			using (Stream s = ResourceUtilities.GetResourceStream(typeof(SharpEditorData).Assembly, "SharpConfigHighlighting.xshd") ?? throw new InvalidOperationException("Could not find embedded resource")) {
 				using (XmlReader reader = new HighlightingReader(s, style)) {
 					customHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
 				}
@@ -211,9 +210,7 @@ namespace SharpEditor.DataManagers {
 		static void LoadCardSubjectHighlighting() {
 			// Card subject highlighting
 			IHighlightingDefinition customHighlighting;
-			using (Stream s = typeof(SharpEditorWindow).Assembly.GetManifestResourceStream("SharpEditor.Highlighting.CardSubjectHighlighting.xshd")!) {
-				if (s == null)
-					throw new InvalidOperationException("Could not find embedded resource");
+			using (Stream s = ResourceUtilities.GetResourceStream(typeof(SharpEditorData).Assembly, "CardSubjectHighlighting.xshd") ?? throw new InvalidOperationException("Could not find embedded resource")) {
 				using (XmlReader reader = new XmlTextReader(s)) {
 					customHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
 				}
@@ -227,9 +224,7 @@ namespace SharpEditor.DataManagers {
 		static void LoadBoxMarkupHighlighting() {
 			// Box markup highlighting
 			IHighlightingDefinition customHighlighting;
-			using (Stream s = typeof(SharpEditorWindow).Assembly.GetManifestResourceStream("SharpEditor.Highlighting.SBMLHighlighting.xshd")!) {
-				if (s == null)
-					throw new InvalidOperationException("Could not find embedded resource");
+			using (Stream s = ResourceUtilities.GetResourceStream(typeof(SharpEditorData).Assembly, "SBMLHighlighting.xshd") ?? throw new InvalidOperationException("Could not find embedded resource")) {
 				using (XmlReader reader = new XmlTextReader(s)) {
 					customHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
 				}

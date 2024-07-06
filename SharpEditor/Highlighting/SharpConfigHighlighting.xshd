@@ -21,7 +21,7 @@
 	<Color name="LesserPunctuation" foreground="#a3a3a3" fontWeight="normal"/>
 	<Color name="Error" foreground="Purple" fontWeight="normal"/>
 	<Color name="Keywords" foreground="#db2525" fontWeight="normal"/>
-	
+
 	<Color name="Def" foreground="#b31a1a" fontWeight="bold"/>
 	<Color name="DefinitionName" foreground="Orange" fontWeight="normal"/>
 	<Color name="DefinitionType" foreground="Yellow" fontWeight="normal"/>
@@ -83,7 +83,7 @@
 				</Rule>
 			</RuleSet>
 		</Span>
-		
+
 		<!-- Bracketed expression -->
 		<Span color="Braces">
 			<Begin>(?&lt;!\\)\$\{</Begin>
@@ -92,7 +92,7 @@
 				<Import ruleSet="Expressions"/>
 			</RuleSet>
 		</Span>
-		
+
 		<!-- Escaped variable -->
 		<Rule color="Variable">
 			(?&lt;!\\)\$[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*
@@ -119,19 +119,19 @@
 			.
 		</Rule>
 	</RuleSet>
-		
+
 	<RuleSet name="Regex" ignoreCase="true">
 		<Span foreground="Teal">
 			<Begin>(?&lt;!\\)\(</Begin>
 			<End>(?&lt;!\\)\)</End>
-		
+
 			<RuleSet>
 				<Rule foreground="Teal">
 					.
 				</Rule>
 			</RuleSet>
 		</Span>
-			
+
 		<Rule foreground="Teal">
 			.
 		</Rule>
@@ -154,7 +154,7 @@
 
 	<!-- This is the main ruleset. -->
 	<RuleSet ignoreCase="true">
-		
+
 		<!-- Multiline Comments -->
 		<Span color="Comment" multiline="true" begin="\#--" end="--\#"/>
 
@@ -315,7 +315,7 @@
 		<Rule color="NamedRect">
 			^ \s* \@?\&amp;[A-Za-z][A-Za-z0-9]* (\.[A-Za-z][A-Za-z0-9]*)* \s* (?=(\:|\#|$))
 		</Rule>
-			
+
 		<!-- Widget name rule -->
 		<Rule color="NamedRect">
 			^ \s* [A-Za-z][A-Za-z0-9]* (\.[A-Za-z][A-Za-z0-9]*)* \s* (?=:\s*(\#|$))
@@ -333,6 +333,6 @@
 		</Rule>
 
 		<Import ruleSet="BasicRules"/>
-		
+
 	</RuleSet>
 </SyntaxDefinition>

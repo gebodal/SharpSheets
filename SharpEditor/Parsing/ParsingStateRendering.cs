@@ -1,6 +1,6 @@
-﻿using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Editing;
-using ICSharpCode.AvalonEdit.Rendering;
+﻿using AvaloniaEdit.Document;
+using AvaloniaEdit.Editing;
+using AvaloniaEdit.Rendering;
 using SharpEditor.TextMarker;
 using SharpSheets.Documentation;
 using System;
@@ -8,9 +8,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows;
-using System.Windows.Media;
 using SharpEditor.DataManagers;
+using Avalonia.Media;
+using Avalonia;
 
 namespace SharpEditor {
 
@@ -18,7 +18,7 @@ namespace SharpEditor {
 
 		readonly SolidColorBrush ownerBrush = new SolidColorBrush(Colors.White) { Opacity = 0.15 };
 		readonly SolidColorBrush childBrush = new SolidColorBrush(Colors.Orange) { Opacity = 0.15 };
-		readonly SolidColorBrush unusedBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#808080"));
+		readonly SolidColorBrush unusedBrush = new SolidColorBrush(new Color(0xff, 0x80, 0x80, 0x80)); // "#808080"
 
 		private bool ColorOwners { get { return parsingManager.ColorOwners; } }
 
@@ -53,12 +53,12 @@ namespace SharpEditor {
 
 				if (span.IsUnused) {
 					foregroundBrush = unusedBrush;
-					fontStyle = FontStyles.Italic;
+					fontStyle = FontStyle.Italic;
 					fontSizeFactor = null;
 				}
 				else if (span.ForegroundColor != null) {
 					foregroundBrush = new SolidColorBrush(span.ForegroundColor.Value);
-					foregroundBrush.Freeze();
+					foregroundBrush.ToImmutable();
 				}
 
 				if (span.BackgroundColor != null) {
@@ -87,7 +87,7 @@ namespace SharpEditor {
 						}
 						if (fontSizeFactor != null) {
 							element.TextRunProperties.SetFontRenderingEmSize(element.TextRunProperties.FontRenderingEmSize * fontSizeFactor.Value);
-							element.TextRunProperties.SetFontHintingEmSize(element.TextRunProperties.FontHintingEmSize * fontSizeFactor.Value);
+							//element.TextRunProperties.SetFontHintingEmSize(element.TextRunProperties.FontHintingEmSize * fontSizeFactor.Value);
 						}
 						//element.TextRunProperties.SetTextDecorations(new TextDecorationCollection() { TextDecorations.Strikethrough });
 						Typeface tf = element.TextRunProperties.Typeface;
@@ -152,7 +152,7 @@ namespace SharpEditor {
 			if (widgetMatch.Success) {
 				Group widgetName = widgetMatch.Groups[1];
 				if (headerTypes.ContainsKey(widgetName.Value)) {
-					ColorSpan(line.Offset + widgetName.Index, line.Offset + widgetName.Index + widgetName.Length, WidgetBrush, FontWeights.Normal);
+					ColorSpan(line.Offset + widgetName.Index, line.Offset + widgetName.Index + widgetName.Length, WidgetBrush, FontWeight.Normal);
 				}
 			}
 
@@ -168,7 +168,7 @@ namespace SharpEditor {
 				Match argMatch = specialPropertyRegex.Match(lineText);
 				if (argMatch.Success) {
 					Group argName = argMatch.Groups[1];
-					ColorSpan(line.Offset + argName.Index, line.Offset + argName.Index + argName.Length, SpecialArgBrush, FontWeights.Bold);
+					ColorSpan(line.Offset + argName.Index, line.Offset + argName.Index + argName.Length, SpecialArgBrush, FontWeight.Bold);
 				}
 			}
 		}
@@ -242,29 +242,32 @@ namespace SharpEditor {
 						Point endPoint = r.BottomRight;
 
 						Brush usedBrush = new SolidColorBrush(span.MarkerColor);
-						usedBrush.Freeze();
+						usedBrush.ToImmutable();
 						if ((span.MarkerTypes & TextMarkerTypes.SquigglyUnderline) != 0) {
 							StreamGeometry geometry = new StreamGeometry();
 							using (StreamGeometryContext ctx = geometry.Open()) {
-								ctx.BeginFigure(startPoint, false, false);
-								ctx.PolyLineTo(CreatePoints(startPoint, endPoint, 2.5), true, false);
+								ctx.BeginFigure(startPoint, false);
+								//ctx.PolyLineTo(CreatePoints(startPoint, endPoint, 2.5), true, false);
+								foreach(Point p in CreatePoints(startPoint, endPoint, 2.5)) {
+									ctx.LineTo(p);
+								}
 							}
-							geometry.Freeze();
+							//geometry.Freeze();
 
 							Pen usedPen = new Pen(usedBrush, 1);
-							usedPen.Freeze();
+							usedPen.ToImmutable();
 							drawingContext.DrawGeometry(Brushes.Transparent, usedPen, geometry);
 						}
 						else if ((span.MarkerTypes & TextMarkerTypes.NormalUnderline) != 0) {
 							Pen usedPen = new Pen(usedBrush, 1);
-							usedPen.Freeze();
+							usedPen.ToImmutable();
 							drawingContext.DrawLine(usedPen, startPoint, endPoint);
 						}
 						else if ((span.MarkerTypes & TextMarkerTypes.DottedUnderline) != 0) {
 							Pen usedPen = new Pen(usedBrush, 1) {
-								DashStyle = DashStyles.Dot
+								DashStyle = DashStyle.Dot
 							};
-							usedPen.Freeze();
+							usedPen.ToImmutable();
 							drawingContext.DrawLine(usedPen, startPoint, endPoint);
 						}
 					}
@@ -322,16 +325,17 @@ namespace SharpEditor {
 						Point startPoint = r.BottomLeft;
 						Point endPoint = r.BottomRight;
 
-						//startPoint.Offset(-Offset, 0);
-						endPoint.Offset(Dash.Dashes[^1] * 0.75, 0);
+						////startPoint.Offset(-Offset, 0);
+						//endPoint.Offset(Dash.Dashes[^1] * 0.75, 0);
+						endPoint += new Vector(Dash.Dashes?[^1] ?? 0.0, 0.0);
 
 						Brush errorBrush = new SolidColorBrush(errorColor);
-						errorBrush.Freeze();
+						errorBrush.ToImmutable();
 
 						Pen errorPen = new Pen(errorBrush, Thickness) {
 							DashStyle = Dash,
 						};
-						errorPen.Freeze();
+						errorPen.ToImmutable();
 						drawingContext.DrawLine(errorPen, startPoint, endPoint);
 					}
 				}

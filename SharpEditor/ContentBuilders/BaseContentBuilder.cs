@@ -1,23 +1,50 @@
 ﻿using SharpSheets.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Media;
-using System.Windows.Shapes;
 using SharpEditor.DataManagers;
 using SharpSheets.Documentation;
 using System.Text.RegularExpressions;
 using System.Reflection;
+using Avalonia.Controls;
+using Avalonia;
+using Avalonia.Controls.Documents;
+using Avalonia.Media;
+using Avalonia.Controls.Shapes;
+using Avalonia.Layout;
+using Avalonia.Data;
+using System.Linq;
 
 namespace SharpEditor.ContentBuilders {
 
+	// FrameworkElement -> Control
+	// UIElement -> Control
+
+	public enum TextBlockClass {
+		None,
+		H1,
+		H2,
+		H3,
+		H4,
+		H5,
+		H6,
+		H7
+	}
+
 	public static class BaseContentBuilder {
 
+		private static readonly HashSet<string> TextBlockClassNames;
+
+		static BaseContentBuilder() {
+			TextBlockClassNames = new HashSet<string>(Enum.GetNames(typeof(TextBlockClass)).Where(n => n != TextBlockClass.None.ToString()).Select(n => n.ToLower()));
+		}
+
 		public static TextBlock GetContentTextBlock(Thickness margin) {
-			return new TextBlock() { TextWrapping = TextWrapping.Wrap, Margin = margin };
+			return new TextBlock() {
+				Inlines = new InlineCollection(),
+				TextWrapping = TextWrapping.Wrap,
+				Margin = margin,
+				//HorizontalAlignment = HorizontalAlignment.Center
+			};
 		}
 
 		public static TextBlock GetContentTextBlock(string? text, Thickness margin) {
@@ -26,38 +53,41 @@ namespace SharpEditor.ContentBuilders {
 			return block;
 		}
 
-		public static TextBlock GetContentTextBlock(string? text, Thickness margin, double sizeRatio) {
+		public static TextBlock GetContentTextBlock(string? text, Thickness margin, TextBlockClass blockClass) {
 			TextBlock block = GetContentTextBlock(margin);
 			if (text is not null) { block.Text = text; }
-			MakeFontSizeRelative(block, sizeRatio);
+			MakeFontSizeRelative(block, blockClass);
 			return block;
 		}
 
 		public static TextBlock GetContentTextBlock(IEnumerable<Inline> inlines, Thickness margin) {
 			TextBlock block = GetContentTextBlock(margin);
-			block.Inlines.AddRange(inlines);
+			block.Inlines?.AddRange(inlines);
 			return block;
 		}
 
-		public static T MakeFontSizeRelative<T>(this T block, double ratio) where T : TextBlock {
-			block.LayoutTransform = new ScaleTransform(ratio, ratio);
+		public static T MakeFontSizeRelative<T>(this T block, TextBlockClass blockClass) where T : TextBlock {
+			////block.LayoutTransform = new ScaleTransform(ratio, ratio);
+			//block.RenderTransform = new ScaleTransform(ratio, ratio); // Is this going to work?
+			//block.RenderTransformOrigin = new RelativePoint(0, 1, RelativeUnit.Relative);
+
+			block.Classes.RemoveAll(TextBlockClassNames);
+			if (blockClass != TextBlockClass.None) {
+				block.Classes.Add(blockClass.ToString().ToLower());
+			}
+
 			return block;
 		}
 
-		public static T AddMargin<T>(this T element, Thickness margin) where T : FrameworkElement {
+		public static T AddMargin<T>(this T element, Thickness margin) where T : Control {
 			Thickness initial = element.Margin;
-			initial.Left += margin.Left;
-			initial.Right += margin.Right;
-			initial.Top += margin.Top;
-			initial.Bottom += margin.Bottom;
-			element.Margin = initial;
+			element.Margin = initial + margin;
 			return element;
 		}
 
-		public static T AddIndent<T>(this T element, double indent) where T : FrameworkElement {
+		public static T AddIndent<T>(this T element, double indent) where T : Control {
 			Thickness margin = element.Margin;
-			margin.Left += indent;
-			element.Margin = margin;
+			element.Margin = margin + new Thickness(indent, 0, 0, 0);
 			return element;
 		}
 
@@ -107,7 +137,7 @@ namespace SharpEditor.ContentBuilders {
 		}
 
 		public static Inline GetColorInline(Color? color, bool isDefault, bool unknown) {
-			UIElement finalColorSymbol;
+			Control finalColorSymbol;
 
 			Rectangle colorBlock = new Rectangle() { Width = 10.0, Height = 10.0, Fill = (!unknown && color.HasValue) ? new SolidColorBrush(color.Value) : Brushes.Transparent };
 			if (unknown || isDefault || !color.HasValue || color.Value.A < 100) {
@@ -118,21 +148,23 @@ namespace SharpEditor.ContentBuilders {
 			if (unknown) {
 				Brush lineBrush = SharpEditorPalette.DefaultValueBrush;
 				Canvas canvas = new Canvas() { Height = 10.0, Width = 10.0 };
-				canvas.Children.Add(new Line() { X1 = 5.0, X2 = 5.0, Y1 = 0.0, Y2 = 10.0, Stroke = lineBrush });
-				canvas.Children.Add(new Line() { X1 = 0.0, X2 = 10.0, Y1 = 5.0, Y2 = 5.0, Stroke = lineBrush });
+				canvas.Children.Add(new Line() { StartPoint = new Point(5.0, 0.0), EndPoint = new Point(5.0, 10.0), Stroke = lineBrush });
+				canvas.Children.Add(new Line() { StartPoint = new Point(0.0, 5.0), EndPoint = new Point(10.0, 5.0), Stroke = lineBrush });
 				canvas.Children.Add(colorBlock);
 				finalColorSymbol = canvas;
 			}
 			else if (!color.HasValue || color.Value.A == 0) {
 				Brush lineBrush = color.HasValue ? SharpEditorPalette.DefaultValueBrush : new SolidColorBrush(Colors.Red);
 				Canvas canvas = new Canvas() { Height = 10.0, Width = 10.0 };
-				canvas.Children.Add(new Line() { X1 = 0.0, X2 = 10.0, Y1 = 0.0, Y2 = 10.0, Stroke = lineBrush });
-				canvas.Children.Add(new Line() { X1 = 0.0, X2 = 10.0, Y1 = 10.0, Y2 = 0.0, Stroke = lineBrush });
+				canvas.Children.Add(new Line() { StartPoint = new Point(0.0, 0.0), EndPoint = new Point(10.0, 10.0), Stroke = lineBrush });
+				canvas.Children.Add(new Line() { StartPoint = new Point(0.0, 10.0), EndPoint = new Point(10.0, 0.0), Stroke = lineBrush });
 				canvas.Children.Add(colorBlock);
 				finalColorSymbol = canvas;
 			}
 			else {
-				finalColorSymbol = colorBlock;
+				Canvas canvas = new Canvas() { Height = 10.0, Width = 10.0 };
+				canvas.Children.Add(colorBlock);
+				finalColorSymbol = canvas;
 			}
 
 			DockPanel panel = new DockPanel() { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
@@ -143,10 +175,16 @@ namespace SharpEditor.ContentBuilders {
 			Binding parentFontSizeBinding = new Binding("FontSize") { Source = parent, RelativeSource = RelativeSource. };
 			viewbox.SetBinding(Viewbox.HeightProperty, parentFontSizeBinding);
 			*/
-			Binding parentFontSizeBinding = new Binding("FontSize") {
-				RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(TextBlock), 1)
+
+			// TODO Is this right now?
+			Binding parentFontSizeBinding = new Binding("FontSize", BindingMode.OneWay) {
+				RelativeSource = new RelativeSource() {
+					Mode = RelativeSourceMode.FindAncestor,
+					AncestorLevel = 1,
+					AncestorType = typeof(TextBlock)
+				},
 			};
-			viewbox.SetBinding(Viewbox.HeightProperty, parentFontSizeBinding);
+			viewbox.Bind(Viewbox.HeightProperty, parentFontSizeBinding);
 
 			panel.Children.Add(viewbox);
 
@@ -216,7 +254,7 @@ namespace SharpEditor.ContentBuilders {
 
 			TextBlock descriptionBlock = BaseContentBuilder.GetContentTextBlock(margin);
 
-			descriptionBlock.Inlines.AddRange(descriptionString.Process(finalProcessor));
+			descriptionBlock.Inlines?.AddRange(descriptionString.Process(finalProcessor));
 
 			return descriptionBlock;
 		}

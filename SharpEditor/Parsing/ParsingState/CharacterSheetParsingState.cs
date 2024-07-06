@@ -1,4 +1,4 @@
-﻿using ICSharpCode.AvalonEdit.Document;
+﻿using AvaloniaEdit.Document;
 using SharpSheets.Canvas;
 using SharpSheets.Cards.Definitions;
 using SharpSheets.Parsing;

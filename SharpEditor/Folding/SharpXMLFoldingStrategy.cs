@@ -1,5 +1,5 @@
-﻿using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Folding;
+﻿using AvaloniaEdit.Document;
+using AvaloniaEdit.Folding;
 using SharpSheets.Markup.Parsing;
 using SharpSheets.Parsing;
 using SharpSheets.Utilities;
@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SharpEditor {
+namespace SharpEditor.Folding {
 	/// <summary>
 	/// Holds information about the start of a fold in an xml string.
 	/// </summary>

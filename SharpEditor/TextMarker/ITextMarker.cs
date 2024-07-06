@@ -16,9 +16,8 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using Avalonia.Media;
 using System;
-using System.Windows;
-using System.Windows.Media;
 
 namespace SharpEditor.TextMarker {
 	/// <summary>

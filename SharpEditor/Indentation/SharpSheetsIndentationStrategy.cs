@@ -1,9 +1,9 @@
-﻿using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Indentation;
+﻿using AvaloniaEdit.Document;
+using AvaloniaEdit.Indentation;
 using System;
 using System.Text.RegularExpressions;
 
-namespace SharpEditor {
+namespace SharpEditor.Indentation {
 	/// <summary>
 	/// Handles indentation by copying the indentation from the previous line,
 	/// and adding one more whitespace character if previous line was division.

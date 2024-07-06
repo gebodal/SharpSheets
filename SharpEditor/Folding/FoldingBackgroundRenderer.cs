@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Windows;
-using System.Windows.Media;
-using ICSharpCode.AvalonEdit;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Folding;
-using ICSharpCode.AvalonEdit.Rendering;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Folding;
+using AvaloniaEdit.Rendering;
+using Avalonia.Media;
+using AvaloniaEdit;
+using Avalonia;
 
-namespace SharpEditor {
+namespace SharpEditor.Folding {
 	public class FoldingBackgroundRenderer : IBackgroundRenderer {
 
 		private readonly FoldingManager foldingManager;
@@ -60,20 +60,20 @@ namespace SharpEditor {
 					end = new Point(xPos, endRect.Value.Y + endRect.Value.Height);
 				}
 				else {
-					end = new Point(xPos, Math.Max(textView.DocumentHeight, textView.ActualHeight));
+					end = new Point(xPos, Math.Max(textView.DocumentHeight, textView.Bounds.Height)); // textView.ActualHeight
 				}
 
 				Brush brush = new SolidColorBrush(LineColor) { Opacity = 0.5 };
-				brush.Freeze();
+				brush.ToImmutable();
 				Pen dashPen = new Pen(brush, 1) {
 					DashStyle = new DashStyle(new double[] { 3, 7 }, 0)
 				};
-				dashPen.Freeze();
+				dashPen.ToImmutable();
 				drawingContext.DrawLine(dashPen, start, end);
 
 				if (endRect.HasValue) {
 					Pen simplePen = new Pen(brush, 1);
-					simplePen.Freeze();
+					simplePen.ToImmutable();
 					drawingContext.DrawLine(simplePen, end, new Point(end.X + 5, end.Y));
 				}
 			}

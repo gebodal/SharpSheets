@@ -4,12 +4,15 @@ using SharpSheets.Evaluations.Nodes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
 using SharpEditor.DataManagers;
+using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia;
+using Avalonia.Layout;
 
 namespace SharpEditor.ContentBuilders {
+
+	// FrameworkElement -> Control
 
 	public static class DefinitionContentBuilder {
 
@@ -33,11 +36,11 @@ namespace SharpEditor.ContentBuilders {
 			}
 		}
 
-		public static FrameworkElement MakeDefinitionElement(Definition definition, IEnvironment? environment, Thickness textMargin, Thickness indentedMargin) {
+		public static Control MakeDefinitionElement(Definition definition, IEnvironment? environment, Thickness textMargin, Thickness indentedMargin) {
 			StackPanel definitionPanel = new StackPanel() { Orientation = Orientation.Vertical };
 
 			TextBlock definitionBlock = BaseContentBuilder.GetContentTextBlock(textMargin);
-			definitionBlock.Inlines.AddRange(GetDefinitionHeaderInlines(definition, environment));
+			definitionBlock.Inlines?.AddRange(GetDefinitionHeaderInlines(definition, environment));
 			definitionPanel.Children.Add(definitionBlock);
 
 			if (!string.IsNullOrWhiteSpace(definition.description)) {
@@ -129,7 +132,7 @@ namespace SharpEditor.ContentBuilders {
 		public static TextBlock MakeDefinitionEntries(Definition definition, IEnvironment? evaluationEnvironment, Thickness textMargin) {
 			TextBlock definitionBlock = BaseContentBuilder.GetContentTextBlock(textMargin);
 
-			definitionBlock.Inlines.AddRange(GetDefinitionNameInlines(definition));
+			definitionBlock.Inlines?.AddRange(GetDefinitionNameInlines(definition));
 
 			if (evaluationEnvironment != null) {
 				object? result = null;
@@ -164,8 +167,8 @@ namespace SharpEditor.ContentBuilders {
 					resultText = new Run("null") { Foreground = SharpEditorPalette.DefaultValueBrush };
 				}
 
-				definitionBlock.Inlines.Add(new Run(": ") { });
-				definitionBlock.Inlines.Add(resultText);
+				definitionBlock.Inlines?.Add(new Run(": ") { });
+				definitionBlock.Inlines?.Add(resultText);
 			}
 
 			return definitionBlock;

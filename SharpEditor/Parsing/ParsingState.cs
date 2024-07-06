@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Threading;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Rendering;
+using Avalonia.Media;
+using Avalonia.Threading;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Rendering;
 using SharpEditor.DataManagers;
 using SharpEditor.TextMarker;
 using SharpSheets.Canvas;
