@@ -19,7 +19,7 @@ namespace SharpEditorAvalonia {
 		}
 
 		protected ContextOrigins<TSpan>? Origins { get; set; }
-		protected List<FilePath>? ConfigDependencies { get; set; }
+		protected IReadOnlyList<FilePath>? ConfigDependencies { get; set; }
 		//protected HashSet<int> UnusedLines { get; set; }
 		protected HashSet<int>? UsedLines { get; set; }
 		protected List<SharpParsingException>? NoLocationErrors { get; set; }
@@ -116,6 +116,7 @@ namespace SharpEditorAvalonia {
 				Dictionary<int, TSpan> lineSpans = new Dictionary<int, TSpan>();
 				TSpan? MakeSpan(DocumentSpan location, int indentLevel) {
 					try {
+						if (lineSpans.TryGetValue(location.Line, out TSpan? existing)) { return existing; }
 						int startOffset = Document.GetOffset(location.Line + 1, location.Column + 1);
 						TSpan span = Create(startOffset, location.Length);
 						span.IndentLevel = indentLevel;
@@ -143,7 +144,7 @@ namespace SharpEditorAvalonia {
 							span.Name = context.SimpleName;
 							span.Context = context;
 
-							contextSpans.Add(context, span);
+							if (!contextSpans.ContainsKey(context)) { contextSpans.Add(context, span); }
 
 							if (context.Parent != null && contextSpans.TryGetValue(context.Parent, out TSpan? parent)) {
 								parent.Children.Add(span);
@@ -213,9 +214,9 @@ namespace SharpEditorAvalonia {
 				// Assign ConfigSpans as children and owners of each other
 				// TODO CAN THIS BE IMPROVED ON?
 				if (result.results.lineOwners != null) {
-					foreach (KeyValuePair<int, HashSet<int>> lineOwners in result.results.lineOwners) {
-						if (lineSpans.TryGetValue(lineOwners.Key, out TSpan? owned)) { // Line in question
-							HashSet<int> owners = lineOwners.Value; // All lines which reference this line
+					foreach ((int ownedLine, IReadOnlySet<int> owners) in result.results.lineOwners) {
+						if (lineSpans.TryGetValue(ownedLine, out TSpan? owned)) { // Line in question
+							// owners // All lines which reference this line
 							foreach (TSpan owner in owners.Select(i => lineSpans.GetValueOrFallback(i, null)).WhereNotNull()) {
 								owned.Owners.Add(owner);
 								owner.Children.Add(owned);

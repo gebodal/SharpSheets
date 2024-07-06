@@ -56,7 +56,7 @@ namespace SharpEditorAvalonia.DataManagers {
 
 		[MemberNotNull(nameof(CharacterSheetHighlighting))]
 		static void LoadCharacterSheetHighlightings() {
-			CharacterSheetHighlighting = LoadSharpConfigHighlighting("CharacterSheet", 2);
+			CharacterSheetHighlighting = LoadSharpConfigHighlighting("CharacterSheet", 3);
 		}
 
 		[MemberNotNull(nameof(CardConfigHighlighting))]

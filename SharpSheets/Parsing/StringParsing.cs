@@ -187,7 +187,7 @@ namespace SharpSheets.Parsing {
 					}
 					output.Append(text[i]);
 				}
-				else if (text[i] == '\\') {
+				else if (text[i] == '\\' && i != text.Length - 1) {
 					escaped = true;
 				}
 				else {

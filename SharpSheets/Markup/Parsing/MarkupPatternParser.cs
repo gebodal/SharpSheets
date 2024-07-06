@@ -86,7 +86,7 @@ namespace SharpSheets.Markup.Parsing {
 					throw new InvalidOperationException("Compilation result cannot be collected before document parsing is completed.");
 				}
 				// TODO Should the unusedLines arguments be unusedLocations instead? (DocumentSpan as opposed to int?)
-				return new CompilationResult(root, origins, errors.Values.SelectMany(e => e).ToList(), null, null, null, null, new List<FilePath>());
+				return new CompilationResult(root, origins, errors.Values.SelectMany(e => e).ToList(), null, null, new List<FilePath>());
 			}
 
 			private void RunParsing(string xml) {

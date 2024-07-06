@@ -41,7 +41,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			headerBlock.MakeFontSizeRelative(2.0);
 
 			if (constructor is MarkupConstructorDetails markupConstructor) {
-				Grid headerGrid = MakeExternalLinkHeader(headerBlock, "Open Pattern File...", out Button patternSourceButton, window);
+				System.Windows.Controls.Grid headerGrid = MakeExternalLinkHeader(headerBlock, "Open Pattern File...", out Button patternSourceButton, window);
 				patternSourceButton.Click += delegate { SharpEditorWindow.Instance?.OpenEditorDocument(markupConstructor.Pattern.source.Path, true); };
 				stack.Children.Add(headerGrid);
 			}

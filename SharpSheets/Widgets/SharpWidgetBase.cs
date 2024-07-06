@@ -188,15 +188,7 @@ namespace SharpSheets.Widgets {
 						}
 					}
 					catch (SharpDrawingException e) {
-						Rectangle errorRect = childRects[i] ?? rect;
-						canvas.SaveState();
-						canvas.SetStrokeColor(Color.Red);
-						canvas.SetTextColor(Color.Red);
-						canvas.Rectangle(errorRect).Stroke();
-						canvas.SetTextFormatAndSize(TextFormat.REGULAR, 200f);
-						canvas.FitText(errorRect, e.Message, new ParagraphSpecification(1.35f, 0f, default), new FontSizeSearchParams(0.1f, 200f, 0.2f), Justification.LEFT, Alignment.TOP, TextHeightStrategy.LineHeightBaseline, false);
-						canvas.RestoreState();
-						canvas.LogError(e);
+						CreateErrorRect(canvas, childRects[i] ?? rect, e);
 					}
 
 					if (cancellationToken.IsCancellationRequested) {
@@ -215,6 +207,17 @@ namespace SharpSheets.Widgets {
 			//Console.WriteLine($"{this.GetType().Name} start: {startStateDepth}, end: {endStateDepth}");
 
 			return;
+		}
+
+		protected static void CreateErrorRect(ISharpCanvas canvas, Rectangle errorRect, SharpDrawingException e) {
+			canvas.SaveState();
+			canvas.SetStrokeColor(Color.Red);
+			canvas.SetTextColor(Color.Red);
+			canvas.Rectangle(errorRect).Stroke();
+			canvas.SetTextFormatAndSize(TextFormat.REGULAR, 200f);
+			canvas.FitText(errorRect, e.Message, new ParagraphSpecification(1.35f, 0f, default), new FontSizeSearchParams(0.1f, 200f, 0.2f), Justification.LEFT, Alignment.TOP, TextHeightStrategy.LineHeightBaseline, false);
+			canvas.RestoreState();
+			canvas.LogError(e);
 		}
 	}
 

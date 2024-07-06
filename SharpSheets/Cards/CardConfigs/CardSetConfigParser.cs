@@ -47,17 +47,19 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			/// <summary></summary>
 			/// <exception cref="InvalidOperationException"></exception>
-			public CardSetConfig? GenerateConfig(WidgetFactory widgetFactory, ShapeFactory shapeFactory, out Dictionary<object, IDocumentEntity> origins, out List<SharpParsingException> errors) {
-				rootEntry.RefreshVisited();
-				CardSetConfig? cardSetConfig = cardSetConfigFactory.MakeSetConfig(configName, rootEntry, archives, origin, source, out origins, out errors);
-				return cardSetConfig;
+			public (CardSetConfig?, VisitTrackingContext) GenerateConfig(VisitTrackingContext trackingContext, out Dictionary<object, IDocumentEntity> origins, out List<SharpParsingException> errors) {
+				
+				CardSetConfig? cardSetConfig = cardSetConfigFactory.MakeSetConfig(configName, trackingContext, archives, origin, source, out origins, out errors);
+				return (cardSetConfig, trackingContext);
 			}
 
-			public void CollectConfigurationResults(WidgetFactory widgetFactory, ShapeFactory shapeFactory, out CardSetConfig? cardSetConfig, out CompilationResult results) {
+			public void CollectConfigurationResults(out CardSetConfig? cardSetConfig, out CompilationResult results) {
 				Dictionary<object, IDocumentEntity>? origins;
 				List<SharpParsingException> buildErrors;
+				VisitTrackingContext trackingContext = new VisitTrackingContext(rootEntry);
+				//trackingContext.RefreshVisited(); // Should be unnecessary
 				try {
-					cardSetConfig = GenerateConfig(widgetFactory, shapeFactory, out origins, out buildErrors);
+					(cardSetConfig, trackingContext) = GenerateConfig(trackingContext, out origins, out buildErrors);
 				}
 				catch(InvalidOperationException e) {
 					buildErrors = new List<SharpParsingException>() {
@@ -66,7 +68,7 @@ namespace SharpSheets.Cards.CardConfigs {
 					origins = null;
 					cardSetConfig = null;
 				}
-				results = CompilationResult.CompileResult(rootEntry, origins, parsingExceptions, buildErrors, cardSetConfig?.archivePaths ?? new List<FilePath>(), archives.Select(a => a.Location.Line));
+				results = CompilationResult.CompileResult(trackingContext, origins, parsingExceptions, buildErrors, cardSetConfig?.archivePaths ?? new List<FilePath>(), archives.Select(a => a.Location.Line), LineOwnership.Empty);
 			}
 		}
 
@@ -139,7 +141,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		public CardSetConfig? ParseContent(FilePath origin, DirectoryPath source, string config, out CompilationResult results) {
 			CardSetConfigEntryStack parsed = ParseConfig(origin, source, config);
-			parsed.CollectConfigurationResults(widgetFactory, shapeFactory, out CardSetConfig? cardSetConfig, out results);
+			parsed.CollectConfigurationResults(out CardSetConfig? cardSetConfig, out results);
 			return cardSetConfig;
 		}
 

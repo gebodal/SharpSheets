@@ -5,6 +5,7 @@ using SharpSheets.Widgets;
 using SharpSheets.Utilities;
 using SharpSheets.Parsing;
 using SharpSheets.Exceptions;
+using SharpSheets.Evaluations;
 
 namespace SharpSheets.Sheets {
 	public class SheetConfigurationParser : IParser<SharpPageList> {
@@ -52,8 +53,7 @@ namespace SharpSheets.Sheets {
 				rootEntry.AddChild(page);
 			}
 
-			public SharpPageList GenerateSheets(out Dictionary<object, IDocumentEntity> origins, out List<SharpParsingException> errors) {
-				rootEntry.RefreshVisited();
+			private (SharpPageList, VisitTrackingContext, IReadOnlyLineOwnership) GenerateSheets(out Dictionary<object, IDocumentEntity> origins, out List<SharpParsingException> errors) {
 				SharpPageList sharpPages = new SharpPageList();
 
 				origins = new Dictionary<object, IDocumentEntity>(new IdentityEqualityComparer<object>());
@@ -61,18 +61,26 @@ namespace SharpSheets.Sheets {
 
 				WidgetFactory originTrackingFactory = widgetFactory.TrackOrigins(origins);
 
-				foreach (ConfigEntry pageEntry in pages) {
-					Page pageWidget = originTrackingFactory.MakePage(pageEntry, source, out SharpParsingException[] pageErrors);
+				InterpolatedContext parsedRoot = InterpolatedContext.Parse(rootEntry, BasisEnvironment.Instance, true, out SharpParsingException[] contextParseErrors, out IReadOnlyLineOwnership knownLineOwners);
+				errors.AddRange(contextParseErrors);
+				IContext evaluatedRoot = parsedRoot.Evaluate(BasisEnvironment.Instance, out SharpParsingException[] contextEvaluateErrors);
+				errors.AddRange(contextEvaluateErrors);
+
+				VisitTrackingContext trackingContext = new VisitTrackingContext(evaluatedRoot);
+				//trackingContext.RefreshVisited(); // Should be unnecessary
+
+				foreach (IContext pageContext in trackingContext.Children) { // ConfigEntry pageEntry in pages
+					Page pageWidget = originTrackingFactory.MakePage(pageContext, source, out SharpParsingException[] pageErrors);
 					sharpPages.AddPage(pageWidget);
 					errors.AddRange(pageErrors);
 				}
 
-				return sharpPages;
+				return (sharpPages, trackingContext, knownLineOwners);
 			}
 
 			public void CollectConfigurationResults(out SharpPageList sheets, out CompilationResult results) {
-				sheets = GenerateSheets(out Dictionary<object, IDocumentEntity> origins, out List<SharpParsingException> buildErrors);
-				results = CompilationResult.CompileResult(rootEntry, origins, parsingExceptions, buildErrors, new List<FilePath>(), Enumerable.Empty<int>());
+				(sheets, VisitTrackingContext trackingContext, IReadOnlyLineOwnership knownLineOwners) = GenerateSheets(out Dictionary<object, IDocumentEntity> origins, out List<SharpParsingException> buildErrors);
+				results = CompilationResult.CompileResult(trackingContext, origins, parsingExceptions, buildErrors, new List<FilePath>(), Enumerable.Empty<int>(), knownLineOwners);
 			}
 		}
 

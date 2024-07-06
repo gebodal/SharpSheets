@@ -47,7 +47,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			headerBlock.MakeFontSizeRelative(TextBlockClass.H3);
 
 			if (constructor is MarkupConstructorDetails markupConstructor) {
-				Grid headerGrid = MakeExternalLinkHeader(headerBlock, "Open Pattern File...", out Button patternSourceButton, window);
+				Avalonia.Controls.Grid headerGrid = MakeExternalLinkHeader(headerBlock, "Open Pattern File...", out Button patternSourceButton, window);
 				patternSourceButton.Click += delegate { SharpEditorWindow.Instance?.OpenEditorDocument(markupConstructor.Pattern.source.Path, true); };
 				stack.Children.Add(headerGrid);
 			}

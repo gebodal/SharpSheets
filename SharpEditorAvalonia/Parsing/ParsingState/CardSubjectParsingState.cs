@@ -29,7 +29,7 @@ namespace SharpEditorAvalonia {
 
 		protected CardCollection? Cards { get; set; }
 		protected SubjectOrigins? Origins { get; set; }
-		protected List<FilePath>? CardDependencies { get; set; }
+		protected IReadOnlyList<FilePath>? CardDependencies { get; set; }
 
 		public override IParser Parser { get; } = new CardCollectionParser(
 			new CardSubjectParser(SharpEditorRegistries.CardSetConfigRegistryInstance),
@@ -385,7 +385,7 @@ namespace SharpEditorAvalonia {
 		private readonly CardSubjectParsingState parsingState;
 
 		private readonly Dictionary<IDocumentEntity, object> resulting; // Map context to drawn objects
-		private readonly Dictionary<object, IDocumentEntity> entities; // Map drawn objects to contexts
+		private readonly IReadOnlyDictionary<object, IDocumentEntity> entities; // Map drawn objects to contexts
 		private readonly Dictionary<string, IDocumentEntity> names;
 
 		public object this[IDocumentEntity entity] { get { return resulting[entity]; } }
@@ -397,7 +397,7 @@ namespace SharpEditorAvalonia {
 			{ typeof(CardFeature), 1 }
 		};
 
-		public SubjectOrigins(CardSubjectParsingState parsingState, Dictionary<object, IDocumentEntity>? origins) {
+		public SubjectOrigins(CardSubjectParsingState parsingState, IReadOnlyDictionary<object, IDocumentEntity>? origins) {
 			this.parsingState = parsingState;
 			this.entities = origins ?? new Dictionary<object, IDocumentEntity>();
 			//this.resulting = origins.ToDictionary(kv => kv.Value, kv => kv.Key, new IdentityEqualityComparer<IDocumentEntity>());

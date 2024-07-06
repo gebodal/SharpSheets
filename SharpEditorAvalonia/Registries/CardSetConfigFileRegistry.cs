@@ -19,11 +19,11 @@ namespace SharpEditorAvalonia.Registries {
 			public readonly FilePath originPath;
 			public readonly DateTime buildTime;
 
-			public readonly List<SharpParsingException> errors;
+			public readonly IReadOnlyList<SharpParsingException> errors;
 
 			public IEnumerable<FilePath> Dependencies { get { return originPath.Yield().Concat(cardSetConfig.archivePaths); } }
 
-			public CardSetConfigBuild(CardSetConfig cardSetConfig, FilePath originPath, DateTime buildTime, List<SharpParsingException> errors) {
+			public CardSetConfigBuild(CardSetConfig cardSetConfig, FilePath originPath, DateTime buildTime, IReadOnlyList<SharpParsingException> errors) {
 				this.cardSetConfig = cardSetConfig;
 				this.originPath = originPath;
 				this.buildTime = buildTime;

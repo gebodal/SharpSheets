@@ -28,10 +28,19 @@ namespace SharpSheets.Utilities {
 			}
 		}
 
-		public static IEnumerable<T> Flatten<T>(this T[,] array) {
-			for (int i = 0; i < array.GetLength(0); i++) {
+		public static IEnumerable<T> Flatten<T>(this T[,] array, bool byRows = true) {
+			if (byRows) {
+				for (int i = 0; i < array.GetLength(0); i++) {
+					for (int j = 0; j < array.GetLength(1); j++) {
+						yield return array[i, j];
+					}
+				}
+			}
+			else {
 				for (int j = 0; j < array.GetLength(1); j++) {
-					yield return array[i, j];
+					for (int i = 0; i < array.GetLength(0); i++) {
+						yield return array[i, j];
+					}
 				}
 			}
 		}
@@ -154,6 +163,14 @@ namespace SharpSheets.Utilities {
 
 		public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source) where T : struct {
 			return source.Where(i => i != null).Select(i => i!.Value);
+		}
+
+		public static IEnumerable<TResult> SelectNotNull<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult?> selector) where TResult : class {
+			return source.Select(selector).WhereNotNull();
+		}
+
+		public static IEnumerable<TResult> SelectNotNull<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult?> selector) where TResult : struct {
+			return source.Select(selector).WhereNotNull();
 		}
 
 		public static IEnumerable<T> Concat<T>(params IEnumerable<T>[] sources) {

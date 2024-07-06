@@ -505,7 +505,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		}
 
 		private InterpolatedContext MakeInterpolatedContext(IContext context, IVariableBox variables, List<SharpParsingException> errors) {
-			InterpolatedContext result = InterpolatedContext.Parse(context, variables, true, out SharpParsingException[] contextErrors);
+			InterpolatedContext result = InterpolatedContext.Parse(context, variables, true, out SharpParsingException[] contextErrors, out _);
 			errors.AddRange(contextErrors);
 			return result;
 		}
@@ -689,6 +689,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		public string SimpleName => OriginalContext.SimpleName;
 		public string DetailedName => OriginalContext.DetailedName;
 		public string FullName => OriginalContext.FullName;
+
 		public DocumentSpan Location => OriginalContext.Location;
 		public int Depth => OriginalContext.Depth;
 
@@ -759,31 +760,31 @@ namespace SharpSheets.Cards.CardConfigs {
 			return OriginalContext.GetDefinitions(origin); // TODO Is this right?
 		}
 
-		public bool GetFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-			return OriginalContext.GetFlag(flag, local, origin, out location);
-		}
-
-		public IContext? GetNamedChild(string name, bool local, IContext? origin) {
-			IContext? namedChild = OriginalContext.GetNamedChild(name, local, origin);
-			if (namedChild == null) {
-				return null;
+		public bool TryGetLocalProperty(string key, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out string property, out DocumentSpan? location) {
+			if(OriginalContext.TryGetLocalProperty(key, origin, isLocalRequest, out string? propertyRaw, out location)) {
+				property = Replace(propertyRaw, location);
+				return true;
 			}
 			else {
-				return new LazyInterpolatedContext(namedChild, Environment);
+				property = null;
+				location = null;
+				return false;
 			}
 		}
 
-		public string? GetProperty(string key, bool local, IContext? origin, string? defaultValue, out DocumentSpan? location) {
-			string? value = OriginalContext.GetProperty(key, local, origin, defaultValue, out location);
-			return Replace(value, location);
+		public bool TryGetLocalFlag(string key, IContext? origin, bool isLocalRequest, out bool flag, out DocumentSpan? location) {
+			return OriginalContext.TryGetLocalFlag(key, origin, isLocalRequest, out flag, out location);
 		}
 
-		public bool HasFlag(string flag, bool local, IContext? origin, out DocumentSpan? location) {
-			return OriginalContext.HasFlag(flag, local, origin, out location);
-		}
-
-		public bool HasProperty(string key, bool local, IContext? origin, out DocumentSpan? location) {
-			return OriginalContext.HasProperty(key, local, origin, out location);
+		public bool TryGetLocalNamedChild(string name, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out IContext namedChild) {
+			if (OriginalContext.TryGetLocalNamedChild(name, origin, isLocalRequest, out IContext? namedChildRaw)) {
+				namedChild = new LazyInterpolatedContext(namedChildRaw, Environment);
+				return true;
+			}
+			else {
+				namedChild = null;
+				return false;
+			}
 		}
 	}
 
