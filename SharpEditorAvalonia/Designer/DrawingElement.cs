@@ -8,9 +8,9 @@ namespace SharpEditorAvalonia.Designer {
 	// https://stackoverflow.com/a/16876915/11002708
 	public class DrawingElement : Control {
 		
-		public readonly DrawingGroup drawing;
+		public readonly Drawing drawing;
 
-		public DrawingElement(DrawingGroup drawing) {
+		public DrawingElement(Drawing drawing) {
 			this.drawing = drawing;
 		}
 
@@ -43,10 +43,22 @@ namespace SharpEditorAvalonia.Designer {
 			//Console.WriteLine("OnRender called");
 
 			using(context.PushTransform(GetTransform())) {
-				RenderDrawingGroup(drawing, context);
+				RenderDrawing(drawing, context);
 			}
 
 			base.Render(context);
+		}
+
+		protected static void RenderDrawing(Drawing drawing, DrawingContext context) {
+			if (drawing is GeometryDrawing geomDrawing && geomDrawing.Geometry is Geometry geometry) {
+				context.DrawGeometry(geomDrawing.Brush, geomDrawing.Pen, geometry);
+			}
+			else if (drawing is DrawingGroup drawingGroup) {
+				RenderDrawingGroup(drawingGroup, context);
+			}
+			else if (drawing is ImageDrawing image && image.ImageSource is IImage imageSource) {
+				context.DrawImage(imageSource, image.Rect);
+			}
 		}
 
 		protected static void RenderDrawingGroup(DrawingGroup drawingGroup, DrawingContext context) {

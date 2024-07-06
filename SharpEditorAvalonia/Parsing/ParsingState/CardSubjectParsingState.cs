@@ -541,9 +541,7 @@ namespace SharpEditorAvalonia {
 						elem.VisualColumn + elem.VisualLength, // endOffset
 						(VisualLineElement element) => {
 							double origRend = element.TextRunProperties.FontRenderingEmSize;
-							//double origHint = element.TextRunProperties.FontHintingEmSize;
 							element.TextRunProperties.SetFontRenderingEmSize(origRend * multiplier);
-							//element.TextRunProperties.SetFontHintingEmSize(origHint * multiplier);
 						});
 				}
 			}

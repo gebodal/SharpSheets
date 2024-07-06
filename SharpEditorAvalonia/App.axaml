@@ -15,5 +15,6 @@
 		
 		<FontFamily x:Key="ApplicationFont">avares://SharpEditorAvalonia/Assets/Fonts#Open Sans</FontFamily>
 		<FontFamily x:Key="EditorFont">avares://SharpEditorAvalonia/Assets/Fonts#Roboto Mono</FontFamily>
+		<FontFamily x:Key="TypeWriterFont">avares://SharpEditorAvalonia/Assets/Fonts#Nimbus Mono</FontFamily>
 	</Application.Resources>
 </Application>

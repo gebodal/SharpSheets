@@ -32,7 +32,7 @@ namespace SharpEditorAvalonia.Designer {
 		private readonly Control designerArea;
 		private readonly ParsingManager parsingManager;
 
-		public SharpAvaloniaDrawingDocument? Document { get; private set; }
+		public SharpGeometryDrawingDocument? Document { get; private set; }
 		public IDocumentContent? DocumentContent { get; private set; }
 		private IDocumentContent? LastProcessedDocumentContent { get; set; }
 		public IDrawingMapper? DrawingMapper { get; private set; }
@@ -105,7 +105,7 @@ namespace SharpEditorAvalonia.Designer {
 			NewContentAvailable?.Invoke(this, EventArgs.Empty);
 		}
 
-		async void Run() {
+		void Run() {
 			while (!cancellationToken.IsCancellationRequested && !dataQueue.IsCompleted) {
 
 				GenerateData data;
@@ -134,17 +134,12 @@ namespace SharpEditorAvalonia.Designer {
 					LastProcessedDocumentContent = newContent;
 
 					try {
-						SharpAvaloniaDrawingDocument nextDocument = new SharpAvaloniaDrawingDocument();
+						SharpGeometryDrawingDocument nextDocument = new SharpGeometryDrawingDocument();
 						SharpDrawingException[] drawingErrors = Array.Empty<SharpDrawingException>();
 
-						// This currently causes application to hang while drawing
-						await Dispatcher.UIThread.InvokeAsync(() => {
-							newContent.DrawTo(nextDocument, out drawingErrors, cancellationToken);
-						}, DispatcherPriority.ApplicationIdle);
+						newContent.DrawTo(nextDocument, out drawingErrors, cancellationToken);
 
 						if (cancellationToken.IsCancellationRequested) { break; }
-
-						nextDocument.Freeze();
 
 						DocumentContent = newContent;
 						Document = nextDocument;
