@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
+using SharpEditorAvalonia.Designer.DrawingCanvas;
 using SharpSheets.Canvas;
 using SharpSheets.Exceptions;
 

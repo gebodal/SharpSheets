@@ -14,14 +14,15 @@ using System.Windows.Input;
 using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Mvvm.Input;
 using Avalonia.Collections;
+using SharpEditorAvalonia.Designer.DrawingCanvas;
 
 namespace SharpEditorAvalonia.Designer {
 
 	public class CanvasAreaEventArgs : EventArgs {
 
-		public readonly IReadOnlyDictionary<object, GeometryRegisteredAreas> Areas;
+		public readonly IReadOnlyDictionary<object, RegisteredAreas> Areas;
 
-		public CanvasAreaEventArgs(IReadOnlyDictionary<object, GeometryRegisteredAreas> areas) {
+		public CanvasAreaEventArgs(IReadOnlyDictionary<object, RegisteredAreas> areas) {
 			Areas = areas;
 		}
 
@@ -273,7 +274,7 @@ namespace SharpEditorAvalonia.Designer {
 				//Point pos = e.GetPosition((Canvas)DesignerViewer.CanvasContent);
 				Point pos = e.GetPosition(DesignerViewer.CanvasContent);
 
-				Dictionary<object, GeometryRegisteredAreas> areas = currentPage.GetAreas(pos);
+				Dictionary<object, RegisteredAreas> areas = currentPage.GetAreas(pos);
 
 				if (areas.Count > 0) {
 					CanvasAreaDoubleClick?.Invoke(sender, new CanvasAreaEventArgs(areas));
@@ -314,7 +315,7 @@ namespace SharpEditorAvalonia.Designer {
 				//Point pos = e.GetPosition((Canvas)DesignerViewer.CanvasContent);
 				Point pos = e.GetPosition(DesignerViewer.CanvasContent);
 
-				Dictionary<object, GeometryRegisteredAreas> areas = currentDocument.CurrentPage.GetAreas(pos);
+				Dictionary<object, RegisteredAreas> areas = currentDocument.CurrentPage.GetAreas(pos);
 
 				CanvasMouseMove?.Invoke(sender, new CanvasAreaEventArgs(areas));
 			}
@@ -345,7 +346,7 @@ namespace SharpEditorAvalonia.Designer {
 					if (drawnObjects != null && drawnObjects.Length > 0) {
 						highlightCanvas.IsVisible = true;
 						HashSet<SharpSheets.Layouts.Rectangle> highlightedRects = new HashSet<SharpSheets.Layouts.Rectangle>();
-						foreach (GeometryRegisteredAreas areas in drawnObjects.SelectMany(d => currentPage.GetAreas(d)).OrderBy(r => r.Total.Area)) {
+						foreach (RegisteredAreas areas in drawnObjects.SelectMany(d => currentPage.GetAreas(d)).OrderBy(r => r.Total.Area)) {
 							// Draw smallest rectangles first. If a new rectangle completely contains a previously drawn rectangle, ignore it.
 							// The larger rects are needed as targets for going from the designer back to the document
 							if (areas.Original.Width >= 0 && areas.Original.Height >= 0 && !highlightedRects.Any(r => areas.Original.Contains(r))) {
@@ -497,12 +498,12 @@ namespace SharpEditorAvalonia.Designer {
 				PageCanvas.Children.Add(element);
 
 				Fields = MakeNewFieldCanvas(page.CanvasRect.Width, page.CanvasRect.Height);
-				foreach (GeometryCanvasField field in page.Fields.Values.Where(f => f.Rect.Width > 0 && f.Rect.Height > 0)) {
+				foreach (CanvasField field in page.Fields.Values.Where(f => f.Rect.Width > 0 && f.Rect.Height > 0)) {
 					Fields.AddHighlight(field.Rect,
-						stroke: field.Type == GeometryFieldType.IMAGE ? new SolidColorBrush(Colors.DarkGray) { Opacity = 0.5 } : null,
-						strokeThickness: field.Type == GeometryFieldType.IMAGE ? 1 : 0,
-						strokeDashArray: field.Type == GeometryFieldType.IMAGE ? new AvaloniaList<double> { 3, 3 } : null,
-						fill: new SolidColorBrush(field.Type == GeometryFieldType.IMAGE ? Colors.LightGray : Colors.Blue) { Opacity = 0.1 },
+						stroke: field.Type == FieldType.IMAGE ? new SolidColorBrush(Colors.DarkGray) { Opacity = 0.5 } : null,
+						strokeThickness: field.Type == FieldType.IMAGE ? 1 : 0,
+						strokeDashArray: field.Type == FieldType.IMAGE ? new AvaloniaList<double> { 3, 3 } : null,
+						fill: new SolidColorBrush(field.Type == FieldType.IMAGE ? Colors.LightGray : Colors.Blue) { Opacity = 0.1 },
 						toolTip: GetFieldTooltip(field));
 				}
 				PageCanvas.Children.Add(Fields);
@@ -536,15 +537,15 @@ namespace SharpEditorAvalonia.Designer {
 				};
 			}
 
-			public static object GetFieldTooltip(GeometryCanvasField field) {
+			public static object GetFieldTooltip(CanvasField field) {
 				return field.Name + (!string.IsNullOrEmpty(field.Tooltip) ? $"\n\n{field.Tooltip}" : "");
 			}
 
-			public Dictionary<object, GeometryRegisteredAreas> GetAreas(Point point) {
+			public Dictionary<object, RegisteredAreas> GetAreas(Point point) {
 				return page.GetAreas(point);
 			}
 
-			public IEnumerable<GeometryRegisteredAreas> GetAreas(object owner) {
+			public IEnumerable<RegisteredAreas> GetAreas(object owner) {
 				return page.GetAreas(owner);
 			}
 		}

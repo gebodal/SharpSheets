@@ -1,8 +1,5 @@
-﻿using Avalonia;
-using Avalonia.Media;
-using GeboPdf.Fonts;
+﻿using GeboPdf.Fonts;
 using GeboPdf.Fonts.TrueType;
-using SharpEditorAvalonia.Utilities;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Exceptions;
@@ -11,36 +8,33 @@ using SharpSheets.Layouts;
 using SharpSheets.Utilities;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SharpEditorAvalonia.Designer {
+namespace SharpEditorAvalonia.Designer.DrawingCanvas {
 
-	// SharpAvaloniaDrawingCanvas
+	// SharpGeometryDrawingCanvas
 	// ActualWidth -> Bounds.Width
 
-	public class SharpAvaloniaDrawingDocument : ISharpDocument {
+	public class SharpGeometryDrawingDocument : ISharpDocument {
 
-		public IList<SharpAvaloniaDrawingCanvas> Pages { get; }
+		public IList<SharpGeometryDrawingCanvas> Pages { get; }
 		public int PageCount { get { return Pages.Count; } }
 
 		public IReadOnlyCollection<string> FieldNames { get { return new HashSet<string>(Pages.SelectMany(p => p.FieldNames)); } }
 
-		public SharpAvaloniaDrawingDocument() {
-			Pages = new List<SharpAvaloniaDrawingCanvas>();
+		public SharpGeometryDrawingDocument() {
+			Pages = new List<SharpGeometryDrawingCanvas>();
 		}
 
-		ISharpCanvas ISharpDocument.AddNewPage(SharpSheets.Layouts.Size pageSize) => AddNewPage(pageSize);
+		ISharpCanvas ISharpDocument.AddNewPage(Size pageSize) => AddNewPage(pageSize);
 
-		public SharpAvaloniaDrawingCanvas AddNewPage(SharpSheets.Layouts.Size pageSize) {
-			SharpAvaloniaDrawingCanvas page = new SharpAvaloniaDrawingCanvas(this, pageSize);
+		public SharpGeometryDrawingCanvas AddNewPage(Size pageSize) {
+			SharpGeometryDrawingCanvas page = new SharpGeometryDrawingCanvas(this, pageSize);
 			Pages.Add(page);
 			return page;
-		}
-
-		public void Freeze() {
-			foreach (SharpAvaloniaDrawingCanvas canvas in Pages) { canvas.Freeze(); }
 		}
 
 		public int? GetOwnerPage(object owner) {
@@ -56,7 +50,7 @@ namespace SharpEditorAvalonia.Designer {
 
 	}
 
-	public class SharpAvaloniaDrawingGraphicsState {
+	public class SharpGeometryDrawingGraphicsState {
 
 		public float defaultLineWidth = 1f;
 		public float lineWidth = 1f;
@@ -70,136 +64,94 @@ namespace SharpEditorAvalonia.Designer {
 
 		public CanvasPaint strokePaint = new CanvasSolidPaint(SharpSheets.Colors.Color.Black);
 		public CanvasPaint fillPaint = new CanvasSolidPaint(SharpSheets.Colors.Color.White);
-		public Brush strokeBrush;
-		public Brush fillBrush;
+		public BrushData strokeBrush;
+		public BrushData fillBrush;
 
-		public PenLineJoin lineJoinStyle = PenLineJoin.Miter;
-		public PenLineCap lineCapStyle = PenLineCap.Flat;
-		public double mitreLimit = 10.0;
+		public LineJoinStyle lineJoinStyle = LineJoinStyle.MITER;
+		public LineCapStyle lineCapStyle = LineCapStyle.BUTT;
+		public float mitreLimit = 10f;
 
 		public TypefaceGrouping typefaces;
 		public TextFormat font = TextFormat.REGULAR;
 		public float fontsize = 0f;
-		public SharpSheets.Canvas.TextRenderingMode textRenderingMode = SharpSheets.Canvas.TextRenderingMode.FILL;
+		public TextRenderingMode textRenderingMode = TextRenderingMode.FILL;
 
-		public Geometry? clipGeometry = null;
-		public SharpSheets.Canvas.Transform pagetransform = SharpSheets.Canvas.Transform.Identity;
+		public GeometryData? clipGeometry = null;
+		public Transform pagetransform = Transform.Identity;
 
 		public bool fieldsEnabled = true;
 		public string currentPrefix = "";
 
-		public SharpAvaloniaDrawingGraphicsState() {
-			strokeBrush = new SolidColorBrush(Colors.Black);
-			strokeBrush.ToImmutable();
+		public SharpGeometryDrawingGraphicsState() {
+			strokeBrush = new SolidColorBrushData(SharpSheets.Colors.Color.Black);
 
-			fillBrush = new SolidColorBrush(Colors.White);
-			fillBrush.ToImmutable();
+			fillBrush = new SolidColorBrushData(SharpSheets.Colors.Color.White);
 
 			typefaces = new TypefaceGrouping();
 		}
-		public SharpAvaloniaDrawingGraphicsState(SharpAvaloniaDrawingGraphicsState source) {
-			this.defaultLineWidth = source.defaultLineWidth;
-			this.lineWidth = source.lineWidth;
-			this.strokeDash = source.strokeDash;
-			this.foreground = source.foreground;
-			this.background = source.background;
-			this.midtone = source.midtone;
-			this.textColor = source.textColor;
-			this.strokePaint = source.strokePaint;
-			this.fillPaint = source.fillPaint;
-			this.strokeBrush = source.strokeBrush;
-			this.fillBrush = source.fillBrush;
-			this.lineJoinStyle = source.lineJoinStyle;
-			this.mitreLimit = source.mitreLimit;
-			this.typefaces = new TypefaceGrouping(source.typefaces);
-			this.font = source.font;
-			this.fontsize = source.fontsize;
-			this.textRenderingMode = source.textRenderingMode;
-			this.clipGeometry = source.clipGeometry;
-			this.pagetransform = source.pagetransform;
-			this.fieldsEnabled = source.fieldsEnabled;
-			this.currentPrefix = source.currentPrefix;
+		public SharpGeometryDrawingGraphicsState(SharpGeometryDrawingGraphicsState source) {
+			defaultLineWidth = source.defaultLineWidth;
+			lineWidth = source.lineWidth;
+			strokeDash = source.strokeDash;
+			foreground = source.foreground;
+			background = source.background;
+			midtone = source.midtone;
+			textColor = source.textColor;
+			strokePaint = source.strokePaint;
+			fillPaint = source.fillPaint;
+			strokeBrush = source.strokeBrush;
+			fillBrush = source.fillBrush;
+			lineJoinStyle = source.lineJoinStyle;
+			mitreLimit = source.mitreLimit;
+			typefaces = new TypefaceGrouping(source.typefaces);
+			font = source.font;
+			fontsize = source.fontsize;
+			textRenderingMode = source.textRenderingMode;
+			clipGeometry = source.clipGeometry;
+			pagetransform = source.pagetransform;
+			fieldsEnabled = source.fieldsEnabled;
+			currentPrefix = source.currentPrefix;
 		}
 	}
 
-	public enum FieldType { TEXT, CHECK, IMAGE }
+	public class SharpGeometryDrawingCanvas : ISharpDesignerCanvas {
 
-	public struct AvaloniaCanvasField {
-		public string Name { get; private set; }
-		public string? Tooltip { get; private set; }
-		public SharpSheets.Layouts.Rectangle Rect { get; private set; }
-		public FieldType Type { get; private set; }
-		public AvaloniaCanvasField(string name, string? tooltip, SharpSheets.Layouts.Rectangle rect, FieldType type) {
-			Name = name;
-			Tooltip = tooltip;
-			Rect = rect;
-			Type = type;
-		}
-	}
+		public SharpGeometryDrawingDocument Document { get; }
+		public Rectangle CanvasRect { get; }
 
-	public class RegisteredAreas {
-		public Rectangle Original { get; }
-		public Rectangle? Adjusted { get; }
-		public Rectangle[] Inner { get; }
+		public readonly DrawingGroupData drawingGroup;
 
-		public Rectangle Total { get; }
-
-		public RegisteredAreas(Rectangle original, Rectangle? adjusted, Rectangle[] inner) {
-			Original = original;
-			Adjusted = adjusted;
-			Inner = inner;
-
-			Total = Adjusted is not null ? Rectangle.Union(Original, Adjusted) : Original;
-		}
-
-		public bool Contains(float x, float y) {
-			return Original.Contains(x, y) || (Adjusted?.Contains(x, y) ?? false) || Inner.Any(i => i.Contains(x, y));
-		}
-	}
-
-	public class SharpAvaloniaDrawingCanvas : ISharpCanvas {
-
-		public SharpAvaloniaDrawingDocument Document { get; }
-		public SharpSheets.Layouts.Rectangle CanvasRect { get; }
-
-		public readonly DrawingGroup drawingGroup;
-
-		private SharpAvaloniaDrawingGraphicsState gsState;
-		private readonly Stack<SharpAvaloniaDrawingGraphicsState> gsStack;
+		private SharpGeometryDrawingGraphicsState gsState;
+		private readonly Stack<SharpGeometryDrawingGraphicsState> gsStack;
 
 		public DrawPoint? CurrentPenLocation { get; private set; } = null;
 
 		public IReadOnlyCollection<string> DocumentFieldNames { get { return Document.FieldNames; } }
 		public IReadOnlyCollection<string> FieldNames { get { return Fields.Keys; } }
-		public Dictionary<string, AvaloniaCanvasField> Fields { get; }
+		public Dictionary<string, CanvasField> Fields { get; }
 
 		private readonly Dictionary<object, List<RegisteredAreas>> areas;
 
-		private readonly SharpSheets.Canvas.Transform avaloniaTransform;
+		private readonly Transform GeometryTransform;
 
-		public SharpAvaloniaDrawingCanvas(SharpAvaloniaDrawingDocument document, SharpSheets.Layouts.Size pageSize) {
+		public SharpGeometryDrawingCanvas(SharpGeometryDrawingDocument document, Size pageSize) {
 			Document = document;
 			CanvasRect = (Rectangle)pageSize;
 
-			drawingGroup = new DrawingGroup();
+			drawingGroup = new DrawingGroupData();
 
-			Fields = new Dictionary<string, AvaloniaCanvasField>();
+			Fields = new Dictionary<string, CanvasField>();
 
 			areas = new Dictionary<object, List<RegisteredAreas>>(new IdentityEqualityComparer<object>());
 
-			gsState = new SharpAvaloniaDrawingGraphicsState();
-			gsStack = new Stack<SharpAvaloniaDrawingGraphicsState>();
+			gsState = new SharpGeometryDrawingGraphicsState();
+			gsStack = new Stack<SharpGeometryDrawingGraphicsState>();
 
-			avaloniaTransform = GetBaseTransform(CanvasRect);
+			GeometryTransform = GetBaseTransform(CanvasRect);
 
 			this.Rectangle(CanvasRect).Fill();
 
-			this.drawingErrors = new List<SharpDrawingException>();
-		}
-
-		public void Freeze() {
-			// TODO Necessary?
-			//drawingGroup.Freeze();
+			drawingErrors = new List<SharpDrawingException>();
 		}
 
 		#region Drawing Errors
@@ -220,7 +172,7 @@ namespace SharpEditorAvalonia.Designer {
 			areas[owner].Add(new RegisteredAreas(originalArea, adjustedArea, innerAreas));
 		}
 
-		public Dictionary<object, RegisteredAreas> GetAreas(Point point) {
+		public Dictionary<object, RegisteredAreas> GetAreas(Avalonia.Point point) {
 			return areas
 				.Where(kv => kv.Value.Any(r => r.Contains((float)point.X, (float)(CanvasRect.Height - point.Y))))
 				.ToDictionary(kv => kv.Key, kv => kv.Value.MaxBy(r => r.Total.Area)!);
@@ -241,31 +193,24 @@ namespace SharpEditorAvalonia.Designer {
 		#endregion
 
 		#region Utilities
-		Point MakePoint(float x, float y) {
-			return new Point(x, y);
+		static Avalonia.Point MakePoint(float x, float y) {
+			return new Avalonia.Point(x, y);
 		}
 
-		Rect ConvertRect(SharpSheets.Layouts.Rectangle rect) {
-			Point topLeft = MakePoint(rect.Left, rect.Top);
-			return new Rect(topLeft, new Avalonia.Size(rect.Width, rect.Height));
+		static Avalonia.Rect ConvertRect(Rectangle rect) {
+			Avalonia.Point topLeft = MakePoint(rect.Left, rect.Top);
+			return new Avalonia.Rect(topLeft, new Avalonia.Size(rect.Width, rect.Height));
 		}
 
-		Color ConvertColor(SharpSheets.Colors.Color color) {
-			return Color.FromArgb(color.A, color.R, color.G, color.B);
-		}
-		SharpSheets.Colors.Color ConvertColor(Color color) {
-			return new SharpSheets.Colors.Color(color.R, color.G, color.B, color.A);
-		}
-
-		private static SharpSheets.Canvas.Transform GetBaseTransform(SharpSheets.Layouts.Rectangle pageSize) {
-			return SharpSheets.Canvas.Transform.Translate(0, pageSize.Height) * SharpSheets.Canvas.Transform.Scale(1, -1);
+		private static Transform GetBaseTransform(Rectangle pageSize) {
+			return Transform.Translate(0, pageSize.Height) * Transform.Scale(1, -1);
 		}
 		#endregion
 
 		#region Graphics State
 		public ISharpGraphicsState SaveState() {
 			gsStack.Push(gsState);
-			gsState = new SharpAvaloniaDrawingGraphicsState(gsState);
+			gsState = new SharpGeometryDrawingGraphicsState(gsState);
 			return this;
 		}
 
@@ -315,9 +260,8 @@ namespace SharpEditorAvalonia.Designer {
 			return this;
 		}
 
-		private SolidColorBrush MakeSolidBrush(SharpSheets.Colors.Color color) {
-			SolidColorBrush brush = new SolidColorBrush(ConvertColor(color));
-			brush.ToImmutable();
+		private SolidColorBrushData MakeSolidBrush(SharpSheets.Colors.Color color) {
+			SolidColorBrushData brush = new SolidColorBrushData(color);
 			return brush;
 		}
 
@@ -332,20 +276,18 @@ namespace SharpEditorAvalonia.Designer {
 			return this;
 		}
 
-		private LinearGradientBrush MakeLinearGradientBrush(float x1, float y1, float x2, float y2, IReadOnlyList<ColorStop> stops) {
+		private LinearGradientBrushData MakeLinearGradientBrush(float x1, float y1, float x2, float y2, IReadOnlyList<ColorStop> stops) {
 			stops = stops.Select(s => new ColorStop(s.Stop, s.Color.WithOpacity(1.0f))).OrderBy(s => s.Stop).ToList();
 
-			GradientStops gradientStops = new GradientStops();
-			gradientStops.AddRange(stops.Select(s => new GradientStop(ConvertColor(s.Color), s.Stop)));
-			LinearGradientBrush brush = new LinearGradientBrush() {
-				StartPoint = new RelativePoint(MakePoint(x1, y1), RelativeUnit.Absolute),
-				EndPoint = new RelativePoint(MakePoint(x2, y2), RelativeUnit.Absolute),
+			GradientStopsData gradientStops = new GradientStopsData();
+			gradientStops.AddRange(stops);
+			LinearGradientBrushData brush = new LinearGradientBrushData() {
+				StartPoint = new Avalonia.RelativePoint(MakePoint(x1, y1), Avalonia.RelativeUnit.Absolute),
+				EndPoint = new Avalonia.RelativePoint(MakePoint(x2, y2), Avalonia.RelativeUnit.Absolute),
 				GradientStops = gradientStops,
-				SpreadMethod = GradientSpreadMethod.Pad,
 				Transform = GetCurrentTransformMatrix()
 				//MappingMode = BrushMappingMode.Absolute
 			};
-			brush.ToImmutable(); // TODO Necessary?
 
 			return brush;
 		}
@@ -361,7 +303,7 @@ namespace SharpEditorAvalonia.Designer {
 			return this;
 		}
 
-		private RadialGradientBrush MakeRadialGradientBrush(float x1, float y1, float r1, float x2, float y2, float r2, IReadOnlyList<ColorStop> stops) {
+		private RadialGradientBrushData MakeRadialGradientBrush(float x1, float y1, float r1, float x2, float y2, float r2, IReadOnlyList<ColorStop> stops) {
 			stops = stops.Select(s => new ColorStop(s.Stop, s.Color.WithOpacity(1.0f))).OrderBy(s => s.Stop).ToList();
 
 			if (r2 > r1) {
@@ -374,24 +316,21 @@ namespace SharpEditorAvalonia.Designer {
 			float rStartFactor = r2 / r1;
 			float rRangeFactor = 1f - rStartFactor;
 
-			List<GradientStop> avaloniaStops = new List<GradientStop>();
+			List<ColorStop> GeometryStops = new List<ColorStop>();
 			foreach (ColorStop stop in stops) {
 				float finalStop = rStartFactor + stop.Stop * rRangeFactor;
-				avaloniaStops.Add(new GradientStop(ConvertColor(stop.Color), finalStop));
+				GeometryStops.Add(new ColorStop(finalStop, stop.Color));
 			}
 
-			GradientStops gradientStops = new GradientStops();
-			gradientStops.AddRange(avaloniaStops);
-			RadialGradientBrush brush = new RadialGradientBrush() {
+			GradientStopsData gradientStops = new GradientStopsData();
+			gradientStops.AddRange(GeometryStops);
+			RadialGradientBrushData brush = new RadialGradientBrushData() {
 				GradientStops = gradientStops,
-				SpreadMethod = GradientSpreadMethod.Pad,
-				//MappingMode = BrushMappingMode.Absolute,
-				Center = new RelativePoint(MakePoint(x1, y1), RelativeUnit.Absolute),
-				GradientOrigin = new RelativePoint(MakePoint(x2, y2), RelativeUnit.Absolute),
+				Center = new Avalonia.RelativePoint(MakePoint(x1, y1), Avalonia.RelativeUnit.Absolute),
+				GradientOrigin = new Avalonia.RelativePoint(MakePoint(x2, y2), Avalonia.RelativeUnit.Absolute),
 				Radius = r1,
 				Transform = GetCurrentTransformMatrix()
 			};
-			brush.ToImmutable(); // TODO Necessary?
 
 			return brush;
 		}
@@ -436,9 +375,9 @@ namespace SharpEditorAvalonia.Designer {
 			return this;
 		}
 
-		private DashStyle CurrentDashStyle {
+		private DashStyleData CurrentDashStyle {
 			get {
-				return gsState.strokeDash != null ? new DashStyle(gsState.strokeDash.Values.Select(f => (double)f / gsState.lineWidth), gsState.strokeDash.Offset) : new DashStyle(null, 0.0);
+				return gsState.strokeDash != null ? new DashStyleData(gsState.strokeDash.Values.Select(f => f / gsState.lineWidth), gsState.strokeDash.Offset) : new DashStyleData(null, 0f);
 			}
 		}
 		#endregion
@@ -480,28 +419,20 @@ namespace SharpEditorAvalonia.Designer {
 		#endregion
 
 		#region Misc
-		public ISharpGraphicsState SetLineCapStyle(SharpSheets.Canvas.LineCapStyle capStyle) {
-			if (capStyle == SharpSheets.Canvas.LineCapStyle.BUTT) { gsState.lineCapStyle = PenLineCap.Flat; }
-			else if (capStyle == SharpSheets.Canvas.LineCapStyle.ROUND) { gsState.lineCapStyle = PenLineCap.Round; }
-			else if (capStyle == SharpSheets.Canvas.LineCapStyle.PROJECTING_SQUARE) { gsState.lineCapStyle = PenLineCap.Square; }
+		public ISharpGraphicsState SetLineCapStyle(LineCapStyle capStyle) {
+			gsState.lineCapStyle = capStyle;
 			return this;
 		}
-		public SharpSheets.Canvas.LineCapStyle GetLineCapStyle() {
-			if (gsState.lineCapStyle == PenLineCap.Flat) { return SharpSheets.Canvas.LineCapStyle.BUTT; }
-			else if (gsState.lineCapStyle == PenLineCap.Round) { return SharpSheets.Canvas.LineCapStyle.ROUND; }
-			else { return SharpSheets.Canvas.LineCapStyle.PROJECTING_SQUARE; } // gsState.lineCapStyle = PenLineCap.Square
+		public LineCapStyle GetLineCapStyle() {
+			return gsState.lineCapStyle;
 		}
 
-		public ISharpGraphicsState SetLineJoinStyle(SharpSheets.Canvas.LineJoinStyle joinStyle) {
-			if (joinStyle == SharpSheets.Canvas.LineJoinStyle.MITER) { gsState.lineJoinStyle = PenLineJoin.Miter; }
-			else if (joinStyle == SharpSheets.Canvas.LineJoinStyle.ROUND) { gsState.lineJoinStyle = PenLineJoin.Round; }
-			else if (joinStyle == SharpSheets.Canvas.LineJoinStyle.BEVEL) { gsState.lineJoinStyle = PenLineJoin.Bevel; }
+		public ISharpGraphicsState SetLineJoinStyle(LineJoinStyle joinStyle) {
+			gsState.lineJoinStyle = joinStyle;
 			return this;
 		}
-		public SharpSheets.Canvas.LineJoinStyle GetLineJoinStyle() {
-			if (gsState.lineJoinStyle == PenLineJoin.Miter) { return SharpSheets.Canvas.LineJoinStyle.MITER; }
-			else if (gsState.lineJoinStyle == PenLineJoin.Round) { return SharpSheets.Canvas.LineJoinStyle.ROUND; }
-			else { return SharpSheets.Canvas.LineJoinStyle.BEVEL; } // gsState.lineJoinStyle == PenLineJoin.Bevel
+		public LineJoinStyle GetLineJoinStyle() {
+			return gsState.lineJoinStyle;
 		}
 
 		public ISharpGraphicsState SetMiterLimit(float mitreLimit) {
@@ -509,14 +440,14 @@ namespace SharpEditorAvalonia.Designer {
 			return this;
 		}
 		public float GetMiterLimit() {
-			return (float)gsState.mitreLimit;
+			return gsState.mitreLimit;
 		}
 
-		public ISharpGraphicsState SetTextRenderingMode(SharpSheets.Canvas.TextRenderingMode mode) {
+		public ISharpGraphicsState SetTextRenderingMode(TextRenderingMode mode) {
 			gsState.textRenderingMode = mode;
 			return this;
 		}
-		public SharpSheets.Canvas.TextRenderingMode GetTextRenderingMode() {
+		public TextRenderingMode GetTextRenderingMode() {
 			return gsState.textRenderingMode;
 		}
 
@@ -541,23 +472,21 @@ namespace SharpEditorAvalonia.Designer {
 
 		#region Drawing
 
-		PathGeometry? _pathGeometry;
-		PathFigure? _pathFigure;
+		PathGeometryData? _pathGeometry;
+		PathFigureData? _pathFigure;
 
-		PathGeometry PathGeometry {
+		PathGeometryData PathGeometry {
 			get {
 				if (_pathGeometry == null) {
-					_pathGeometry = new PathGeometry() {
-						Figures = new PathFigures()
-					};
+					_pathGeometry = new PathGeometryData(); ;
 				}
 				return _pathGeometry;
 			}
 		}
-		PathFigure PathFigure {
+		PathFigureData PathFigure {
 			get {
 				if (_pathFigure == null) {
-					_pathFigure = new PathFigure() { Segments = new PathSegments(), IsClosed = false };
+					_pathFigure = new PathFigureData() { IsClosed = false };
 				}
 				return _pathFigure;
 			}
@@ -575,36 +504,36 @@ namespace SharpEditorAvalonia.Designer {
 		}
 
 		public ISharpCanvas MoveTo(float x, float y) {
-			if (PathFigure.Segments?.Count > 0) {
-				PathGeometry.Figures?.Add(PathFigure);
+			if (PathFigure.Count > 0) {
+				PathGeometry.Add(PathFigure);
 			}
-			PathFigure = new PathFigure() { Segments = new PathSegments(), IsClosed = false, StartPoint = MakePoint(x, y) };
+			PathFigure = new PathFigureData() { IsClosed = false, StartPoint = MakePoint(x, y) };
 			CurrentPenLocation = new DrawPoint(x, y);
 			return this;
 		}
 
 		public ISharpCanvas LineTo(float x, float y) {
-			PathFigure.Segments?.Add(new LineSegment() { Point = MakePoint(x, y) });
+			PathFigure.Add(new LineSegmentData() { Point = MakePoint(x, y) });
 			CurrentPenLocation = new DrawPoint(x, y);
 			return this;
 		}
 
 		public ISharpCanvas CurveTo(float x2, float y2, float x3, float y3) {
-			PathFigure.Segments?.Add(new QuadraticBezierSegment() { Point1 = MakePoint(x2, y2), Point2 = MakePoint(x3, y3) });
+			PathFigure.Add(new QuadraticBezierSegmentData() { Point1 = MakePoint(x2, y2), Point2 = MakePoint(x3, y3) });
 			CurrentPenLocation = new DrawPoint(x3, y3);
 			return this;
 		}
 
 		public ISharpCanvas CurveTo(float x1, float y1, float x2, float y2, float x3, float y3) {
-			PathFigure.Segments?.Add(new BezierSegment() { Point1 = MakePoint(x1, y1), Point2 = MakePoint(x2, y2), Point3 = MakePoint(x3, y3) });
+			PathFigure.Add(new BezierSegmentData() { Point1 = MakePoint(x1, y1), Point2 = MakePoint(x2, y2), Point3 = MakePoint(x3, y3) });
 			CurrentPenLocation = new DrawPoint(x3, y3);
 			return this;
 		}
 
 		public ISharpCanvas ClosePath() {
-			if (PathFigure.Segments?.Count > 0) {
+			if (PathFigure.Count > 0) {
 				PathFigure.IsClosed = true;
-				PathGeometry.Figures?.Add(PathFigure);
+				PathGeometry.Add(PathFigure);
 			}
 			ResetPathFigure();
 			CurrentPenLocation = null;
@@ -618,23 +547,29 @@ namespace SharpEditorAvalonia.Designer {
 			return this;
 		}
 
-		private Geometry? otherGeometry;
+		private GeometryData? otherGeometry;
 
 		public ISharpCanvas Rectangle(float x, float y, float width, float height) {
-			otherGeometry = new RectangleGeometry(new Rect(MakePoint(x, y), MakePoint(x + width, y + height)));
+			otherGeometry = new RectangleGeometryData() {
+				Rect = new Avalonia.Rect(MakePoint(x, y), MakePoint(x + width, y + height))
+			};
 			CurrentPenLocation = null;
 			return this;
 		}
 
 		public ISharpCanvas Ellipse(float x1, float y1, float x2, float y2) {
-			otherGeometry = new EllipseGeometry() { Center = MakePoint((x1 + x2) / 2, (y1 + y2) / 2), RadiusX = (x2 - x1) / 2, RadiusY = (y2 - y1) / 2 };
+			otherGeometry = new EllipseGeometryData() {
+				Center = MakePoint((x1 + x2) / 2, (y1 + y2) / 2),
+				RadiusX = (x2 - x1) / 2,
+				RadiusY = (y2 - y1) / 2
+			};
 			CurrentPenLocation = null;
 			return this;
 		}
 
-		private Drawing ClipDrawing(Drawing drawing) {
+		private DrawingData ClipDrawing(DrawingData drawing) {
 			if (gsState.clipGeometry != null) {
-				DrawingGroup clippedDrawing = new DrawingGroup() { ClipGeometry = gsState.clipGeometry };
+				DrawingGroupData clippedDrawing = new DrawingGroupData() { ClipGeometry = gsState.clipGeometry };
 				clippedDrawing.Children.Add(drawing);
 				return clippedDrawing;
 			}
@@ -643,21 +578,21 @@ namespace SharpEditorAvalonia.Designer {
 			}
 		}
 
-		private GeometryDrawing GetDrawing() {
-			GeometryDrawing drawing = new GeometryDrawing();
+		private GeometryDrawingData GetDrawing() {
+			GeometryDrawingData drawing = new GeometryDrawingData();
 			if (otherGeometry != null) {
 				drawing.Geometry = otherGeometry;
 			}
 			else {
-				PathGeometry.Figures?.Add(PathFigure);
+				PathGeometry.Add(PathFigure);
 				drawing.Geometry = PathGeometry;
 			}
 			drawing.Geometry.Transform = GetCurrentTransformMatrix();
 			return drawing;
 		}
 
-		private Pen GetCurrentPen() {
-			return new Pen(gsState.strokeBrush, GetLineWidth()) {
+		private PenData GetCurrentPen() {
+			return new PenData(gsState.strokeBrush, GetLineWidth()) {
 				LineJoin = gsState.lineJoinStyle,
 				MiterLimit = gsState.mitreLimit,
 				LineCap = gsState.lineCapStyle,
@@ -667,11 +602,11 @@ namespace SharpEditorAvalonia.Designer {
 		}
 
 		public ISharpCanvas Stroke() {
-			GeometryDrawing strokeDrawing = GetDrawing();
+			GeometryDrawingData strokeDrawing = GetDrawing();
 			strokeDrawing.Pen = GetCurrentPen();
 			strokeDrawing.Brush = null;
 
-			Drawing finalDrawing = ClipDrawing(strokeDrawing);
+			DrawingData finalDrawing = ClipDrawing(strokeDrawing);
 			drawingGroup.Children.Add(finalDrawing);
 
 			EndPath();
@@ -680,11 +615,11 @@ namespace SharpEditorAvalonia.Designer {
 		}
 
 		public ISharpCanvas Fill() {
-			GeometryDrawing fillDrawing = GetDrawing();
+			GeometryDrawingData fillDrawing = GetDrawing();
 			fillDrawing.Pen = null;
 			fillDrawing.Brush = gsState.fillBrush;
 
-			Drawing finalDrawing = ClipDrawing(fillDrawing);
+			DrawingData finalDrawing = ClipDrawing(fillDrawing);
 			drawingGroup.Children.Add(finalDrawing);
 
 			EndPath();
@@ -693,11 +628,11 @@ namespace SharpEditorAvalonia.Designer {
 		}
 
 		public ISharpCanvas FillStroke() {
-			GeometryDrawing fillStrokeDrawing = GetDrawing();
+			GeometryDrawingData fillStrokeDrawing = GetDrawing();
 			fillStrokeDrawing.Pen = GetCurrentPen();
 			fillStrokeDrawing.Brush = gsState.fillBrush;
 
-			Drawing finalDrawing = ClipDrawing(fillStrokeDrawing);
+			DrawingData finalDrawing = ClipDrawing(fillStrokeDrawing);
 
 			drawingGroup.Children.Add(finalDrawing);
 
@@ -707,32 +642,32 @@ namespace SharpEditorAvalonia.Designer {
 		}
 
 		public ISharpCanvas EoFill() {
-			PathGeometry.FillRule = FillRule.EvenOdd;
+			PathGeometry.FillRule = Avalonia.Media.FillRule.EvenOdd;
 			return Fill();
 		}
 
 		public ISharpCanvas EoFillStroke() {
-			PathGeometry.FillRule = FillRule.EvenOdd;
+			PathGeometry.FillRule = Avalonia.Media.FillRule.EvenOdd;
 			return FillStroke();
 		}
 
-		private void AppendClipGeometry(Geometry geometry) {
+		private void AppendClipGeometry(GeometryData geometry) {
 			if (gsState.clipGeometry == null) {
 				gsState.clipGeometry = geometry;
 			}
 			else {
-				gsState.clipGeometry = new CombinedGeometry(GeometryCombineMode.Intersect, gsState.clipGeometry, geometry);
+				gsState.clipGeometry = new CombinedGeometryData(Avalonia.Media.GeometryCombineMode.Intersect, gsState.clipGeometry, geometry);
 			}
 		}
 
 		public ISharpCanvas Clip() {
-			Geometry newClip;
+			GeometryData newClip;
 			if (otherGeometry != null) {
 				newClip = otherGeometry;
 			}
 			else {
 				ClosePath();
-				PathGeometry.Figures?.Add(PathFigure);
+				PathGeometry.Add(PathFigure);
 				newClip = PathGeometry;
 			}
 			newClip.Transform = GetCurrentTransformMatrix();
@@ -743,28 +678,28 @@ namespace SharpEditorAvalonia.Designer {
 		}
 
 		public ISharpCanvas EoClip() {
-			PathGeometry.FillRule = FillRule.EvenOdd;
+			PathGeometry.FillRule = Avalonia.Media.FillRule.EvenOdd;
 			return Clip();
 		}
 
-		public ISharpGraphicsState SetTransform(SharpSheets.Canvas.Transform transform) {
+		public ISharpGraphicsState SetTransform(Transform transform) {
 			gsState.pagetransform = GetBaseTransform(CanvasRect) * transform;
 			return this;
 		}
 
-		public ISharpGraphicsState ApplyTransform(SharpSheets.Canvas.Transform transform) {
+		public ISharpGraphicsState ApplyTransform(Transform transform) {
 			gsState.pagetransform *= transform;
 			return this;
 		}
 
-		public SharpSheets.Canvas.Transform GetTransform() {
+		public Transform GetTransform() {
 			return gsState.pagetransform;
 		}
 
-		private MatrixTransform GetCurrentTransformMatrix(SharpSheets.Canvas.Transform? append = null) {
-			SharpSheets.Canvas.Transform current = avaloniaTransform * GetTransform();
+		private Transform GetCurrentTransformMatrix(Transform? append = null) {
+			Transform current = GeometryTransform * GetTransform();
 			if (append != null) { current *= append; }
-			return new MatrixTransform(new Matrix(current.a, current.b, current.c, current.d, current.e, current.f));
+			return current;
 		}
 
 		#endregion
@@ -773,22 +708,22 @@ namespace SharpEditorAvalonia.Designer {
 
 		private bool FillText {
 			get {
-				SharpSheets.Canvas.TextRenderingMode current = gsState.textRenderingMode;
-				return (current & SharpSheets.Canvas.TextRenderingMode.FILL) == SharpSheets.Canvas.TextRenderingMode.FILL;
+				TextRenderingMode current = gsState.textRenderingMode;
+				return (current & TextRenderingMode.FILL) == TextRenderingMode.FILL;
 			}
 		}
 
 		private bool StrokeText {
 			get {
-				SharpSheets.Canvas.TextRenderingMode current = gsState.textRenderingMode;
-				return (current & SharpSheets.Canvas.TextRenderingMode.STROKE) == SharpSheets.Canvas.TextRenderingMode.STROKE;
+				TextRenderingMode current = gsState.textRenderingMode;
+				return (current & TextRenderingMode.STROKE) == TextRenderingMode.STROKE;
 			}
 		}
 
 		private bool ClipText {
 			get {
-				SharpSheets.Canvas.TextRenderingMode current = gsState.textRenderingMode;
-				return (current & SharpSheets.Canvas.TextRenderingMode.CLIP) == SharpSheets.Canvas.TextRenderingMode.CLIP;
+				TextRenderingMode current = gsState.textRenderingMode;
+				return (current & TextRenderingMode.CLIP) == TextRenderingMode.CLIP;
 			}
 		}
 
@@ -798,13 +733,13 @@ namespace SharpEditorAvalonia.Designer {
 				return this; // Don't bother drawing if text is invisible
 			}
 
-			Point point = MakePoint(x, y);
-			GeometryGroup textGeometryGroup = new GeometryGroup() { FillRule = FillRule.NonZero };
+			Avalonia.Point point = MakePoint(x, y);
+			GeometryGroupData textGeometryGroup = new GeometryGroupData() { FillRule = Avalonia.Media.FillRule.NonZero };
 
-			SolidColorBrush? brush = new SolidColorBrush(ConvertColor(GetTextColor()));
+			SolidColorBrushData? brush = new SolidColorBrushData(GetTextColor());
 
 			//Pen? pen = StrokeText ? new Pen(gsState.strokeBrush, GetLineWidth()) { DashStyle = CurrentDashStyle } : null;
-			Pen? pen = StrokeText ? GetCurrentPen() : null;
+			PenData? pen = StrokeText ? GetCurrentPen() : null;
 			brush = FillText ? brush : null;
 
 			float fontsize = gsState.fontsize;
@@ -820,13 +755,13 @@ namespace SharpEditorAvalonia.Designer {
 			for (int i = 0; i < glyphRun.Count; i++) {
 				ushort g = glyphRun[i];
 
-				Geometry? glyphGeometry = glyphOutlines.GetGlyphGeometry(g, fontsize);
+				PathGeometryData? glyphGeometry = glyphOutlines.GetGlyphGeometryData(g, fontsize);
 
 				if (glyphGeometry is not null) {
 					(short xPlacement, short yPlacement) = glyphRun.GetPlacement(i);
 					float xPlaceSized = PdfFont.ConvertDesignSpaceValue(xPlacement, fontsize);
 					float yPlaceSized = PdfFont.ConvertDesignSpaceValue(yPlacement, fontsize);
-					glyphGeometry.Transform = new TranslateTransform(runningX + xPlaceSized, yPlaceSized);
+					glyphGeometry.Transform = Transform.Translate(runningX + xPlaceSized, yPlaceSized);
 					textGeometryGroup.Children.Add(glyphGeometry);
 				}
 
@@ -835,11 +770,11 @@ namespace SharpEditorAvalonia.Designer {
 			}
 
 			//textGeometryGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y) * SharpSheets.Canvas.Transform.Scale(1, -1));
-			textGeometryGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y));
+			textGeometryGroup.Transform = GetCurrentTransformMatrix(Transform.Translate((float)point.X, (float)point.Y));
 
-			GeometryDrawing textDrawing = new GeometryDrawing() { Brush = brush, Pen = pen, Geometry = textGeometryGroup };
+			GeometryDrawingData textDrawing = new GeometryDrawingData() { Brush = brush, Pen = pen, Geometry = textGeometryGroup };
 
-			if ((gsState.textRenderingMode & SharpSheets.Canvas.TextRenderingMode.FILL_STROKE) != SharpSheets.Canvas.TextRenderingMode.INVISIBLE) {
+			if ((gsState.textRenderingMode & TextRenderingMode.FILL_STROKE) != TextRenderingMode.INVISIBLE) {
 				drawingGroup.Children.Add(textDrawing);
 			}
 
@@ -868,12 +803,12 @@ namespace SharpEditorAvalonia.Designer {
 
 		#region Fields
 
-		public string? TextField(SharpSheets.Layouts.Rectangle rect, string name, string? tooltip, TextFieldType fieldType, string? value, TextFormat font, float fontSize, SharpSheets.Colors.Color color, bool multiline, bool rich, Justification justification, int maxLen = -1) {
+		public string? TextField(Rectangle rect, string name, string? tooltip, TextFieldType fieldType, string? value, TextFormat font, float fontSize, SharpSheets.Colors.Color color, bool multiline, bool rich, Justification justification, int maxLen = -1) {
 			if (IsFieldsEnabled()) {
 				string fieldName = this.GetAvailableFieldName(name);
 				Rectangle pageSpaceRect = this.GetPageSpaceRect(rect);
-				Point rectPoint = MakePoint(pageSpaceRect.X, pageSpaceRect.Y);
-				Fields.Add(fieldName, new AvaloniaCanvasField(fieldName, tooltip, new SharpSheets.Layouts.Rectangle((float)rectPoint.X, (float)rectPoint.Y, pageSpaceRect.Width, pageSpaceRect.Height), FieldType.TEXT));
+				Avalonia.Point rectPoint = MakePoint(pageSpaceRect.X, pageSpaceRect.Y);
+				Fields.Add(fieldName, new CanvasField(fieldName, tooltip, new Rectangle((float)rectPoint.X, (float)rectPoint.Y, pageSpaceRect.Width, pageSpaceRect.Height), FieldType.TEXT));
 				return fieldName;
 			}
 			else {
@@ -881,12 +816,12 @@ namespace SharpEditorAvalonia.Designer {
 			}
 		}
 
-		public string? CheckField(SharpSheets.Layouts.Rectangle rect, string name, string? tooltip, CheckType checkType, SharpSheets.Colors.Color color) {
+		public string? CheckField(Rectangle rect, string name, string? tooltip, CheckType checkType, SharpSheets.Colors.Color color) {
 			if (IsFieldsEnabled()) {
 				string fieldName = this.GetAvailableFieldName(name);
 				Rectangle pageSpaceRect = this.GetPageSpaceRect(rect);
-				Point rectPoint = MakePoint(pageSpaceRect.X, pageSpaceRect.Y);
-				Fields.Add(fieldName, new AvaloniaCanvasField(fieldName, tooltip, new SharpSheets.Layouts.Rectangle((float)rectPoint.X, (float)rectPoint.Y, pageSpaceRect.Width, pageSpaceRect.Height), FieldType.CHECK));
+				Avalonia.Point rectPoint = MakePoint(pageSpaceRect.X, pageSpaceRect.Y);
+				Fields.Add(fieldName, new CanvasField(fieldName, tooltip, new Rectangle((float)rectPoint.X, (float)rectPoint.Y, pageSpaceRect.Width, pageSpaceRect.Height), FieldType.CHECK));
 				return fieldName;
 			}
 			else {
@@ -894,14 +829,15 @@ namespace SharpEditorAvalonia.Designer {
 			}
 		}
 
-		public string? ImageField(SharpSheets.Layouts.Rectangle rect, string name, string? tooltip, CanvasImageData? defaultImage = null) {
+		public string? ImageField(Rectangle rect, string name, string? tooltip, CanvasImageData? defaultImage = null) {
 			if (IsFieldsEnabled()) {
 				string fieldName = this.GetAvailableFieldName(name);
 				Rectangle pageSpaceRect = this.GetPageSpaceRect(rect);
-				Point rectPoint = MakePoint(pageSpaceRect.X, pageSpaceRect.Y);
-				Fields.Add(fieldName, new AvaloniaCanvasField(fieldName, tooltip, new SharpSheets.Layouts.Rectangle((float)rectPoint.X, (float)rectPoint.Y, pageSpaceRect.Width, pageSpaceRect.Height), FieldType.IMAGE));
+				Avalonia.Point rectPoint = MakePoint(pageSpaceRect.X, pageSpaceRect.Y);
+				Fields.Add(fieldName, new CanvasField(fieldName, tooltip, new Rectangle((float)rectPoint.X, (float)rectPoint.Y, pageSpaceRect.Width, pageSpaceRect.Height), FieldType.IMAGE));
 
 				if (defaultImage != null) {
+					// TODO We shouldn't be accepting PDFs here
 					AddImage(defaultImage, rect, rect.AspectRatio);
 				}
 
@@ -916,26 +852,22 @@ namespace SharpEditorAvalonia.Designer {
 
 		#region Misc
 
-		static IImage BitmapFromPath(string filename) {
-			return new Avalonia.Media.Imaging.Bitmap(filename);
-		}
-
-		private void AddImage(IImage image, Rectangle rect, float? aspect) {
-			if (image != null) {
-				float imageAspect = (float)(aspect ?? image.Size.Width / image.Size.Height);
+		private void AddRastorImage(CanvasImageData? image, Rectangle rect, float? aspect) {
+			if (image is not null && !string.IsNullOrWhiteSpace(image.Path.Path) && File.Exists(image.Path.Path)) {
+				float imageAspect = (float)(aspect ?? image.Width / image.Height);
 				if (imageAspect > 0) {
 					rect = rect.Aspect(imageAspect);
 				}
 
-				Point point = MakePoint(rect.X, rect.Y + rect.Height);
-				ImageDrawing drawing = new ImageDrawing() { ImageSource = image, Rect = new Rect(new Point(0, 0), new Avalonia.Size(rect.Width, rect.Height)) };
+				Avalonia.Point point = MakePoint(rect.X, rect.Y + rect.Height);
+				ImageDrawingData drawing = new ImageDrawingData() { ImageSource = image, Rect = new Avalonia.Rect(new Avalonia.Point(0, 0), new Avalonia.Size(rect.Width, rect.Height)) };
 
-				DrawingGroup imageDrawingGroup = new DrawingGroup();
+				DrawingGroupData imageDrawingGroup = new DrawingGroupData();
 				imageDrawingGroup.Children.Add(drawing);
-				imageDrawingGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y) * SharpSheets.Canvas.Transform.Scale(1, -1));
+				imageDrawingGroup.Transform = GetCurrentTransformMatrix(Transform.Translate((float)point.X, (float)point.Y) * Transform.Scale(1, -1));
 
 
-				Drawing clippedImageDrawing = ClipDrawing(imageDrawingGroup);
+				DrawingData clippedImageDrawing = ClipDrawing(imageDrawingGroup);
 
 				drawingGroup.Children.Add(clippedImageDrawing);
 			}
@@ -943,25 +875,24 @@ namespace SharpEditorAvalonia.Designer {
 				if (aspect != null) {
 					rect = rect.Aspect(aspect.Value);
 				}
-				this.SaveState();
-				this.SetFillColor(SharpSheets.Colors.Color.Red);
+				SaveState();
+				SetFillColor(SharpSheets.Colors.Color.Red);
 				this.Rectangle(rect).Fill();
-				this.RestoreState();
+				RestoreState();
 			}
 		}
 
-		public ISharpCanvas AddImage(CanvasImageData image, SharpSheets.Layouts.Rectangle rect, float? imageAspect) {
+		public ISharpCanvas AddImage(CanvasImageData image, Rectangle rect, float? imageAspect) {
 			if (image.IsPdf) {
-				this.SaveState();
-				this.SetFillColor(SharpSheets.Utilities.ColorUtils.WithOpacity(SharpSheets.Colors.Color.LightGray, 0.58f));
+				SaveState();
+				SetFillColor(SharpSheets.Colors.Color.LightGray.WithOpacity(0.58f));
 				this.Rectangle(rect).Fill();
-				this.SetTextColor(SharpSheets.Utilities.ColorUtils.WithOpacity(SharpSheets.Colors.Color.DarkGray, 0.58f));
+				SetTextColor(SharpSheets.Colors.Color.DarkGray.WithOpacity(0.58f));
 				this.FitRichTextLine(rect, (RichString)"PDF", new ParagraphSpecification(1f, 0f, default), new FontSizeSearchParams(0.5f, 100f, 0.1f), Justification.CENTRE, Alignment.CENTRE, TextHeightStrategy.AscentDescent);
-				this.RestoreState();
+				RestoreState();
 			}
 			else {
-				IImage imageObj = BitmapFromPath(image.Path.Path);
-				AddImage(imageObj, rect, imageAspect);
+				AddRastorImage(image, rect, imageAspect);
 			}
 			return this;
 		}

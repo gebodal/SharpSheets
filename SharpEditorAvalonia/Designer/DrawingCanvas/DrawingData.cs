@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SharpEditorAvalonia.Designer {
+namespace SharpEditorAvalonia.Designer.DrawingCanvas {
 
 	public static class ConverterUtils {
 
@@ -17,22 +17,22 @@ namespace SharpEditorAvalonia.Designer {
 		}
 
 		[return: NotNullIfNotNull(nameof(transform))]
-		public static Avalonia.Media.Transform? Convert(SharpSheets.Canvas.Transform? transform) {
+		public static Avalonia.Media.Transform? Convert(Transform? transform) {
 			if (transform is null) { return null; }
 			return new Avalonia.Media.MatrixTransform(new Avalonia.Matrix(transform.a, transform.b, transform.c, transform.d, transform.e, transform.f));
 		}
 
-		public static Avalonia.Media.PenLineCap Convert(SharpSheets.Canvas.LineCapStyle capStyle) {
-			if (capStyle == SharpSheets.Canvas.LineCapStyle.BUTT) { return Avalonia.Media.PenLineCap.Flat; }
-			else if (capStyle == SharpSheets.Canvas.LineCapStyle.ROUND) { return Avalonia.Media.PenLineCap.Round; }
-			else if (capStyle == SharpSheets.Canvas.LineCapStyle.PROJECTING_SQUARE) { return Avalonia.Media.PenLineCap.Square; }
+		public static Avalonia.Media.PenLineCap Convert(LineCapStyle capStyle) {
+			if (capStyle == LineCapStyle.BUTT) { return Avalonia.Media.PenLineCap.Flat; }
+			else if (capStyle == LineCapStyle.ROUND) { return Avalonia.Media.PenLineCap.Round; }
+			else if (capStyle == LineCapStyle.PROJECTING_SQUARE) { return Avalonia.Media.PenLineCap.Square; }
 			else { return Avalonia.Media.PenLineCap.Flat; } // Fallback
 		}
 
-		public static Avalonia.Media.PenLineJoin Convert(SharpSheets.Canvas.LineJoinStyle joinStyle) {
-			if (joinStyle == SharpSheets.Canvas.LineJoinStyle.MITER) { return Avalonia.Media.PenLineJoin.Miter; }
-			else if (joinStyle == SharpSheets.Canvas.LineJoinStyle.ROUND) { return Avalonia.Media.PenLineJoin.Round; }
-			else if (joinStyle == SharpSheets.Canvas.LineJoinStyle.BEVEL) { return Avalonia.Media.PenLineJoin.Bevel; }
+		public static Avalonia.Media.PenLineJoin Convert(LineJoinStyle joinStyle) {
+			if (joinStyle == LineJoinStyle.MITER) { return Avalonia.Media.PenLineJoin.Miter; }
+			else if (joinStyle == LineJoinStyle.ROUND) { return Avalonia.Media.PenLineJoin.Round; }
+			else if (joinStyle == LineJoinStyle.BEVEL) { return Avalonia.Media.PenLineJoin.Bevel; }
 			else { return Avalonia.Media.PenLineJoin.Miter; } // Fallback
 		}
 
@@ -63,7 +63,7 @@ namespace SharpEditorAvalonia.Designer {
 		public Avalonia.RelativePoint StartPoint { get; set; }
 		public Avalonia.RelativePoint EndPoint { get; set; }
 		public GradientStopsData GradientStops { get; set; }
-		public SharpSheets.Canvas.Transform? Transform { get; set; }
+		public Transform? Transform { get; set; }
 
 		public LinearGradientBrushData() : base() {
 			GradientStops = new GradientStopsData();
@@ -88,7 +88,7 @@ namespace SharpEditorAvalonia.Designer {
 		public Avalonia.RelativePoint GradientOrigin { get; set; }
 		public float Radius { get; set; }
 		public GradientStopsData GradientStops { get; set; }
-		public SharpSheets.Canvas.Transform? Transform { get; set; }
+		public Transform? Transform { get; set; }
 
 		public RadialGradientBrushData() : base() {
 			GradientStops = new GradientStopsData();
@@ -436,7 +436,7 @@ namespace SharpEditorAvalonia.Designer {
 
 		public static PathGeometryData? GetGlyphGeometryData(this TrueTypeFontFileOutlines glyphOutlines, ushort glyph, float fontsize) {
 			float ProcessShort(short value) {
-				return (fontsize * (1000f * (value / (float)glyphOutlines.UnitsPerEm))) / 1000f;
+				return fontsize * (1000f * (value / (float)glyphOutlines.UnitsPerEm)) / 1000f;
 			}
 
 			if (glyphOutlines.glyf?.glyphOutlines[glyph] is TrueTypeGlyphOutline gOutline) {
@@ -512,7 +512,7 @@ namespace SharpEditorAvalonia.Designer {
 				return geometry;
 			}
 			else if (glyph != 0) {
-				return GetGlyphGeometryData(glyphOutlines, 0, fontsize);
+				return glyphOutlines.GetGlyphGeometryData(0, fontsize);
 			}
 			else {
 				// Could not find glyph outline data

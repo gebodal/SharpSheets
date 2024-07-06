@@ -20,6 +20,7 @@ using Avalonia.Media;
 using SharpEditorAvalonia.Designer;
 using SharpEditorAvalonia.Utilities;
 using SharpEditorAvalonia.Windows;
+using SharpEditorAvalonia.Designer.DrawingCanvas;
 
 namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 
@@ -146,7 +147,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 			}
 
 			try {
-				SharpAvaloniaDrawingDocument wpfDocument = new SharpAvaloniaDrawingDocument();
+				SharpGeometryDrawingDocument exampleDocument = new SharpGeometryDrawingDocument();
 				ISharpCanvas canvas;
 				List<Rectangle> displayRects = new List<Rectangle>();
 
@@ -235,7 +236,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 						shapeRect = GetShape(pageSize);
 					}
 
-					canvas = wpfDocument.AddNewPage(pageSize);
+					canvas = exampleDocument.AddNewPage(pageSize);
 
 					if (shape is IDetail detail) {
 						// TODO This needs improving so we can see vertical version too
@@ -301,7 +302,7 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 						widgetRect = GetShape(pageSize);
 					}
 
-					canvas = wpfDocument.AddNewPage(pageSize);
+					canvas = exampleDocument.AddNewPage(pageSize);
 
 					widget.Draw(canvas, widgetRect, default);
 
@@ -330,9 +331,9 @@ namespace SharpEditorAvalonia.Documentation.DocumentationBuilders {
 					}
 				}
 
-				SharpAvaloniaDrawingCanvas page = wpfDocument.Pages[0];
+				SharpGeometryDrawingCanvas page = exampleDocument.Pages[0];
 
-				DrawingElement element = new DrawingElement(page.drawingGroup) {
+				DrawingElement element = new DrawingElement(page.drawingGroup.BuildGroup()) {
 					//LayoutTransform = TestBlock.LayoutTransform,
 					Width = page.CanvasRect.Width,
 					Height = page.CanvasRect.Height

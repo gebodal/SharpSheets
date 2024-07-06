@@ -4,7 +4,7 @@ using GeboPdf.Fonts.TrueType;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Fonts;
 
-namespace SharpEditorAvalonia.Designer {
+namespace SharpEditorAvalonia.Designer.DrawingCanvas {
 
 	public class TypefaceGrouping {
 
@@ -14,7 +14,7 @@ namespace SharpEditorAvalonia.Designer {
 			public readonly FontSetting? origin;
 
 			public TypefaceInfo(TrueTypeFontFileOutlines typeface, PdfGlyphFont pdfFont, FontSetting? origin) {
-				this.outlines = typeface;
+				outlines = typeface;
 				this.pdfFont = pdfFont;
 				this.origin = origin;
 			}
@@ -176,17 +176,17 @@ namespace SharpEditorAvalonia.Designer {
 			PdfGlyphFont italicDefault = FontGraphicsRegistry.GetItalicDefault();
 			PdfGlyphFont boldItalicDefault = FontGraphicsRegistry.GetBoldItalicDefault();
 
-			this.SetFont(TextFormat.REGULAR, regularOutlines, regularDefault, null);
-			this.SetFont(TextFormat.BOLD, boldOutlines, boldDefault, null);
-			this.SetFont(TextFormat.ITALIC, italicOutlines, italicDefault, null);
-			this.SetFont(TextFormat.BOLDITALIC, bolditalicOutlines, boldItalicDefault, null);
+			SetFont(TextFormat.REGULAR, regularOutlines, regularDefault, null);
+			SetFont(TextFormat.BOLD, boldOutlines, boldDefault, null);
+			SetFont(TextFormat.ITALIC, italicOutlines, italicDefault, null);
+			SetFont(TextFormat.BOLDITALIC, bolditalicOutlines, boldItalicDefault, null);
 		}
 
 		public TypefaceGrouping(TypefaceGrouping source) {
-			this.regular = source.regular;
-			this.bold = source.bold;
-			this.italic = source.italic;
-			this.bolditalic = source.bolditalic;
+			regular = source.regular;
+			bold = source.bold;
+			italic = source.italic;
+			bolditalic = source.bolditalic;
 		}
 	}
 
