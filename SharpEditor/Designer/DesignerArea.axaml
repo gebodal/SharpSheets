@@ -23,7 +23,7 @@
 				<TextBox
 						x:Name="PageNumber"
 						Width="50" Height="30"
-						Background="#333337"
+						Background="#1e1e1e"
 						Foreground="LightGray"
 						VerticalContentAlignment="Center"
 						KeyDown="PageNumberKeyDown"
@@ -53,7 +53,7 @@
 					x:Name="CanvasZoomLevelText"
 					Width="75" Height="30"
 					Margin="10,0"
-					Background="#333337"
+					Background="#1e1e1e"
 					Foreground="LightGray"
 					VerticalContentAlignment="Center"
 					KeyDown="CanvasZoomPreviewKeyDown"

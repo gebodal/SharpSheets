@@ -31,6 +31,7 @@ namespace SharpEditor.DataManagers {
 			// Save the object in Instance
 
 			configPath = GetCurrentConfigPath();
+			Console.WriteLine("Calculated current config path: " + configPath);
 
 			if (File.Exists(configPath)) {
 				Console.WriteLine("Load existing config.");
@@ -59,15 +60,34 @@ namespace SharpEditor.DataManagers {
 
 		private static SharpDataManager? LoadSettings(string filePath) {
 			//Console.WriteLine($"Load settings from: {filePath}");
-			string jsonText = File.ReadAllText(filePath);
-			// TODO Need to deal better with unrecognised properties
-			return JsonSerializer.Deserialize<SharpDataManager>(jsonText, jsonSerializeoptions);
+			try {
+				string jsonText = File.ReadAllText(filePath, System.Text.Encoding.UTF8);
+				// TODO Need to deal better with unrecognised properties
+				return JsonSerializer.Deserialize<SharpDataManager>(jsonText, jsonSerializeoptions);
+			}
+			catch (IOException) {
+				return null;
+			}
+			catch (SystemException) {
+				return null;
+			}
 		}
 
 		private void Save() {
-			string jsonText = JsonSerializer.Serialize(this, jsonSerializeoptions);
-			File.WriteAllText(configPath, jsonText);
-			//Console.WriteLine($"Save settings to: {configPath}");
+			try {
+				string jsonText = JsonSerializer.Serialize(this, jsonSerializeoptions);
+				File.WriteAllText(configPath, jsonText, System.Text.Encoding.UTF8);
+				//Console.WriteLine($"Save settings to: {configPath}");
+				return;
+			}
+			catch (IOException) {
+				Console.WriteLine($"Could not save settings to: {configPath}");
+				return;
+			}
+			catch (SystemException) {
+				Console.WriteLine($"Could not save settings to: {configPath}");
+				return;
+			}
 		}
 
 		private static string GetCurrentConfigPath() {

@@ -50,7 +50,7 @@ namespace SharpEditor.DataManagers {
 		public static string? LastFileDirectory {
 			get {
 				string lastFileDirectory = SharpDataManager.Instance.LastFileDirectory;
-				return string.IsNullOrWhiteSpace(lastFileDirectory) ? null : lastFileDirectory;
+				return string.IsNullOrWhiteSpace(lastFileDirectory) ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) : lastFileDirectory;
 			}
 			set {
 				SharpDataManager.Instance.LastFileDirectory = string.IsNullOrWhiteSpace(value) ? "" : value;
