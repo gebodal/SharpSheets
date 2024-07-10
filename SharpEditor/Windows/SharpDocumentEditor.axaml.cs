@@ -805,22 +805,52 @@ namespace SharpEditor.Windows {
 
 			textEditor.PointerHover += TextEditorMouseHover;
 			textEditor.PointerHoverStopped += TextEditorMouseHoverStopped;
-			//textEditor.PointerMoved += TextEditorMouseHoverStopped;
+			textEditor.PointerMoved += TextEditorPointerMoved;
 			textEditor.TextArea.TextEntered += TextAreaTextEnteredTooptipClose;
 		}
 
 		void UninstallToolTip() {
 			textEditor.PointerHover -= TextEditorMouseHover;
 			textEditor.PointerHoverStopped -= TextEditorMouseHoverStopped;
-			//textEditor.PointerMoved -= TextEditorMouseHoverStopped;
+			textEditor.PointerMoved -= TextEditorPointerMoved;
 			textEditor.TextArea.TextEntered -= TextAreaTextEnteredTooptipClose;
+		}
+
+		private Avalonia.Point? toolTipOpenPos = null;
+		private readonly double PointerMoveEndToolTipDist = 30.0;
+
+		private void OpenToolTip(Avalonia.Point? position) {
+			toolTipOpenPos = position;
+
+			//TextEditorToolTip.IsOpen = true;
+			ToolTip.SetIsOpen(textEditor, true);
+			TextEditorToolTip.IsVisible = true;
+		}
+
+		private void CloseToolTip() {
+			toolTipOpenPos = null;
+
+			//TextEditorToolTip.IsOpen = false;
+			ToolTip.SetIsOpen(textEditor, false);
+			TextEditorToolTip.IsVisible = false;
+		}
+		
+		private void TextEditorPointerMoved(object? sender, PointerEventArgs e) {
+			if (ToolTip.GetIsOpen(textEditor) && toolTipOpenPos.HasValue) {
+				Avalonia.Point pointerPos = e.GetPosition(textEditor);
+
+				if(Avalonia.Point.Distance(toolTipOpenPos.Value, pointerPos) > PointerMoveEndToolTipDist) {
+					CloseToolTip();
+				}
+			}
 		}
 
 		void TextEditorMouseHover(object? sender, PointerEventArgs args) {
 			//ToolTip.SetIsOpen(textEditor, false);
 			//TextEditorToolTip.IsVisible = false;
 
-			TextViewPosition? pos = textEditor.GetPositionFromPoint(args.GetPosition(textEditor));
+			Avalonia.Point pointerPos = args.GetPosition(textEditor);
+			TextViewPosition? pos = textEditor.GetPositionFromPoint(pointerPos);
 			if (pos == null) return;
 			string? mouseWord = textEditor.Document.GetSharpTermStringFromViewPosition(pos.Value);
 			int posOffset = textEditor.Document.GetOffset(pos.Value);
@@ -854,26 +884,20 @@ namespace SharpEditor.Windows {
 			}
 
 			if (ToolTipPanel.Children.Count > 0) {
-				//TextEditorToolTip.IsOpen = true;
-				ToolTip.SetIsOpen(textEditor, true);
-				TextEditorToolTip.IsVisible = true;
+				OpenToolTip(pointerPos);
 				args.Handled = true;
 			}
 			else {
-				ToolTip.SetIsOpen(textEditor, false);
-				TextEditorToolTip.IsVisible = false;
+				CloseToolTip();
 			}
 		}
 
 		private void TextEditorMouseHoverStopped(object? sender, PointerEventArgs e) {
-			//TextEditorToolTip.IsOpen = false;
-			ToolTip.SetIsOpen(textEditor, false);
-			TextEditorToolTip.IsVisible = false;
+			CloseToolTip();
+			//Console.WriteLine("Hover stopped");
 		}
 		private void TextAreaTextEnteredTooptipClose(object? sender, TextInputEventArgs e) {
-			//TextEditorToolTip.IsOpen = false;
-			ToolTip.SetIsOpen(textEditor, false);
-			TextEditorToolTip.IsVisible = false;
+			CloseToolTip();
 		}
 		#endregion Tooltip
 
