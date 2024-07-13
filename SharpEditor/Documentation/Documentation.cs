@@ -587,6 +587,7 @@ namespace SharpEditor.Documentation {
 		Shapes,
 		Boxes, LabelledBoxes, TitledBoxes,
 		TitleStyles,
+		EntriedShapes,
 		Bars, UsageBars,
 		Details,
 		MarkupElements,

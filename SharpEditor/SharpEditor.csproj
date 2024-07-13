@@ -30,9 +30,10 @@
     <None Remove="Documentation\Content\4 Shapes\2 Labelled Boxes.sd" />
     <None Remove="Documentation\Content\4 Shapes\3 Titled Boxes.sd" />
     <None Remove="Documentation\Content\4 Shapes\4 Title Styles.sd" />
-    <None Remove="Documentation\Content\4 Shapes\5 Bars.sd" />
-    <None Remove="Documentation\Content\4 Shapes\6 Usage Bars.sd" />
-    <None Remove="Documentation\Content\4 Shapes\7 Details.sd" />
+    <None Remove="Documentation\Content\4 Shapes\5 Entried Shapes.sd" />
+    <None Remove="Documentation\Content\4 Shapes\6 Bars.sd" />
+    <None Remove="Documentation\Content\4 Shapes\7 Usage Bars.sd" />
+    <None Remove="Documentation\Content\4 Shapes\8 Details.sd" />
     <None Remove="Documentation\Content\4 Shapes\Main.sd" />
     <None Remove="Documentation\Content\5 Cards\1 Configuration Tutorial.sd" />
     <None Remove="Documentation\Content\5 Cards\2 Subjects Tutorial.sd" />
@@ -139,9 +140,10 @@
     <EmbeddedResource Include="Documentation\Content\4 Shapes\2 Labelled Boxes.sd" />
     <EmbeddedResource Include="Documentation\Content\4 Shapes\3 Titled Boxes.sd" />
     <EmbeddedResource Include="Documentation\Content\4 Shapes\4 Title Styles.sd" />
-    <EmbeddedResource Include="Documentation\Content\4 Shapes\5 Bars.sd" />
-    <EmbeddedResource Include="Documentation\Content\4 Shapes\6 Usage Bars.sd" />
-    <EmbeddedResource Include="Documentation\Content\4 Shapes\7 Details.sd" />
+    <EmbeddedResource Include="Documentation\Content\4 Shapes\5 Entried Shapes.sd" />
+    <EmbeddedResource Include="Documentation\Content\4 Shapes\6 Bars.sd" />
+    <EmbeddedResource Include="Documentation\Content\4 Shapes\7 Usage Bars.sd" />
+    <EmbeddedResource Include="Documentation\Content\4 Shapes\8 Details.sd" />
     <EmbeddedResource Include="Documentation\Content\4 Shapes\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\5 Cards\1 Configuration Tutorial.sd" />
     <EmbeddedResource Include="Documentation\Content\5 Cards\2 Subjects Tutorial.sd" />

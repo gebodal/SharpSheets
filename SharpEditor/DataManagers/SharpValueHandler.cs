@@ -90,6 +90,9 @@ namespace SharpEditor.DataManagers {
 			else if (type == typeof(ITitleStyledBox)) {
 				return "TitleStyle";
 			}
+			else if (type == typeof(IEntriedShape)) {
+				return "EntriedShape";
+			}
 			else if (type == typeof(IBar)) {
 				return "Bar";
 			}
