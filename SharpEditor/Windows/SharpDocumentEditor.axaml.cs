@@ -1432,6 +1432,7 @@ namespace SharpEditor.Windows {
 
 		private void DuplicateExecuted() {
 			if (textEditor is not null) {
+				if (textEditor.TextArea.Selection.IsEmpty) {
 				DocumentLine currentLine = textEditor.Document.GetLineByOffset(textEditor.CaretOffset);
 				string currentLineText;
 				if (currentLine.NextLine is DocumentLine nextLine) {
@@ -1441,6 +1442,14 @@ namespace SharpEditor.Windows {
 					currentLineText = textEditor.Document.GetText(currentLine.Offset, currentLine.TotalLength) + "\n";
 				}
 				textEditor.Document.Insert(currentLine.Offset, currentLineText);
+			}
+				else {
+					(int startOffset, int length) = GetSelection();
+					int endOffset = startOffset + length;
+
+					string selectedText = textEditor.Document.GetText(startOffset, length);
+					textEditor.Document.Insert(endOffset, selectedText);
+				}
 			}
 		}
 
