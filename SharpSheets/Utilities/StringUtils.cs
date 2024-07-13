@@ -75,5 +75,17 @@ namespace SharpSheets.Utilities {
 			return c;
 		}
 
+		public static string TrimToMax(this string str, int maxLength, string continuationString = "...") {
+			if (str.Length <= maxLength) {
+				return str;
+			}
+			else if (str.Length <= continuationString.Length) {
+				return continuationString;
+			}
+			else {
+				return str[^continuationString.Length..] + continuationString;
+			}
+		}
+
 	}
 }

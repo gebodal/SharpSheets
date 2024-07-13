@@ -110,10 +110,11 @@ namespace SharpSheets.Widgets {
 		protected readonly IContainerShape outline;
 		protected readonly Margins frame;
 
-		protected readonly string fieldName;
+		protected readonly string? fieldName;
 
 		protected readonly FieldDetails fieldDetails;
 
+		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(fieldName) ? $" ({fieldName})" : "");
 
 		/// <summary>
 		/// Constructor for Section widget.
@@ -137,7 +138,7 @@ namespace SharpSheets.Widgets {
 			this.outline = outline ?? new NoOutline(-1, trim: Margins.Zero);
 			this.frame = _frame;
 
-			fieldName = name ?? "Section";
+			fieldName = name;
 
 			this.fieldDetails = field ?? new FieldDetails();
 		}
@@ -168,7 +169,7 @@ namespace SharpSheets.Widgets {
 					canvas.RestoreState();
 				}
 				else {
-					canvas.TextField(remainingRect, fieldName, fieldDetails.tooltip, TextFieldType.STRING, "", fieldDetails.font, fieldDetails.fontsize, !fieldDetails.singleline, fieldDetails.rich, fieldDetails.justification);
+					canvas.TextField(remainingRect, fieldName ?? "Section", fieldDetails.tooltip, TextFieldType.STRING, "", fieldDetails.font, fieldDetails.fontsize, !fieldDetails.singleline, fieldDetails.rich, fieldDetails.justification);
 				}
 			}
 		}
@@ -231,11 +232,13 @@ namespace SharpSheets.Widgets {
 			}
 		}
 
-		protected readonly string name;
+		protected readonly string? name;
 		protected readonly IContainerShape outline;
 		protected readonly Margins frame;
 
 		protected readonly FieldDetails fieldDetails;
+
+		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(name) ? $" ({name})" : "");
 
 		/// <summary>
 		/// 
@@ -256,7 +259,7 @@ namespace SharpSheets.Widgets {
 				FieldDetails? field = null
 			) : base(setup) {
 
-			this.name = name ?? "Box";
+			this.name = name;
 			this.outline = outline ?? new NoOutline(-1, trim: Margins.Zero);
 			this.frame = _frame;
 
@@ -276,11 +279,12 @@ namespace SharpSheets.Widgets {
 			remainingRect = remainingRect.Margins(frame, false);
 
 			if (children.Count == 0) {
+				string fieldName = name ?? "Box";
 				if (fieldDetails.checkType.HasValue) {
-					canvas.CheckField(remainingRect, name, fieldDetails.tooltip, fieldDetails.checkType.Value);
+					canvas.CheckField(remainingRect, fieldName, fieldDetails.tooltip, fieldDetails.checkType.Value);
 				}
 				else {
-					canvas.TextField(remainingRect, name, fieldDetails.tooltip, TextFieldType.STRING, "", fieldDetails.font, fieldDetails.fontsize, false, fieldDetails.rich, fieldDetails.justification);
+					canvas.TextField(remainingRect, fieldName, fieldDetails.tooltip, TextFieldType.STRING, "", fieldDetails.font, fieldDetails.fontsize, false, fieldDetails.rich, fieldDetails.justification);
 				}
 			}
 		}
@@ -383,12 +387,14 @@ namespace SharpSheets.Widgets {
 		protected readonly Margins frame;
 
 		protected readonly LabelParams labelParams;
-		protected readonly string label;
+		protected readonly string? label;
 		protected readonly string fieldName;
 
 		protected readonly FieldDetails fieldDetails;
 
 		protected readonly Div? content;
+
+		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(label) ? $" ({label})" : "");
 
 		/// <summary>
 		/// Constructor for Labelled widget.
@@ -421,8 +427,8 @@ namespace SharpSheets.Widgets {
 			this.frame = _frame;
 
 			this.labelParams = label__ ?? new LabelParams();
-			this.label = label ?? "LABEL";
-			this.fieldName = label ?? this.GetType().Name;
+			this.label = label;
+			this.fieldName = label ?? "Labelled";
 
 			this.fieldDetails = field ?? new FieldDetails();
 
@@ -441,7 +447,7 @@ namespace SharpSheets.Widgets {
 			else {
 				canvas.SaveState();
 				canvas.SetTextFormatAndSize(labelParams.format, labelParams.fontSize).SetFillColor(canvas.GetForegroundColor());
-				canvas.DrawText(labelRect, label, labelParams.justification, labelParams.alignment, labelParams.heightStrategy, (labelParams.offset.x, labelParams.offset.y));
+				canvas.DrawText(labelRect, label ?? "LABEL", labelParams.justification, labelParams.alignment, labelParams.heightStrategy, (labelParams.offset.x, labelParams.offset.y));
 				canvas.RestoreState();
 			}
 
@@ -510,6 +516,8 @@ namespace SharpSheets.Widgets {
 
 		protected readonly bool fit;
 		protected readonly bool singleline;
+
+		public override string DisplayName => base.DisplayName + $" (\"{text.Formatted.TrimToMax(25)}\")";
 
 		/// <summary>
 		/// Constructor for Text widget.
@@ -649,6 +657,44 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
+	public class Entried : SharpWidget {
+
+		protected readonly IEntriedShape outline;
+
+		public Entried(WidgetSetup setup, IEntriedShape outline) : base(setup) {
+			this.outline = outline;
+		}
+
+		protected override Rectangle?[] GetChildRects(ISharpGraphicsState graphicsState, Rectangle rect, out Rectangle availableRect, out Rectangle? childrenRectArea, out Rectangle?[] gutters) {
+
+			childrenRectArea = null;
+			gutters = new Rectangle?[outline.EntryCount - 1]; // All null, but correct count
+
+			availableRect = rect.Margins(setup.margins, false);
+
+			Rectangle?[] childRects = new Rectangle?[outline.EntryCount];
+			for (int i = 0; i < outline.EntryCount; i++) {
+				try {
+					childRects[i] = outline.EntryRect(graphicsState, i, rect);
+				}
+				catch (InvalidRectangleException) {
+					childRects[i] = null;
+				}
+			}
+
+			return childRects;
+		}
+
+		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
+			outline.Draw(canvas, rect);
+		}
+
+		protected override Rectangle? GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
+			return null;
+		}
+
+	}
+
 	// Unified bars should have a FieldDetails argument, so that the fields can be adjusted
 
 	public class BarNameDetails : ISharpArgsGrouping {
@@ -684,44 +730,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	public class Entried : SharpWidget {
-
-		protected readonly IEntriedShape outline;
-
-		public Entried(WidgetSetup setup, IEntriedShape outline) : base(setup) {
-			this.outline = outline;
-		}
-
-		protected override Rectangle?[] GetChildRects(ISharpGraphicsState graphicsState, Rectangle rect, out Rectangle availableRect, out Rectangle? childrenRectArea, out Rectangle?[] gutters) {
-
-			childrenRectArea = null;
-			gutters = new Rectangle?[outline.EntryCount - 1]; // All null, but correct count
-
-			availableRect = rect.Margins(setup.margins, false);
-
-			Rectangle?[] childRects = new Rectangle?[outline.EntryCount];
-			for(int i=0; i<outline.EntryCount; i++) {
-				try {
-					childRects[i] = outline.EntryRect(graphicsState, i, rect);
-				}
-				catch (InvalidRectangleException) {
-					childRects[i] = null;
-				}
-			}
-
-			return childRects;
-		}
-
-		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
-			outline.Draw(canvas, rect);
-		}
-
-		protected override Rectangle? GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
-			return null;
-		}
-
-	}
-
 	/// <summary>
 	/// This widget draws one or more bars in the document, arranged vertically. The spacing
 	/// and size of these bars can be specified, and if an absolute value is given for the bar
@@ -750,6 +758,8 @@ namespace SharpSheets.Widgets {
 
 		protected readonly Div? content;
 		protected readonly Div? entry;
+
+		public override string DisplayName => base.DisplayName + (barNames.Length > 0 ? " (" + string.Join(", ", barNames) + ")" : "");
 
 		/// <summary>
 		/// Constructor for Bars widget.
@@ -943,6 +953,8 @@ namespace SharpSheets.Widgets {
 		protected readonly Div? entry1;
 		protected readonly Div? entry2;
 
+		public override string DisplayName => base.DisplayName + (barNames.Length > 0 ? " (" + string.Join(", ", barNames) + ")" : "");
+
 		/// <summary>
 		/// Constructor for SlotsBars widget.
 		/// </summary>
@@ -1131,6 +1143,7 @@ namespace SharpSheets.Widgets {
 		protected readonly CheckType checkType;
 		protected readonly Color? checkColor;
 
+		public override string DisplayName => base.DisplayName + (list.Length > 0 ? " (" + string.Join(", ", list.Select(i => i.Formatted.TrimToMax(10))) + ")" : "");
 
 		/// <summary>
 		/// Constructor for CheckList widget.
@@ -1256,7 +1269,7 @@ namespace SharpSheets.Widgets {
 	/// </summary>
 	public class Field : SharpWidget {
 
-		protected readonly string name;
+		protected readonly string? name;
 		protected readonly string? tooltip;
 
 		protected readonly float? aspect;
@@ -1268,6 +1281,8 @@ namespace SharpSheets.Widgets {
 		protected readonly bool lined;
 		protected readonly Justification justification;
 		protected readonly TextFieldType type;
+
+		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(name) ? $" ({name})" : "");
 
 		/// <summary>
 		/// Constructor for Field widget.
@@ -1309,7 +1324,7 @@ namespace SharpSheets.Widgets {
 				TextFieldType type = TextFieldType.STRING
 			) : base(setup) {
 
-			this.name = name ?? "Field";
+			this.name = name;
 			this.tooltip = tooltip;
 
 			this.aspect = aspect;
@@ -1341,7 +1356,7 @@ namespace SharpSheets.Widgets {
 				canvas.RestoreState();
 			}
 			else {
-				canvas.TextField(rect, name, tooltip, type, value, format, fontsize, multiline, rich, justification);
+				canvas.TextField(rect, name ?? "Field", tooltip, type, value, format, fontsize, multiline, rich, justification);
 			}
 		}
 
@@ -1355,12 +1370,14 @@ namespace SharpSheets.Widgets {
 	/// </summary>
 	public class CheckField : SharpWidget {
 
-		protected readonly string name;
+		protected readonly string? name;
 		protected readonly string? tooltip;
 
 		protected readonly float? aspect;
 		protected readonly CheckType check;
 		protected readonly Color? color;
+
+		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(name) ? $" ({name})" : "");
 
 		/// <summary>
 		/// Constructor for CheckField widget.
@@ -1385,7 +1402,7 @@ namespace SharpSheets.Widgets {
 				Color? color = null
 			) : base(setup) {
 
-			this.name = name ?? "CheckBox";
+			this.name = name;
 			this.tooltip = tooltip;
 
 			this.aspect = aspect;
@@ -1395,7 +1412,7 @@ namespace SharpSheets.Widgets {
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 			if (aspect.HasValue) { rect = rect.Aspect(aspect.Value); }
-			canvas.CheckField(rect, name, tooltip, check, color ?? canvas.GetTextColor());
+			canvas.CheckField(rect, name ?? "CheckBox", tooltip, check, color ?? canvas.GetTextColor());
 		}
 
 		protected override Rectangle? GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
@@ -1408,11 +1425,13 @@ namespace SharpSheets.Widgets {
 	/// </summary>
 	public class ImageField : SharpWidget {
 
-		protected readonly string name;
+		protected readonly string? name;
 		protected readonly string? tooltip;
 
 		protected readonly CanvasImageData? placeholder;
 		protected readonly float aspect;
+
+		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(name) ? $" ({name})" : "");
 
 		/// <summary>
 		/// Constructor for ImageField widget.
@@ -1434,14 +1453,14 @@ namespace SharpSheets.Widgets {
 				CanvasImageData? placeholder = null,
 				float aspect = -1
 			) : base(setup) {
-			this.name = name ?? "ImageField";
+			this.name = name;
 			this.tooltip = tooltip;
 			this.placeholder = placeholder;
 			this.aspect = aspect;
 		}
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
-			canvas.ImageField(rect.Aspect(aspect), name, tooltip, placeholder);
+			canvas.ImageField(rect.Aspect(aspect), name ?? "ImageField", tooltip, placeholder);
 		}
 
 		protected override Rectangle? GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
@@ -1511,7 +1530,7 @@ namespace SharpSheets.Widgets {
 	/// </summary>
 	public class TopEntry : SharpWidget {
 
-		protected readonly string name;
+		protected readonly string? name;
 
 		protected readonly string? text;
 		protected readonly TextFormat format;
@@ -1520,6 +1539,8 @@ namespace SharpSheets.Widgets {
 		protected readonly float headerSpacing;
 		protected readonly (float x, float y) textOffset;
 		protected readonly bool rich;
+
+		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(text ?? name) ? $" ({text ?? name})" : "");
 
 		/// <summary>
 		/// Constructor for TopEntry.
@@ -1554,7 +1575,7 @@ namespace SharpSheets.Widgets {
 				bool rich = false
 			) : base(setup) {
 
-			this.name = name ?? "TopEntry";
+			this.name = name;
 			this.text = text;
 			format = _format;
 			this.fontSize = fontSize; // 6.5f;
@@ -1568,6 +1589,7 @@ namespace SharpSheets.Widgets {
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 			canvas.SaveState();
 
+			string fieldName = name ?? "TopEntry";
 			float entryNameWidth = text != null ? canvas.GetWidth(text, format, fontSize) : 0f;
 
 			Color entryColor = canvas.GetMidtoneColor().Darken(0.6f);
@@ -1583,7 +1605,7 @@ namespace SharpSheets.Widgets {
 			float entryStart = rect.X + (entryNameWidth > 0 ? entryNameWidth + canvas.GetWidth(" ", format, fontSize) * 2 : 0);
 			float entryWidth = rect.Width - (entryStart - rect.X);
 			Rectangle entryFieldRect = new Rectangle(entryStart, rect.Top - headerHeight, entryWidth, fontSize * 1.5f);
-			canvas.TextField(entryFieldRect, $"{name}_{text ?? "top"}", null, TextFieldType.STRING, "", format, fontSize, false, rich, Justification.LEFT); // TODO Tooltip?
+			canvas.TextField(entryFieldRect, $"{fieldName}_{text ?? "top"}", null, TextFieldType.STRING, "", format, fontSize, false, rich, Justification.LEFT); // TODO Tooltip?
 
 			canvas.SetStrokeColor(entryColor);
 			canvas.MoveToRel(entryFieldRect, 0, 0).LineToRel(entryFieldRect, 1, 0).Stroke();
@@ -1592,7 +1614,7 @@ namespace SharpSheets.Widgets {
 
 			if (children.Count == 0 ) {
 				Rectangle remainingRect = GetContainerArea(canvas, rect);
-				canvas.TextField(remainingRect, name, null, TextFieldType.STRING, "", TextFormat.REGULAR, 0, false, rich, Justification.CENTRE); // TODO Tooltip?
+				canvas.TextField(remainingRect, fieldName, null, TextFieldType.STRING, "", TextFormat.REGULAR, 0, false, rich, Justification.CENTRE); // TODO Tooltip?
 			}
 		}
 
@@ -1615,7 +1637,7 @@ namespace SharpSheets.Widgets {
 		// TODO This should follow similar conventions to the LinedWidgets, with row spacing and the like
 		// TODO This should probably have a FieldDetails argument, to allow for better customization
 
-		protected readonly string name;
+		protected readonly string? name;
 
 		protected readonly string[]? columnNames;
 		protected readonly Dimension[] columnRatios;
@@ -1630,6 +1652,8 @@ namespace SharpSheets.Widgets {
 		protected readonly bool rich;
 
 		protected readonly IBox boxStyle;
+
+		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(name) ? $" ({name})" : "");
 
 		/// <summary>
 		/// Constructor for Subdivided widget.
@@ -1663,7 +1687,7 @@ namespace SharpSheets.Widgets {
 				bool rich = false
 			) : base(setup) {
 
-			this.name = name ?? "Subdivided";
+			this.name = name;
 
 			int numColumns = Math.Max(columns?.Length ?? 1, widths?.Length ?? 1);
 
@@ -1801,6 +1825,8 @@ namespace SharpSheets.Widgets {
 
 			//canvas.SetFillColor(canvas.GetMidtoneColor());
 
+			string fieldName = name ?? "Subdivided";
+
 			if (rows != null) {
 				for (int i = 0; i < rows.Length; i++) {
 					if (rows[i] != null) {
@@ -1810,7 +1836,7 @@ namespace SharpSheets.Widgets {
 							//canvas.CorneredRectangle(columns[j], 3f).Fill();
 							if (columns[j] is not null) {
 								this.boxStyle.Draw(canvas, columns[j]!, out Rectangle cellRemaining);
-								canvas.TextField(cellRemaining, $"{name}_{i + 1}_{(columnNames != null ? columnNames[j] : "COLUMN")}", null, TextFieldType.STRING, "", TextFormat.REGULAR, 0, false, rich, justifications[j]); // TODO Tooltip?
+								canvas.TextField(cellRemaining, $"{fieldName}_{i + 1}_{(columnNames != null ? columnNames[j] : "COLUMN")}", null, TextFieldType.STRING, "", TextFormat.REGULAR, 0, false, rich, justifications[j]); // TODO Tooltip?
 							}
 						}
 					}
@@ -1820,7 +1846,7 @@ namespace SharpSheets.Widgets {
 			canvas.RestoreState();
 
 			if (children.Count == 0 && remainingRect != null) {
-				canvas.TextField(remainingRect, name, null, TextFieldType.STRING, "", TextFormat.REGULAR, 0, true, rich, 0); // TODO Tooltip?
+				canvas.TextField(remainingRect, fieldName, null, TextFieldType.STRING, "", TextFormat.REGULAR, 0, true, rich, 0); // TODO Tooltip?
 			}
 			// else nothing
 		}

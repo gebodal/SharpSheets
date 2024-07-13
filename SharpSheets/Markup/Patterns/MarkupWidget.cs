@@ -157,6 +157,8 @@ namespace SharpSheets.Markup.Patterns {
 
 		public MarkupPattern Pattern => pattern;
 
+		public override string DisplayName => Pattern.Name;
+
 		private readonly MarkupWidgetPattern pattern;
 		private readonly DrawableDivElement? drawableDiv;
 

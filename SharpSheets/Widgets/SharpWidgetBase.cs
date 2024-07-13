@@ -12,6 +12,7 @@ using SharpSheets.Utilities;
 namespace SharpSheets.Widgets {
 
 	public interface IWidget : IDrawableGridElement {
+		string DisplayName { get; }
 		bool AddChild(IWidget child); // Do we actually need these to be widgets? Can they just be IDrawableGridElement?
 	}
 
@@ -23,6 +24,8 @@ namespace SharpSheets.Widgets {
 		public Margins Margins => setup.margins;
 		public Dimension? Size => setup.size;
 		public Position? Position => setup.position;
+
+		public virtual string DisplayName => this.GetType().Name;
 
 		public IReadOnlyList<IGridElement> Children { get { return children.ToList<IGridElement>(); } }
 
@@ -189,7 +192,7 @@ namespace SharpSheets.Widgets {
 							}
 						}
 						else if (children[i].GetType() != typeof(Empty)) { // It's fine if Empty children have no space available
-							throw new SharpDrawingException(children[i], $"No rect available for child {i} ({children[i].GetType().Name})");
+							throw new SharpDrawingException(children[i], $"No rect available for child {i}: {children[i].DisplayName}");
 						}
 					}
 					catch (SharpDrawingException e) {
@@ -204,7 +207,7 @@ namespace SharpSheets.Widgets {
 				}
 			}
 
-			if (setup.diagnostic) { DrawableElementUtils.DrawDiagnostics(canvas, this, this.GetType().Name, rect, availableRect, childrenRectArea); }
+			if (setup.diagnostic) { DrawableElementUtils.DrawDiagnostics(canvas, this, DisplayName, rect, availableRect, childrenRectArea); }
 
 			canvas.RestoreState();
 			//Console.WriteLine($"Finish drawing: {GetType().Name} -> {rect} ({Size})");
