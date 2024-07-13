@@ -52,9 +52,11 @@ namespace SharpSheets.Shapes {
 	public interface ITitledBox : IAbstractTitledFrame, IBox { }
 	public interface ITitleStyledBox : IAbstractTitledFrame { }
 
+	public interface IEntriedShape : IAreaShape, IEntriedArea { }
+
 	public interface IBar : IAreaShape, IFramedArea, ILabelledArea { }
 
-	public interface IUsageBar : IAreaShape, ILabelledArea, IEntriedArea { }
+	public interface IUsageBar : IEntriedShape, ILabelledArea { }
 
 	public interface IDetail : IShape {
 		Layout Layout { set; }
@@ -215,6 +217,14 @@ namespace SharpSheets.Shapes {
 			// This should be overriden as needed by subclasses
 			return box.AspectRect(graphicsState, rect);
 		}
+	}
+
+	public abstract class EntriedShapeBase : AbstractAreaShape, IEntriedShape {
+		public abstract int EntryCount { get; }
+
+		public EntriedShapeBase(float aspect) : base(aspect) { }
+
+		public abstract Rectangle EntryRect(ISharpGraphicsState graphicsState, int entryIndex, Rectangle rect);
 	}
 
 	public abstract class BarBase : AbstractFrame, IBar {

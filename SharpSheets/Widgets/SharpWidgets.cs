@@ -684,6 +684,44 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
+	public class Entried : SharpWidget {
+
+		protected readonly IEntriedShape outline;
+
+		public Entried(WidgetSetup setup, IEntriedShape outline) : base(setup) {
+			this.outline = outline;
+		}
+
+		protected override Rectangle?[] GetChildRects(ISharpGraphicsState graphicsState, Rectangle rect, out Rectangle availableRect, out Rectangle? childrenRectArea, out Rectangle?[] gutters) {
+
+			childrenRectArea = null;
+			gutters = new Rectangle?[outline.EntryCount - 1]; // All null, but correct count
+
+			availableRect = rect.Margins(setup.margins, false);
+
+			Rectangle?[] childRects = new Rectangle?[outline.EntryCount];
+			for(int i=0; i<outline.EntryCount; i++) {
+				try {
+					childRects[i] = outline.EntryRect(graphicsState, i, rect);
+				}
+				catch (InvalidRectangleException) {
+					childRects[i] = null;
+				}
+			}
+
+			return childRects;
+		}
+
+		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
+			outline.Draw(canvas, rect);
+		}
+
+		protected override Rectangle? GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
+			return null;
+		}
+
+	}
+
 	/// <summary>
 	/// This widget draws one or more bars in the document, arranged vertically. The spacing
 	/// and size of these bars can be specified, and if an absolute value is given for the bar
@@ -1876,7 +1914,7 @@ namespace SharpSheets.Widgets {
 				float? spacing = null,
 				Spacing spacing_ = default,
 				ChildHolder? content = null,
-				GutterLayout gutterLayout = GutterLayout.NONE
+				GutterLayout gutterLayout = Widgets.GutterLayout.NONE
 			) : base(setup) {
 
 			this.name = name;
@@ -1900,13 +1938,13 @@ namespace SharpSheets.Widgets {
 
 			// Deal with gutters depending on Layout instead of custom GutterLayout
 			if (setup.gutterStyle is IDetail gutterStyle) {
-				if (gutterLayout == GutterLayout.COLUMNS) {
+				if (gutterLayout == Widgets.GutterLayout.COLUMNS) {
 					gutterStyle.Layout = Layout.COLUMNS;
 					for (int i = 0; i < columnGutters.Length; i++) {
 						gutterStyle.Draw(canvas, columnGutters[i]);
 					}
 				}
-				else if (gutterLayout == GutterLayout.ROWS) {
+				else if (gutterLayout == Widgets.GutterLayout.ROWS) {
 					gutterStyle.Layout = Layout.ROWS;
 					for (int i = 0; i < rowGutters.Length; i++) {
 						gutterStyle.Draw(canvas, rowGutters[i]);
@@ -1993,6 +2031,8 @@ namespace SharpSheets.Widgets {
 
 		protected readonly GutterLayout gutterLayout;
 
+		public override Layout GutterLayout => gutterLayout == Widgets.GutterLayout.COLUMNS ? Layout.COLUMNS : Layout.ROWS;
+
 		/// <summary>
 		/// Constructor for Grid widget.
 		/// </summary>
@@ -2014,7 +2054,7 @@ namespace SharpSheets.Widgets {
 				GridFlow _flow = GridFlow.Rows,
 				float? spacing = null,
 				Spacing spacing_ = default,
-				GutterLayout gutterLayout = GutterLayout.NONE
+				GutterLayout gutterLayout = Widgets.GutterLayout.NONE
 			) : base(setup) {
 
 			rows = _rows;
@@ -2030,85 +2070,26 @@ namespace SharpSheets.Widgets {
 			this.gutterLayout = gutterLayout;
 		}
 
-		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
-			return;
-		}
-
-		public override void Draw(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
-
-			if (cancellationToken.IsCancellationRequested) { return; }
-
-			canvas.SaveState();
-
-			canvas.ApplySetup(setup);
-
-			Rectangle availableRect = rect.Margins(setup.margins, false);
+		protected override Rectangle?[] GetChildRects(ISharpGraphicsState graphicsState, Rectangle rect, out Rectangle availableRect, out Rectangle? childrenRectArea, out Rectangle?[] gutters) {
+			availableRect = rect.Margins(setup.margins, false);
 			Rectangle[] gridRects = Divisions.Grid(availableRect, (int)rows, (int)columns, Gutter, Gutter, out Rectangle[] rowGutters, out Rectangle[] columnGutters).Flatten(flow == GridFlow.Rows).ToArray();
 
-			RegisterAreas(canvas, rect, availableRect);
+			childrenRectArea = null;
 
-			if (cancellationToken.IsCancellationRequested) {
-				canvas.RestoreState();
-				return;
+			if (gutterLayout == Widgets.GutterLayout.COLUMNS) {
+				gutters = columnGutters;
+			}
+			else if (gutterLayout == Widgets.GutterLayout.ROWS) {
+				gutters = rowGutters;
+			}
+			else {
+				gutters = new Rectangle?[columnGutters.Length];
 			}
 
-			if (children.Count > 0) {
+			return gridRects;
+		}
 
-				if (setup.gutterStyle is IDetail gutterStyle) {
-					if (gutterLayout == GutterLayout.COLUMNS) {
-						gutterStyle.Layout = Layout.COLUMNS;
-						for (int g = 0; g < columnGutters.Length; g++) {
-							gutterStyle.Draw(canvas, columnGutters[g]);
-						}
-					}
-					else if (gutterLayout == GutterLayout.ROWS) {
-						gutterStyle.Layout = Layout.ROWS;
-						for (int g = 0; g < rowGutters.Length; g++) {
-							gutterStyle.Draw(canvas, rowGutters[g]);
-						}
-					}
-				}
-
-				int i;
-				for (i = 0; i < gridRects.Length && i < children.Count; i++) {
-					try {
-						if (gridRects[i] != null) {
-							try {
-								children[i].Draw(canvas, gridRects[i]!, cancellationToken);
-							}
-							catch (SharpDrawingException e) {
-								throw e;
-							}
-							catch (InvalidRectangleException e) {
-								throw new SharpDrawingException(children[i], "Layout error: " + e.Message, e);
-							}
-							catch (Exception e) {
-								throw new SharpDrawingException(children[i], "Drawing error: " + e.Message, e);
-							}
-						}
-						else if (children[i].GetType() != typeof(Empty)) { // It's fine if Empty children have no space available
-							canvas.LogError(new SharpDrawingException(children[i], $"No rect available for child {i+1} of {children.Count} ({children[i].GetType().Name})"));
-						}
-					}
-					catch (SharpDrawingException e) {
-						CreateErrorRect(canvas, gridRects[i] ?? rect, e);
-					}
-
-					if (cancellationToken.IsCancellationRequested) {
-						canvas.RestoreState();
-						return;
-					}
-				}
-
-				for (; i < children.Count; i++) {
-					canvas.LogError(new SharpDrawingException(children[i], $"No rect available for child {i+1} of {children.Count} ({children[i].GetType().Name})"));
-				}
-			}
-
-			if (setup.diagnostic) { DrawableElementUtils.DrawDiagnostics(canvas, this, this.GetType().Name, rect, availableRect, null); }
-
-			canvas.RestoreState();
-
+		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 			return;
 		}
 

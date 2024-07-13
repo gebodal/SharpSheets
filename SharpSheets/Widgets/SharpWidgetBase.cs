@@ -30,6 +30,7 @@ namespace SharpSheets.Widgets {
 		public Arrangement Arrangement => setup.arrangement;
 		public LayoutOrder Order => setup.order;
 		public float Gutter => setup.gutter;
+		public virtual Layout GutterLayout => Layout;
 
 		public virtual bool ProvidesRemaining { get; } = true;
 
@@ -84,6 +85,10 @@ namespace SharpSheets.Widgets {
 		/// <returns></returns>
 		/// <exception cref="InvalidRectangleException"></exception>
 		protected abstract Rectangle? GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect);
+
+		protected virtual Rectangle?[] GetChildRects(ISharpGraphicsState graphicsState, Rectangle rect, out Rectangle availableRect, out Rectangle? childrenRectArea, out Rectangle?[] gutters) {
+			return GridElements.GetElementRects(this, children.ToArray<IGridElement>(), new CanvasStateImage(graphicsState), rect, out availableRect, out childrenRectArea, out gutters, out _, out _);
+		}
 
 		public Rectangle?[] DiagnosticRects(ISharpGraphicsState graphicsState, Rectangle available) {
 			/*
@@ -144,7 +149,7 @@ namespace SharpSheets.Widgets {
 
 			canvas.ApplySetup(setup);
 
-			Rectangle?[] childRects = GridElements.GetElementRects(this, children.ToArray<IGridElement>(), new CanvasStateImage(canvas), rect, out Rectangle availableRect, out Rectangle? childrenRectArea, out Rectangle?[] gutters, out _, out _);
+			Rectangle?[] childRects = GetChildRects(canvas, rect, out Rectangle availableRect, out Rectangle? childrenRectArea, out Rectangle?[] gutters);
 
 			RegisterAreas(canvas, rect, availableRect);
 
@@ -158,7 +163,7 @@ namespace SharpSheets.Widgets {
 			if (this.ProvidesRemaining && children.Count > 0) {
 
 				if (setup.gutterStyle != null && gutters != null) {
-					setup.gutterStyle.Layout = Layout;
+					setup.gutterStyle.Layout = GutterLayout; // This is awful. There must be a better way.
 					for (int i = 0; i < gutters.Length; i++) {
 						if (gutters[i] != null) {
 							setup.gutterStyle.Draw(canvas, gutters[i]!);
@@ -166,10 +171,10 @@ namespace SharpSheets.Widgets {
 					}
 				}
 
-				for (int i = 0; i < childRects.Length; i++) {
+				for (int i = 0; i < children.Count; i++) {
 					//Console.WriteLine($"CHILD: {children[i].GetType().Name} => {childRects[i]}");
 					try {
-						if (childRects[i] != null) {
+						if (i < childRects.Length && childRects[i] != null) {
 							try {
 								children[i].Draw(canvas, childRects[i]!, cancellationToken);
 							}
@@ -188,7 +193,8 @@ namespace SharpSheets.Widgets {
 						}
 					}
 					catch (SharpDrawingException e) {
-						CreateErrorRect(canvas, childRects[i] ?? rect, e);
+						Rectangle errorRect = (i < childRects.Length ? childRects[i] : null) ?? rect;
+						CreateErrorRect(canvas, errorRect, e);
 					}
 
 					if (cancellationToken.IsCancellationRequested) {

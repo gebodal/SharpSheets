@@ -37,6 +37,7 @@ namespace SharpSheets.Shapes {
 			[typeof(ILabelledBox)] = typeof(SimpleLabelledBox),
 			[typeof(ITitledBox)] = typeof(BlockTitledBox),
 			[typeof(ITitleStyledBox)] = typeof(Named),
+			[typeof(IEntriedShape)] = typeof(SimpleEntried),
 			[typeof(IBar)] = typeof(SimpleBar),
 			[typeof(IUsageBar)] = typeof(SimpleUsageBar),
 			[typeof(IDetail)] = typeof(Blank)
@@ -47,6 +48,7 @@ namespace SharpSheets.Shapes {
 			[typeof(ILabelledBox)] = new Type[] { typeof(float) },
 			[typeof(ITitledBox)] = new Type[] { typeof(float), typeof(string) },
 			[typeof(ITitleStyledBox)] = new Type[] { typeof(IContainerShape), typeof(string) },
+			[typeof(IEntriedShape)] = new Type[] { typeof(float) },
 			[typeof(IBar)] = new Type[] { typeof(float) },
 			[typeof(IUsageBar)] = new Type[] { typeof(float) },
 			[typeof(IDetail)] = Array.Empty<Type>()
@@ -134,6 +136,9 @@ namespace SharpSheets.Shapes {
 			}
 			else if (shapeType == typeof(ITitleStyledBox)) {
 				defaultArgs = new object[] { GetDefaultShape(typeof(IContainerShape))!, "NAME" };
+			}
+			else if (shapeType == typeof(IEntriedShape)) {
+				defaultArgs = new object[] { -1f };
 			}
 			else if (shapeType == typeof(IBar)) {
 				defaultArgs = new object[] { -1f };
@@ -288,6 +293,10 @@ namespace SharpSheets.Shapes {
 			//return (ITitleStyledBox)SharpFactory.Construct(GetConstructor(typeof(ITitleStyledBox), context, defaultStyles[typeof(ITitleStyledBox)]), context, source, null, this, new object[] { box, name }, out buildErrors);
 		}
 
+		public IEntriedShape MakeEntried(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
+			return MakeShape<IEntriedShape>(context, "INVALID", aspect, new object[] { aspect }, defaultStyles[typeof(IEntriedShape)], source, out buildErrors);
+		}
+
 		public IBar MakeBar(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
 			return MakeShape<IBar>(context, "INVALID", aspect, new object[] { aspect }, defaultStyles[typeof(IBar)], source, out buildErrors);
 		}
@@ -344,6 +353,9 @@ namespace SharpSheets.Shapes {
 				}
 				else if (shapeType == typeof(ILabelledBox)) {
 					return this.MakeLabelledBox(context, aspect, source, out buildErrors);
+				}
+				else if (shapeType == typeof(IEntriedShape)) {
+					return this.MakeEntried(context, aspect, source, out buildErrors);
 				}
 				else if (shapeType == typeof(IBar)) {
 					return this.MakeBar(context, aspect, source, out buildErrors);
