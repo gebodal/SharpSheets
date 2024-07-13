@@ -31,7 +31,7 @@ namespace SharpSheets.Shapes {
 		Rectangle LabelRect(ISharpGraphicsState graphicsState, Rectangle rect);
 	}
 	public interface IEntriedArea {
-		int EntryCount { get; }
+		int EntryCount(ISharpGraphicsState graphicsState, Rectangle rect);
 
 		/// <summary></summary>
 		/// <param name="graphicsState"></param>
@@ -98,8 +98,8 @@ namespace SharpSheets.Shapes {
 		}
 
 		public static Rectangle[] EntryRects(this IEntriedArea entriedArea, ISharpGraphicsState graphicsState, Rectangle rect) {
-			Rectangle[] entries = new Rectangle[entriedArea.EntryCount];
-			for (int i = 0; i < entriedArea.EntryCount; i++) {
+			Rectangle[] entries = new Rectangle[entriedArea.EntryCount(graphicsState, rect)];
+			for (int i = 0; i < entries.Length; i++) {
 				entries[i] = entriedArea.EntryRect(graphicsState, i, rect);
 			}
 			return entries;
@@ -220,10 +220,9 @@ namespace SharpSheets.Shapes {
 	}
 
 	public abstract class EntriedShapeBase : AbstractAreaShape, IEntriedShape {
-		public abstract int EntryCount { get; }
-
 		public EntriedShapeBase(float aspect) : base(aspect) { }
 
+		public abstract int EntryCount(ISharpGraphicsState graphicsState, Rectangle rect);
 		public abstract Rectangle EntryRect(ISharpGraphicsState graphicsState, int entryIndex, Rectangle rect);
 	}
 
@@ -239,14 +238,14 @@ namespace SharpSheets.Shapes {
 
 	public abstract class UsageBarBase : AbstractAreaShape, IUsageBar {
 
-		public int EntryCount { get; } = 2;
-
 		public UsageBarBase(float aspect) : base(aspect) { }
 
 		public Rectangle LabelRect(ISharpGraphicsState graphicsState, Rectangle rect) {
 			return GetLabelRect(graphicsState, AspectRect(graphicsState, rect));
 		}
 		protected abstract Rectangle GetLabelRect(ISharpGraphicsState graphicsState, Rectangle rect);
+
+		public int EntryCount(ISharpGraphicsState graphicsState, Rectangle rect) => 2;
 
 		public Rectangle EntryRect(ISharpGraphicsState graphicsState, int entryIndex, Rectangle rect) {
 			if(entryIndex == 0) {

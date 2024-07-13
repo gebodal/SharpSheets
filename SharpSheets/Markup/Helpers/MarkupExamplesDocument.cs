@@ -187,7 +187,7 @@ namespace SharpSheets.Markup.Helpers {
 							remainingRects.AddRange(entryRects);
 						}
 						else {
-							canvas.LogError(pattern, "Entried areas must have at least one valid \"entry\" area.");
+							canvas.LogError(pattern, "Entried areas must have at least one valid \"entry\" area element.");
 						}
 					}
 					if (markupObject is IWidget widgetArea) {

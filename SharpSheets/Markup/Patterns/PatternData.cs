@@ -116,6 +116,9 @@ namespace SharpSheets.Markup.Patterns {
 			else if (typeof(T) == typeof(MarkupTitledBoxPattern)) {
 				return GetVariableBox(TitledShapeVariables);
 			}
+			else if (typeof(T) == typeof(MarkupEntriedShapePattern)) {
+				return GetVariableBox(AreaShapeVariables);
+			}
 			else if (typeof(T) == typeof(MarkupBarPattern)) {
 				return GetVariableBox(AreaShapeVariables);
 			}

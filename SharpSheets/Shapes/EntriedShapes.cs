@@ -22,8 +22,6 @@ namespace SharpSheets.Shapes {
 
 		protected bool HasGraphicsChanges { get { return fill.HasValue || stroke.HasValue || (dashes != null && dashes.Length > 0); } }
 
-		public override int EntryCount => sizes.Length;
-
 		/// <summary>
 		/// 
 		/// </summary>
@@ -99,6 +97,10 @@ namespace SharpSheets.Shapes {
 			if (HasGraphicsChanges) {
 				canvas.RestoreState();
 			}
+		}
+
+		public override int EntryCount(ISharpGraphicsState graphicsState, Rectangle rect) {
+			return sizes.Length;
 		}
 
 		public override Rectangle EntryRect(ISharpGraphicsState graphicsState, int entryIndex, Rectangle rect) {

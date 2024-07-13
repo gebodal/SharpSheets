@@ -22,6 +22,10 @@
 		/// </summary>
 		TITLEDBOX,
 		/// <summary>
+		/// An entried shape pattern.
+		/// </summary>
+		ENTRIEDSHAPE,
+		/// <summary>
 		/// A bar pattern.
 		/// </summary>
 		BAR,

@@ -305,6 +305,61 @@ namespace SharpSheets.Markup.Patterns {
 
 	#endregion
 
+	#region IEntriedShape
+
+	public class MarkupEntriedShapePattern : MarkupAreaShapePattern<IEntriedShape> {
+
+		protected override Type InstanceType { get; } = typeof(MarkupEntriedShape);
+
+		public MarkupEntriedShapePattern(
+			string? library,
+			string name,
+			string? description,
+			IMarkupArgument[] arguments,
+			MarkupValidation[] validations,
+			//MarkupVariable[] variables,
+			Rectangle? exampleSize,
+			Size? exampleCanvas,
+			DivElement rootElement,
+			Utilities.FilePath source
+			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
+
+		protected override IEntriedShape ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
+			return new MarkupEntriedShape(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
+		}
+
+	}
+
+	public class MarkupEntriedShape : MarkupAreaShape, IEntriedShape {
+
+		public MarkupEntriedShape(MarkupEntriedShapePattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
+
+		public int EntryCount(ISharpGraphicsState graphicsState, Rectangle fullRect) {
+			DrawableDivElement? drawable = GetDrawableRoot(graphicsState);
+
+			if (drawable is null) { return 0; }
+
+			int maxEntry = 0;
+			foreach (string areaName in drawable.GetAreas()) {
+				if (areaName.StartsWith("entry")) {
+					if (int.TryParse(areaName[5..], out int areaKey) && areaKey > 0) {
+						maxEntry = areaKey;
+					}
+				}
+			}
+
+			return maxEntry;
+		}
+
+		public Rectangle EntryRect(ISharpGraphicsState graphicsState, int entryIndex, Rectangle fullRect) {
+			string areaName = $"entry{entryIndex + 1}";
+			return GetDrawableRoot(graphicsState)?.GetNamedArea(areaName, graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException($"Could not get area \"{areaName}\".");
+		}
+
+	}
+
+	#endregion
+
 	#region IBar
 
 	public class MarkupBarPattern : MarkupAreaShapePattern<IBar> {
@@ -372,9 +427,9 @@ namespace SharpSheets.Markup.Patterns {
 
 	public class MarkupUsageBar : MarkupAreaShape, IUsageBar {
 
-		public int EntryCount { get; } = 2;
-
 		public MarkupUsageBar(MarkupUsageBarPattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
+
+		public int EntryCount(ISharpGraphicsState graphicsState, Rectangle rect) => 2;
 
 		public Rectangle EntryRect(ISharpGraphicsState graphicsState, int entryIndex, Rectangle rect) {
 			if (entryIndex == 0) {

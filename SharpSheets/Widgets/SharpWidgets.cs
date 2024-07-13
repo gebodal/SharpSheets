@@ -666,14 +666,13 @@ namespace SharpSheets.Widgets {
 		}
 
 		protected override Rectangle?[] GetChildRects(ISharpGraphicsState graphicsState, Rectangle rect, out Rectangle availableRect, out Rectangle? childrenRectArea, out Rectangle?[] gutters) {
-
-			childrenRectArea = null;
-			gutters = new Rectangle?[outline.EntryCount - 1]; // All null, but correct count
-
 			availableRect = rect.Margins(setup.margins, false);
+			int outlineEntryCount = outline.EntryCount(graphicsState, availableRect);
+			childrenRectArea = null;
+			gutters = new Rectangle?[outlineEntryCount - 1]; // All null, but correct count
 
-			Rectangle?[] childRects = new Rectangle?[outline.EntryCount];
-			for (int i = 0; i < outline.EntryCount; i++) {
+			Rectangle?[] childRects = new Rectangle?[outlineEntryCount];
+			for (int i = 0; i < outlineEntryCount; i++) {
 				try {
 					childRects[i] = outline.EntryRect(graphicsState, i, rect);
 				}

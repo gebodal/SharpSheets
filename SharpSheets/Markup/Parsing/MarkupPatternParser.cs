@@ -305,6 +305,9 @@ namespace SharpSheets.Markup.Parsing {
 				else if (typeAttr.Value == MarkupPatternType.TITLEDBOX) {
 					return PatternData.GetPatternVariables<MarkupTitledBoxPattern>();
 				}
+				else if (typeAttr.Value == MarkupPatternType.ENTRIEDSHAPE) {
+					return PatternData.GetPatternVariables<MarkupEntriedShapePattern>();
+				}
 				else if (typeAttr.Value == MarkupPatternType.BAR) {
 					return PatternData.GetPatternVariables<MarkupBarPattern>();
 				}
@@ -372,6 +375,9 @@ namespace SharpSheets.Markup.Parsing {
 					}
 					else if (type == MarkupPatternType.TITLEDBOX) {
 						result = new MarkupTitledBoxPattern(libraryName, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, origin);
+					}
+					else if (type == MarkupPatternType.ENTRIEDSHAPE) {
+						result = new MarkupEntriedShapePattern(libraryName, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, origin);
 					}
 					else if (type == MarkupPatternType.BAR) {
 						result = new MarkupBarPattern(libraryName, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, origin);
@@ -1986,12 +1992,12 @@ namespace SharpSheets.Markup.Parsing {
 				if (areaElem == null) {
 					return null;
 				}
-				else if (RequiredAttribute(areaElem, "name", false, s => s, out ContextProperty<string> nameAttr)) {
+				else if (RequiredAttribute(areaElem, "name", false, s => MarkupValueParsing.ParseText(s, parentVariables), out ContextProperty<TextExpression> nameAttr)) {
 					try {
 						string? childID = GetAttribute(areaElem, "id", false, s => s, null);
 
 						//string? areaName = GetAttribute(areaElem, "name", false, s => s, null);
-						string areaName = nameAttr.Value; // TODO Check against list of allowed area names? (remaingRectElementNames)
+						TextExpression areaName = nameAttr.Value; // TODO Check against list of allowed area names? Will probaby need index adding to AreaElement (remaingRectElementNames)
 
 						RectangleExpression? rect = GetRectangle(areaElem, true, fullDrawingVariables);
 						MarginsExpression margins = GetAttribute(areaElem, "margin", false, s => MarkupValueParsing.ParseMargins(s, fullDrawingVariables), Margins.Zero);

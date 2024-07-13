@@ -254,9 +254,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 						displayRects.Add(labelled.LabelRect(canvas, shapeRect));
 					}
 					if (shape is IEntriedArea entried) {
-						for (int entryIdx = 0; entryIdx < entried.EntryCount; entryIdx++) {
-							displayRects.Add(entried.EntryRect(canvas, entryIdx, shapeRect));
-						}
+						displayRects.AddRange(entried.EntryRects(canvas, shapeRect));
 					}
 				}
 				else if (typeof(IWidget).IsAssignableFrom(constructor.DeclaringType)) {

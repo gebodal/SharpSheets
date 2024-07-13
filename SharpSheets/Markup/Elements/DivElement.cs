@@ -258,17 +258,18 @@ namespace SharpSheets.Markup.Elements {
 								List<DrawableDivElement> divDrawables = divElement.EvaluateAllDrawables(graphicsData, finalDivEnvironment, shapeFactory, diagnostic);
 								drawable.AddElements(divDrawables);
 							}
-							else if(element is AreaElement areaElement) {
+							else if (element is AreaElement areaElement) {
 								if (areaElement.Enabled.Evaluate(finalDivEnvironment)) {
-									drawable.AddElement(areaElement);
+									string areaName = areaElement.Name.Evaluate(finalDivEnvironment);
+									drawable.AddAreaElement(areaName, areaElement);
 								}
 							}
 							else if (element is DiagnosticElement diagnosticElement) {
 								if (diagnosticElement.Enabled.Evaluate(finalDivEnvironment)) {
-									drawable.AddElement(diagnosticElement);
+									drawable.AddDiagnosticElement(diagnosticElement);
 								}
 							}
-							else {
+							else if (element is IDrawableElement) {
 								drawable.AddElement(element);
 							}
 						}
@@ -376,24 +377,31 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		public virtual void AddElement(IIdentifiableMarkupElement element) {
-			if (element is AreaElement areaElement && !string.IsNullOrWhiteSpace(areaElement.Name)) {
-				areas.Set(areaElement.Name, areaElement);
-			}
-			else if (element is DiagnosticElement diagnosticElement) {
-				diagnosticAreas.Add(diagnosticElement);
-			}
-			else {
+			if(element is DrawableDivElement || element is IDrawableElement) {
 				this.elements.Add(element);
 
 				if (element is DrawableDivElement drawableDiv) {
 					children.Add(drawableDiv);
 				}
 			}
+			else {
+				throw new InvalidOperationException("Provided element is not drawable.");
+			}
 		}
-		public void AddElements(IEnumerable<IIdentifiableMarkupElement> elements) {
-			foreach (IIdentifiableMarkupElement element in elements) {
+		public void AddElements(IEnumerable<DrawableDivElement> elements) {
+			foreach (DrawableDivElement element in elements) {
 				this.AddElement(element);
 			}
+		}
+
+		public virtual void AddAreaElement(string name, AreaElement area) {
+			if (!string.IsNullOrWhiteSpace(name)) {
+				areas.Set(name, area);
+			}
+		}
+
+		public virtual void AddDiagnosticElement(DiagnosticElement diagnosticElement) {
+			diagnosticAreas.Add(diagnosticElement);
 		}
 
 		public virtual Size? MinimumContentSize(ISharpGraphicsState graphicsState, Size availableSpace) {
@@ -758,7 +766,7 @@ namespace SharpSheets.Markup.Elements {
 
 		public string? ID { get; }
 
-		public string Name { get; }
+		public IExpression<string> Name { get; }
 		public AreaRectExpression Area { get; }
 
 		public BoolExpression Enabled { get; } // TODO This needs properly implementing in DivElement
@@ -767,7 +775,7 @@ namespace SharpSheets.Markup.Elements {
 		/// Constructor for AreaElement.
 		/// </summary>
 		/// <param name="id" default="null">A unique name for this element.</param>
-		/// <param name="name" default="null">The name for this area, identifying its
+		/// <param name="_name" default="null">The name for this area, identifying its
 		/// function in the pattern. The available names depend on the pattern type.</param>
 		/// <param name="_x" default="0">The x-coordinate of this area.</param>
 		/// <param name="_y" default="0">The y-coordinate of this area.</param>
@@ -780,9 +788,9 @@ namespace SharpSheets.Markup.Elements {
 		/// and <paramref name="_height"/>.</param>
 		/// <param name="enabled" default="true">A flag to indicate whether this area should
 		/// be available in the pattern.</param>
-		public AreaElement(string? id, string name, FloatExpression? _x, FloatExpression? _y, FloatExpression? _width, FloatExpression? _height, MarginsExpression? margin, BoolExpression enabled) {
+		public AreaElement(string? id, IExpression<string> _name, FloatExpression? _x, FloatExpression? _y, FloatExpression? _width, FloatExpression? _height, MarginsExpression? margin, BoolExpression enabled) {
 			this.ID = id;
-			this.Name = name;
+			this.Name = _name;
 			RectangleExpression? rect = (_x is not null || _y is not null || _width is not null || _height is not null) ? new RectangleExpression(_x ?? 0f, _y ?? 0f, _width ?? MarkupEnvironments.WidthExpression, _height ?? MarkupEnvironments.HeightExpression) : null;
 			this.Area = new AreaRectExpression(rect, margin);
 			this.Enabled = enabled;
