@@ -73,6 +73,7 @@ namespace SharpEditor.Windows {
 			EditorTabControl.SelectionChanged += TabSelectionChanged;
 
 			EditorStateChanged += (o, e) => { EditorCursorChanged?.Invoke(o, e); };
+			this.GetObservable(Window.WindowStateProperty).Subscribe(Window_StateChanged);
 			
 			if (Instance == null) { Instance = this; } // This seems a little suspect...
 		}
@@ -133,6 +134,18 @@ namespace SharpEditor.Windows {
 		}
 		#endregion Application
 
+		#region Window state
+
+		private WindowState previousWindowState = WindowState.Normal;
+
+		private void Window_StateChanged(WindowState state) {
+			if(state != WindowState.Minimized) {
+				previousWindowState = state;
+			}
+		}
+
+		#endregion Window state
+
 		#region Window Activation Handlers
 
 		public void ShowDocumentationMenuClick() {
@@ -172,6 +185,10 @@ namespace SharpEditor.Windows {
 		public void FocusOnEditor(SharpDocumentEditor editor) {
 			EditorTabItem? item = editorTabs.FirstOrDefault(t => t.Content == editor);
 			if (item != null) {
+				if(this.WindowState == WindowState.Minimized) {
+					this.WindowState = previousWindowState;
+					this.BringIntoView();
+				}
 				int index = editorTabs.IndexOf(item);
 				if (index >= 0) {
 					EditorTabControl.SelectedIndex = index;
