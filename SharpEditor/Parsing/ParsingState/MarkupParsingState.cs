@@ -28,6 +28,7 @@ namespace SharpEditor {
 		public override bool HasGeneratedContent { get; } = false;
 
 		public override bool ColorOwners { get { return true; } }
+		public override bool HighlightSameToken { get { return true; } }
 
 		protected IReadOnlyList<FilePath>? MarkupDependencies { get; set; }
 		protected MarkupOrigins? Origins { get; set; }

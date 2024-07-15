@@ -11,6 +11,8 @@ using System.Text.RegularExpressions;
 using SharpEditor.DataManagers;
 using Avalonia.Media;
 using Avalonia;
+using SharpEditor.CodeHelpers;
+using SharpSheets.Utilities;
 
 namespace SharpEditor {
 
@@ -187,10 +189,10 @@ namespace SharpEditor {
 		}
 	}
 
-	public class ParsingStateBackgroundRenderer : IBackgroundRenderer {
+	public class ParsingStateUnderlineRenderer : IBackgroundRenderer {
 
 		private readonly ParsingManager parsingManager;
-		public ParsingStateBackgroundRenderer(ParsingManager parsingManager) {
+		public ParsingStateUnderlineRenderer(ParsingManager parsingManager) {
 			this.parsingManager = parsingManager;
 		}
 
@@ -275,13 +277,107 @@ namespace SharpEditor {
 			}
 		}
 
-		Point[] CreatePoints(Point start, Point end, double offset) {
+		private static Point[] CreatePoints(Point start, Point end, double offset) {
 			int count = Math.Max((int)((end.X - start.X) / offset) + 1, 4);
 			Point[] points = new Point[count];
 			for (int i = 0; i < count; i++) {
 				points[i] = new Point(start.X + i * offset, start.Y - ((i + 1) % 2 == 0 ? offset : 0));
 			}
 			return points;
+		}
+
+	}
+
+	public class ParsingStateSameTokenRenderer : IBackgroundRenderer {
+
+		private readonly ParsingManager parsingManager;
+		private readonly TextArea textArea;
+		public ParsingStateSameTokenRenderer(ParsingManager parsingManager, TextArea textArea) {
+			this.parsingManager = parsingManager;
+			this.textArea = textArea;
+		}
+
+		public KnownLayer Layer {
+			get {
+				// draw behind selection
+				return KnownLayer.Selection;
+			}
+		}
+
+		private readonly Regex wordRegex = new Regex(@"[a-z][a-z\-_]*[a-z]|[a-z][a-z0-9_]*|[0-9]+\.[0-9]+|[0-9]+", RegexOptions.IgnoreCase);
+		private (string?,int) GetWord() {
+			int caretOffset = textArea.Caret.Offset;
+			ISegment? caretSegment = textArea.Document.GetSharpTermSegmentFromOffset(caretOffset);
+			
+			if (caretSegment is null) { return (null, -1); }
+
+			string caretWord = textArea.Document.GetText(caretSegment);
+
+			if (wordRegex.Match(caretWord) is Match wordMatch && wordMatch.Success) {
+				caretWord = wordMatch.Value;
+				caretOffset = caretOffset.Clamp(caretSegment.Offset, caretSegment.Offset + caretSegment.Length);
+				return (caretWord, caretOffset);
+			}
+			else {
+				return (null, -1);
+			}
+		}
+
+		public void Draw(TextView textView, DrawingContext drawingContext) {
+			if (textView == null) { throw new ArgumentNullException(nameof(textView)); }
+			if (drawingContext == null) { throw new ArgumentNullException(nameof(drawingContext)); }
+
+			if (!textView.VisualLinesValid) { return; }
+
+			IParsingState? parsingState = parsingManager.GetParsingState();
+			if (parsingState == null || !parsingState.HighlightSameToken) { return; }
+
+			int highlightPosition;
+			string? highlightText;
+			if (textArea.Selection.IsEmpty) {
+				(highlightText, highlightPosition) = GetWord();
+			}
+			else {
+				string selectedText = textArea.Selection.GetText();
+				if (!string.IsNullOrWhiteSpace(selectedText) && !selectedText.Contains('\n')) {
+					highlightText = selectedText;
+					highlightPosition = textArea.Selection.SurroundingSegment.Offset;
+				}
+				else {
+					highlightText = null;
+					highlightPosition = -1;
+				}
+			}
+
+			if (string.IsNullOrWhiteSpace(highlightText)) { return; }
+
+			ReadOnlyCollection<VisualLine> visualLines = textView.VisualLines;
+			if (visualLines.Count == 0) { return; }
+
+			IBrush? brush = new SolidColorBrush(Colors.LightGray) { Opacity = 0.2 }.ToImmutable();
+			IPen? pen = null;
+			Regex highlightRegex = new Regex(Regex.Escape(highlightText), RegexOptions.Multiline);
+
+			int viewStart = visualLines.First().FirstDocumentLine.LineNumber - 1; // -1 to adjust from LineNumber to line index
+			int viewEnd = visualLines.Last().LastDocumentLine.LineNumber - 1;
+
+			for (int i = viewStart; i <= viewEnd; i++) {
+				DocumentLine line = textView.Document.Lines[i];
+				string lineText = textView.Document.GetText(line);
+
+				foreach (Match m in (IEnumerable<Match>)highlightRegex.Matches(lineText)) {
+					int wordIndex = m.Index;
+					if (wordIndex < 0) { continue; }
+
+					TextSegment highlightSegment = new TextSegment() { StartOffset = line.Offset + wordIndex, Length = highlightText.Length };
+
+					if (highlightSegment.Contains(highlightPosition, 0)) { continue; }
+
+					foreach (Rect r in BackgroundGeometryBuilder.GetRectsForSegment(textView, highlightSegment)) {
+						drawingContext.DrawRectangle(brush, pen, r);
+					}
+				}
+			}
 		}
 
 	}
@@ -327,7 +423,7 @@ namespace SharpEditor {
 
 						////startPoint.Offset(-Offset, 0);
 						//endPoint.Offset(Dash.Dashes[^1] * 0.75, 0);
-						endPoint += new Vector(Dash.Dashes?[^1] ?? 0.0, 0.0);
+						endPoint += new Avalonia.Vector(Dash.Dashes?[^1] ?? 0.0, 0.0);
 
 						Brush errorBrush = new SolidColorBrush(errorColor);
 						errorBrush.ToImmutable();

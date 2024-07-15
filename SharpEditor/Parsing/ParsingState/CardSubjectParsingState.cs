@@ -55,6 +55,7 @@ namespace SharpEditor {
 		}
 
 		public override bool ColorOwners { get { return true; } }
+		public override bool HighlightSameToken { get { return false; } }
 
 		protected override void ResetData() {
 			Origins = null;

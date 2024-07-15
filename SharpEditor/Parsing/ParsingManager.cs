@@ -41,14 +41,16 @@ namespace SharpEditor {
 		private readonly IVisualLineTransformer colorizingLineTransformer;
 		private readonly IBackgroundRenderer backgroundRenderer;
 		private readonly IBackgroundRenderer errorRenderer;
+		private readonly IBackgroundRenderer sameTokenRenderer;
 
 		private ParsingManager(TextArea textArea) {
 			this.textArea = textArea ?? throw new ArgumentNullException(nameof(textArea));
 			this.Document = textArea.Document;
 
 			colorizingLineTransformer = new ParsingStateColorizingTransformer(this, textArea);
-			backgroundRenderer = new ParsingStateBackgroundRenderer(this);
+			backgroundRenderer = new ParsingStateUnderlineRenderer(this);
 			errorRenderer = new ParsingErrorBackgroundRenderer(this);
+			sameTokenRenderer = new ParsingStateSameTokenRenderer(this, textArea);
 
 			InitializeParsingManager();
 		}
@@ -58,6 +60,7 @@ namespace SharpEditor {
 			ParsingManager manager = new ParsingManager(textArea);
 			manager.textArea.TextView.BackgroundRenderers.Add(manager.backgroundRenderer);
 			manager.textArea.TextView.BackgroundRenderers.Add(manager.errorRenderer);
+			manager.textArea.TextView.BackgroundRenderers.Add(manager.sameTokenRenderer);
 			manager.textArea.TextView.LineTransformers.Add(manager.colorizingLineTransformer);
             AvaloniaEdit.Utils.IServiceContainer? services = manager.textArea.Document.GetService<AvaloniaEdit.Utils.IServiceContainer>();
 			if (services != null) {
@@ -72,6 +75,7 @@ namespace SharpEditor {
 		}
 
 		public static void Uninstall(ParsingManager manager) {
+			manager.textArea.TextView.BackgroundRenderers.Remove(manager.sameTokenRenderer);
 			manager.textArea.TextView.BackgroundRenderers.Remove(manager.errorRenderer);
 			manager.textArea.TextView.BackgroundRenderers.Remove(manager.backgroundRenderer);
 			manager.textArea.TextView.LineTransformers.Remove(manager.colorizingLineTransformer);

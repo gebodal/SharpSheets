@@ -35,6 +35,7 @@ namespace SharpEditor {
 		protected abstract SharpConfigColorizingTransformer<TSpan> MakeColorizer();
 
 		public override bool ColorOwners { get { return true; } }
+		public override bool HighlightSameToken { get { return false; } }
 
 		protected override void ResetData() {
 			Origins = null;

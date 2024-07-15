@@ -36,6 +36,7 @@ namespace SharpEditor {
 		IEnumerable<IVisualLineTransformer> GetLineTransformers();
 
 		bool ColorOwners { get; }
+		bool HighlightSameToken { get; }
 
 		void Reset();
 		void LoadResultEntry(ResultEntry result);
@@ -91,6 +92,7 @@ namespace SharpEditor {
 		public abstract IEnumerable<IVisualLineTransformer> GetLineTransformers();
 
 		public abstract bool ColorOwners { get; } // Flag to indicate that the text view should colour parent and child spans in the document
+		public abstract bool HighlightSameToken { get; }
 
 		protected abstract void ResetData();
 		public void Reset() {
