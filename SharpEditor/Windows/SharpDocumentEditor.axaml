@@ -120,6 +120,8 @@
 				VerticalScrollBarVisibility="Auto"
 				KeyDown="OnPreviewKeyDown"
 				ToolTip.Placement="Pointer"
+				ToolTip.HorizontalOffset="20"
+				ToolTip.VerticalOffset="10"
 				> <!--PointerWheelChanged="OnTextPreviewMouseWheel"-->
 				<avaloniaEdit:TextEditor.KeyBindings>
 					<KeyBinding Gesture="Ctrl+D" Command="{Binding DuplicateCommand}"/>

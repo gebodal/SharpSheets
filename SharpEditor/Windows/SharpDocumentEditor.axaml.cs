@@ -848,6 +848,7 @@ namespace SharpEditor.Windows {
 		void TextEditorMouseHover(object? sender, PointerEventArgs args) {
 			//ToolTip.SetIsOpen(textEditor, false);
 			//TextEditorToolTip.IsVisible = false;
+			CloseToolTip();
 
 			Avalonia.Point pointerPos = args.GetPosition(textEditor);
 			TextViewPosition? pos = textEditor.GetPositionFromPoint(pointerPos);
