@@ -35,11 +35,19 @@ namespace SharpEditor.DataManagers {
 
 			if (File.Exists(configPath)) {
 				Console.WriteLine("Load existing config.");
-				Instance = LoadSettings(configPath) ?? new SharpDataManager();
+				SharpDataManager? loaded = LoadSettings(configPath);
+				if(loaded is null) {
+					Console.WriteLine("Could not load existing config.");
+				}
+				Instance = loaded ?? new SharpDataManager();
 			}
 			else if (GetOldConfigPath() is string oldConfigPath) {
 				Console.WriteLine("Load old config.");
-				Instance = LoadSettings(oldConfigPath) ?? new SharpDataManager();
+				SharpDataManager? loaded = LoadSettings(oldConfigPath);
+				if (loaded is null) {
+					Console.WriteLine("Could not load old config.");
+				}
+				Instance = loaded ?? new SharpDataManager();
 				Instance.Save();
 			}
 			else {
@@ -69,6 +77,9 @@ namespace SharpEditor.DataManagers {
 				return null;
 			}
 			catch (SystemException) {
+				return null;
+			}
+			catch (JsonException) {
 				return null;
 			}
 		}
