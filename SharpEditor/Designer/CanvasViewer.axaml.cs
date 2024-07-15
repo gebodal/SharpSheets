@@ -43,14 +43,41 @@ namespace SharpEditor.Designer {
 		public CanvasViewer() {
 			InitializeComponent();
 
+			dpiScaleTransform = new ScaleTransform(1.0, 1.0);
 			scaleTransform1 = new ScaleTransform(1.0, 1.0);
-			layoutTransformWrapper.LayoutTransform = scaleTransform1;
+			layoutTransformWrapper.LayoutTransform = new TransformGroup() {
+				Children = {
+					dpiScaleTransform,
+					scaleTransform1
+				}
+			};
+
+			DPI = 96; // Default value
 
 			this.Loaded += OnLoaded;
 			this.Unloaded += OnUnloaded;
 
 			// Seems to work
 			CanvasViewScroller.AddHandler(InputElement.PointerWheelChangedEvent, OnCanvasPointerWheelChanged, RoutingStrategies.Tunnel, false);
+		}
+
+		private int dpi;
+		private readonly ScaleTransform dpiScaleTransform;
+		public int DPI {
+			get {
+				return dpi;
+			}
+			set {
+				// Canvas size measured in points (1/72 inch)
+				dpi = value;
+
+				double newScale = dpi / 72.0;
+				dpiScaleTransform.ScaleX = newScale;
+				dpiScaleTransform.ScaleY = newScale;
+
+				WholePageZoomOn = false;
+				ScaleChanged?.Invoke(this, EventArgs.Empty);
+			}
 		}
 
 		private readonly ScaleTransform scaleTransform1;
@@ -193,10 +220,12 @@ namespace SharpEditor.Designer {
 		}
 
 		private (double x, double y) WholePageScales(Control canvas) {
+			double currentDPIscaling = dpiScaleTransform.ScaleX;
+
 			double scaleX = CanvasViewScroller.Bounds.Width / canvas.Width; // CanvasView.ActualWidth / canvas.Width;
 			double scaleY = CanvasViewScroller.Bounds.Height / canvas.Height; // CanvasView.ActualHeight / canvas.Height;
 			//return (scaleX * 0.99, scaleY * 0.99);
-			return (scaleX * 0.999, scaleY * 0.999);
+			return (scaleX * 0.999 / currentDPIscaling, scaleY * 0.999 / currentDPIscaling);
 		}
 
 		private double WholePageScale(Control canvas) {

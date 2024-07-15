@@ -52,8 +52,11 @@ namespace SharpEditor.Designer {
 			WireUpCommands();
 
 			SharpDataManager.Instance.DesignerDisplayFieldsChanged += OnDesignerDisplayFieldsChanged;
+			SharpDataManager.Instance.ScreenDPIChanged += OnScreenDPIChanged;
 
 			this.AddHandler(UserControl.PointerPressedEvent, OnDesignerPointerPressed, RoutingStrategies.Tunnel, false);
+
+			DesignerViewer.DPI = SharpDataManager.Instance.ScreenDPI;
 			this.DesignerViewer.ScaleChanged += OnCanvasScaleChanged;
 		}
 
@@ -267,6 +270,11 @@ namespace SharpEditor.Designer {
 
 		void UpdateCanvasZoomText() {
 			CanvasZoomLevelText.Text = string.Format("{0:0.#}%", DesignerViewer.Scale * 100.0);
+		}
+
+		private void OnScreenDPIChanged(object? sender, EventArgs e) {
+			DesignerViewer.DPI = SharpDataManager.Instance.ScreenDPI;
+			UpdateCanvasZoomText();
 		}
 
 		void OnCanvasDoubleClick(object? sender, PointerPressedEventArgs e) {

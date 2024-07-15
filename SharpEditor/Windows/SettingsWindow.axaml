@@ -47,6 +47,15 @@
 							Content="Show Designer by Default"
 							Foreground="White" HorizontalAlignment="Left" Margin="4"
 							IsChecked="{Binding DesignerViewerOpenDefault}"/>
+						<Grid Margin="4">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="10"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+							<TextBlock Grid.Column="0" Text="Designer Dots Per Inch (DPI)" VerticalAlignment="Center"/>
+							<TextBox Grid.Column="2" x:Name="DPITextBox" LostFocus="OnDPITextLostFocus" KeyDown="DPITextBoxKeyDown"/>
+						</Grid>
 					</StackPanel>
 				</HeaderedContentControl>
 

@@ -132,6 +132,13 @@ namespace SharpEditor.DataManagers {
 		[ObservableProperty]
 		private bool designerViewerOpenDefault = false;
 
+		[ObservableProperty]
+		private int screenDPI = 96;
+		public event EventHandler? ScreenDPIChanged;
+		partial void OnScreenDPIChanged(int value) {
+			ScreenDPIChanged?.Invoke(this, new EventArgs());
+		}
+
 		#endregion
 
 		#region Generator settings

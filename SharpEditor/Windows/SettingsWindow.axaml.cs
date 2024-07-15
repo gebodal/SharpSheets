@@ -16,7 +16,10 @@ namespace SharpEditor.Windows {
 
 			this.DataContext = SharpDataManager.Instance;
 			
+			this.Focusable = true; // So we can draw focus away from controls (e.g. upon Enter press)
+
 			TemplateDirectoryTextBox.Text = SharpEditorPathInfo.TemplateDirectory;
+			DPITextBox.Text = SharpDataManager.Instance.ScreenDPI.ToString();
 		}
 
 		public bool IsClosed { get; private set; } = false;
@@ -180,6 +183,25 @@ namespace SharpEditor.Windows {
 
 		private void ResetTemplateDirectoryClick(object? sender, RoutedEventArgs e) {
 			TemplateDirectoryTextBox.Text = SharpEditorPathInfo.TemplateDirectory;
+		}
+
+		#endregion
+
+		#region DPI
+
+		private void OnDPITextLostFocus(object? sender, RoutedEventArgs e) {
+			if(int.TryParse(DPITextBox.Text, out int newDPI) && newDPI > 0) {
+				SharpDataManager.Instance.ScreenDPI = newDPI;
+			}
+			else {
+				DPITextBox.Text = SharpDataManager.Instance.ScreenDPI.ToString();
+			}
+		}
+
+		private void DPITextBoxKeyDown(object? sender, Avalonia.Input.KeyEventArgs e) {
+			if(e.Key == Avalonia.Input.Key.Enter) {
+				this.Focus();
+			}
 		}
 
 		#endregion
