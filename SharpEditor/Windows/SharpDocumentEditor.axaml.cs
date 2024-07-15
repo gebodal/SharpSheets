@@ -544,7 +544,7 @@ namespace SharpEditor.Windows {
 				CurrentGeneratePath = null;
 			}
 
-			using (FileStream fs = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write)) {
+			using (FileStream fs = new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.Write)) {
 				textEditor.Save(fs); // We have manually set document to UTF8, so it will be saved as such
 			}
 			CurrentFilePath = filename;
