@@ -612,15 +612,40 @@ namespace SharpSheets.Markup.Canvas {
 
 		public bool IsConstant { get { return value != null; } }
 
-		public FloatExpression Top { get { return value?.Top ?? top!; } }
-		public FloatExpression Right { get { return value?.Right ?? right!; } }
-		public FloatExpression Bottom { get { return value?.Bottom ?? bottom!; } }
-		public FloatExpression Left { get { return value?.Left ?? left!; } }
+		public FloatExpression Top {
+			get {
+				if (value.HasValue) { return value.Value.Top; }
+				else if (node is not null) { return new MarginAttributeNode(node, m => m.Top); }
+				else { return top!; }
+			}
+		}
+		public FloatExpression Right {
+			get {
+				if (value.HasValue) { return value.Value.Right; }
+				else if (node is not null) { return new MarginAttributeNode(node, m => m.Right); }
+				else { return right!; }
+			}
+		}
+		public FloatExpression Bottom {
+			get {
+				if (value.HasValue) { return value.Value.Bottom; }
+				else if (node is not null) { return new MarginAttributeNode(node, m => m.Bottom); }
+				else { return bottom!; }
+			}
+		}
+		public FloatExpression Left {
+			get {
+				if (value.HasValue) { return value.Value.Left; }
+				else if (node is not null) { return new MarginAttributeNode(node, m => m.Left); }
+				else { return left!; }
+			}
+		}
 
 		private readonly FloatExpression? top;
 		private readonly FloatExpression? right;
 		private readonly FloatExpression? bottom;
 		private readonly FloatExpression? left;
+		private readonly EvaluationNode? node;
 		private readonly Margins? value;
 
 		public MarginsExpression(FloatExpression top, FloatExpression right, FloatExpression bottom, FloatExpression left) {
@@ -628,13 +653,27 @@ namespace SharpSheets.Markup.Canvas {
 			this.right = right;
 			this.bottom = bottom;
 			this.left = left;
+			this.node = null;
 			this.value = null;
+		}
+		public MarginsExpression(EvaluationNode node) {
+			this.top = null;
+			this.right = null;
+			this.bottom = null;
+			this.left = null;
+			this.node = node;
+			this.value = null;
+
+			if(node.ReturnType != MarkupEvaluationTypes.MARGINS) {
+				throw new EvaluationTypeException($"{nameof(MarginsExpression)} expected node with return type {MarkupEvaluationTypes.MARGINS}.");
+			}
 		}
 		public MarginsExpression(Margins value) {
 			this.top = null;
 			this.right = null;
 			this.bottom = null;
 			this.left = null;
+			this.node = null;
 			this.value = value;
 		}
 		public static implicit operator MarginsExpression(Margins value) {
@@ -645,12 +684,29 @@ namespace SharpSheets.Markup.Canvas {
 		public MarginsExpression(FloatExpression vertical, FloatExpression horizontal) : this(vertical, horizontal, vertical, horizontal) { }
 
 		public IEnumerable<EvaluationName> GetVariables() {
-			return IsConstant ? Enumerable.Empty<EvaluationName>() : top!.GetVariables().Concat(right!.GetVariables()).Concat(bottom!.GetVariables()).Concat(left!.GetVariables());
+			if (IsConstant) {
+				return Enumerable.Empty<EvaluationName>();
+			}
+			else if(node is not null) {
+				return node.GetVariables();
+			}
+			else {
+				return top!.GetVariables().Concat(right!.GetVariables()).Concat(bottom!.GetVariables()).Concat(left!.GetVariables());
+			}
 		}
 
 		public Margins Evaluate(IEnvironment environment) {
 			if (value.HasValue) {
 				return value.Value;
+			}
+			else if (node is not null) {
+				object? result = node.Evaluate(environment);
+				if(result is Margins margins) {
+					return margins;
+				}
+				else {
+					throw new EvaluationCalculationException($"Expected {nameof(Margins)} value.");
+				}
 			}
 			else {
 				return new Margins(top!.Evaluate(environment), right!.Evaluate(environment), bottom!.Evaluate(environment), left!.Evaluate(environment));
@@ -658,7 +714,60 @@ namespace SharpSheets.Markup.Canvas {
 		}
 
 		public override string ToString() {
-			return $"MarginsExpression(top: {Top}, right: {Right}, bottom: {Bottom}, left: {Left})";
+			if (value.HasValue) {
+				return $"MarginsExpression({value.Value})";
+			}
+			else if (node is not null) {
+				return $"MarginsExpression(node)";
+			}
+			else {
+				return $"MarginsExpression(top: {Top}, right: {Right}, bottom: {Bottom}, left: {Left})";
+			}
+		}
+
+		private class MarginAttributeNode : EvaluationNode {
+			public override bool IsConstant => subject.IsConstant;
+
+			public override EvaluationType ReturnType => EvaluationType.FLOAT;
+
+			private readonly EvaluationNode subject;
+			private readonly Func<Margins, float> action;
+
+			public MarginAttributeNode(EvaluationNode subject, Func<Margins, float> action) : base() {
+				if(subject.ReturnType != MarkupEvaluationTypes.MARGINS) {
+					throw new EvaluationTypeException($"{nameof(subject)} must return a {nameof(Margins)} value.");
+				}
+
+				this.subject = subject;
+				this.action = action;
+			}
+
+			public override object? Evaluate(IEnvironment environment) {
+				object? result = subject.Evaluate(environment);
+
+				if(result is Margins margins) {
+					return action(margins);
+				}
+				else {
+					throw new EvaluationCalculationException($"Expected {nameof(Margins)} value.");
+				}
+			}
+
+			public override IEnumerable<EvaluationName> GetVariables() {
+				return subject.GetVariables();
+			}
+
+			public override EvaluationNode Clone() {
+				return new MarginAttributeNode(subject.Clone(), action);
+			}
+
+			public override EvaluationNode Simplify() {
+				return new MarginAttributeNode(subject.Simplify(), action);
+			}
+
+			protected override string GetRepresentation() {
+				return nameof(MarginAttributeNode);
+			}
 		}
 	}
 

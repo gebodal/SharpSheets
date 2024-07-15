@@ -277,6 +277,17 @@ namespace SharpSheets.Markup.Parsing {
 		/// <exception cref="EvaluationException"></exception>
 		/// <exception cref="FormatException"></exception>
 		public static MarginsExpression ParseMargins(string text, IVariableBox variables) {
+			try {
+				EvaluationNode node = Evaluation.Parse(text, variables);
+				if (node.ReturnType == MarkupEvaluationTypes.MARGINS) {
+					return new MarginsExpression(node);
+				}
+				else if (node.ReturnType == EvaluationType.FLOAT) {
+					return new MarginsExpression(new FloatExpression(node));
+				}
+			}
+			catch (EvaluationException) { }
+
 			FloatExpression[] values = ParseSVGNumbers(text, variables);
 			if (values.Length == 1) {
 				return new MarginsExpression(values[0]);
