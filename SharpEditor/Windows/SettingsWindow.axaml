@@ -8,8 +8,8 @@
         mc:Ignorable="d"
         Title="Settings"
 		Icon="/Images/Icon.ico"
-		d:DesignWidth="600" d:DesignHeight="450"
-		Width="600" Height="450"
+		d:DesignWidth="600" d:DesignHeight="500"
+		Width="600" Height="500"
 		MinWidth="300" MinHeight="200"
 		WindowStartupLocation="CenterOwner"
 		ShowInTaskbar="False"
@@ -35,7 +35,7 @@
 		<ScrollViewer Padding="10"
 			HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
 			KeyboardNavigation.TabNavigation="Cycle">
-			<StackPanel Orientation="Vertical">
+			<StackPanel Orientation="Vertical" Margin="0 0 0 50">
 
 				<HeaderedContentControl Classes="settings" Header="Designer" Padding="8">
 					<StackPanel>
