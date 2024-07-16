@@ -26,7 +26,6 @@ namespace SharpEditor.Windows {
 	public partial class SharpEditorWindow : Window {
 
 		public readonly AppController controller;
-		private readonly ObservableCollection<EditorTabItem> editorTabs;
 
 		// TODO Progress tracker for Generator?
 		private readonly Generator generator;
@@ -48,13 +47,13 @@ namespace SharpEditor.Windows {
 		public SharpEditorWindow(AppController controller) {
 			this.controller = controller;
 			// Create list of tab items
-			editorTabs = new ObservableCollection<EditorTabItem>();
 			DataManager = SharpDataManager.Instance;
 			InitialiseCommands();
 			
 			InitializeComponent();
 			this.DataContext = this;
 
+			InitialiseTabs();
 			InitialiseTemplateFileList();
 			InitialiseEditorInterfaces();
 			InitialiseDragDrop();
@@ -66,11 +65,6 @@ namespace SharpEditor.Windows {
 			generator = new Generator(Dispatcher.UIThread) { OpenOnGenerate = SharpDataManager.Instance.OpenOnGenerate };
 			SharpDataManager.Instance.OpenOnGenerateChanged += delegate { generator.OpenOnGenerate = SharpDataManager.Instance.OpenOnGenerate; };
 			generator.Start();
-
-			// Assign tab items collection
-			EditorTabControl.ItemsSource = editorTabs;
-
-			EditorTabControl.SelectionChanged += TabSelectionChanged;
 
 			EditorStateChanged += (o, e) => { EditorCursorChanged?.Invoke(o, e); };
 			this.GetObservable(Window.WindowStateProperty).Subscribe(Window_StateChanged);
@@ -164,6 +158,18 @@ namespace SharpEditor.Windows {
 
 		#region Tab Handling
 
+		private IList<EditorTabItem> editorTabs;
+
+		[MemberNotNull(nameof(editorTabs))]
+		private void InitialiseTabs() {
+			editorTabs = new ObservableCollection<EditorTabItem>();
+
+			// Assign tab items collection
+			EditorTabControl.ItemsSource = editorTabs;
+
+			EditorTabControl.SelectionChanged += TabSelectionChanged;
+		}
+
 		public bool HasTabOpen { get { return EditorTabControl?.SelectedIndex is int index && index != -1; } }
 		public int NumTabs { get { return editorTabs?.Count ?? 0; } }
 
@@ -175,6 +181,23 @@ namespace SharpEditor.Windows {
 			}
 			else {
 				return null;
+			}
+		}
+
+		private EditorTabItem AddNewTab(SharpDocumentEditor editor) {
+			EditorTabItem tabItem = new EditorTabItem(this, editor);
+			editorTabs.Add(tabItem);
+			return tabItem;
+		}
+
+		public async Task<bool> CloseTab(EditorTabItem item) {
+			if (await CloseDocument(item.Content)) {
+				editorTabs.Remove(item);
+				EditorStateChanged?.Invoke(this, new EventArgs());
+				return true;
+			}
+			else {
+				return false;
 			}
 		}
 
@@ -202,17 +225,6 @@ namespace SharpEditor.Windows {
 
 		private void FocusEvent(object? sender, DocumentEditorEventArgs e) {
 			FocusOnEditor(e.Editor);
-		}
-
-		public async Task<bool> CloseTab(EditorTabItem item) {
-			if (await CloseDocument(item.Content)) {
-				editorTabs.Remove(item);
-				EditorStateChanged?.Invoke(this, new EventArgs());
-				return true;
-			}
-			else {
-				return false;
-			}
 		}
 
 		private void TabSelectionChanged(object? sender, SelectionChangedEventArgs e) {
@@ -319,7 +331,7 @@ namespace SharpEditor.Windows {
 				};
 				editor.RequestFocus += FocusEvent;
 
-				editorTabs.Add(new EditorTabItem(this, editor));
+				AddNewTab(editor);
 			}
 
 			if (openTab) {
@@ -345,7 +357,7 @@ namespace SharpEditor.Windows {
 				};
 				editor.RequestFocus += FocusEvent;
 
-				editorTabs.Add(new EditorTabItem(this, editor));
+				AddNewTab(editor);
 			}
 
 			if (openTab) {
@@ -1007,7 +1019,6 @@ namespace SharpEditor.Windows {
 		private bool CanRedoExecute() {
 			return GetCurrentEditor()?.textEditor.CanRedo ?? false;
 		}
-
 
 		#endregion Commands
 
