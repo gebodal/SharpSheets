@@ -588,12 +588,12 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				//BorderThickness = new Thickness(1),
 			};
 
-			float glyphHeight = fontData.GetAscent(GlyphFontSize);
+			//float glyphHeight = fontData.GetAscent(GlyphFontSize);
 			float glyphWidth = fontData.GetWidth(glyphIdx, GlyphFontSize);
 
 			// Calculate the margin to center the Path within the Border
 			double horizontalOffset = (border.Width - glyphWidth) / 2;
-			double verticalOffset = (border.Height + glyphHeight) / 2;
+			double verticalOffset = (border.Height + GlyphFontSize) / 2;
 
 			Geometry? geometry = fontData.GetGlyphGeometry(glyphIdx, GlyphFontSize);
 			if (geometry is not null) {
@@ -619,7 +619,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 		private static Control MakeGlyphsBox(CollectedFontData fontData, ushort[] backtrack, ushort[] glyphIdxs, ushort[] lookahead) {
 
-			double glyphHeight = fontData.GetAscent(GlyphFontSize);
+			//double glyphHeight = fontData.GetAscent(GlyphFontSize);
 
 			double runWidth = 0.0;
 			double[] glyphWidths = new double[backtrack.Length + glyphIdxs.Length + lookahead.Length];
@@ -665,7 +665,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			double borderWidth = GlyphElementSize + runWidth - (glyphWidths.Length > 0 ? glyphWidths[0] + glyphWidths[^1] : 0.0) / 2.0;
 
 			double horizontalOffset = (GlyphElementSize - (glyphWidths.Length > 0 ? glyphWidths[0] : 0.0)) / 2.0;
-			double verticalOffset = (GlyphElementSize + glyphHeight) / 2;
+			double verticalOffset = (GlyphElementSize + GlyphFontSize) / 2;
 
 			beforeGroup.Transform = new TranslateTransform(horizontalOffset, verticalOffset);
 			middleGroup.Transform = new TranslateTransform(horizontalOffset, verticalOffset);
@@ -1065,8 +1065,20 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				this.ascents = ProcessShort(ascents, fontFile.UnitsPerEm);
 				this.descents = ProcessShort(descents, fontFile.UnitsPerEm);
 
-				this.ascent = ProcessShort(fontFile.head.yMax, fontFile.UnitsPerEm);
-				this.descent = ProcessShort(fontFile.head.yMin, fontFile.UnitsPerEm);
+				// These should maybe be methods on TrueTypeFontFont? (repeated in GeboPDF.CIDFontFactory)
+				if (fontFile.os2 != null && fontFile.os2.sTypoAscender.HasValue) {
+					this.ascent = ProcessShort(fontFile.os2.sTypoAscender.Value, fontFile.UnitsPerEm);
+				}
+				else {
+					this.ascent = ProcessShort(fontFile.head.yMax, fontFile.UnitsPerEm);
+				}
+
+				if (fontFile.os2 != null && fontFile.os2.sTypoDescender.HasValue) {
+					this.descent = ProcessShort(fontFile.os2.sTypoDescender.Value, fontFile.UnitsPerEm);
+				}
+				else {
+					this.descent = ProcessShort(fontFile.head.yMin, fontFile.UnitsPerEm);
+				}
 			}
 
 			public Geometry GetGlyphGeometry(ushort glyphId, float fontSize) {
