@@ -14,6 +14,7 @@ namespace SharpEditor.DataManagers {
 
 		private static readonly string configPath;
 		private static readonly string configExtension = ".conf";
+		private static readonly string configDirBasename = SharpEditorData.GetEditorName();
 		private static readonly JsonSerializerOptions jsonSerializeoptions = new JsonSerializerOptions() {
 			IncludeFields = true
 		};
@@ -21,6 +22,9 @@ namespace SharpEditor.DataManagers {
 		public static void Initialise() { } // Dummy method to force static initialisation
 
 		public static SharpDataManager Instance { get; }
+
+		public string ConfigDir => GetCurrentConfigDir();
+		public string ConfigPath => configPath;
 
 		static SharpDataManager() {
 
@@ -32,6 +36,12 @@ namespace SharpEditor.DataManagers {
 
 			configPath = GetCurrentConfigPath();
 			Console.WriteLine("Calculated current config path: " + configPath);
+
+			string configDirPath = GetCurrentConfigDir();
+			if (!Directory.Exists(configDirPath)) {
+				Console.WriteLine("Create config directory.");
+				Directory.CreateDirectory(configDirPath);
+			}
 
 			if (File.Exists(configPath)) {
 				Console.WriteLine("Load existing config.");
@@ -101,10 +111,15 @@ namespace SharpEditor.DataManagers {
 			}
 		}
 
+		private static string GetCurrentConfigDir() {
+			string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			return Path.Combine(appData, configDirBasename);
+		}
+
 		private static string GetCurrentConfigPath() {
 			string filename = SharpEditorData.GetEditorName() + SharpEditorData.GetVersionString() + configExtension;
-			string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-			return Path.Combine(appData, filename);
+			string dir = GetCurrentConfigDir();
+			return Path.Combine(dir, filename);
 		}
 
 		private static string? GetOldConfigPath() {
