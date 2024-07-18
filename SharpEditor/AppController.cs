@@ -25,18 +25,24 @@ namespace SharpEditor {
 			this.window = new SharpEditorWindow(this);
 		}
 
-		public static async Task<AppController> Create(App app, Visual currentVisual, string[]? args) {
+		public static async Task<AppController> Create(App app, LoadingWindow loadingWindow, string[]? args) {
 			// Initialise static variables in data handlers
+			await loadingWindow.SetMessageText("Load application config...");
 			SharpDataManager.Initialise();
 
-			await AppInitialization(currentVisual);
-
-			AppController controller = new AppController(app);
+			await loadingWindow.SetMessageText("Initialise template directory...");
+			await AppInitialization(loadingWindow);
 
 			// Initialise static variables in data handlers
+			await loadingWindow.SetMessageText("Initialise SharpSheets state...");
 			SharpSheetsStateManager.Initialise();
-			SharpEditorPalette.Initialise();
+			await loadingWindow.SetMessageText("Load templates...");
 			SharpEditorRegistries.Initialise();
+			await loadingWindow.SetMessageText("Load highlighting data...");
+			SharpEditorPalette.Initialise();
+
+			await loadingWindow.SetMessageText("Creating main window...");
+			AppController controller = new AppController(app);
 
 			controller.window.GetObservable(Window.WindowStateProperty).Subscribe(controller.Window_StateChanged);
 			controller.window.Resized += controller.Window_Resized;

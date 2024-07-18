@@ -18,7 +18,15 @@
 	
 	<DockPanel Margin="4">
 		<TextBlock DockPanel.Dock="Top"></TextBlock>
-		<TextBlock DockPanel.Dock="Bottom" Name="VersionTextBlock" Foreground="Gray" HorizontalAlignment="Left" Padding="6,0,0,0">Version 0.0.0.0</TextBlock>
+		<Grid DockPanel.Dock="Bottom" Margin="6,0,6,0">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="10"/>
+				<ColumnDefinition Width="*"/>
+			</Grid.ColumnDefinitions>
+			<TextBlock Grid.Column="0" Name="VersionTextBlock" Foreground="Gray" HorizontalAlignment="Left" Padding="0">Version 0.0.0.0</TextBlock>
+			<TextBlock Grid.Column="2" Name="MessageTextBlock" Text="" Foreground="Gray" HorizontalAlignment="Right" Padding="0"/>
+		</Grid>
 		<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,2">
 			<Image Source="/Images/Logo.png" Height="150"/>
 			<TextBlock
