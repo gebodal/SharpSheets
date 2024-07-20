@@ -14,6 +14,9 @@ using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Cards.CardConfigs;
 using Avalonia.Media;
 using SharpEditor.Utilities;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using System.Globalization;
 
 namespace SharpEditor.DataManagers {
 
@@ -21,7 +24,18 @@ namespace SharpEditor.DataManagers {
 
 		public static void Initialise() { } // Dummy method to force static initialisation
 
+		private static readonly JsonSerializerOptions jsonSerializeoptions = new JsonSerializerOptions() {
+			IncludeFields = false,
+			Converters = {
+				new HighlightColorJsonConverter(),
+				new HighlightFontStyleJsonConverter(),
+				new HighlightFontWeightJsonConverter()
+			}
+		};
+
 		static SharpEditorPalette() {
+			LoadCurrentHighlightingColors();
+
 			LoadCharacterSheetHighlightings();
 			LoadCardConfigHighlightings();
 			LoadCardSubjectHighlighting();
@@ -29,6 +43,13 @@ namespace SharpEditor.DataManagers {
 
 			AssignHighlightingColors();
 		}
+
+		public static event EventHandler? HighlightColorChanged;
+
+		private static readonly string colorsConfigFile = SharpEditorData.GetEditorName() + SharpEditorData.GetVersionString() + "_Highlighting" + ".json";
+
+		private static Dictionary<string, HighlightData> highlightingColors;
+		public static IReadOnlyDictionary<string, HighlightData> HighlightingColors => highlightingColors;
 
 		public static IHighlightingDefinition CharacterSheetHighlighting { get; private set; }
 		public static IHighlightingDefinition CardConfigHighlighting { get; private set; }
@@ -54,122 +75,113 @@ namespace SharpEditor.DataManagers {
 		public static Brush MarkupPunctuationBrush { get; private set; }
 		public static Brush MarkupBaseBrush { get; private set; }
 
+		private static string GetColorsConfigPath() {
+			return Path.Join(SharpDataManager.Instance.ConfigDir, colorsConfigFile);
+		}
+
+		[MemberNotNull(nameof(highlightingColors))]
+		private static void LoadCurrentHighlightingColors() {
+			highlightingColors = LoadDefaultHighlightingColors();
+
+			string colorsConfigPath = GetColorsConfigPath();
+			if (File.Exists(colorsConfigPath)) {
+				string jsonText = File.ReadAllText(colorsConfigPath, System.Text.Encoding.UTF8);
+				IReadOnlyDictionary<string, HighlightData>? colorsConfig = JsonSerializer.Deserialize<Dictionary<string, HighlightData>>(jsonText, jsonSerializeoptions);
+				if (colorsConfig is not null) {
+					SetColors(colorsConfig, false);
+				}
+			}
+		}
+
+		public static Dictionary<string, HighlightData> LoadDefaultHighlightingColors() {
+			Dictionary<string, HighlightData> defaultColors = new Dictionary<string, HighlightData>();
+
+			using (Stream s = ResourceUtilities.GetResourceStream(typeof(SharpEditorData).Assembly, "HighlightingColors.xml") ?? throw new InvalidOperationException("Could not find embedded resource")) {
+				using (XmlTextReader reader = new XmlTextReader(s)) {
+					while (reader.Read()) {
+						if (reader.NodeType == XmlNodeType.Element && reader.Name == "Color") {
+							string? name = reader.GetAttribute("name");
+							string? foreground = reader.GetAttribute("foreground");
+							string? fontWeight = reader.GetAttribute("fontWeight");
+							string? fontStyle = reader.GetAttribute("fontStyle");
+
+							if (name is not null && foreground is not null)
+								defaultColors.Add(name,
+									new HighlightData(
+										Color.Parse(foreground),
+										fontWeight is not null ? Enum.Parse<FontWeight>(fontWeight, true) : FontWeight.Normal,
+										fontStyle is not null ? Enum.Parse<FontStyle>(fontStyle, true) : FontStyle.Normal
+									));
+						}
+					}
+				}
+			}
+
+			return defaultColors;
+		}
+
+		public static IReadOnlyDictionary<string, HighlightData> GetColors() {
+			return HighlightingColors;
+		}
+
+		public static void SetColors(IReadOnlyDictionary<string, HighlightData> colors, bool reloadHighlighting = true) {
+			bool changed = false;
+			foreach ((string n, HighlightData d) in colors) {
+				// Only copy over recognized color names
+				if (highlightingColors.TryGetValue(n, out HighlightData? existing) && existing != d) {
+					highlightingColors[n] = d;
+					changed = true;
+				}
+			}
+
+			if (changed) {
+				string colorsConfigPath = GetColorsConfigPath();
+				string jsonText = JsonSerializer.Serialize(highlightingColors, jsonSerializeoptions);
+				File.WriteAllText(colorsConfigPath, jsonText, System.Text.Encoding.UTF8);
+			}
+
+			if (changed && reloadHighlighting) {
+				// Reload color palette
+				LoadCharacterSheetHighlightings();
+				LoadCardConfigHighlightings();
+				LoadCardSubjectHighlighting();
+				LoadBoxMarkupHighlighting();
+
+				AssignHighlightingColors();
+
+				HighlightColorChanged?.Invoke(null, new EventArgs());
+			}
+		}
+
+		private static Dictionary<string, HighlightingColor> MakeColorDict(IReadOnlyDictionary<string, HighlightData> data) {
+			Dictionary<string, HighlightingColor> result = new Dictionary<string, HighlightingColor>();
+
+			foreach ((string name, HighlightData highlight) in data) {
+				result[name] = new HighlightingColor() {
+					Foreground = new SimpleHighlightingBrush(highlight.Color),
+					FontWeight = highlight.FontWeight,
+					FontStyle = highlight.FontStyle
+				};
+			}
+
+			return result;
+		}
+
 		[MemberNotNull(nameof(CharacterSheetHighlighting))]
-		static void LoadCharacterSheetHighlightings() {
+		private static void LoadCharacterSheetHighlightings() {
 			CharacterSheetHighlighting = LoadSharpConfigHighlighting("CharacterSheet", 3);
 		}
 
 		[MemberNotNull(nameof(CardConfigHighlighting))]
-		static void LoadCardConfigHighlightings() {
+		private static void LoadCardConfigHighlightings() {
 			CardConfigHighlighting = LoadSharpConfigHighlighting("CardConfig", 5);
 		}
-
-		/*
-		private static HighlightingRule characterSheetStyleRule;
-
-		[MemberNotNull(nameof(characterSheetStyleRule), nameof(CharacterSheetHighlighting))]
-		static void LoadCharacterSheetHighlightings() {
-			// Load our custom highlighting definition
-			IHighlightingDefinition customHighlighting;
-			using (Stream s = typeof(SharpEditorWindow).Assembly.GetManifestResourceStream("SharpEditor.Highlighting.SharpConfigHighlighting.xshd")!) {
-				if (s == null)
-					throw new InvalidOperationException("Could not find embedded resource");
-				using (XmlReader reader = new HighlightingReader(s, "CharacterSheet")) {
-					customHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
-				}
-			}
-
-			//IList<HighlightingRule> rules = customHighlighting.MainRuleSet.Rules;
-			//HighlightingRuleSet basicRules = customHighlighting.GetNamedRuleSet("BasicRules");
-			HighlightingRuleSet propertyRules = customHighlighting.GetNamedRuleSet("PropertyRules");
-			Dictionary<string, HighlightingColor> colors = customHighlighting.NamedHighlightingColors.ToDictionary(c => c.Name);
-
-			Regex GetStyleListRegex() {
-				string[] styleList = SharpEditorRegistries.ShapeFactoryInstance.GetAllNames().Distinct().OrderByDescending(n => n).Select(n => Regex.Escape(n)).ToArray();
-				//Console.WriteLine("styleList = " + string.Join(", ", styleList));
-				return new Regex(string.Format(@"(?<=\:)\s*({0})\s*(?=\#|$)", string.Join("|", styleList)), RegexOptions.IgnoreCase);
-			}
-			characterSheetStyleRule = new HighlightingRule {
-				Color = colors["Style"],
-				Regex = GetStyleListRegex()
-			};
-			SharpEditorRegistries.MarkupRegistry.RegistryChanged += delegate {
-				// This should never need to be removed during the program lifetime, so adding an anonymous function is fine
-				characterSheetStyleRule.Regex = GetStyleListRegex();
-			};
-			//customHighlighting.MainRuleSet.Spans.Last().RuleSet.Rules.Insert(0, characterSheetStyleRule);
-
-			//basicRules.Rules.Insert(0, characterSheetStyleRule);
-			//propertyRules.Rules.Insert(0, characterSheetStyleRule);
-
-			customHighlighting.MainRuleSet.Spans[2].RuleSet.Rules.Insert(0, characterSheetStyleRule);
-
-			string[] rectSetupList = WidgetFactory.WidgetSetupConstructor.Arguments.Select(a => a.Name.ToLowerInvariant()).Distinct().OrderByDescending(a => a).ToArray();
-			HighlightingSpan rectSetupSpanRule = new HighlightingSpan {
-				StartColor = colors["RectSetup"],
-				SpanColorIncludesStart = true,
-				StartExpression = new Regex(string.Format(@"^\s*\@?({0})\s*(?=:)", string.Join("|", rectSetupList)), RegexOptions.IgnoreCase),
-				EndExpression = new Regex(@"$"),
-				RuleSet = propertyRules
-			};
-			customHighlighting.MainRuleSet.Spans.Insert(2, rectSetupSpanRule); // Insert after comment spans
-
-			//HighlightingManager.Instance.RegisterHighlighting("SharpSheets", new string[] { ".ssc" }, customHighlighting);
-			CharacterSheetHighlighting = customHighlighting;
-		}
-
-		private static HighlightingRule cardDefinitionStyleRule;
-
-		[MemberNotNull(nameof(cardDefinitionStyleRule), nameof(CardDefinitionHighlighting))]
-		static void LoadCardDefinitionHighlightings() {
-			// Load our custom highlighting definition
-			IHighlightingDefinition customHighlighting;
-			using (Stream s = typeof(SharpEditorWindow).Assembly.GetManifestResourceStream("SharpEditor.Highlighting.SharpConfigHighlighting.xshd")!) {
-				if (s == null)
-					throw new InvalidOperationException("Could not find embedded resource");
-				using (XmlReader reader = new HighlightingReader(s, "CardDefinition")) {
-					customHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
-				}
-			}
-
-			//IList<HighlightingRule> rules = customHighlighting.MainRuleSet.Rules;
-			IList<HighlightingRule> basicRules = customHighlighting.GetNamedRuleSet("BasicRules").Rules;
-			Dictionary<string, HighlightingColor> colors = customHighlighting.NamedHighlightingColors.ToDictionary(c => c.Name);
-
-			//HighlightingRule rectRule = new HighlightingRule { Color = colors["Rect"] };
-			//string[] rectList = WidgetFactory.GetAllNames()
-			//	//.Append("page")
-			//	.Concat(CardDefinitionConstructors.Select(c => c.Name))
-			//	.Concat(CardRectConstructors.Select(c => c.Name))
-			//	.ToArray();
-			//rectRule.Regex = new Regex(string.Format(@"^\s*({0})\s*(?=:?\s*(#|$))", string.Join("|", rectList)), RegexOptions.IgnoreCase);
-			//rules.Insert(0, rectRule);
-
-			Regex GetStyleListRegex() {
-				string[] styleList = SharpEditorRegistries.ShapeFactoryInstance.GetAllNames().Distinct().OrderByDescending(n => n).Select(n => Regex.Escape(n)).ToArray();
-				return new Regex(string.Format(@"(?<=\:)\s*({0})\s*(?=#|$)", string.Join("|", styleList)), RegexOptions.IgnoreCase);
-			}
-			cardDefinitionStyleRule = new HighlightingRule {
-				Color = colors["Style"],
-				Regex = GetStyleListRegex()
-			};
-			SharpEditorRegistries.MarkupRegistry.RegistryChanged += delegate {
-				// This should never need to be removed during the program lifetime, so adding an anonymous function is fine
-				cardDefinitionStyleRule.Regex = GetStyleListRegex();
-			};
-			//basicRules.Insert(0, cardDefinitionStyleRule);
-			customHighlighting.MainRuleSet.Spans[4].RuleSet.Rules.Insert(0, cardDefinitionStyleRule);
-
-			//HighlightingManager.Instance.RegisterHighlighting("CardDefinitions", new string[] { ".scd" }, customHighlighting);
-			CardDefinitionHighlighting = customHighlighting;
-		}
-		*/
 
 		private static IHighlightingDefinition LoadSharpConfigHighlighting(string style, int styleRuleRulesetIndex) {
 			// Load our custom highlighting definition
 			IHighlightingDefinition customHighlighting;
 			using (Stream s = ResourceUtilities.GetResourceStream(typeof(SharpEditorData).Assembly, "SharpConfigHighlighting.xshd") ?? throw new InvalidOperationException("Could not find embedded resource")) {
-				using (XmlReader reader = new HighlightingReader(s, style)) {
+				using (XmlReader reader = new HighlightingReader(s, style, MakeColorDict(HighlightingColors))) {
 					customHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
 				}
 			}
@@ -183,7 +195,7 @@ namespace SharpEditor.DataManagers {
 				return new Regex(string.Format(@"(?<=\:)\s*({0})\s*(?=\#|$)", string.Join("|", styleList)), RegexOptions.IgnoreCase);
 			}
 			HighlightingRule styleRule = new HighlightingRule {
-				Color = colors["Style"],
+				Color = colors["Config_ShapeStyle"],
 				Regex = GetStyleListRegex()
 			};
 			SharpEditorRegistries.MarkupRegistry.RegistryChanged += delegate {
@@ -195,7 +207,7 @@ namespace SharpEditor.DataManagers {
 
 			string[] rectSetupList = WidgetFactory.WidgetSetupConstructor.Arguments.Select(a => a.Name.ToLowerInvariant()).Distinct().OrderByDescending(a => a).ToArray();
 			HighlightingSpan rectSetupSpanRule = new HighlightingSpan {
-				StartColor = colors["RectSetup"],
+				StartColor = colors["Config_WidgetSetup"],
 				SpanColorIncludesStart = true,
 				StartExpression = new Regex(string.Format(@"^\s*\@?({0})\s*(?=:\s*(?!\s|\#|$))", string.Join("|", rectSetupList)), RegexOptions.IgnoreCase),
 				EndExpression = new Regex(@"$"),
@@ -207,11 +219,11 @@ namespace SharpEditor.DataManagers {
 		}
 
 		[MemberNotNull(nameof(CardSubjectHighlighting))]
-		static void LoadCardSubjectHighlighting() {
+		private static void LoadCardSubjectHighlighting() {
 			// Card subject highlighting
 			IHighlightingDefinition customHighlighting;
 			using (Stream s = ResourceUtilities.GetResourceStream(typeof(SharpEditorData).Assembly, "CardSubjectHighlighting.xshd") ?? throw new InvalidOperationException("Could not find embedded resource")) {
-				using (XmlReader reader = new XmlTextReader(s)) {
+				using (XmlReader reader = new HighlightingReader(s, null, MakeColorDict(HighlightingColors))) {
 					customHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
 				}
 			}
@@ -221,11 +233,11 @@ namespace SharpEditor.DataManagers {
 		}
 
 		[MemberNotNull(nameof(BoxMarkupHighlighting))]
-		static void LoadBoxMarkupHighlighting() {
+		private static void LoadBoxMarkupHighlighting() {
 			// Box markup highlighting
 			IHighlightingDefinition customHighlighting;
 			using (Stream s = ResourceUtilities.GetResourceStream(typeof(SharpEditorData).Assembly, "SBMLHighlighting.xshd") ?? throw new InvalidOperationException("Could not find embedded resource")) {
-				using (XmlReader reader = new XmlTextReader(s)) {
+				using (XmlReader reader = new HighlightingReader(s, null, MakeColorDict(HighlightingColors))) {
 					customHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
 				}
 			}
@@ -235,22 +247,22 @@ namespace SharpEditor.DataManagers {
 		}
 
 		[MemberNotNull(nameof(RectBrush), nameof(ArgBrush), nameof(StyleBrush), nameof(TypeBrush), nameof(ClassBrush), nameof(DefaultValueBrush), nameof(DefinitionBrush), nameof(DefinitionNameBrush), nameof(DefinitionTypeBrush), nameof(MarkupElementBrush), nameof(MarkupAttributeBrush), nameof(MarkupPunctuationBrush), nameof(MarkupBaseBrush))]
-		static void AssignHighlightingColors() {
-			RectBrush = new SolidColorBrush(CharacterSheetHighlighting.GetNamedColor("Rect").Foreground.GetColor(null)!.Value);
-			ArgBrush = new SolidColorBrush(CardConfigHighlighting.GetNamedColor("Condition").Foreground.GetColor(null)!.Value); // new SolidColorBrush(Colors.Magenta);
-			StyleBrush = new SolidColorBrush(CharacterSheetHighlighting.GetNamedColor("Style").Foreground.GetColor(null)!.Value);
-			TypeBrush = new SolidColorBrush(Colors.Gold);
-			ClassBrush = new SolidColorBrush(Colors.OrangeRed);
-			DefaultValueBrush = new SolidColorBrush(Colors.Gray);
-			DefinitionBrush = new SolidColorBrush(CardConfigHighlighting.GetNamedColor("Def").Foreground.GetColor(null)!.Value);
+		private static void AssignHighlightingColors() {
+			RectBrush = new SolidColorBrush(highlightingColors["Config_Widget"].Color);
+			ArgBrush = new SolidColorBrush(highlightingColors["Config_MetaProperty"].Color);
+			StyleBrush = new SolidColorBrush(highlightingColors["Config_ShapeStyle"].Color);
+			TypeBrush = new SolidColorBrush(highlightingColors["Documentation_Type"].Color);
+			ClassBrush = new SolidColorBrush(highlightingColors["Documentation_Class"].Color);
+			DefaultValueBrush = new SolidColorBrush(highlightingColors["Documentation_DefaultValue"].Color);
+			DefinitionBrush = new SolidColorBrush(highlightingColors["Config_DefinitionKeywords"].Color);
+			
+			DefinitionNameBrush = new SolidColorBrush(highlightingColors["Config_DefinitionName"].Color);
+			DefinitionTypeBrush = new SolidColorBrush(highlightingColors["Config_DefinitionType"].Color);
 
-			DefinitionNameBrush = new SolidColorBrush(CardConfigHighlighting.GetNamedColor("DefinitionName").Foreground.GetColor(null)!.Value);
-			DefinitionTypeBrush = new SolidColorBrush(CardConfigHighlighting.GetNamedColor("DefinitionType").Foreground.GetColor(null)!.Value);
-
-			MarkupElementBrush = new SolidColorBrush(BoxMarkupHighlighting.GetNamedColor("TagName").Foreground.GetColor(null)!.Value);
-			MarkupAttributeBrush = new SolidColorBrush(BoxMarkupHighlighting.GetNamedColor("AttributeName").Foreground.GetColor(null)!.Value);
-			MarkupPunctuationBrush = new SolidColorBrush(BoxMarkupHighlighting.GetNamedColor("Punctuation").Foreground.GetColor(null)!.Value);
-			MarkupBaseBrush = new SolidColorBrush(BoxMarkupHighlighting.GetNamedColor("BaseColor").Foreground.GetColor(null)!.Value);
+			MarkupElementBrush = new SolidColorBrush(highlightingColors["XML_TagName"].Color);
+			MarkupAttributeBrush = new SolidColorBrush(highlightingColors["XML_AttributeName"].Color);
+			MarkupPunctuationBrush = new SolidColorBrush(highlightingColors["XML_Punctuation"].Color);
+			MarkupBaseBrush = new SolidColorBrush(highlightingColors["XML_BaseColor"].Color);
 		}
 
 		public static Brush GetTypeBrush(Type? type) {
@@ -283,6 +295,70 @@ namespace SharpEditor.DataManagers {
 			}
 		}
 
+	}
+
+	public class HighlightData : IEquatable<HighlightData> {
+
+		public Color Color { get; }
+		public FontWeight FontWeight { get; }
+		public FontStyle FontStyle { get; }
+
+		public HighlightData(Color color, FontWeight fontWeight = FontWeight.Normal, FontStyle fontStyle = FontStyle.Normal) {
+			this.Color = color;
+			this.FontWeight = fontWeight;
+			this.FontStyle = fontStyle;
+		}
+
+		public bool Equals(HighlightData? other) {
+			if(other is null) { return false; }
+			return Color == other.Color && FontWeight == other.FontWeight && FontStyle == other.FontStyle;
+		}
+
+		public override bool Equals(object? obj) {
+			return Equals(obj as HighlightData);
+		}
+
+		public override int GetHashCode() {
+			return HashCode.Combine(Color, FontWeight, FontStyle);
+		}
+
+		public static bool operator ==(HighlightData left, HighlightData right) {
+			return left.Equals(right);
+		}
+		public static bool operator !=(HighlightData left, HighlightData right) {
+			return !left.Equals(right);
+		}
+	}
+
+	public class HighlightColorJsonConverter : JsonConverter<Color> {
+		public override Color Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
+			return Color.Parse(reader.GetString()!);
+		}
+
+		public override void Write(Utf8JsonWriter writer, Color color, JsonSerializerOptions options) {
+			uint rgb = color.ToUInt32();
+			writer.WriteStringValue($"#{rgb.ToString("x8", CultureInfo.InvariantCulture)}");
+		}
+	}
+
+	public class HighlightFontWeightJsonConverter : JsonConverter<FontWeight> {
+		public override FontWeight Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
+			return Enum.Parse<FontWeight>(reader.GetString()!, true);
+		}
+
+		public override void Write(Utf8JsonWriter writer, FontWeight fontWeight, JsonSerializerOptions options) {
+			writer.WriteStringValue(fontWeight.ToString());
+		}
+	}
+
+	public class HighlightFontStyleJsonConverter : JsonConverter<FontStyle> {
+		public override FontStyle Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
+			return Enum.Parse<FontStyle>(reader.GetString()!, true);
+		}
+
+		public override void Write(Utf8JsonWriter writer, FontStyle fontStyle, JsonSerializerOptions options) {
+			writer.WriteStringValue(fontStyle.ToString());
+		}
 	}
 
 }

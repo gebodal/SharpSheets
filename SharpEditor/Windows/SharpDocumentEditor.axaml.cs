@@ -431,7 +431,7 @@ namespace SharpEditor.Windows {
 		}
 
 		private void SetDocumentType(bool forceUpdate, DocumentType newDocumentType) {
-			if (newDocumentType != CurrentDocumentType) {
+			if (forceUpdate || newDocumentType != CurrentDocumentType) {
 				foldingManager.Clear();
 				parsingManager.Reset();
 
@@ -491,6 +491,16 @@ namespace SharpEditor.Windows {
 				DocumentTypeChanged?.Invoke(this, new DocumentEditorEventArgs(this));
 				OnUpdateHeader();
 			}
+		}
+
+		private void ReloadHighlighting() {
+			textEditor.SyntaxHighlighting = CurrentDocumentType switch {
+				DocumentType.SHARPCONFIG => SharpEditorPalette.CharacterSheetHighlighting,
+				DocumentType.CARDCONFIG => SharpEditorPalette.CardConfigHighlighting,
+				DocumentType.CARDSUBJECT => SharpEditorPalette.CardSubjectHighlighting,
+				DocumentType.MARKUP => SharpEditorPalette.BoxMarkupHighlighting,
+				_ => null
+			};
 		}
 
 		public void New(DocumentType documentType, bool intentional) {
@@ -950,6 +960,8 @@ namespace SharpEditor.Windows {
 
 			//parsingManager.ParseEnded += s => Dispatcher.Invoke(() => { RedrawAfterParse(); });
 			parsingManager.ResultLoaded += RedrawAfterParse;
+
+			SharpEditorPalette.HighlightColorChanged += delegate { this.ReloadHighlighting(); };
 
 			parsingManager.Start();
 		}

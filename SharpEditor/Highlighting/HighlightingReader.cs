@@ -1,4 +1,6 @@
-﻿using System;
+﻿using AvaloniaEdit.Highlighting;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 using System.Xml.Schema;
@@ -8,16 +10,20 @@ namespace SharpEditor.Highlighting {
 	public class HighlightingReader : XmlReader {
 
 		private readonly XmlReader _reader;
-		private readonly string style;
+		private readonly string? style;
+		private readonly IReadOnlyDictionary<string, HighlightingColor>? colors;
 
-		public HighlightingReader(Stream input, string style) {
+		public HighlightingReader(Stream input, string? style, IReadOnlyDictionary<string, HighlightingColor>? colors) {
 			_reader = new XmlTextReader(input); // XmlReader.Create(input);
-			this.style = style ?? throw new ArgumentNullException(nameof(style));
+			this.style = style;
+			this.colors = colors;
 		}
 
 		private bool SkipElement() {
+			if (style is null) { return false; }
+
 			string? enabled = _reader.GetAttribute("enabled");
-			if(enabled == null) {
+			if (enabled == null) {
 				return false;
 			}
 			else {
@@ -53,6 +59,42 @@ namespace SharpEditor.Highlighting {
             return result;
         }
 
+		public override string? GetAttribute(string name) {
+			//Console.WriteLine($"GetAttribute({name}) on {_reader.LocalName}");
+			if (colors is not null && _reader.LocalName == "Color" && _reader.GetAttribute("name") is string colorName && colors.TryGetValue(colorName, out HighlightingColor? color)) {
+				if(name == "foreground") {
+					return color.Foreground?.GetColor(null).ToString();
+				}
+				else if (name == "background") {
+					return color.Background?.GetColor(null).ToString();
+				}
+				else if (name == "fontWeight") {
+					return color.FontWeight?.ToString();
+				}
+				else if (name == "fontStyle") {
+					return color.FontStyle?.ToString();
+				}
+				else if (name == "underline") {
+					return color.Underline?.ToString();
+				}
+				else if (name == "strikethrough") {
+					return color.Strikethrough?.ToString();
+				}
+			}
+
+			return _reader.GetAttribute(name);
+		}
+		public override string? GetAttribute(string name, string? namespaceURI) {
+			throw new NotImplementedException();
+			//Console.WriteLine($"GetAttribute({name}, {namespaceURI}) on {_reader.LocalName}");
+			//return _reader.GetAttribute(name, namespaceURI);
+		}
+		public override string GetAttribute(int i) {
+			throw new NotImplementedException();
+			//Console.WriteLine($"GetAttribute({i}) on {_reader.LocalName}");
+			//return _reader.GetAttribute(i);
+		}
+
 		#region Wrapper
 
 		public override XmlNodeType NodeType => _reader.NodeType;
@@ -68,9 +110,6 @@ namespace SharpEditor.Highlighting {
 		public override ReadState ReadState => _reader.ReadState;
 		public override XmlNameTable NameTable => _reader.NameTable;
 
-		public override string? GetAttribute(string name) => _reader.GetAttribute(name);
-		public override string? GetAttribute(string name, string? namespaceURI) => _reader.GetAttribute(name, namespaceURI);
-		public override string GetAttribute(int i) => _reader.GetAttribute(i);
 		public override string? LookupNamespace(string prefix) => _reader.LookupNamespace(prefix);
 		public override bool MoveToAttribute(string name) => _reader.MoveToAttribute(name);
 		public override bool MoveToAttribute(string name, string? ns) => _reader.MoveToAttribute(name, ns);

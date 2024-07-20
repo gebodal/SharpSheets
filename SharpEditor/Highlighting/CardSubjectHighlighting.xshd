@@ -1,28 +1,28 @@
 ﻿<?xml version="1.0"?>
 <SyntaxDefinition name="CardSubjects" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
-	<Color name="CardTitle" foreground="#3ca5fb" fontWeight="normal"/>
-	<Color name="SectionTitle" foreground="#00eaea" fontWeight="normal"/>
-	<Color name="FeatureTitle" foreground="#09abfc" fontWeight="normal"/>
-	<Color name="BaseColor" foreground="#dcdcdc" fontWeight="normal"/>
-	<Color name="Property" foreground="#dbab04" fontWeight="normal"/>
-	<Color name="TitleDetails" foreground="#4ec9b0" fontWeight="normal"/>
-	<Color name="TitleDetailName" foreground="#199254" fontWeight="normal"/>
-	<Color name="Macro" foreground="#808080" fontWeight="normal"/>
-	<Color name="Variable" foreground="#bb6d8d" fontWeight="normal"/>
-	<Color name="VariableFormatting" foreground="#935970" fontWeight="normal" fontStyle="italic"/>
-	<Color name="Comment" foreground="#808080" fontWeight="normal" fontStyle="italic"/>
-	<Color name="CommentEmphasis" foreground="#a1a1a1" fontWeight="bold"/>
+	<Color name="CardSubject_CardTitle" foreground="#3ca5fb" fontWeight="normal"/>
+	<Color name="CardSubject_SectionTitle" foreground="#00eaea" fontWeight="normal"/>
+	<Color name="CardSubject_FeatureTitle" foreground="#09abfc" fontWeight="normal"/>
+	<Color name="CardSubject_BaseColor" foreground="#dcdcdc" fontWeight="normal"/>
+	<Color name="CardSubject_Property" foreground="#dbab04" fontWeight="normal"/>
+	<Color name="CardSubject_TitleDetails" foreground="#4ec9b0" fontWeight="normal"/>
+	<Color name="CardSubject_TitleDetailName" foreground="#199254" fontWeight="normal"/>
+	<Color name="CardSubject_Macro" foreground="#808080" fontWeight="normal"/>
+	<Color name="CardSubject_Variable" foreground="#bb6d8d" fontWeight="normal"/>
+	<Color name="CardSubject_VariableFormatting" foreground="#935970" fontWeight="normal" fontStyle="italic"/>
+	<Color name="CardSubject_Comment" foreground="#808080" fontWeight="normal" fontStyle="italic"/>
+	<Color name="CardSubject_CommentEmphasis" foreground="#a1a1a1" fontWeight="bold"/>
 	
 	<RuleSet name="VariableRules" ignoreCase="true">
-		<Rule color="Variable">
+		<Rule color="CardSubject_Variable">
 			\$[a-z][a-z0-9]*
 		</Rule>
 
-		<Span color="Variable">
+		<Span color="CardSubject_Variable">
 			<Begin>((?&lt;!\\)\$)?(?&lt;!\\)\{</Begin>
 			<End>(?&lt;!\\)\}</End>
 			<RuleSet>
-				<Span color="VariableFormatting">
+				<Span color="CardSubject_VariableFormatting">
 					<Begin>(?&lt;!\\)\:[a-z0-9\;\'\+\-\%\?\.\,\\]+(?=\})</Begin>
 					<End>(?=\})</End>
 				</Span>
@@ -30,7 +30,7 @@
 		</Span>
 
 		<!--
-		<Rule color="Variable">
+		<Rule color="CardSubject_Variable">
 			((?&lt;!\\)\$)?(?&lt;!\\)\{(\\\}|[^\}])+\}
 		</Rule>
 		-->
@@ -55,11 +55,11 @@
 	</RuleSet>
 
 	<RuleSet name="TitleDetailsRules" ignoreCase="true">
-		<Span color="TitleDetails">
+		<Span color="CardSubject_TitleDetails">
 			<Begin>\[</Begin>
 			<End>\]</End>
 			<RuleSet>
-				<Rule color="TitleDetailName">
+				<Rule color="CardSubject_TitleDetailName">
 					(?&lt;=^|[\[\,])\s*\!?[a-z][a-z0-9 ]*(?=[\:\,])
 				</Rule>
 				<Import ruleSet="ExpressionRules"/>
@@ -70,38 +70,38 @@
 	<!-- This is the main ruleset. -->
 	<RuleSet ignoreCase="true">
 
-		<Span color="Comment">
+		<Span color="CardSubject_Comment">
 			<Begin>(?&lt;!\\)\%</Begin>
 			<RuleSet ignoreCase="false">
-				<Rule color="CommentEmphasis">
+				<Rule color="CardSubject_CommentEmphasis">
 					\b (TODO | FIX(ME)?) \b
 				</Rule>
 			</RuleSet>
 		</Span>
 			
-		<Span color="Macro">
+		<Span color="CardSubject_Macro">
 			<Begin>^(\=+|\s+\=\=+)</Begin>
 		</Span>
 
-		<Span color="Macro">
+		<Span color="CardSubject_Macro">
 			<Begin>^\#(\=|\!)</Begin>
 		</Span>
 
-		<Span color="CardTitle">
+		<Span color="CardSubject_CardTitle">
 			<Begin>^(\#\>|\#(?!\=|\!))</Begin>
 			<RuleSet>
 				<Import ruleSet="TitleDetailsRules"/>
 			</RuleSet>
 		</Span>
 
-		<Span color="SectionTitle">
+		<Span color="CardSubject_SectionTitle">
 			<Begin>^\#\# (?=[^\#]|$)</Begin>
 			<RuleSet>
 				<Import ruleSet="TitleDetailsRules"/>
 			</RuleSet>
 		</Span>
 
-		<Span color="FeatureTitle">
+		<Span color="CardSubject_FeatureTitle">
 			<Begin>^\#\#\#+</Begin>
 			<RuleSet>
 				<Import ruleSet="TitleDetailsRules"/>
@@ -109,17 +109,17 @@
 		</Span>
 
 		<!--
-		<Rule color="Property">
+		<Rule color="CardSubject_Property">
 			^ [^:]+ (?=:)
 		</Rule>
 		-->
 
 		<!--
-		<Span color="Property">
+		<Span color="CardSubject_Property">
 			<Begin>[^\#\=\:]</Begin>
 			<End>:</End>
 			<RuleSet>
-				<Span color="TitleDetails">
+				<Span color="CardSubject_TitleDetails">
 					<Begin>\[</Begin>
 					<End>\]</End>
 				</Span>
@@ -127,7 +127,7 @@
 		</Span>
 		-->
 
-		<Span color="Property">
+		<Span color="CardSubject_Property">
 			<Begin>^[^\#\=\:](\\\{|[^\:\[\{])*(?=\:|\[)</Begin>
 			<End>\:</End>
 			<RuleSet>
@@ -137,7 +137,7 @@
 
 		<Import ruleSet="VariableRules"/>
 
-		<Rule color="BaseColor">
+		<Rule color="CardSubject_BaseColor">
 			.
 		</Rule>
 		

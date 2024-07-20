@@ -1,91 +1,89 @@
 ﻿<?xml version="1.0"?>
 <SyntaxDefinition name="SharpConfig" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
-	<Color name="BaseColor" foreground="#d69d6d" fontWeight="normal"/>
-	<Color name="Comment" foreground="#808080" fontWeight="normal" fontStyle="italic"/>
-	<Color name="CommentEmphasis" foreground="#a1a1a1" fontWeight="bold"/>
-	<Color name="Number" foreground="#09abfc" fontWeight="normal"/>
-	<Color name="Dimension" foreground="#09abfc" fontWeight="bold"/>
-	<Color name="Diagnostic" foreground="HotPink" fontWeight="bold"/>
-	<Color name="Rect" foreground="#3ca5fb" fontWeight="normal"/>
-	<Color name="NamedRect" foreground="#6ba3d1" fontWeight="normal"/>
-	<Color name="Style" foreground="#00eaea" fontWeight="normal"/>
-	<Color name="Property" foreground="#dbab04" fontWeight="normal"/>
-	<Color name="RectSetup" foreground="#dbab04" fontStyle="italic" fontWeight="normal"/>
-	<Color name="BracesProperty" foreground="#4ec9b0" fontWeight="normal"/>
-	<Color name="Flag" foreground="#b8d7a3" fontWeight="bold"/>
-	<Color name="NotFlag" foreground="#b8d7a3" fontWeight="bold"/>
-	<Color name="Entry" foreground="White" fontWeight="normal"/> <!-- BlueViolet? -->
-	<Color name="EscapeSequence" foreground="#ffd68f" fontWeight="bold"/>
-	<Color name="Braces" foreground="Wheat" fontWeight="bold"/>
-	<Color name="Punctuation" foreground="#dcdcdc" fontWeight="normal"/>
-	<Color name="LesserPunctuation" foreground="#a3a3a3" fontWeight="normal"/>
-	<Color name="Error" foreground="Purple" fontWeight="normal"/>
-	<Color name="Keywords" foreground="#db2525" fontWeight="normal"/>
+	<Color name="Config_BaseColor" foreground="#d69d6d" fontWeight="normal"/>
+	<Color name="Config_Comment" foreground="#808080" fontWeight="normal" fontStyle="italic"/>
+	<Color name="Config_CommentEmphasis" foreground="#a1a1a1" fontWeight="bold"/>
+	<Color name="Config_Number" foreground="#09abfc" fontWeight="normal"/>
+	<Color name="Config_Dimension" foreground="#09abfc" fontWeight="bold"/>
+	<Color name="Config_Diagnostic" foreground="HotPink" fontWeight="bold"/>
+	<Color name="Config_Widget" foreground="#3ca5fb" fontWeight="normal"/>
+	<Color name="Config_NamedChild" foreground="#6ba3d1" fontWeight="normal"/>
+	<Color name="Config_ShapeStyle" foreground="#00eaea" fontWeight="normal"/> <!-- This is used in rule added from code-behind. -->
+	<Color name="Config_Property" foreground="#dbab04" fontWeight="normal"/>
+	<Color name="Config_WidgetSetup" foreground="#dbab04" fontStyle="italic" fontWeight="normal"/> <!-- This is used in rule added from code-behind. -->
+	<Color name="Config_BracesProperty" foreground="#4ec9b0" fontWeight="normal"/>
+	<Color name="Config_Flag" foreground="#b8d7a3" fontWeight="bold"/>
+	<Color name="Config_NotFlag" foreground="#b8d7a3" fontWeight="bold"/>
+	<Color name="Config_EntryMarker" foreground="White" fontWeight="normal"/> <!-- BlueViolet? -->
+	<Color name="Config_EscapeSequence" foreground="#ffd68f" fontWeight="bold"/>
+	<Color name="Config_Braces" foreground="Wheat" fontWeight="bold"/>
+	<Color name="Config_Punctuation" foreground="#dcdcdc" fontWeight="normal"/>
+	<Color name="Config_ExpressionKeywords" foreground="#db2525" fontWeight="normal"/>
 
-	<Color name="Def" foreground="#b31a1a" fontWeight="bold"/>
-	<Color name="DefinitionName" foreground="Orange" fontWeight="normal"/>
-	<Color name="DefinitionType" foreground="Yellow" fontWeight="normal"/>
-	<Color name="DefinitionCategory" foreground="Teal" fontWeight="normal"/>
-	<Color name="Condition" foreground="#45bd38" fontWeight="normal"/>
-	<Color name="Variable" foreground="#bb6d8d" fontWeight="normal"/>
-	<Color name="Description" foreground="#d69d6d" fontWeight="normal"/>
+	<Color name="Config_DefinitionKeywords" foreground="#b31a1a" fontWeight="bold"/>
+	<Color name="Config_DefinitionName" foreground="Orange" fontWeight="normal"/>
+	<Color name="Config_DefinitionType" foreground="Yellow" fontWeight="normal"/>
+	<Color name="Config_DefinitionCategory" foreground="Teal" fontWeight="normal"/>
+	<Color name="Config_MetaProperty" foreground="#45bd38" fontWeight="normal"/>
+	<Color name="Config_Variable" foreground="#bb6d8d" fontWeight="normal"/>
+	<Color name="Config_DefinitionDescription" foreground="#d69d6d" fontWeight="normal"/>
 
 	<RuleSet name="Expressions" ignoreCase="true">
 		<!-- Keywords -->
-		<Rule color="Keywords">
+		<Rule color="Config_ExpressionKeywords">
 			(\bfor|in|if)\b
 		</Rule>
 		<!-- General punctuation for def -->
-		<Rule color="Punctuation">
+		<Rule color="Config_Punctuation">
 			[\:\|\=]
 		</Rule>
 		<!-- Operators -->
-		<Rule color="Punctuation">
+		<Rule color="Config_Punctuation">
 			[\*\/\%\+\-\&lt;\&gt;\=\!\&amp;,\^\|\?\[\]\(\)]
 		</Rule>
 		<!-- Numbers (float/int) -->
-		<Rule color="Number">
+		<Rule color="Config_Number">
 			[0-9]+\.[0-9]+ | [0-9]*\.[0-9]+ | [0-9]+
 		</Rule>
 		<!-- Boolean -->
-		<Rule color="Number">
+		<Rule color="Config_Number">
 			\b(true|false)\b
 		</Rule>
 		<!-- Strings -->
-		<Rule color="BaseColor">
+		<Rule color="Config_BaseColor">
 			\"([^\"\\]|\\.)*\"
 		</Rule>
 		<!-- Escaped variable -->
-		<Rule color="Variable">
+		<Rule color="Config_Variable">
 			(?&lt;!\\)\$[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*
 		</Rule>
 		<!-- Unicode escape sequence -->
-		<Rule color="EscapeSequence">
+		<Rule color="Config_EscapeSequence">
 			\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8}|\\.
 		</Rule>
 		<!-- Function -->
-		<Rule color="Rect">
+		<Rule color="Config_Widget">
 			[a-z]+(?=\s*\()
 		</Rule>
 		<!-- Raw variable -->
-		<Rule color="Variable">
+		<Rule color="Config_Variable">
 			[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*
 		</Rule>
 	</RuleSet>
 
 	<RuleSet name="BasicRules" ignoreCase="false">
 
-		<Span color="Comment">
+		<Span color="Config_Comment">
 			<Begin>(?&lt;!\\)\#</Begin>
 			<RuleSet ignoreCase="false">
-				<Rule color="CommentEmphasis">
+				<Rule color="Config_CommentEmphasis">
 					\b (TODO | FIX(ME)?) \b
 				</Rule>
 			</RuleSet>
 		</Span>
 
 		<!-- Bracketed expression -->
-		<Span color="Braces">
+		<Span color="Config_Braces">
 			<Begin>(?&lt;!\\)\$\{</Begin>
 			<End>\}</End>
 			<RuleSet>
@@ -94,28 +92,28 @@
 		</Span>
 
 		<!-- Escaped variable -->
-		<Rule color="Variable">
+		<Rule color="Config_Variable">
 			(?&lt;!\\)\$[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*
 		</Rule>
 
 		<!-- Unicode escape sequence -->
-		<Rule color="EscapeSequence">
+		<Rule color="Config_EscapeSequence">
 			\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8}|\\.
 		</Rule>
 
-		<Rule color="Dimension">
+		<Rule color="Config_Dimension">
 			(?i) \b ([0-9]+(\.[0-9]+)? | \.[0-9]+) (pt\b | cm\b | mm\b | in\b | pc\b | \%)
 		</Rule>
 
-		<Rule color="Number">
+		<Rule color="Config_Number">
 			\b ([\+\-]? [0-9]+(\.[0-9]+)? | \.[0-9]+) \b
 		</Rule>
 
-		<Rule color="Punctuation">
+		<Rule color="Config_Punctuation">
 			[,;:-]
 		</Rule>
 
-		<Rule color="BaseColor">
+		<Rule color="Config_BaseColor">
 			.
 		</Rule>
 	</RuleSet>
@@ -138,11 +136,11 @@
 	</RuleSet>
 
 	<RuleSet name="PropertyRules" ignoreCase="true">
-		<Span color="Braces">
+		<Span color="Config_Braces">
 			<Begin>(?&lt;=\:)\s*\{</Begin>
 			<End>(?&lt;!\\)\}</End>
 			<RuleSet>
-				<Rule color="BracesProperty">
+				<Rule color="Config_BracesProperty">
 					[A-Za-z] [A-Za-z0-9\.]* \s* (?=:)
 				</Rule>
 				<Import ruleSet="BasicRules"/>
@@ -156,18 +154,18 @@
 	<RuleSet ignoreCase="true">
 
 		<!-- Multiline Comments -->
-		<Span color="Comment" multiline="true" begin="\#--" end="--\#"/>
+		<Span color="Config_Comment" multiline="true" begin="\#--" end="--\#"/>
 
 		<!-- Value Definitions -->
-		<Span enabled="CardConfig" color="Def">
+		<Span enabled="CardConfig" color="Config_DefinitionKeywords">
 			<Begin>^\s*def\s+</Begin>
 			<RuleSet ignoreCase="true">
 				<!-- Description -->
-				<Span color="Description">
+				<Span color="Config_DefinitionDescription">
 					<Begin>\/\/\/</Begin>
 				</Span>
 				<!-- Expression-->
-				<Span color="Punctuation">
+				<Span color="Config_Punctuation">
 					<Begin>\=</Begin>
 					<End>(?=\/\/\/)|$</End>
 					<RuleSet>
@@ -175,7 +173,7 @@
 					</RuleSet>
 				</Span>
 				<!-- Example value-->
-				<Span color="LesserPunctuation">
+				<Span color="Config_Punctuation">
 					<Begin>\@</Begin>
 					<End>(?=\/\/\/)|$</End>
 					<RuleSet>
@@ -183,65 +181,65 @@
 					</RuleSet>
 				</Span>
 				<!-- Type -->
-				<Span color="Punctuation">
+				<Span color="Config_Punctuation">
 					<Begin>\:</Begin>
 					<End>(?=\=|\@|\/\/\/)|$</End>
 					<RuleSet>
-						<Span color="DefinitionType">
+						<Span color="Config_DefinitionType">
 							<Begin>(?i:(multi)?category)\(</Begin>
 							<End>\)\s*(?=\=|\@|\/\/\/|$)</End>
 							<RuleSet>
-								<Rule color="Punctuation">
+								<Rule color="Config_Punctuation">
 									\,
 								</Rule>
-								<Rule color="DefinitionCategory">
+								<Rule color="Config_DefinitionCategory">
 									.
 								</Rule>
 							</RuleSet>
 						</Span>
-						<Span color="DefinitionType">
+						<Span color="Config_DefinitionType">
 							<Begin>(?i:string)\(</Begin>
 							<End>\)\s*(?=\=|\/\/\/|$|\[\s*\])</End>
 							<RuleSet>
 								<Import ruleSet="Regex"/>
 							</RuleSet>
 						</Span>
-						<Span color="DefinitionType">
+						<Span color="Config_DefinitionType">
 							<Begin>(?i:intrange|floatrange)\(</Begin>
 							<End>\)\s*(?=\=|\/\/\/|$)</End>
 							<RuleSet>
-								<Rule color="Punctuation">
+								<Rule color="Config_Punctuation">
 									\,
 								</Rule>
-								<Rule color="DefinitionCategory">
+								<Rule color="Config_DefinitionCategory">
 									.
 								</Rule>
 							</RuleSet>
 						</Span>
-						<Rule color="DefinitionType">
+						<Rule color="Config_DefinitionType">
 							.
 						</Rule>
 					</RuleSet>
 				</Span>
-				<Rule color="Punctuation">
+				<Rule color="Config_Punctuation">
 					[\|]
 				</Rule>
-				<Rule color="DefinitionName">
+				<Rule color="Config_DefinitionName">
 					[A-Za-z0-9\s]+
 				</Rule>
 			</RuleSet>
 		</Span>
 
 		<!-- Function Definitions -->
-		<Span enabled="CardConfig" color="Def">
+		<Span enabled="CardConfig" color="Config_DefinitionKeywords">
 			<Begin>^\s*fun\s+</Begin>
 			<RuleSet ignoreCase="true">
 				<!-- Description -->
-				<Span color="Description">
+				<Span color="Config_DefinitionDescription">
 					<Begin>\/\/\/</Begin>
 				</Span>
 				<!-- Expression -->
-				<Span color="Punctuation">
+				<Span color="Config_Punctuation">
 					<Begin>\=</Begin>
 					<End>(?=\/\/\/)|$</End>
 					<RuleSet>
@@ -249,46 +247,46 @@
 					</RuleSet>
 				</Span>
 				<!-- Type -->
-				<Span color="Punctuation">
+				<Span color="Config_Punctuation">
 					<Begin>\:</Begin>
 					<End>(?=\=|\)|\,|\/\/\/)|$</End>
 					<RuleSet>
-						<Span color="DefinitionType">
+						<Span color="Config_DefinitionType">
 							<Begin>(?i:(multi)?category)\(</Begin>
 							<End>\)\s*(?=\=|\/\/\/|$)</End>
 							<RuleSet>
-								<Rule color="Punctuation">
+								<Rule color="Config_Punctuation">
 									\,
 								</Rule>
-								<Rule color="DefinitionCategory">
+								<Rule color="Config_DefinitionCategory">
 									.
 								</Rule>
 							</RuleSet>
 						</Span>
-						<Span color="DefinitionType">
+						<Span color="Config_DefinitionType">
 							<Begin>(?i:string)\(</Begin>
 							<End>\)\s*(?=\=|\/\/\/|$)</End>
 							<RuleSet>
 								<Import ruleSet="Regex"/>
 							</RuleSet>
 						</Span>
-						<Rule color="DefinitionType">
+						<Rule color="Config_DefinitionType">
 							.
 						</Rule>
 					</RuleSet>
 				</Span>
 				<!-- Punctuation ("|", ",", "(", ")") -->
-				<Rule color="Punctuation">
+				<Rule color="Config_Punctuation">
 					[\|\,\(\)]
 				</Rule>
-				<Rule color="DefinitionName">
+				<Rule color="Config_DefinitionName">
 					[A-Za-z\s]+
 				</Rule>
 			</RuleSet>
 		</Span>
 
 		<!-- Entries -->
-		<Span color="Entry">
+		<Span color="Config_EntryMarker">
 			<Begin>^ \s* -</Begin>
 			<RuleSet>
 				<Import ruleSet="BasicRules"/>
@@ -296,7 +294,7 @@
 		</Span>
 
 		<!-- Condition and for-each line and expression -->
-		<Span color="Condition">
+		<Span color="Config_MetaProperty">
 			<Begin>^ \s* (condition|foreach) \s* (?=:\s*[^\s])</Begin>
 			<RuleSet>
 				<Import ruleSet="Expressions"/>
@@ -304,7 +302,7 @@
 		</Span>
 
 		<!-- Property span -->
-		<Span color="Property">
+		<Span color="Config_Property">
 			<Begin>^ \s* \@? [A-Za-z] [A-Za-z0-9]* (\.[A-Za-z][A-Za-z0-9]*)* \s* (?=\:\s*[^\#])</Begin>
 			<RuleSet>
 				<Import ruleSet="PropertyRules"/>
@@ -312,23 +310,23 @@
 		</Span>
 
 		<!-- Named child rule -->
-		<Rule color="NamedRect">
+		<Rule color="Config_NamedChild">
 			^ \s* \@?\&amp;[A-Za-z][A-Za-z0-9]* (\.[A-Za-z][A-Za-z0-9]*)* \s* (?=(\:|\#|$))
 		</Rule>
 
 		<!-- Widget name rule -->
-		<Rule color="NamedRect">
+		<Rule color="Config_Widget">
 			^ \s* [A-Za-z][A-Za-z0-9]* (\.[A-Za-z][A-Za-z0-9]*)* \s* (?=:\s*(\#|$))
 		</Rule>
 
-		<Rule color="Diagnostic">
+		<Rule color="Config_Diagnostic">
 			^ \s* diagnostic \s* (?=\#|$)
 		</Rule>
 
-		<Rule color="NotFlag">
+		<Rule color="Config_NotFlag">
 			^ \s* \@? \! [A-Za-z] [A-Za-z0-9\.]* \s* (?=\#|$)
 		</Rule>
-		<Rule color="Flag">
+		<Rule color="Config_Flag">
 			^ \s* \@? [A-Za-z] [A-Za-z0-9\.]* \s* (?=\#|$)
 		</Rule>
 

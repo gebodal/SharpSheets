@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Colors>
+	
+	<!-- SharpConfigHighlighting -->
+	<Color name="Config_BaseColor" foreground="#d69d6d" fontWeight="normal"/>
+	<Color name="Config_Comment" foreground="#808080" fontWeight="normal" fontStyle="italic"/>
+	<Color name="Config_CommentEmphasis" foreground="#a1a1a1" fontWeight="bold"/>
+	<Color name="Config_Number" foreground="#09abfc" fontWeight="normal"/>
+	<Color name="Config_Dimension" foreground="#09abfc" fontWeight="bold"/>
+	<Color name="Config_Diagnostic" foreground="HotPink" fontWeight="bold"/>
+	<Color name="Config_Widget" foreground="#3ca5fb" fontWeight="normal"/>
+	<Color name="Config_NamedChild" foreground="#6ba3d1" fontWeight="normal"/>
+	<Color name="Config_ShapeStyle" foreground="#00eaea" fontWeight="normal"/>
+	<Color name="Config_Property" foreground="#dbab04" fontWeight="normal"/>
+	<Color name="Config_WidgetSetup" foreground="#dbab04" fontStyle="italic" fontWeight="normal"/>
+	<Color name="Config_BracesProperty" foreground="#4ec9b0" fontWeight="normal"/>
+	<Color name="Config_Flag" foreground="#b8d7a3" fontWeight="bold"/>
+	<Color name="Config_NotFlag" foreground="#b8d7a3" fontWeight="bold"/>
+	<Color name="Config_EntryMarker" foreground="White" fontWeight="normal"/> <!-- BlueViolet? -->
+	<Color name="Config_EscapeSequence" foreground="#ffd68f" fontWeight="bold"/>
+	<Color name="Config_Braces" foreground="Wheat" fontWeight="bold"/>
+	<Color name="Config_Punctuation" foreground="#dcdcdc" fontWeight="normal"/>
+	<Color name="Config_ExpressionKeywords" foreground="#db2525" fontWeight="normal"/>
+
+	<Color name="Config_DefinitionKeywords" foreground="#b31a1a" fontWeight="bold"/>
+	<Color name="Config_DefinitionName" foreground="Orange" fontWeight="normal"/>
+	<Color name="Config_DefinitionType" foreground="Yellow" fontWeight="normal"/>
+	<Color name="Config_DefinitionCategory" foreground="Teal" fontWeight="normal"/>
+	<Color name="Config_MetaProperty" foreground="#45bd38" fontWeight="normal"/>
+	<Color name="Config_Variable" foreground="#bb6d8d" fontWeight="normal"/>
+	<Color name="Config_DefinitionDescription" foreground="#d69d6d" fontWeight="normal"/>
+
+	<!-- CardSubjectHighlighting -->
+	<Color name="CardSubject_CardTitle" foreground="#3ca5fb" fontWeight="normal"/>
+	<Color name="CardSubject_SectionTitle" foreground="#00eaea" fontWeight="normal"/>
+	<Color name="CardSubject_FeatureTitle" foreground="#09abfc" fontWeight="normal"/>
+	<Color name="CardSubject_BaseColor" foreground="#dcdcdc" fontWeight="normal"/>
+	<Color name="CardSubject_Property" foreground="#dbab04" fontWeight="normal"/>
+	<Color name="CardSubject_TitleDetails" foreground="#4ec9b0" fontWeight="normal"/>
+	<Color name="CardSubject_TitleDetailName" foreground="#199254" fontWeight="normal"/>
+	<Color name="CardSubject_Macro" foreground="#808080" fontWeight="normal"/>
+	<Color name="CardSubject_Variable" foreground="#bb6d8d" fontWeight="normal"/>
+	<Color name="CardSubject_VariableFormatting" foreground="#935970" fontWeight="normal" fontStyle="italic"/>
+	<Color name="CardSubject_Comment" foreground="#808080" fontWeight="normal" fontStyle="italic"/>
+	<Color name="CardSubject_CommentEmphasis" foreground="#a1a1a1" fontWeight="bold"/>
+	
+	<!-- SBMLHighlighting -->
+	<Color name="XML_Comment" foreground="#57a64a"/>
+	<Color name="XML_AttributeName" foreground="#92caf4"/>
+	<Color name="XML_TagName" foreground="#569cd6"/>
+	<Color name="XML_Escape" foreground="#92caf4"/>
+	<Color name="XML_Punctuation" foreground="#808080"/>
+	<Color name="XML_BaseColor" foreground="#c8c8c8"/>
+	
+	<!-- Documentation -->
+	<Color name="Documentation_Type" foreground="Gold"/>
+	<Color name="Documentation_Class" foreground="OrangeRed"/>
+	<Color name="Documentation_DefaultValue" foreground="Gray"/>
+
+</Colors>

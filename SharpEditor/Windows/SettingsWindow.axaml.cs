@@ -1,11 +1,21 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
+using Avalonia.Data.Converters;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using CommunityToolkit.Mvvm.ComponentModel;
 using SharpEditor.DataManagers;
 using SharpSheets.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace SharpEditor.Windows {
 
@@ -15,7 +25,8 @@ namespace SharpEditor.Windows {
 			InitializeComponent();
 
 			this.DataContext = SharpDataManager.Instance;
-			
+			InitialiseHighlightColorSettings();
+
 			this.Focusable = true; // So we can draw focus away from controls (e.g. upon Enter press)
 
 			TemplateDirectoryTextBox.Text = SharpEditorPathInfo.TemplateDirectory;
@@ -206,6 +217,172 @@ namespace SharpEditor.Windows {
 
 		#endregion
 
+		#region Colors
+
+		private List<HighlightColorSetting> highlightColorSettings;
+
+		[MemberNotNull(nameof(highlightColorSettings))]
+		private void InitialiseHighlightColorSettings() {
+			LoadColors(GetPaletteColors());
+		}
+
+		private static List<HighlightColorSetting> ConvertPaletteData(IReadOnlyDictionary<string, HighlightData> paletteData) {
+			return paletteData
+				.Select(kv => new HighlightColorSetting(kv.Key, kv.Value.Color, kv.Value.FontWeight == FontWeight.Bold, kv.Value.FontStyle == FontStyle.Italic))
+				.OrderBy(c => c.Name)
+				.ToList();
+		}
+
+		private static List<HighlightColorSetting> GetPaletteColors() {
+			return ConvertPaletteData(SharpEditorPalette.GetColors());
+		}
+
+		[MemberNotNull(nameof(highlightColorSettings))]
+		private void LoadColors(List<HighlightColorSetting> colors) {
+			highlightColorSettings = colors;
+			ColorItemsControl.ItemsSource = highlightColorSettings;
+		}
+
+		private void ApplyColorsClick(object? sender, RoutedEventArgs e) {
+			SharpEditorPalette.SetColors(highlightColorSettings.ToDictionary(
+				c => c.Name,
+				c => new HighlightData(c.Color, c.Bold ? FontWeight.Bold : FontWeight.Normal, c.Italic ? FontStyle.Italic : FontStyle.Normal)
+				));
+		}
+
+		private void ResetColorsClick(object? sender, RoutedEventArgs e) {
+			LoadColors(GetPaletteColors());
+		}
+
+		private void DefaultColorsClick(object? sender, RoutedEventArgs e) {
+			LoadColors(ConvertPaletteData(SharpEditorPalette.LoadDefaultHighlightingColors()));
+		}
+
+		#endregion
+
+	}
+
+	public partial class HighlightColorSetting : ObservableObject {
+
+		[ObservableProperty]
+		private string name;
+		[ObservableProperty]
+		private Color color;
+		[ObservableProperty]
+		private bool bold;
+		[ObservableProperty]
+		private bool italic;
+
+		public HighlightColorSetting(string name, Color color, bool bold, bool italic) {
+			this.name = name;
+			this.color = color;
+			this.bold = bold;
+			this.italic = italic;
+		}
+
+	}
+
+	public class ColorToStringConverter : IValueConverter {
+		public static readonly ColorToStringConverter Instance = new();
+
+		public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) {
+			if (value is Color color) {
+				uint rgb = color.ToUInt32();
+				if ((rgb & 0xff000000) == 0xff000000) {
+					return $"{(rgb & 0xffffff).ToString("x6", CultureInfo.InvariantCulture)}";
+				}
+				else {
+					return $"{rgb.ToString("x8", CultureInfo.InvariantCulture)}";
+				}
+			}
+			else {
+				// converter used for the wrong type
+				return new BindingNotification(new InvalidCastException(), BindingErrorType.Error);
+			}
+		}
+
+		public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) {
+			if (value is string colorStr) {
+				colorStr = colorStr.Trim();
+				if (!colorStr.StartsWith('#') && Regex.Match(colorStr, @"^[0-9a-f]+$", RegexOptions.IgnoreCase).Success) {
+					colorStr = $"#{colorStr}";
+				}
+				try {
+					return Color.Parse(colorStr);
+				}
+				catch (Exception) {
+					return new BindingNotification(new FormatException("Invalid color string."), BindingErrorType.DataValidationError);
+				}
+			}
+			else {
+				// converter used for the wrong type
+				return new BindingNotification(new InvalidCastException(), BindingErrorType.Error);
+			}
+		}
+	}
+
+	public class LostFocusUpdateBindingBehavior : Avalonia.Xaml.Interactivity.Behavior<TextBox> {
+
+		static LostFocusUpdateBindingBehavior() {
+			TextProperty.Changed.Subscribe(e => {
+				((LostFocusUpdateBindingBehavior)e.Sender).OnBindingValueChanged();
+			});
+		}
+
+		protected override void UpdateDataValidation(AvaloniaProperty property, BindingValueType state, Exception? error) {
+			base.UpdateDataValidation(property, state, error);
+
+			if (property == TextProperty && AssociatedObject != null) {
+				if (state == BindingValueType.DataValidationError && error is not null)
+					DataValidationErrors.SetError(AssociatedObject, error);
+				else // if (error is null)
+					DataValidationErrors.ClearErrors(AssociatedObject);
+			}
+		}
+
+		protected override void OnAttached() {
+			if (AssociatedObject != null) {
+				AssociatedObject.LostFocus += OnLostFocus;
+				AssociatedObject.KeyDown += OnKeyDown;
+			}
+
+			base.OnAttached();
+		}
+
+		protected override void OnDetaching() {
+			if (AssociatedObject != null) {
+				AssociatedObject.LostFocus -= OnLostFocus;
+				AssociatedObject.KeyDown -= OnKeyDown;
+			}
+
+			base.OnDetaching();
+		}
+
+		private void OnKeyDown(object? sender, KeyEventArgs e) {
+			if (AssociatedObject != null && e.Key == Key.Enter)
+				Text = AssociatedObject.Text ?? "";
+		}
+
+		private void OnLostFocus(object? sender, RoutedEventArgs e) {
+			if (AssociatedObject != null)
+				Text = AssociatedObject.Text ?? "";
+		}
+
+		private void OnBindingValueChanged() {
+			if (AssociatedObject != null)
+				AssociatedObject.Text = Text;
+		}
+
+		public static readonly DirectProperty<LostFocusUpdateBindingBehavior, string> TextProperty
+			= AvaloniaProperty.RegisterDirect<LostFocusUpdateBindingBehavior, string>(nameof(Text), o => o.Text,
+				(o, v) => o.Text = v, "", BindingMode.TwoWay, true);
+
+		private string _text = "";
+
+		public string Text {
+			get { return _text; }
+			set { this.SetAndRaise(TextProperty, ref _text, value); }
+		}
 	}
 
 }
