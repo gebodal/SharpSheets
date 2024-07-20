@@ -43,7 +43,7 @@ namespace SharpEditor {
 		}
 
 		protected override SharpConfigColorizingTransformer<SharpConfigSpan> MakeColorizer() {
-			return new SharpConfigColorizingTransformer<SharpConfigSpan>(this, SharpEditorRegistries.WidgetFactoryInstance, SharpEditorRegistries.ShapeFactoryInstance, null);
+			return new SharpConfigColorizingTransformer<SharpConfigSpan>(this, SharpEditorRegistries.WidgetFactoryInstance, SharpEditorRegistries.ShapeFactoryInstance);
 		}
 	}
 

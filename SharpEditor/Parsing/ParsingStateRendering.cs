@@ -110,28 +110,14 @@ namespace SharpEditor {
 		private readonly SharpConfigParsingState<TSpan> parsingState;
 		private readonly ITypeDetailsCollection headerTypes;
 		private readonly ITypeDetailsCollection styleTypes;
-		public SharpConfigColorizingTransformer(SharpConfigParsingState<TSpan> parsingState, ITypeDetailsCollection headerTypes, ITypeDetailsCollection styleTypes, IEnumerable<ArgumentDetails>? specialArgs) {
+		public SharpConfigColorizingTransformer(SharpConfigParsingState<TSpan> parsingState, ITypeDetailsCollection headerTypes, ITypeDetailsCollection styleTypes) {
 			this.parsingState = parsingState ?? throw new ArgumentException("parsingState cannot be null.");
 			this.headerTypes = headerTypes;
 			this.styleTypes = styleTypes;
-
-			specialPropertyRegex = MakeSpecialPropertyRegex(specialArgs);
 		}
 
 		private static readonly Regex widgetLineRegex = new Regex(@"^\s*([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)\s*(?=\:?\s*(#|$))", RegexOptions.IgnoreCase);
 		private static readonly Regex shapeRegex = new Regex(@"^\s*[a-z][a-z0-9]*\s*\:\s*([a-z][a-z0-9]*)(?=\s*(#|$))", RegexOptions.IgnoreCase);
-		private readonly Regex? specialPropertyRegex;
-
-		private static Regex? MakeSpecialPropertyRegex(IEnumerable<ArgumentDetails>? args) {
-			if(args == null) { return null; }
-			string allNames = string.Join(@"|", args.Select(a => Regex.Escape(a.Name)));
-			if (allNames.Length > 0) {
-				return new Regex(string.Format(@"^\s*({0})\s*(?=\:?\s*[^\s])", allNames), RegexOptions.IgnoreCase);
-			}
-			else {
-				return null;
-			}
-		}
 
 		protected override void ColorizeLine(DocumentLine line) {
 			//int lineStart = line.Offset;
@@ -155,14 +141,6 @@ namespace SharpEditor {
 				Group shapeName = shapeMatch.Groups[1];
 				if (styleTypes.ContainsKey(shapeName.Value)) {
 					ColorSpan(line.Offset + shapeName.Index, line.Offset + shapeName.Index + shapeName.Length, SharpEditorPalette.ShapeStyleBrush, null);
-				}
-			}
-
-			if (specialPropertyRegex != null) {
-				Match argMatch = specialPropertyRegex.Match(lineText);
-				if (argMatch.Success) {
-					Group argName = argMatch.Groups[1];
-					ColorSpan(line.Offset + argName.Index, line.Offset + argName.Index + argName.Length, SharpEditorPalette.MetaPropertyBrush, FontWeight.Bold);
 				}
 			}
 		}
