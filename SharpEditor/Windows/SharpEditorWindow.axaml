@@ -68,20 +68,20 @@
 					</MenuItem.ItemContainerTheme>
 				</MenuItem>
 			
-				<MenuItem Header="_Open..." Command="{Binding OpenCommand}">
+				<MenuItem Header="_Open..." Command="{Binding OpenCommand}" InputGesture="Ctrl+O">
 					<MenuItem.Icon>
 						<Image Source="/Images/Open3.png"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Open Template..." Click="OpenTemplateFileClick"/>
 				<Separator/>
-				<MenuItem Header="Save" Command="{Binding SaveCommand}">
+				<MenuItem Header="Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S">
 					<MenuItem.Icon>
 						<Image Source="/Images/Save2.png"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Save As..." Command="{Binding SaveAsCommand}"/>
-				<MenuItem Header="Save All" Command="{Binding SaveAllCommand}">
+				<MenuItem Header="Save All" Command="{Binding SaveAllCommand}" InputGesture="Ctrl+Shift+S">
 					<MenuItem.Icon>
 						<Image Source="/Images/SaveAll.png"/>
 					</MenuItem.Icon>
@@ -95,33 +95,33 @@
 			</MenuItem> <!-- End of File menu -->
 		
 			<MenuItem Header="_Edit">
-				<MenuItem Header="Undo" Command="{Binding UndoCommand}">
+				<MenuItem Header="Undo" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z">
 					<MenuItem.Icon>
 						<Image Source="/Images/Undo2.png"/>
 					</MenuItem.Icon>
 				</MenuItem>
-				<MenuItem Header="Redo" Command="{Binding RedoCommand}">
+				<MenuItem Header="Redo" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y">
 					<MenuItem.Icon>
 						<Image Source="/Images/Redo2.png"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<Separator/>
-				<MenuItem Header="Cut" Command="{Binding CutCommand}">
+				<MenuItem Header="Cut" Command="{Binding CutCommand}" InputGesture="Ctrl+X">
 					<MenuItem.Icon>
 						<Image Source="/Images/Cut3.png"/>
 					</MenuItem.Icon>
 				</MenuItem>
-				<MenuItem Header="Copy" Command="{Binding CopyCommand}">
+				<MenuItem Header="Copy" Command="{Binding CopyCommand}" InputGesture="Ctrl+C">
 					<MenuItem.Icon>
 						<Image Source="/Images/Copy2.png"/>
 					</MenuItem.Icon>
 				</MenuItem>
-				<MenuItem Header="Paste" Command="{Binding PasteCommand}">
+				<MenuItem Header="Paste" Command="{Binding PasteCommand}" InputGesture="Ctrl+V">
 					<MenuItem.Icon>
 						<Image Source="/Images/Paste2.png"/>
 					</MenuItem.Icon>
 				</MenuItem>
-				<MenuItem Header="Delete" Command="{Binding DeleteCommand}">
+				<MenuItem Header="Delete" Command="{Binding DeleteCommand}" InputGesture="Delete">
 					<MenuItem.Icon>
 						<Image Source="/Images/Delete4.png"/>
 					</MenuItem.Icon>
@@ -160,12 +160,12 @@
 				</MenuItem>
 			</MenuItem> <!-- End of View menu -->
 			<MenuItem Header="_Generate">
-				<MenuItem Header="Generate" Command="{Binding GenerateCommand}">
+				<MenuItem Header="Generate" Command="{Binding GenerateCommand}" InputGesture="Ctrl+G">
 					<MenuItem.Icon>
 						<Image Source="/Images/Run3.png"/>
 					</MenuItem.Icon>
 				</MenuItem>
-				<MenuItem Header="Generate and Fill" Command="{Binding GeneratePopulateCommand}">
+				<MenuItem Header="Generate and Fill" Command="{Binding GeneratePopulateCommand}" InputGesture="Ctrl+Shift+G">
 					<MenuItem.Icon>
 						<Image Source="/Images/GeneratePopulate.png"/>
 					</MenuItem.Icon>
@@ -213,7 +213,7 @@
 							Source="/Images/ExclamationWhite.png"/>
 					</StackPanel>
 				</MenuItem.Header>
-				<MenuItem Header="View Documentation" Command="{Binding HelpCommand}">
+				<MenuItem Header="View Documentation" Command="{Binding HelpCommand}" InputGesture="F1">
 					<MenuItem.Icon>
 						<Image Source="/Images/Info.png"/>
 					</MenuItem.Icon>
