@@ -296,6 +296,7 @@
 		<!-- Condition and for-each line and expression -->
 		<Span color="Config_MetaProperty">
 			<Begin>^ \s* (condition|foreach) \s* (?=:\s*[^\s])</Begin>
+			<End>(?&lt;!\\)(?=\#)</End>
 			<RuleSet>
 				<Import ruleSet="Expressions"/>
 			</RuleSet>
