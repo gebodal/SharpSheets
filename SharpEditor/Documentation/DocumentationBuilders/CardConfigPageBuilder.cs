@@ -75,7 +75,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					TextBlock segmentHeaderBlock = MakeTitleBlock(2);
 					if (!string.IsNullOrWhiteSpace(card.Value.name)) {
 						segmentHeaderBlock.Inlines?.Add(new Run("[Card] ") { Foreground = SharpEditorPalette.DefaultValueBrush });
-						segmentHeaderBlock.Inlines?.Add(new Run(card.Value.name) { Foreground = SharpEditorPalette.RectBrush });
+						segmentHeaderBlock.Inlines?.Add(new Run(card.Value.name) { Foreground = SharpEditorPalette.WidgetBrush });
 					}
 					else {
 						segmentHeaderBlock.Inlines?.Add(new Run("[Unnamed Card]") { Foreground = SharpEditorPalette.DefaultValueBrush });
@@ -139,7 +139,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		}
 
 		private static IEnumerable<Inline> MakeCardConfigHeaderInlines(CardSetConfig cardSetConfig) {
-			yield return new Run(cardSetConfig.name) { Foreground = SharpEditorPalette.RectBrush };
+			yield return new Run(cardSetConfig.name) { Foreground = SharpEditorPalette.WidgetBrush };
 		}
 
 		private static void SeparateDefinitions(IEnumerable<Definition> allDefinitions,
@@ -175,7 +175,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			TextBlock segmentHeaderBlock = MakeTitleBlock(titleLevel);
 			if (!string.IsNullOrWhiteSpace(segment.Value.name)) {
 				segmentHeaderBlock.Inlines?.Add(new Run("[Segment] ") { Foreground = SharpEditorPalette.DefaultValueBrush });
-				segmentHeaderBlock.Inlines?.Add(new Run(segment.Value.name) { Foreground = SharpEditorPalette.RectBrush });
+				segmentHeaderBlock.Inlines?.Add(new Run(segment.Value.name) { Foreground = SharpEditorPalette.WidgetBrush });
 			}
 			else {
 				segmentHeaderBlock.Inlines?.Add(new Run("[Unnamed Segment]") { Foreground = SharpEditorPalette.DefaultValueBrush });
@@ -213,7 +213,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			TextBlock featureHeaderBlock = MakeTitleBlock(titleLevel);
 			if (!string.IsNullOrWhiteSpace(feature.Value.name)) {
 				featureHeaderBlock.Inlines?.Add(new Run("[Feature] ") { Foreground = SharpEditorPalette.DefaultValueBrush });
-				featureHeaderBlock.Inlines?.Add(new Run(feature.Value.name) { Foreground = SharpEditorPalette.RectBrush });
+				featureHeaderBlock.Inlines?.Add(new Run(feature.Value.name) { Foreground = SharpEditorPalette.WidgetBrush });
 			}
 			else {
 				featureHeaderBlock.Inlines?.Add(new Run("[Unnamed Feature]") { Foreground = SharpEditorPalette.DefaultValueBrush });

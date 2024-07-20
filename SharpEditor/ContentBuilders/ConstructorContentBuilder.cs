@@ -34,7 +34,7 @@ namespace SharpEditor.ContentBuilders {
 			}
 
 			yield return new Run(displayName) {
-				Foreground = typeof(SharpWidget).IsAssignableFrom(declaringType) ? SharpEditorPalette.RectBrush : SharpEditorPalette.StyleBrush
+				Foreground = typeof(SharpWidget).IsAssignableFrom(declaringType) ? SharpEditorPalette.WidgetBrush : SharpEditorPalette.ShapeStyleBrush
 			};
 		}
 

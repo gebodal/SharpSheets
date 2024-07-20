@@ -54,7 +54,6 @@
 	
 	<!-- Documentation -->
 	<Color name="Documentation_Type" foreground="Gold"/>
-	<Color name="Documentation_Class" foreground="OrangeRed"/>
 	<Color name="Documentation_DefaultValue" foreground="Gray"/>
 
 </Colors>

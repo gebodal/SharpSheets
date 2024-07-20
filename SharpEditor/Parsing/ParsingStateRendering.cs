@@ -119,9 +119,9 @@ namespace SharpEditor {
 			this.headerTypes = headerTypes;
 			this.styleTypes = styleTypes;
 
-			WidgetBrush = SharpEditorPalette.RectBrush;
-			ShapeBrush = SharpEditorPalette.StyleBrush;
-			SpecialArgBrush = SharpEditorPalette.ArgBrush;
+			WidgetBrush = SharpEditorPalette.WidgetBrush;
+			ShapeBrush = SharpEditorPalette.ShapeStyleBrush;
+			SpecialArgBrush = SharpEditorPalette.MetaPropertyBrush;
 
 			specialPropertyRegex = MakeSpecialPropertyRegex(specialArgs);
 		}

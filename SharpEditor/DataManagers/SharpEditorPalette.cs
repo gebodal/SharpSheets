@@ -56,13 +56,11 @@ namespace SharpEditor.DataManagers {
 		public static IHighlightingDefinition CardSubjectHighlighting { get; private set; }
 		public static IHighlightingDefinition BoxMarkupHighlighting { get; private set; }
 
-		public static Brush RectBrush { get; private set; }
-		public static Brush ArgBrush { get; private set; }
-		public static Brush StyleBrush { get; private set; }
+		public static Brush WidgetBrush { get; private set; }
+		public static Brush MetaPropertyBrush { get; private set; }
+		public static Brush ShapeStyleBrush { get; private set; }
 		public static Brush TypeBrush { get; private set; }
-		public static Brush ClassBrush { get; private set; }
 		public static Brush DefaultValueBrush { get; private set; }
-		public static Brush DefinitionBrush { get; private set; }
 
 		public static Brush DefinitionNameBrush { get; private set; }
 		public static Brush DefinitionTypeBrush { get; private set; }
@@ -73,7 +71,6 @@ namespace SharpEditor.DataManagers {
 		public static Brush MarkupElementBrush { get; private set; }
 		public static Brush MarkupAttributeBrush { get; private set; }
 		public static Brush MarkupPunctuationBrush { get; private set; }
-		public static Brush MarkupBaseBrush { get; private set; }
 
 		private static string GetColorsConfigPath() {
 			return Path.Join(SharpDataManager.Instance.ConfigDir, colorsConfigFile);
@@ -246,15 +243,13 @@ namespace SharpEditor.DataManagers {
 			BoxMarkupHighlighting = customHighlighting;
 		}
 
-		[MemberNotNull(nameof(RectBrush), nameof(ArgBrush), nameof(StyleBrush), nameof(TypeBrush), nameof(ClassBrush), nameof(DefaultValueBrush), nameof(DefinitionBrush), nameof(DefinitionNameBrush), nameof(DefinitionTypeBrush), nameof(MarkupElementBrush), nameof(MarkupAttributeBrush), nameof(MarkupPunctuationBrush), nameof(MarkupBaseBrush))]
+		[MemberNotNull(nameof(WidgetBrush), nameof(MetaPropertyBrush), nameof(ShapeStyleBrush), nameof(TypeBrush), nameof(DefaultValueBrush), nameof(DefinitionNameBrush), nameof(DefinitionTypeBrush), nameof(MarkupElementBrush), nameof(MarkupAttributeBrush), nameof(MarkupPunctuationBrush))]
 		private static void AssignHighlightingColors() {
-			RectBrush = new SolidColorBrush(highlightingColors["Config_Widget"].Color);
-			ArgBrush = new SolidColorBrush(highlightingColors["Config_MetaProperty"].Color);
-			StyleBrush = new SolidColorBrush(highlightingColors["Config_ShapeStyle"].Color);
+			WidgetBrush = new SolidColorBrush(highlightingColors["Config_Widget"].Color);
+			MetaPropertyBrush = new SolidColorBrush(highlightingColors["Config_MetaProperty"].Color);
+			ShapeStyleBrush = new SolidColorBrush(highlightingColors["Config_ShapeStyle"].Color);
 			TypeBrush = new SolidColorBrush(highlightingColors["Documentation_Type"].Color);
-			ClassBrush = new SolidColorBrush(highlightingColors["Documentation_Class"].Color);
 			DefaultValueBrush = new SolidColorBrush(highlightingColors["Documentation_DefaultValue"].Color);
-			DefinitionBrush = new SolidColorBrush(highlightingColors["Config_DefinitionKeywords"].Color);
 			
 			DefinitionNameBrush = new SolidColorBrush(highlightingColors["Config_DefinitionName"].Color);
 			DefinitionTypeBrush = new SolidColorBrush(highlightingColors["Config_DefinitionType"].Color);
@@ -262,18 +257,17 @@ namespace SharpEditor.DataManagers {
 			MarkupElementBrush = new SolidColorBrush(highlightingColors["XML_TagName"].Color);
 			MarkupAttributeBrush = new SolidColorBrush(highlightingColors["XML_AttributeName"].Color);
 			MarkupPunctuationBrush = new SolidColorBrush(highlightingColors["XML_Punctuation"].Color);
-			MarkupBaseBrush = new SolidColorBrush(highlightingColors["XML_BaseColor"].Color);
 		}
 
 		public static Brush GetTypeBrush(Type? type) {
 			if (typeof(SharpWidget).IsAssignableFrom(type)) {
-				return RectBrush;
+				return WidgetBrush;
 			}
 			else if (typeof(IShape).IsAssignableFrom(type)) {
-				return StyleBrush;
+				return ShapeStyleBrush;
 			}
 			else if (typeof(ICardConfigComponent).IsAssignableFrom(type)) {
-				return RectBrush;
+				return WidgetBrush;
 			}
 			else {
 				return TypeBrush; // StyleBrush; // TypeBrush?
@@ -282,13 +276,13 @@ namespace SharpEditor.DataManagers {
 
 		public static Brush? GetValueBrush(Type type) {
 			if (typeof(SharpWidget).IsAssignableFrom(type)) {
-				return RectBrush;
+				return WidgetBrush;
 			}
 			else if (typeof(IShape).IsAssignableFrom(type)) {
-				return StyleBrush;
+				return ShapeStyleBrush;
 			}
 			else if (typeof(ICardConfigComponent).IsAssignableFrom(type)) {
-				return RectBrush;
+				return WidgetBrush;
 			}
 			else {
 				return null;
