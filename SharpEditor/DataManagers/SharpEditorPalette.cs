@@ -14,24 +14,14 @@ using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Cards.CardConfigs;
 using Avalonia.Media;
 using SharpEditor.Utilities;
-using System.Text.Json.Serialization;
-using System.Text.Json;
-using System.Globalization;
 
 namespace SharpEditor.DataManagers {
 
-	public class SharpEditorPalette {
+	public static class SharpEditorPalette {
+
+		private static ConfigName ConfigName => new ConfigName(SharpEditorData.GetEditorName() + "_Highlighting", ".conf");
 
 		public static void Initialise() { } // Dummy method to force static initialisation
-
-		private static readonly JsonSerializerOptions jsonSerializeoptions = new JsonSerializerOptions() {
-			IncludeFields = false,
-			Converters = {
-				new HighlightColorJsonConverter(),
-				new HighlightFontStyleJsonConverter(),
-				new HighlightFontWeightJsonConverter()
-			}
-		};
 
 		static SharpEditorPalette() {
 			LoadCurrentHighlightingColors();
@@ -45,8 +35,6 @@ namespace SharpEditor.DataManagers {
 		}
 
 		public static event EventHandler? HighlightColorChanged;
-
-		private static readonly string colorsConfigFile = SharpEditorData.GetEditorName() + SharpEditorData.GetVersionString() + "_Highlighting" + ".json";
 
 		private static Dictionary<string, HighlightData> highlightingColors;
 		public static IReadOnlyDictionary<string, HighlightData> HighlightingColors => highlightingColors;
@@ -72,21 +60,13 @@ namespace SharpEditor.DataManagers {
 		public static Brush MarkupAttributeBrush { get; private set; }
 		public static Brush MarkupPunctuationBrush { get; private set; }
 
-		private static string GetColorsConfigPath() {
-			return Path.Join(SharpDataManager.Instance.ConfigDir, colorsConfigFile);
-		}
-
 		[MemberNotNull(nameof(highlightingColors))]
 		private static void LoadCurrentHighlightingColors() {
 			highlightingColors = LoadDefaultHighlightingColors();
 
-			string colorsConfigPath = GetColorsConfigPath();
-			if (File.Exists(colorsConfigPath)) {
-				string jsonText = File.ReadAllText(colorsConfigPath, System.Text.Encoding.UTF8);
-				IReadOnlyDictionary<string, HighlightData>? colorsConfig = JsonSerializer.Deserialize<Dictionary<string, HighlightData>>(jsonText, jsonSerializeoptions);
-				if (colorsConfig is not null) {
-					SetColors(colorsConfig, false);
-				}
+			IReadOnlyDictionary<string, HighlightData>? colorsConfig = SharpConfigManager.Load<Dictionary<string, HighlightData>>(ConfigName, out bool latest);
+			if (colorsConfig is not null) {
+				SetColors(colorsConfig, false);
 			}
 		}
 
@@ -132,9 +112,7 @@ namespace SharpEditor.DataManagers {
 			}
 
 			if (changed) {
-				string colorsConfigPath = GetColorsConfigPath();
-				string jsonText = JsonSerializer.Serialize(highlightingColors, jsonSerializeoptions);
-				File.WriteAllText(colorsConfigPath, jsonText, System.Text.Encoding.UTF8);
+				SharpConfigManager.Save(highlightingColors, ConfigName);
 			}
 
 			if (changed && reloadHighlighting) {
@@ -321,37 +299,6 @@ namespace SharpEditor.DataManagers {
 		}
 		public static bool operator !=(HighlightData left, HighlightData right) {
 			return !left.Equals(right);
-		}
-	}
-
-	public class HighlightColorJsonConverter : JsonConverter<Color> {
-		public override Color Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
-			return Color.Parse(reader.GetString()!);
-		}
-
-		public override void Write(Utf8JsonWriter writer, Color color, JsonSerializerOptions options) {
-			uint rgb = color.ToUInt32();
-			writer.WriteStringValue($"#{rgb.ToString("x8", CultureInfo.InvariantCulture)}");
-		}
-	}
-
-	public class HighlightFontWeightJsonConverter : JsonConverter<FontWeight> {
-		public override FontWeight Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
-			return Enum.Parse<FontWeight>(reader.GetString()!, true);
-		}
-
-		public override void Write(Utf8JsonWriter writer, FontWeight fontWeight, JsonSerializerOptions options) {
-			writer.WriteStringValue(fontWeight.ToString());
-		}
-	}
-
-	public class HighlightFontStyleJsonConverter : JsonConverter<FontStyle> {
-		public override FontStyle Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
-			return Enum.Parse<FontStyle>(reader.GetString()!, true);
-		}
-
-		public override void Write(Utf8JsonWriter writer, FontStyle fontStyle, JsonSerializerOptions options) {
-			writer.WriteStringValue(fontStyle.ToString());
 		}
 	}
 
