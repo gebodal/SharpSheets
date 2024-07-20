@@ -24,7 +24,7 @@
 	<Color name="Config_DefinitionName" foreground="Orange" fontWeight="normal"/>
 	<Color name="Config_DefinitionType" foreground="Yellow" fontWeight="normal"/>
 	<Color name="Config_DefinitionCategory" foreground="Teal" fontWeight="normal"/>
-	<Color name="Config_MetaProperty" foreground="#45bd38" fontWeight="normal"/>
+	<Color name="Config_MetaProperty" foreground="#45bd38" fontWeight="bold"/>
 	<Color name="Config_Variable" foreground="#bb6d8d" fontWeight="normal"/>
 	<Color name="Config_DefinitionDescription" foreground="#d69d6d" fontWeight="normal"/>
 

@@ -107,10 +107,6 @@ namespace SharpEditor {
 
 	public class SharpConfigColorizingTransformer<TSpan> : DocumentColorizingTransformer where TSpan : SharpConfigSpan {
 
-		public Brush WidgetBrush { get; set; }
-		public Brush ShapeBrush { get; set; }
-		public Brush SpecialArgBrush { get; set; }
-
 		private readonly SharpConfigParsingState<TSpan> parsingState;
 		private readonly ITypeDetailsCollection headerTypes;
 		private readonly ITypeDetailsCollection styleTypes;
@@ -118,10 +114,6 @@ namespace SharpEditor {
 			this.parsingState = parsingState ?? throw new ArgumentException("parsingState cannot be null.");
 			this.headerTypes = headerTypes;
 			this.styleTypes = styleTypes;
-
-			WidgetBrush = SharpEditorPalette.WidgetBrush;
-			ShapeBrush = SharpEditorPalette.ShapeStyleBrush;
-			SpecialArgBrush = SharpEditorPalette.MetaPropertyBrush;
 
 			specialPropertyRegex = MakeSpecialPropertyRegex(specialArgs);
 		}
@@ -154,7 +146,7 @@ namespace SharpEditor {
 			if (widgetMatch.Success) {
 				Group widgetName = widgetMatch.Groups[1];
 				if (headerTypes.ContainsKey(widgetName.Value)) {
-					ColorSpan(line.Offset + widgetName.Index, line.Offset + widgetName.Index + widgetName.Length, WidgetBrush, FontWeight.Normal);
+					ColorSpan(line.Offset + widgetName.Index, line.Offset + widgetName.Index + widgetName.Length, SharpEditorPalette.WidgetBrush, FontWeight.Normal);
 				}
 			}
 
@@ -162,7 +154,7 @@ namespace SharpEditor {
 			if (shapeMatch.Success) {
 				Group shapeName = shapeMatch.Groups[1];
 				if (styleTypes.ContainsKey(shapeName.Value)) {
-					ColorSpan(line.Offset + shapeName.Index, line.Offset + shapeName.Index + shapeName.Length, ShapeBrush, null);
+					ColorSpan(line.Offset + shapeName.Index, line.Offset + shapeName.Index + shapeName.Length, SharpEditorPalette.ShapeStyleBrush, null);
 				}
 			}
 
@@ -170,7 +162,7 @@ namespace SharpEditor {
 				Match argMatch = specialPropertyRegex.Match(lineText);
 				if (argMatch.Success) {
 					Group argName = argMatch.Groups[1];
-					ColorSpan(line.Offset + argName.Index, line.Offset + argName.Index + argName.Length, SpecialArgBrush, FontWeight.Bold);
+					ColorSpan(line.Offset + argName.Index, line.Offset + argName.Index + argName.Length, SharpEditorPalette.MetaPropertyBrush, FontWeight.Bold);
 				}
 			}
 		}
