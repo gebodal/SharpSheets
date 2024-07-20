@@ -26,6 +26,15 @@ namespace SharpEditor.DataManagers {
 		static SharpEditorPalette() {
 			LoadCurrentHighlightingColors();
 
+			LoadAll();
+		}
+
+		[MemberNotNull(nameof(CharacterSheetHighlighting))]
+		[MemberNotNull(nameof(CardConfigHighlighting))]
+		[MemberNotNull(nameof(CardSubjectHighlighting))]
+		[MemberNotNull(nameof(BoxMarkupHighlighting))]
+		[MemberNotNull(nameof(WidgetBrush), nameof(MetaPropertyBrush), nameof(ShapeStyleBrush), nameof(TypeBrush), nameof(DefaultValueBrush), nameof(DefinitionNameBrush), nameof(DefinitionTypeBrush), nameof(MarkupElementBrush), nameof(MarkupAttributeBrush), nameof(MarkupPunctuationBrush))]
+		private static void LoadAll() {
 			LoadCharacterSheetHighlightings();
 			LoadCardConfigHighlightings();
 			LoadCardSubjectHighlighting();
@@ -64,7 +73,7 @@ namespace SharpEditor.DataManagers {
 		private static void LoadCurrentHighlightingColors() {
 			highlightingColors = LoadDefaultHighlightingColors();
 
-			IReadOnlyDictionary<string, HighlightData>? colorsConfig = SharpConfigManager.Load<Dictionary<string, HighlightData>>(ConfigName, out bool latest);
+			IReadOnlyDictionary<string, HighlightData>? colorsConfig = SharpConfigManager.Load<Dictionary<string, HighlightData>>(ConfigName, out _);
 			if (colorsConfig is not null) {
 				SetColors(colorsConfig, false);
 			}
@@ -117,12 +126,7 @@ namespace SharpEditor.DataManagers {
 
 			if (changed && reloadHighlighting) {
 				// Reload color palette
-				LoadCharacterSheetHighlightings();
-				LoadCardConfigHighlightings();
-				LoadCardSubjectHighlighting();
-				LoadBoxMarkupHighlighting();
-
-				AssignHighlightingColors();
+				LoadAll();
 
 				HighlightColorChanged?.Invoke(null, new EventArgs());
 			}
