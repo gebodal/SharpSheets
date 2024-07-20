@@ -159,7 +159,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 					float firstLineY = RichStringLayout.GetStartY(canvas, featureRect, featureLines[i], fontSize, paragraphSpecs[i], Alignment.TOP, HeightStrategy);
 
 					canvas.SaveState();
-					canvas.SetTextSize(fontSize);
+					canvas.SetTextSize(Config.bulletFontSizeMultiplier * fontSize);
 					canvas.SetFont(TextFormat.REGULAR, Config.dingbatsPath);
 					canvas.DrawText(Config.bullet, featureRect.Left + Config.bulletOffset.x, firstLineY + Config.bulletOffset.y);
 					canvas.RestoreState();

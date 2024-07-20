@@ -451,6 +451,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		public readonly FontSetting? dingbatsPath;
 		public readonly string bullet;
+		public readonly float bulletFontSizeMultiplier;
 		public readonly (float x,float y) bulletOffset;
 
 		/// <summary>
@@ -469,6 +470,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="list"></param>
 		/// <param name="dingbats"></param>
 		/// <param name="bullet"></param>
+		/// <param name="bulletSize">Size multiplier.</param>
 		/// <param name="bulletOffset"></param>
 		/// <param name="_atPosition"></param>
 		/// <param name="format"></param>
@@ -487,6 +489,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			ParagraphIndentArg? list = null,
 			FontSetting? dingbats = null,
 			string bullet = "\u2022",
+			float bulletSize = 1f,
 			(float x,float y) bulletOffset = default,
 			int[]? _atPosition = null,
 			RegexFormats? format = null
@@ -504,6 +507,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			this.dingbatsPath = dingbats;
 			this.bullet = bullet;
+			this.bulletFontSizeMultiplier = Math.Max(0f, bulletSize);
 			this.bulletOffset = bulletOffset;
 		}
 
