@@ -217,34 +217,51 @@ namespace SharpEditor.Windows {
 
 		#endregion
 
-		#region Colors
+		#region Syntax Colors
 
-		private List<HighlightColorSetting> highlightColorSettings;
+		private List<HighlightColorSettingGrouping> highlightColorSettings;
 
 		[MemberNotNull(nameof(highlightColorSettings))]
 		private void InitialiseHighlightColorSettings() {
 			LoadColors(GetPaletteColors());
 		}
 
-		private static List<HighlightColorSetting> ConvertPaletteData(IReadOnlyDictionary<string, HighlightData> paletteData) {
+		private static List<HighlightColorSettingGrouping> ConvertPaletteData(IReadOnlyDictionary<string, HighlightData> paletteData) {
 			return paletteData
-				.Select(kv => new HighlightColorSetting(kv.Key, kv.Value.Color, kv.Value.FontWeight == FontWeight.Bold, kv.Value.FontStyle == FontStyle.Italic))
+				.Select(kv => {
+					string name = kv.Key;
+					Color color = kv.Value.Color;
+					bool bold = kv.Value.FontWeight == FontWeight.Bold;
+					bool italic = kv.Value.FontStyle == FontStyle.Italic;
+
+					string[] parts = name.Split('_');
+
+					string groupName = parts[0];
+					string displayName = parts[1];
+					displayName = Regex.Replace(displayName, @"(?<=[a-z])[A-Z0-9]", m => " " + m.Groups[0].Value);
+
+					HighlightColorSetting setting = new HighlightColorSetting(name, displayName, color, bold, italic);
+
+					return (groupName, setting);
+				})
+				.GroupBy(p => p.groupName)
+				.Select(g => new HighlightColorSettingGrouping(g.Key, g.Select(i => i.setting).ToList().OrderBy(c => c.DisplayName).ToList()))
 				.OrderBy(c => c.Name)
 				.ToList();
 		}
 
-		private static List<HighlightColorSetting> GetPaletteColors() {
+		private static List<HighlightColorSettingGrouping> GetPaletteColors() {
 			return ConvertPaletteData(SharpEditorPalette.GetColors());
 		}
 
 		[MemberNotNull(nameof(highlightColorSettings))]
-		private void LoadColors(List<HighlightColorSetting> colors) {
+		private void LoadColors(List<HighlightColorSettingGrouping> colors) {
 			highlightColorSettings = colors;
-			ColorItemsControl.ItemsSource = highlightColorSettings;
+			SyntaxColorGroupsControl.ItemsSource = highlightColorSettings;
 		}
 
 		private void ApplyColorsClick(object? sender, RoutedEventArgs e) {
-			SharpEditorPalette.SetColors(highlightColorSettings.ToDictionary(
+			SharpEditorPalette.SetColors(highlightColorSettings.SelectMany(g=>g.Colors).ToDictionary(
 				c => c.Name,
 				c => new HighlightData(c.Color, c.Bold ? FontWeight.Bold : FontWeight.Normal, c.Italic ? FontStyle.Italic : FontStyle.Normal)
 				));
@@ -262,10 +279,26 @@ namespace SharpEditor.Windows {
 
 	}
 
+	public partial class HighlightColorSettingGrouping : ObservableObject {
+
+		[ObservableProperty]
+		private string name;
+		[ObservableProperty]
+		private List<HighlightColorSetting> colors;
+
+		public HighlightColorSettingGrouping(string name, List<HighlightColorSetting> colors) {
+			this.name = name;
+			this.colors = colors;
+		}
+
+	}
+
 	public partial class HighlightColorSetting : ObservableObject {
 
 		[ObservableProperty]
 		private string name;
+		[ObservableProperty]
+		private string displayName;
 		[ObservableProperty]
 		private Color color;
 		[ObservableProperty]
@@ -273,8 +306,9 @@ namespace SharpEditor.Windows {
 		[ObservableProperty]
 		private bool italic;
 
-		public HighlightColorSetting(string name, Color color, bool bold, bool italic) {
+		public HighlightColorSetting(string name, string displayName, Color color, bool bold, bool italic) {
 			this.name = name;
+			this.displayName = displayName;
 			this.color = color;
 			this.bold = bold;
 			this.italic = italic;

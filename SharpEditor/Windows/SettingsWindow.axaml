@@ -126,10 +126,22 @@
 						IsChecked="{Binding WarnFontLicensing}"/>
 				</HeaderedContentControl>
 				
-				<HeaderedContentControl Classes="settings" Header="Syntax Colors" Padding="8">
+				<HeaderedContentControl Classes="settings" Header="Syntax Highlighting" Padding="8">
 					<StackPanel Orientation="Vertical">
-						<ItemsControl Name="ColorItemsControl" Margin="4">
+						<ItemsControl Name="SyntaxColorGroupsControl">
 							<ItemsControl.ItemTemplate>
+								<DataTemplate x:DataType="local:HighlightColorSettingGrouping">
+									<StackPanel Orientation="Vertical">
+										<Grid Margin="4,10">
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition Width="Auto"/>
+												<ColumnDefinition Width="*"/>
+											</Grid.ColumnDefinitions>
+											<TextBlock Grid.Column="0" Text="{Binding Name}"/>
+											<Rectangle Grid.Column="1" Margin="15,0,10,0" HorizontalAlignment="Stretch" Fill="White" Height="1"/>
+										</Grid>
+										<ItemsControl Name="ColorItemsControl" Margin="4" ItemsSource="{Binding Colors}">
+											<ItemsControl.ItemTemplate>
 								<DataTemplate x:DataType="local:HighlightColorSetting">
 									<Grid Margin="0, 4">
 										<Grid.ColumnDefinitions>
@@ -143,7 +155,7 @@
 											<ColumnDefinition Width="Auto" SharedSizeGroup="C"/>
 										</Grid.ColumnDefinitions>
 							
-										<TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"/>
+														<TextBlock Grid.Column="0" Text="{Binding DisplayName}" VerticalAlignment="Center"/>
 										<TextBox Grid.Column="2" FontFamily="{StaticResource EditorFont}" VerticalContentAlignment="Center">
 											<i:Interaction.Behaviors>
 												<local:LostFocusUpdateBindingBehavior Text="{Binding Color, Converter={StaticResource colorToStringConv}}"/>
@@ -166,6 +178,11 @@
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>
 						</ItemsControl>
+									</StackPanel>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+
 						<Grid Margin="4" HorizontalAlignment="Left">
 							<Grid.ColumnDefinitions>
 								<ColumnDefinition Width="Auto"/>
@@ -179,8 +196,7 @@
 							<Button
 								Content="Apply"
 								Grid.Column="0"
-								Click="ApplyColorsClick"
-								/>
+								Click="ApplyColorsClick"/>
 							<Button
 								Content="Reset"
 								Grid.Column="2"
