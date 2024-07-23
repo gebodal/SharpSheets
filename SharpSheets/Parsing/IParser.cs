@@ -94,7 +94,12 @@ namespace SharpSheets.Parsing {
 					knownLineOwners
 				};
 
-				usedLines.UnionWith(knownLineOwners.Select(kv => kv.Key));
+				//usedLines.UnionWith(knownLineOwners.Select(kv => kv.Key));
+				usedLines.UnionWith(knownLineOwners.GetUsedLines());
+			}
+
+			if(origins is not null) {
+				usedLines.UnionWith(origins.Values.Select(o => o.Location.Line));
 			}
 
 			//Dictionary<int, IDocumentEntity> parents = rootEntry.TraverseChildren(true).Cast<IDocumentEntity>().ToDictionary(c => c.Location.Line);
