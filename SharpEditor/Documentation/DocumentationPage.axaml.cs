@@ -8,6 +8,7 @@ namespace SharpEditor.Documentation {
 	public partial class DocumentationPage : UserControl {
 
 		public DocumentationRefresh? RefreshAction { get; set; }
+		public bool CanRefresh => RefreshAction is not null;
 
 		public string? Title { get; set; }
 
@@ -21,7 +22,7 @@ namespace SharpEditor.Documentation {
 		}
 
 		public void RefreshPage() {
-			if (RefreshAction != null) {
+			if (RefreshAction is not null) {
 				try {
 					//(UIElement content, string title) = RefreshAction();
 					Control content = RefreshAction();

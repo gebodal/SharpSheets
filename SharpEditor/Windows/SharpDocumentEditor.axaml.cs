@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
@@ -14,10 +15,12 @@ using AvaloniaEdit.Editing;
 using AvaloniaEdit.Folding;
 using CommunityToolkit.Mvvm.Input;
 using SharpEditor.CodeHelpers;
+using SharpEditor.Completion;
 using SharpEditor.DataManagers;
 using SharpEditor.Designer;
 using SharpEditor.Folding;
 using SharpEditor.Indentation;
+using SharpEditor.Utilities;
 using SharpSheets.Exceptions;
 using SharpSheets.Parsing;
 using SharpSheets.Utilities;
@@ -97,10 +100,10 @@ namespace SharpEditor.Windows {
 			textEditor.TextArea.SelectionCornerRadius = 1.0; // Can also adjust Selection Brush from here
 			textEditor.TextArea.SelectionBorder = null;
 			textEditor.TextArea.SelectionForeground = null;
-			textEditor.TextArea.SelectionBrush = new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.5 };
+			//textEditor.TextArea.SelectionBrush = new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.5 };
 
-			textEditor.TextArea.TextView.CurrentLineBackground = new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.0 };
-			textEditor.TextArea.TextView.CurrentLineBorder = new Pen(new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.3 }, 2f);
+			//textEditor.TextArea.TextView.CurrentLineBackground = Brushes.Transparent; // new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.0 };
+			//textEditor.TextArea.TextView.CurrentLineBorder = new Pen(new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.3 }, 2f);
 
 			//textEditor.SnapsToDevicePixels = true;
 			//textEditor.SetValue(RenderOptions.EdgeModeProperty, EdgeMode.Aliased);
@@ -169,11 +172,14 @@ namespace SharpEditor.Windows {
 			textEditor.ShowLineNumbers = true;
 			List<Control> lineNumberControlsList = new List<Control>();
 			ObservableCollection<Control> leftMargins = textEditor.TextArea.LeftMargins;
+			var decorationBrush = Resources.GetResourceObservable(SharpEditorThemeManager.EditorDecorationBrush);
 			for (int i = 0; i < leftMargins.Count; i++) {
-				if (leftMargins[i] is LineNumberMargin) {
-					lineNumberControlsList.Add(leftMargins[i]);
+				if (leftMargins[i] is LineNumberMargin lineNumberMargin) {
+					lineNumberControlsList.Add(lineNumberMargin);
+					lineNumberMargin.Bind(TextBlock.ForegroundProperty, decorationBrush);
 					if (i + 1 < leftMargins.Count && DottedLineMargin.IsDottedLineMargin(leftMargins[i + 1])) {
 						lineNumberControlsList.Add(leftMargins[i + 1]);
+						leftMargins[i + 1].Bind(Avalonia.Controls.Shapes.Line.StrokeProperty, decorationBrush);
 					}
 					break;
 				}
@@ -744,19 +750,22 @@ namespace SharpEditor.Windows {
 				Header = "Cut",
 				Command = SharpEditorWindow.Instance?.CutCommand,
 				//Icon = (System.Windows.Controls.Image)Resources["CutIcon"]
-				Icon = new Image() { Source = new Bitmap(AssetLoader.Open(new Uri("avares://SharpEditor/Images/Cut3.png"))) }
+				//Icon = new Image() { Source = new Bitmap(AssetLoader.Open(new Uri("avares://SharpEditor/Images/Cut3.png"))) }
+				Icon = new ContentControl() { Classes = { "cutIcon" } }
 			});
 			contextMenu.Items.Add(new MenuItem {
 				Header = "Copy",
 				Command = SharpEditorWindow.Instance?.CopyCommand,
 				//Icon = (System.Windows.Controls.Image)Resources["CopyIcon"]
-				Icon = new Image() { Source = new Bitmap(AssetLoader.Open(new Uri("avares://SharpEditor/Images/Copy2.png"))) }
+				//Icon = new Image() { Source = new Bitmap(AssetLoader.Open(new Uri("avares://SharpEditor/Images/Copy2.png"))) }
+				Icon = new ContentControl() { Classes = { "copyIcon" } }
 			});
 			contextMenu.Items.Add(new MenuItem {
 				Header = "Paste",
 				Command = SharpEditorWindow.Instance?.PasteCommand,
 				//Icon = (System.Windows.Controls.Image)Resources["PasteIcon"]
-				Icon = new Image() { Source = new Bitmap(AssetLoader.Open(new Uri("avares://SharpEditor/Images/Paste2.png"))) }
+				//Icon = new Image() { Source = new Bitmap(AssetLoader.Open(new Uri("avares://SharpEditor/Images/Paste2.png"))) }
+				Icon = new ContentControl() { Classes = { "pasteIcon" } }
 			});
 
 			// Determine possible actions based on what we clicked on (probably from CodeHelper)
@@ -930,7 +939,12 @@ namespace SharpEditor.Windows {
 			foldingUpdateTimer.Tick += delegate { UpdateFoldings(); };
 			foldingUpdateTimer.Start();
 
-			foldingRenderer = new FoldingBackgroundRenderer(foldingManager);
+			IBrush decorationBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorDecorationBrush) ?? throw new InvalidOperationException();
+			Pen foldIndicatorPen = new Pen(decorationBrush, 1) {
+				DashStyle = new DashStyle(new double[] { 3, 7 }, 0)
+			};
+
+			foldingRenderer = new FoldingBackgroundRenderer(foldingManager, foldIndicatorPen);
 			textEditor.TextArea.TextView.BackgroundRenderers.Add(foldingRenderer);
 		}
 
@@ -1007,6 +1021,15 @@ namespace SharpEditor.Windows {
 			SharpDataManager.Instance.WarnFontLicensingChanged += UpdateErrorDisplay;
 
 			ErrorPopupListBox.ItemsSource = ErrorPopupEntries;
+
+			// Ferry scroll wheel events from the Popup to its ListBox
+			ErrorPopup.PointerWheelChanged += (sender, e) => {
+				ErrorPopupListBox.RaiseEvent(e);
+			};
+
+			ErrorPopupBorder.PointerWheelChanged += (sender, e) => {
+				ErrorPopupListBox.RaiseEvent(e);
+			};
 		}
 
 		void UninstallErrorMarkers() {

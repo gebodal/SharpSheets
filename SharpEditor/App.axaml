@@ -4,17 +4,28 @@
              RequestedThemeVariant="Dark">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
-    <Application.Styles>
-        <SimpleTheme/>
-		<StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
-    </Application.Styles>
-
 	<Application.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceInclude Source="/ThemeResources.axaml"/>
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+
 		<x:Double x:Key="AppUIFontSize">12</x:Double>
 		<x:Double x:Key="ControlContentThemeFontSize">12</x:Double>
-		
+
+		<!-- Fonts -->
 		<FontFamily x:Key="ApplicationFont">avares://SharpEditor/Assets/Fonts#Open Sans</FontFamily>
 		<FontFamily x:Key="EditorFont">avares://SharpEditor/Assets/Fonts#Roboto Mono</FontFamily>
 		<FontFamily x:Key="TypeWriterFont">avares://SharpEditor/Assets/Fonts#Nimbus Mono</FontFamily>
+
 	</Application.Resources>
+
+	<Application.Styles>
+		<SimpleTheme/>
+		<StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
+
+		<StyleInclude Source="/AppStyles.axaml"/>
+		<StyleInclude Source="/IconStyles.axaml"/>
+	</Application.Styles>
 </Application>

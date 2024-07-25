@@ -89,14 +89,15 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			Grid.SetRow(headerBlock, 0);
 			headerGrid.Children.Add(headerBlock);
 
-			Uri bitmapUri = ResourceUtilities.GetAssetUri("Images/ExternalLink.png");
-			Bitmap bitmap = new Bitmap(AssetLoader.Open(bitmapUri));
+			//Uri bitmapUri = ResourceUtilities.GetAssetUri("Images/ExternalLink.png");
+			//Bitmap bitmap = new Bitmap(AssetLoader.Open(bitmapUri));
 
 			linkButton = new Button {
 				//Width = 32,
 				//Height = 32,
 				//HorizontalAlignment = HorizontalAlignment.Stretch,
-				VerticalAlignment = VerticalAlignment.Stretch,
+				VerticalAlignment = VerticalAlignment.Top,
+				/*
 				Content = new Image() {
 					Source = bitmap,
 					VerticalAlignment = VerticalAlignment.Bottom,
@@ -105,9 +106,12 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					Width = 26,
 					Height = 26
 				},
+				*/
+				Content = new ContentControl() { Classes = { "externalLinkIcon" } },
 				//Background = Brushes.Transparent,
 				//Style = window.FindResource("SubtleButton") as Style, // TODO How to deal with this?
-				Opacity = 0.5
+				Opacity = 0.5,
+				Classes = { "subtle" }
 			};
 			ToolTip.SetTip(linkButton, tooltip);
 
@@ -139,7 +143,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 		public static Separator MakeSeparator(double horizontalPadding = 15.0, double verticalPadding = 15.0) {
 			return new Separator() {
-				Foreground = Brushes.LightGray,
+				//Foreground = Brushes.LightGray,
 				Margin = new Thickness(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
 			};
 		}

@@ -578,6 +578,17 @@ namespace SharpEditor.Windows {
 
 		#region DragDrop
 
+		private void SetDropIndicatorVisible(bool value) {
+			MainGridBorder.IsVisible = value;
+			MainGridBorder.IsEnabled = value;
+			if (value) {
+				MainGridBorder.ZIndex = MainGrid.ZIndex + 1;
+			}
+			else {
+				MainGridBorder.ZIndex = int.MinValue;
+			}
+		}
+
 		private void InitialiseDragDrop() {
 			DragDrop.SetAllowDrop(this, true);
 			AddHandler(DragDrop.DropEvent, OnWindowDrop);
@@ -586,12 +597,12 @@ namespace SharpEditor.Windows {
 		}
 
 		private void OnWindowDragEnter(object? sender, DragEventArgs e) {
-			Console.WriteLine("Drag enter");
-			MainGrid.Background = Brushes.Red;
+			//Console.WriteLine("Drag enter");
+			SetDropIndicatorVisible(true);
 		}
 		private void OnWindowDragLeave(object? sender, DragEventArgs e) {
-			Console.WriteLine("Drag leave");
-			MainGrid.Background = Brushes.Green;
+			//Console.WriteLine("Drag leave");
+			SetDropIndicatorVisible(false);
 		}
 
 		private async void OnWindowDrop(object? sender, DragEventArgs e) {
@@ -610,6 +621,9 @@ namespace SharpEditor.Windows {
 					}
 				}
 			}
+
+			//Console.WriteLine("Drop event");
+			SetDropIndicatorVisible(false);
 		}
 
 		private static string[]? GetFilePaths(IEnumerable<IStorageItem>? items) {

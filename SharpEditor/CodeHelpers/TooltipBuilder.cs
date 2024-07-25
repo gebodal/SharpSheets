@@ -33,7 +33,6 @@ namespace SharpEditor.CodeHelpers {
 
 		public static Separator MakeSeparator(double horizontalPadding = 10.0, double verticalPadding = 6.0) {
 			return new Separator() {
-				Foreground = Brushes.LightGray,
 				Margin = new Thickness(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
 			};
 		}

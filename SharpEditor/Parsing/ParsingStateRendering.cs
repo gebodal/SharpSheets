@@ -18,17 +18,21 @@ namespace SharpEditor {
 
 	public class ParsingStateColorizingTransformer : DocumentColorizingTransformer {
 
-		readonly SolidColorBrush ownerBrush = new SolidColorBrush(Colors.White) { Opacity = 0.15 };
-		readonly SolidColorBrush childBrush = new SolidColorBrush(Colors.Orange) { Opacity = 0.15 };
-		readonly SolidColorBrush unusedBrush = new SolidColorBrush(new Color(0xff, 0x80, 0x80, 0x80)); // "#808080"
+		private readonly IBrush ownerBrush; // = new SolidColorBrush(Colors.White) { Opacity = 0.15 };
+		private readonly IBrush childBrush; // = new SolidColorBrush(Colors.Orange) { Opacity = 0.15 };
+		private readonly IBrush unusedBrush; // = new SolidColorBrush(new Color(0xff, 0x80, 0x80, 0x80)); // "#808080"
 
 		private bool ColorOwners { get { return parsingManager.ColorOwners; } }
 
 		private readonly ParsingManager parsingManager;
 		private readonly TextArea textArea;
-		public ParsingStateColorizingTransformer(ParsingManager parsingManager, TextArea textArea) {
+		public ParsingStateColorizingTransformer(ParsingManager parsingManager, TextArea textArea, IBrush ownerBrush, IBrush childBrush, IBrush unusedBrush) {
 			this.parsingManager = parsingManager;
 			this.textArea = textArea;
+
+			this.ownerBrush = ownerBrush;
+			this.childBrush = childBrush;
+			this.unusedBrush = unusedBrush;
 		}
 
 		protected override void ColorizeLine(DocumentLine line) {
@@ -48,8 +52,8 @@ namespace SharpEditor {
 			}
 
 			foreach (EditorParseSpan span in parsingState.FindOverlappingSpans(lineStart, line.Length)) {
-				Brush? foregroundBrush = null;
-				Brush? backgroundBrush = null;
+				IBrush? foregroundBrush = null;
+				IBrush? backgroundBrush = null;
 				FontStyle? fontStyle = span.FontStyle;
 				float? fontSizeFactor = span.FontSizeFactor;
 
@@ -262,9 +266,15 @@ namespace SharpEditor {
 
 		private readonly ParsingManager parsingManager;
 		private readonly TextArea textArea;
-		public ParsingStateSameTokenRenderer(ParsingManager parsingManager, TextArea textArea) {
+
+		private readonly double expansion = 0;
+		private readonly double radius = 0;
+		private readonly IBrush brush;
+		
+		public ParsingStateSameTokenRenderer(ParsingManager parsingManager, TextArea textArea, IBrush brush) {
 			this.parsingManager = parsingManager;
 			this.textArea = textArea;
+			this.brush = brush;
 		}
 
 		public KnownLayer Layer {
@@ -324,7 +334,6 @@ namespace SharpEditor {
 			ReadOnlyCollection<VisualLine> visualLines = textView.VisualLines;
 			if (visualLines.Count == 0) { return; }
 
-			IBrush? brush = new SolidColorBrush(Colors.LightGray) { Opacity = 0.2 }.ToImmutable();
 			IPen? pen = null;
 			Regex highlightRegex = new Regex(Regex.Escape(highlightText), RegexOptions.Multiline);
 
@@ -344,7 +353,8 @@ namespace SharpEditor {
 					if (highlightSegment.Contains(highlightPosition, 0)) { continue; }
 
 					foreach (Rect r in BackgroundGeometryBuilder.GetRectsForSegment(textView, highlightSegment)) {
-						drawingContext.DrawRectangle(brush, pen, r);
+						Rect rp = new Rect(r.X - expansion, r.Y - expansion, r.Width + 2 * expansion, r.Height + 2 * expansion);
+						drawingContext.DrawRectangle(brush, pen, rp, radius, radius);
 					}
 				}
 			}
@@ -355,8 +365,15 @@ namespace SharpEditor {
 	public class ParsingErrorBackgroundRenderer : IBackgroundRenderer {
 
 		private readonly ParsingManager parsingManager;
-		public ParsingErrorBackgroundRenderer(ParsingManager parsingManager) {
+
+		private readonly IBrush parseErrorBrush;
+		private readonly IBrush drawingErrorBrush;
+
+		public ParsingErrorBackgroundRenderer(ParsingManager parsingManager, IBrush parseErrorBrush, IBrush drawingErrorBrush) {
 			this.parsingManager = parsingManager;
+
+			this.parseErrorBrush = parseErrorBrush;
+			this.drawingErrorBrush = drawingErrorBrush;
 		}
 
 		public KnownLayer Layer {
@@ -367,7 +384,7 @@ namespace SharpEditor {
 		}
 
 		public DashStyle Dash { get; set; } = new DashStyle(new double[] { 2.0, 2.0 }, 0.0);
-		public double Thickness { get; set; } = 1.6;
+		public double Thickness { get; set; } = 2; //1.6;
 
 		public void Draw(TextView textView, DrawingContext drawingContext) {
 			if (textView == null)
@@ -386,7 +403,7 @@ namespace SharpEditor {
 			foreach (EditorParseSpan span in parsingState.FindOverlappingSpans(viewStart, viewEnd - viewStart)) {
 
 				if (span.IsParsingError || span.IsDrawingError) {
-					Color errorColor = span.IsParsingError ? Colors.Red : Colors.DarkOrange; // TODO Better set these colors in SharpEditorDetails?
+					IBrush errorBrush = span.IsParsingError ? parseErrorBrush : drawingErrorBrush; // TODO Better set these colors in SharpEditorDetails?
 					foreach (Rect r in BackgroundGeometryBuilder.GetRectsForSegment(textView, span)) {
 						Point startPoint = r.BottomLeft;
 						Point endPoint = r.BottomRight;
@@ -394,9 +411,6 @@ namespace SharpEditor {
 						////startPoint.Offset(-Offset, 0);
 						//endPoint.Offset(Dash.Dashes[^1] * 0.75, 0);
 						endPoint += new Avalonia.Vector(Dash.Dashes?[^1] ?? 0.0, 0.0);
-
-						Brush errorBrush = new SolidColorBrush(errorColor);
-						errorBrush.ToImmutable();
 
 						Pen errorPen = new Pen(errorBrush, Thickness) {
 							DashStyle = Dash,

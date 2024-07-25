@@ -6,6 +6,7 @@ using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Styling;
+using SharpEditor.DataManagers;
 using System;
 using System.Globalization;
 
@@ -13,7 +14,7 @@ namespace SharpEditor.Utilities {
 
 	public class ClickableRun : InlineUIContainer {
 
-		public static readonly Brush HyperlinkColor = new SolidColorBrush(Color.FromRgb(142, 148, 251));
+		//public static readonly Brush HyperlinkColor = new SolidColorBrush(Color.FromRgb(142, 148, 251));
 
 		public event EventHandler<PointerPressedEventArgs>? MouseLeftButtonDown;
 
@@ -26,11 +27,14 @@ namespace SharpEditor.Utilities {
 		}
 
 		public ClickableRun(string? text) : base() {
-			this.Foreground = HyperlinkColor;
+			IBrush? hyperlinkBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.HyperlinkBrush);
+
+			this.Foreground = hyperlinkBrush;
 
 			textBlock = new TextBlock() {
 				Text = text,
-				Foreground = HyperlinkColor,
+				Foreground = hyperlinkBrush,
+				Classes = { "hyperlink" },
 				IsHitTestVisible = false
 			};
 
@@ -52,8 +56,7 @@ namespace SharpEditor.Utilities {
 			var binding = new Binding("Foreground") {
 				Source = this,
 				Mode = BindingMode.OneWay,
-				Converter = new FallbackColorConverter(),
-				ConverterParameter = HyperlinkColor
+				FallbackValue = hyperlinkBrush
 			};
 
 			textBlock.Bind(TextBlock.ForegroundProperty, binding);
@@ -87,7 +90,7 @@ namespace SharpEditor.Utilities {
 					return parentForeground;
 				}
 
-				return parameter as IBrush ?? HyperlinkColor;
+				return parameter as IBrush;
 			}
 
 			public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) {

@@ -26,6 +26,7 @@ namespace SharpEditor.Windows {
 
 			this.DataContext = SharpDataManager.Instance;
 			InitialiseHighlightColorSettings();
+			InitialiseEditorColorSettings();
 
 			this.Focusable = true; // So we can draw focus away from controls (e.g. upon Enter press)
 
@@ -277,6 +278,65 @@ namespace SharpEditor.Windows {
 
 		#endregion
 
+		#region Editor Colors
+
+		private List<EditorColorSetting> editorColorSettings;
+
+		[MemberNotNull(nameof(editorColorSettings))]
+		private void InitialiseEditorColorSettings() {
+			LoadThemeColors(GetThemeColors());
+		}
+
+		private static string GetThemeDisplayName(string name) {
+			if (name.StartsWith("Theme")) { name = name[5..]; }
+			name = name.Replace("Color", "");
+			name = Regex.Replace(name, @"(?<=[a-z])[A-Z0-9]", m => " " + m.Groups[0].Value);
+			return name;
+		}
+
+		private static List<EditorColorSetting> ConvertThemeData(IReadOnlyDictionary<string, Color> paletteData) {
+			return paletteData
+				.Select(kv => new EditorColorSetting(kv.Key, GetThemeDisplayName(kv.Key), kv.Value))
+				.OrderBy(c => c.DisplayName)
+				.ToList();
+		}
+
+		private static List<EditorColorSetting> GetThemeColors() {
+			if (SharpEditorWindow.Instance?.controller.appInstance is App appInstance) {
+				return ConvertThemeData(SharpEditorThemeManager.GetColors(appInstance));
+			}
+			else {
+				return new List<EditorColorSetting>();
+			}
+		}
+
+		[MemberNotNull(nameof(editorColorSettings))]
+		private void LoadThemeColors(List<EditorColorSetting> colors) {
+			editorColorSettings = colors;
+			ThemeItemsControl.ItemsSource = editorColorSettings;
+		}
+
+		private void ApplyThemeColorsClick(object? sender, RoutedEventArgs e) {
+			if (SharpEditorWindow.Instance?.controller.appInstance is App appInstance) {
+				SharpEditorThemeManager.SetColors(appInstance, editorColorSettings.ToDictionary(
+					c => c.Name,
+					c => c.Color
+					));
+			}
+		}
+
+		private void ResetThemeColorsClick(object? sender, RoutedEventArgs e) {
+			LoadThemeColors(GetThemeColors());
+		}
+
+		private void DefaultThemeColorsClick(object? sender, RoutedEventArgs e) {
+			if (SharpEditorWindow.Instance?.controller.appInstance is App appInstance) {
+				LoadThemeColors(ConvertThemeData(SharpEditorThemeManager.GetDefaultThemeColors(appInstance)));
+			}
+		}
+
+		#endregion
+
 	}
 
 	public partial class HighlightColorSettingGrouping : ObservableObject {
@@ -312,6 +372,23 @@ namespace SharpEditor.Windows {
 			this.color = color;
 			this.bold = bold;
 			this.italic = italic;
+		}
+
+	}
+
+	public partial class EditorColorSetting : ObservableObject {
+
+		[ObservableProperty]
+		private string name;
+		[ObservableProperty]
+		private string displayName;
+		[ObservableProperty]
+		private Color color;
+
+		public EditorColorSetting(string name, string displayName, Color color) {
+			this.name = name;
+			this.displayName = displayName;
+			this.color = color;
 		}
 
 	}

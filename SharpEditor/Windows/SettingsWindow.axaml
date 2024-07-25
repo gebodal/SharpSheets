@@ -18,7 +18,7 @@
 		SystemDecorations="Full"
 		Topmost="True"
 		CanResize="True"
-		Background="#424245"
+		Background="{StaticResource ThemeControlMidHighBrush}"
 		FontFamily="{StaticResource ApplicationFont}">
 	
 	<Design.DataContext>
@@ -47,11 +47,11 @@
 					<StackPanel>
 						<CheckBox
 							Content="Show Fields In Designer"
-							Foreground="White" HorizontalAlignment="Left" Margin="4"
+							Foreground="{StaticResource ThemeForegroundBrush}" HorizontalAlignment="Left" Margin="4"
 							IsChecked="{Binding DesignerDisplayFields}"/>
 						<CheckBox
 							Content="Show Designer by Default"
-							Foreground="White" HorizontalAlignment="Left" Margin="4"
+							Foreground="{StaticResource ThemeForegroundBrush}" HorizontalAlignment="Left" Margin="4"
 							IsChecked="{Binding DesignerViewerOpenDefault}"/>
 						<Grid Margin="4">
 							<Grid.ColumnDefinitions>
@@ -68,7 +68,7 @@
 				<HeaderedContentControl Classes="settings" Header="Generator" Padding="8">
 					<CheckBox
 						Content="Open After Generate"
-						Foreground="White" HorizontalAlignment="Left" Margin="4"
+						Foreground="{StaticResource ThemeForegroundBrush}" HorizontalAlignment="Left" Margin="4"
 						IsChecked="{Binding OpenOnGenerate}"/>
 				</HeaderedContentControl>
 
@@ -122,10 +122,10 @@
 				<HeaderedContentControl Classes="settings" Header="Fonts" Padding="8">
 					<CheckBox
 						Content="Generate Warnings For Licensed Fonts (recommended for any commercial works)"
-						Foreground="White" HorizontalAlignment="Left" Margin="4"
+						Foreground="{StaticResource ThemeForegroundBrush}" HorizontalAlignment="Left" Margin="4"
 						IsChecked="{Binding WarnFontLicensing}"/>
 				</HeaderedContentControl>
-				
+
 				<HeaderedContentControl Classes="settings" Header="Syntax Highlighting" Padding="8">
 					<StackPanel Orientation="Vertical">
 						<ItemsControl Name="SyntaxColorGroupsControl">
@@ -138,46 +138,46 @@
 												<ColumnDefinition Width="*"/>
 											</Grid.ColumnDefinitions>
 											<TextBlock Grid.Column="0" Text="{Binding Name}"/>
-											<Rectangle Grid.Column="1" Margin="15,0,10,0" HorizontalAlignment="Stretch" Fill="White" Height="1"/>
+											<Rectangle Grid.Column="1" Margin="15,0,10,0" HorizontalAlignment="Stretch" Fill="{StaticResource ThemeForegroundBrush}" Height="1"/>
 										</Grid>
 										<ItemsControl Name="ColorItemsControl" Margin="4" ItemsSource="{Binding Colors}">
 											<ItemsControl.ItemTemplate>
-								<DataTemplate x:DataType="local:HighlightColorSetting">
-									<Grid Margin="0, 4">
-										<Grid.ColumnDefinitions>
-											<ColumnDefinition Width="*"/>
-											<ColumnDefinition Width="10"/>
-											<ColumnDefinition Width="*"/>
-											<ColumnDefinition Width="10"/>
-											<ColumnDefinition Width="30"/>
-											<ColumnDefinition Width="10"/>
-											<ColumnDefinition Width="Auto" SharedSizeGroup="B"/>
-											<ColumnDefinition Width="Auto" SharedSizeGroup="C"/>
-										</Grid.ColumnDefinitions>
-							
+												<DataTemplate x:DataType="local:HighlightColorSetting">
+													<Grid Margin="0, 4">
+														<Grid.ColumnDefinitions>
+															<ColumnDefinition Width="*"/>
+															<ColumnDefinition Width="10"/>
+															<ColumnDefinition Width="*"/>
+															<ColumnDefinition Width="10"/>
+															<ColumnDefinition Width="30"/>
+															<ColumnDefinition Width="10"/>
+															<ColumnDefinition Width="Auto" SharedSizeGroup="B"/>
+															<ColumnDefinition Width="Auto" SharedSizeGroup="C"/>
+														</Grid.ColumnDefinitions>
+
 														<TextBlock Grid.Column="0" Text="{Binding DisplayName}" VerticalAlignment="Center"/>
-										<TextBox Grid.Column="2" FontFamily="{StaticResource EditorFont}" VerticalContentAlignment="Center">
-											<i:Interaction.Behaviors>
-												<local:LostFocusUpdateBindingBehavior Text="{Binding Color, Converter={StaticResource colorToStringConv}}"/>
-											</i:Interaction.Behaviors>
-										</TextBox>
-										<Border Grid.Column="4">
-											<Border.Background>
-												<SolidColorBrush Color="{Binding Color}"/>
-											</Border.Background>
-										</Border>
-										<CheckBox Grid.Column="6"
-											Content="Bold" VerticalAlignment="Center"
-											Foreground="White" HorizontalAlignment="Left" Margin="4"
-											IsChecked="{Binding Bold}"/>
-										<CheckBox Grid.Column="7"
-											Content="Italic" VerticalAlignment="Center"
-											Foreground="White" HorizontalAlignment="Left" Margin="4"
-											IsChecked="{Binding Italic}"/>
-									</Grid>							
-								</DataTemplate>
-							</ItemsControl.ItemTemplate>
-						</ItemsControl>
+														<TextBox Grid.Column="2" FontFamily="{StaticResource EditorFont}" VerticalContentAlignment="Center">
+															<i:Interaction.Behaviors>
+																<local:LostFocusUpdateBindingBehavior Text="{Binding Color, Converter={StaticResource colorToStringConv}}"/>
+															</i:Interaction.Behaviors>
+														</TextBox>
+														<Border Grid.Column="4">
+															<Border.Background>
+																<SolidColorBrush Color="{Binding Color}"/>
+															</Border.Background>
+														</Border>
+														<CheckBox Grid.Column="6"
+															Content="Bold" VerticalAlignment="Center"
+															Foreground="{StaticResource ThemeForegroundBrush}" HorizontalAlignment="Left" Margin="4"
+															IsChecked="{Binding Bold}"/>
+														<CheckBox Grid.Column="7"
+															Content="Italic" VerticalAlignment="Center"
+															Foreground="{StaticResource ThemeForegroundBrush}" HorizontalAlignment="Left" Margin="4"
+															IsChecked="{Binding Italic}"/>
+													</Grid>
+												</DataTemplate>
+											</ItemsControl.ItemTemplate>
+										</ItemsControl>
 									</StackPanel>
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>
@@ -208,7 +208,64 @@
 						</Grid>
 					</StackPanel>
 				</HeaderedContentControl>
-				
+
+
+				<HeaderedContentControl Classes="settings" Header="Editor Theme" Padding="8">
+					<StackPanel Orientation="Vertical">
+						<ItemsControl Name="ThemeItemsControl" Margin="4">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate x:DataType="local:EditorColorSetting">
+									<Grid Margin="0, 4">
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="*"/>
+											<ColumnDefinition Width="10"/>
+											<ColumnDefinition Width="*"/>
+											<ColumnDefinition Width="10"/>
+											<ColumnDefinition Width="30"/>
+										</Grid.ColumnDefinitions>
+
+										<TextBlock Grid.Column="0" Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+										<TextBox Grid.Column="2" FontFamily="{StaticResource EditorFont}" VerticalContentAlignment="Center">
+											<i:Interaction.Behaviors>
+												<local:LostFocusUpdateBindingBehavior Text="{Binding Color, Converter={StaticResource colorToStringConv}}"/>
+											</i:Interaction.Behaviors>
+										</TextBox>
+										<Border Grid.Column="4">
+											<Border.Background>
+												<SolidColorBrush Color="{Binding Color}"/>
+											</Border.Background>
+										</Border>
+									</Grid>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+						<Grid Margin="4" HorizontalAlignment="Left">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="4"/>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="4"/>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="4"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+							<Button
+								Content="Apply"
+								Grid.Column="0"
+								Click="ApplyThemeColorsClick"
+								/>
+							<Button
+								Content="Reset"
+								Grid.Column="2"
+								Click="ResetThemeColorsClick"/>
+							<Button
+								Content="Default"
+								Grid.Column="4"
+								Click="DefaultThemeColorsClick"/>
+						</Grid>
+					</StackPanel>
+				</HeaderedContentControl>
+
 			</StackPanel>
 		</ScrollViewer>
 	</DockPanel>

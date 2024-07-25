@@ -18,6 +18,7 @@ namespace SharpEditor.DataManagers {
 
 		private static readonly JsonSerializerOptions jsonSerializeoptions = new JsonSerializerOptions() {
 			IncludeFields = false,
+			WriteIndented = true,
 			Converters = {
 				new AvaloniaColorJsonConverter(),
 				new FontStyleJsonConverter(),

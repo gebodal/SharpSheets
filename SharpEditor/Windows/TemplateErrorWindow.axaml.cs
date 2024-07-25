@@ -76,7 +76,7 @@ namespace SharpEditor.Windows {
 				Inlines = new InlineCollection() };
 
 			string filename = System.IO.Path.GetFileName(error.filePath);
-			ClickableRun fileButton = new ClickableRun(filename) { Foreground = Brushes.CornflowerBlue };
+			ClickableRun fileButton = new ClickableRun(filename);
 			fileButton.MouseLeftButtonDown += delegate (object? sender, PointerPressedEventArgs e) {
 				SharpDocumentEditor editor = controller.window.OpenEditorDocument(error.filePath, true);
 				if (error.location.Offset > 0) {
@@ -98,13 +98,14 @@ namespace SharpEditor.Windows {
 			};
 			panel.Children.Add(errorBlock);
 
-			Border bordered = new Border() {
+			Border bordered = new Border {
 				BorderThickness = new Thickness(0.0),
 				CornerRadius = new CornerRadius(10.0),
-				Background = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)),
-				Margin = new Thickness(0, 5, 0, 5)
+				//Background = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)),
+				Margin = new Thickness(0, 5, 0, 5),
+				Classes = { "errorEntry" },
+				Child = panel
 			};
-			bordered.Child = panel;
 
 			return bordered;
 		}

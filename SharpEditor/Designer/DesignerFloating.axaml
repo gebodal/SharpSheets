@@ -5,5 +5,10 @@
         mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
         x:Class="SharpEditor.Designer.DesignerFloating"
         Title="Designer" Height="400" Width="400">
+
+	<Window.Styles>
+		<StyleInclude Source="/AppStyles.axaml"/>
+	</Window.Styles>
+
 	<DockPanel x:Name="MainPanel"/>
 </Window>

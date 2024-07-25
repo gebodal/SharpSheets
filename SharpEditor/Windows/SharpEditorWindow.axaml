@@ -11,10 +11,6 @@
 		Closing="OnWindowClosing"
 		FontFamily="{StaticResource ApplicationFont}" FontSize="{StaticResource AppUIFontSize}">
 
-	<Window.Styles>
-		<StyleInclude Source="/AppStyles.axaml"/>
-	</Window.Styles>
-
 	<Window.KeyBindings>
 		<KeyBinding Gesture="F1" Command="{Binding HelpCommand}"/>
 		<KeyBinding Gesture="Ctrl+O" Command="{Binding OpenCommand}"/>
@@ -28,32 +24,36 @@
 		<StyleInclude Source="avares://Avalonia.Xaml.Interactions.Draggable/Styles.axaml"/>
 	</Window.Styles>
 
-	<DockPanel Background="#2d2d30">
+	<DockPanel Background="{StaticResource ThemeControlMidBrush}">
 
 		<Menu DockPanel.Dock="Top" Padding="5"
-			Background="#2d2d30" Foreground="LightGray">
+			Background="{StaticResource ThemeControlMidBrush}" Foreground="{StaticResource ThemeForegroundLowBrush}">
 			
 			<MenuItem Header="_File">
 				<MenuItem Header="New">
+					<MenuItem.Icon>
+						<ContentControl Classes="newIcon"/>
+					</MenuItem.Icon>
+					
 					<MenuItem Header="Configuration" Click="NewSharpConfigurationClick">
 						<MenuItem.Icon>
-							<Image Source="/Images/NewCharacterSheet2.png"/>
+							<ContentControl Classes="configIcon"/>
 						</MenuItem.Icon>
 					</MenuItem>
 					<MenuItem Header="Card Subjects" Click="NewCardSubjectsClick">
 						<MenuItem.Icon>
-							<Image Source="/Images/NewCardSubject2.png"/>
+							<ContentControl Classes="cardSubjectIcon"/>
 						</MenuItem.Icon>
 					</MenuItem>
 					<Separator/>
 					<MenuItem Header="Card Configuration" Click="NewCardConfigurationClick">
 						<MenuItem.Icon>
-							<Image Source="/Images/NewCardDefinition2.png"/>
+							<ContentControl Classes="cardDefinitionIcon"/>
 						</MenuItem.Icon>
 					</MenuItem>
 					<MenuItem Header="Markup" Click="NewMarkupClick">
 						<MenuItem.Icon>
-							<Image Source="/Images/NewMarkup3.png"/>
+							<ContentControl Classes="markupIcon"/>
 						</MenuItem.Icon>
 					</MenuItem>
 				</MenuItem>
@@ -70,20 +70,20 @@
 			
 				<MenuItem Header="_Open..." Command="{Binding OpenCommand}" InputGesture="Ctrl+O">
 					<MenuItem.Icon>
-						<Image Source="/Images/Open3.png"/>
+						<ContentControl Classes="openIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Open Template..." Click="OpenTemplateFileClick"/>
 				<Separator/>
 				<MenuItem Header="Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S">
 					<MenuItem.Icon>
-						<Image Source="/Images/Save2.png"/>
+						<ContentControl Classes="saveIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Save As..." Command="{Binding SaveAsCommand}"/>
 				<MenuItem Header="Save All" Command="{Binding SaveAllCommand}" InputGesture="Ctrl+Shift+S">
 					<MenuItem.Icon>
-						<Image Source="/Images/SaveAll.png"/>
+						<ContentControl Classes="saveAllIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Save In Templates..." Click="SaveAsTemplateClick"/>
@@ -97,64 +97,61 @@
 			<MenuItem Header="_Edit">
 				<MenuItem Header="Undo" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z">
 					<MenuItem.Icon>
-						<Image Source="/Images/Undo2.png"/>
+						<ContentControl Classes="undoIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Redo" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y">
 					<MenuItem.Icon>
-						<Image Source="/Images/Redo2.png"/>
+						<ContentControl Classes="redoIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<Separator/>
 				<MenuItem Header="Cut" Command="{Binding CutCommand}" InputGesture="Ctrl+X">
 					<MenuItem.Icon>
-						<Image Source="/Images/Cut3.png"/>
+						<ContentControl Classes="cutIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Copy" Command="{Binding CopyCommand}" InputGesture="Ctrl+C">
 					<MenuItem.Icon>
-						<Image Source="/Images/Copy2.png"/>
+						<ContentControl Classes="copyIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Paste" Command="{Binding PasteCommand}" InputGesture="Ctrl+V">
 					<MenuItem.Icon>
-						<Image Source="/Images/Paste2.png"/>
+						<ContentControl Classes="pasteIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Delete" Command="{Binding DeleteCommand}" InputGesture="Delete">
 					<MenuItem.Icon>
-						<Image Source="/Images/Delete4.png"/>
+						<ContentControl Classes="deleteIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<Separator/>
 				<MenuItem Header="Settings..." Command="{Binding ShowSettingsWindowClick}">
 					<MenuItem.Icon>
-						<Path Fill="LightGray" Data="M 6.366,0.183 C 7.443,-0.043 8.555,-0.044 9.632,0.181 9.778,1.141 10.099,2.630 10.850,3.062 11.599,3.496 13.050,3.029 13.954,2.675 c 0.733,0.821 1.289,1.785 1.631,2.830 -0.758,0.606 -1.886,1.628 -1.885,2.494 0,0.901 1.155,1.909 1.887,2.494 -0.345,1.045 -0.901,2.008 -1.634,2.829 -0.904,-0.354 -2.353,-0.821 -3.103,-0.387 -0.750,0.432 -1.071,1.920 -1.216,2.879 -1.077,0.226 -2.189,0.227 -3.266,0.003 C 6.222,14.857 5.901,13.368 5.150,12.935 4.400,12.501 2.949,12.968 2.046,13.323 1.312,12.502 0.757,11.538 0.415,10.491 1.172,9.886 2.300,8.864 2.300,7.999 2.300,7.132 1.172,6.110 0.413,5.504 0.758,4.459 1.314,3.496 2.047,2.675 2.950,3.030 4.400,3.496 5.150,3.062 5.899,2.630 6.220,1.142 6.366,0.184 Z M 8.000,10.395 c 3.195,0.002 3.195,-4.789 0,-4.791 -3.192,0.002 -3.192,4.792 0,4.791 z"/>
+						<ContentControl Classes="settingsIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 			</MenuItem> <!-- End of Edit menu -->
 			<MenuItem Header="_View">
 				<MenuItem Header="Wrap Lines" Name="WrapLinesButton" Click="ToggleMenuItemCheckBox">
 					<MenuItem.Icon>
-						<!--<Image Source="/Images/WordWrap2.png"/>-->
 						<CheckBox IsChecked="{Binding DataManager.WrapLines}" IsHitTestVisible="False">
-							<Image Source="/Images/WordWrap2.png"/>
+							<ContentControl Classes="wrapIcon"/>
 						</CheckBox>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Show Line Numbers" Name="ShowLineNumbersButton" Click="ToggleMenuItemCheckBox">
 					<MenuItem.Icon>
-						<!--<TextBlock Width="16" TextAlignment="Center" Foreground="LightGray">#</TextBlock>-->
 						<CheckBox IsChecked="{Binding DataManager.ShowLineNumbers}" IsHitTestVisible="False">
-							<TextBlock Width="16" TextAlignment="Center" VerticalAlignment="Center" Foreground="LightGray">#</TextBlock>
+							<ContentControl Classes="lineNumbersIcon"/>
 						</CheckBox>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Show End of Line" Name="ShowEndOfLineButton" Click="ToggleMenuItemCheckBox">
 					<MenuItem.Icon>
-						<!--<TextBlock Width="16" TextAlignment="Center" Foreground="LightGray">¶</TextBlock>-->
 						<CheckBox IsChecked="{Binding DataManager.ShowEndOfLine}" IsHitTestVisible="False">
-							<TextBlock Width="16" TextAlignment="Center" VerticalAlignment="Center" Foreground="LightGray">¶</TextBlock>
+							<ContentControl Classes="endOfLineIcon"/>
 						</CheckBox>
 					</MenuItem.Icon>
 				</MenuItem>
@@ -162,12 +159,12 @@
 			<MenuItem Header="_Generate">
 				<MenuItem Header="Generate" Command="{Binding GenerateCommand}" InputGesture="Ctrl+G">
 					<MenuItem.Icon>
-						<Image Source="/Images/Run3.png"/>
+						<ContentControl Classes="runIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Generate and Fill" Command="{Binding GeneratePopulateCommand}" InputGesture="Ctrl+Shift+G">
 					<MenuItem.Icon>
-						<Image Source="/Images/GeneratePopulate.png"/>
+						<ContentControl Classes="runPopulateIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<MenuItem Header="Generate and Fill From..." Command="{Binding GeneratePopulateFromCommand}"/>
@@ -202,30 +199,26 @@
 			<MenuItem>
 				<MenuItem.Header>
 					<StackPanel Orientation="Horizontal">
-						<TextBlock Text="Help" Foreground="LightGray"/>
-						<Image
-							x:Name="TemplateErrorHeaderIcon"
-							IsVisible="{Binding TemplateAlertEnabled}"
-							IsEnabled="{Binding TemplateAlertEnabled}"
-							VerticalAlignment="Bottom"
-							Width="15" Height="15"
-							Margin="5 0 00 0"
-							Source="/Images/ExclamationWhite.png"/>
+						<TextBlock Text="Help" Foreground="{StaticResource ThemeForegroundLowBrush}"/>
+						<ContentControl Classes="exclamationIcon"
+										Margin="5 0 0 0"
+										Foreground="{StaticResource ThemeForegroundLowBrush}"
+										IsVisible="{Binding TemplateAlertEnabled}"
+										IsEnabled="{Binding TemplateAlertEnabled}"/>
 					</StackPanel>
 				</MenuItem.Header>
 				<MenuItem Header="View Documentation" Command="{Binding HelpCommand}" InputGesture="F1">
 					<MenuItem.Icon>
-						<Image Source="/Images/Info.png"/>
+						<ContentControl Classes="infoIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
 				<Separator/>
 				<MenuItem Header="Template Errors" Command="{Binding ShowTemplateErrorsMenuClick}">
 					<MenuItem.Icon>
-						<Image
-							x:Name="TemplateErrorMenuIcon"
-							IsVisible="{Binding TemplateAlertEnabled}"
-							IsEnabled="{Binding TemplateAlertEnabled}"
-							Source="/Images/ExclamationWhite.png"/>
+						<ContentControl Classes="exclamationIcon"
+										Foreground="{StaticResource ThemeForegroundLowBrush}"
+										IsVisible="{Binding TemplateAlertEnabled}"
+										IsEnabled="{Binding TemplateAlertEnabled}"/>
 					</MenuItem.Icon>
 				</MenuItem>
 			</MenuItem> <!-- End of Help menu -->
@@ -234,35 +227,36 @@
 			
 		<StackPanel
 			DockPanel.Dock="Top"
+			Classes="toolbar"
 			Orientation="Horizontal"
-			Background="#2d2d30"
+			Background="{StaticResource ThemeControlMidBrush}"
 			Height="25" Margin="2">
 			
 			<Menu>
 				<MenuItem Classes="toolbarDropDownMenu">
 					<MenuItem.Icon>
-						<Image Source="/Images/New2.png"/>
+						<ContentControl Classes="newIcon"/>
 					</MenuItem.Icon>
 					
 					<MenuItem Header="Configuration" Click="NewSharpConfigurationClick">
 						<MenuItem.Icon>
-							<Image Source="/Images/NewCharacterSheet2.png"/>
+							<ContentControl Classes="configIcon"/>
 						</MenuItem.Icon>
 					</MenuItem>
 					<MenuItem Header="Card Subjects" Click="NewCardSubjectsClick">
 						<MenuItem.Icon>
-							<Image Source="/Images/NewCardSubject2.png"/>
+							<ContentControl Classes="cardSubjectIcon"/>
 						</MenuItem.Icon>
 					</MenuItem>
 					<Separator/>
 					<MenuItem Header="Card Configuration" Click="NewCardConfigurationClick">
 						<MenuItem.Icon>
-							<Image Source="/Images/NewCardDefinition2.png"/>
+							<ContentControl Classes="cardDefinitionIcon"/>
 						</MenuItem.Icon>
 					</MenuItem>
 					<MenuItem Header="Markup" Click="NewMarkupClick">
 						<MenuItem.Icon>
-							<Image Source="/Images/NewMarkup3.png"/>
+							<ContentControl Classes="markupIcon"/>
 						</MenuItem.Icon>
 					</MenuItem>
 					
@@ -270,62 +264,64 @@
 			</Menu>
 				
 			<Button ToolTip.Tip="Open" Command="{Binding OpenCommand}">
-				<Image Source="/Images/Open3.png" Height="16"/>
+				<ContentControl Classes="openIcon"/>
 			</Button>
 			
 			<Button ToolTip.Tip="Save File" Command="{Binding SaveCommand}">
-				<Image Source="/Images/Save2.png" Height="16"/>
+				<ContentControl Classes="saveIcon"/>
 			</Button>
 			<Button ToolTip.Tip="Save All" Command="{Binding SaveAllCommand}">
-				<Image Source="/Images/SaveAll.png" Height="16"/>
+				<ContentControl Classes="saveAllIcon"/>
 			</Button>
-			<Separator Margin="5,0" Background="#55555a"/>
+			<Separator Margin="5,0"/>
 			<Button ToolTip.Tip="Cut" Command="{Binding CutCommand}">
-				<Image Source="/Images/Cut3.png" Height="16"/>
+				<ContentControl Classes="cutIcon"/>
 			</Button>
 			<Button ToolTip.Tip="Copy" Command="{Binding CopyCommand}">
-				<Image Source="/Images/Copy2.png" Height="16"/>
+				<ContentControl Classes="copyIcon"/>
 			</Button>
 			<Button ToolTip.Tip="Paste" Command="{Binding PasteCommand}">
-				<Image Source="/Images/Paste2.png" Height="16"/>
+				<ContentControl Classes="pasteIcon"/>
 			</Button>
 			<Button ToolTip.Tip="Delete" Command="{Binding DeleteCommand}">
-				<Image Source="/Images/Delete4.png" Height="16"/>
+				<ContentControl Classes="deleteIcon"/>
 			</Button>
-			<Separator Margin="5,0" Background="#55555a"/>
+			<Separator Margin="5,0"/>
 			<Button ToolTip.Tip="Undo" Command="{Binding UndoCommand}">
-				<Image Source="/Images/Undo2.png" Height="16"/>
+				<ContentControl Classes="undoIcon"/>
 			</Button>
 			<Button ToolTip.Tip="Redo" Command="{Binding RedoCommand}">
-				<Image Source="/Images/Redo2.png" Height="16"/>
+				<ContentControl Classes="redoIcon"/>
 			</Button>
-			<Separator Margin="5,0" Background="#55555a"/>
+			<Separator Margin="5,0"/>
 			<Button ToolTip.Tip="Comment Selected Lines" Command="{Binding IncrementCommentCommand}">
-				<Image Source="/Images/CommentAdd.png" Height="16"/>
+				<ContentControl Classes="commentAddIcon"/>
 			</Button>
 			<Button ToolTip.Tip="Uncomment Selected Lines" Command="{Binding DecrementCommentCommand}">
-				<Image Source="/Images/CommentRemove.png" Height="16"/>
+				<ContentControl Classes="commentSubIcon"/>
 			</Button>
-			<Separator Margin="5,0" Background="#55555a"/>
+			<Separator Margin="5,0"/>
 			<Button ToolTip.Tip="Generate PDF" Command="{Binding GenerateCommand}">
 				<StackPanel Orientation="Horizontal">
-					<Image Source="/Images/Run3.png" Height="16" Margin="0,0,3,0"/>
-					<TextBlock Foreground="LightGray">Generate</TextBlock>
+					<ContentControl Classes="runIcon" Margin="0,0,6,0"/>
+					<TextBlock Foreground="{StaticResource ThemeForegroundLowBrush}">Generate</TextBlock>
 				</StackPanel>
 			</Button>
-			<Separator Margin="5,0" Background="#55555a"/>
+			<Separator Margin="5,0"/>
 			<Button ToolTip.Tip="Generate PDF and Populate Fields" Command="{Binding GeneratePopulateCommand}">
-				<Image Source="/Images/GeneratePopulate.png" Height="16"/>
+				<ContentControl Classes="runPopulateIcon"/>
 			</Button>
-			<Separator Margin="5,0" Background="#55555a"/>
+			<Separator Margin="5,0"/>
 			<ToggleButton Name="ToolbarShowDesignerButton" ToolTip.Tip="Toggle Show Designer"
 				IsChecked="{Binding DesignerVisible}">
-				<Image Source="/Images/Designer4.png" Height="16" Margin="2,2"/>
+				<ContentControl Classes="designerIcon"/>
 			</ToggleButton>
 		
 		</StackPanel>
 			
-		<Grid Name="MainGrid" Background="#2d2d30" Margin="0,5,0,0">
+		<Grid Name="MainGrid" Background="{StaticResource ThemeControlMidBrush}" Margin="0,5,0,0">
+
+			<Border Name="MainGridBorder" IsEnabled="False" IsVisible="False" BorderThickness="3" BorderBrush="{StaticResource ThemeBorderHighBrush}" IsHitTestVisible="False"/>
 
 			<TabControl Name="EditorTabControl" Classes="draggable" Padding="0" Margin="0" BorderThickness="0">
 				<TabControl.Styles>
@@ -342,7 +338,13 @@
 						<UserControl
 							Content="{Binding Header, DataType={x:Type local:EditorTabItem}}"
 							Margin="0" Padding="0" BorderThickness="0"
-							FontSize="{Binding FontSize, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+							FontSize="{Binding FontSize, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}">
+							<UserControl.Styles>
+								<Style Selector="TextBlock">
+									<Setter Property="Foreground" Value="{StaticResource HighlightForegroundBrush}"/>
+								</Style>
+							</UserControl.Styles>
+						</UserControl>
 					</DataTemplate>
 				</TabControl.ItemTemplate>
 				<TabControl.ContentTemplate>

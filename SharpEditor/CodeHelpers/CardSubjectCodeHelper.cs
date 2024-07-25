@@ -16,6 +16,7 @@ using Avalonia.Input;
 using Avalonia.Controls;
 using SharpEditor.Windows;
 using Avalonia.Threading;
+using SharpEditor.Completion;
 
 namespace SharpEditor.CodeHelpers {
 

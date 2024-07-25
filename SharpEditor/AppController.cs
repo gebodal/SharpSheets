@@ -16,7 +16,7 @@ namespace SharpEditor {
 
 	public class AppController {
 
-		private readonly App appInstance;
+		public readonly App appInstance;
 		public readonly SharpEditorWindow window;
 
 		public AppController(App app) {
@@ -43,6 +43,9 @@ namespace SharpEditor {
 
 			await loadingWindow.SetMessageText("Creating main window...");
 			AppController controller = new AppController(app);
+
+			await loadingWindow.SetMessageText("Load theme data..."); // Has to come after controller created
+			SharpEditorThemeManager.LoadTheme(app);
 
 			controller.window.GetObservable(Window.WindowStateProperty).Subscribe(controller.Window_StateChanged);
 			controller.window.Resized += controller.Window_Resized;

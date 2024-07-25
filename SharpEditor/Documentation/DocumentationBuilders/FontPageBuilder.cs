@@ -491,7 +491,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				string uriString = (Regex.IsMatch(value, @"^https?\:\/\/") ? "" : "http://") + value;
 
 				ClickableRun link = new ClickableRun(value) {
-					Foreground = Brushes.MediumPurple
+					//Foreground = Brushes.MediumPurple
 				};
 				link.MouseLeftButtonDown += (s, e) => {
 					System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uriString) { UseShellExecute = true });

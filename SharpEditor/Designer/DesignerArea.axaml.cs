@@ -15,6 +15,7 @@ using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Mvvm.Input;
 using Avalonia.Collections;
 using SharpEditor.Designer.DrawingCanvas;
+using SharpEditor.Utilities;
 
 namespace SharpEditor.Designer {
 
@@ -40,6 +41,13 @@ namespace SharpEditor.Designer {
 
 		public SharpDataManager DataManager { get; }
 
+		private readonly IBrush themeOriginalBrush;
+		private readonly IBrush themeInnerBrush;
+		private readonly IBrush themeAdjustedBrush;
+		private readonly IBrush themeUnselectedBrush;
+
+		private readonly IBrush themeFieldBrush;
+
 		public DesignerArea() {
 			DataManager = SharpDataManager.Instance;
 			// Create the commands here so they're available for initialisation
@@ -58,6 +66,13 @@ namespace SharpEditor.Designer {
 
 			DesignerViewer.DPI = SharpDataManager.Instance.ScreenDPI;
 			this.DesignerViewer.ScaleChanged += OnCanvasScaleChanged;
+
+			themeOriginalBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.DesignerOriginalAreaHighlightBrush) ?? throw new InvalidOperationException();
+			themeInnerBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.DesignerInnerAreaHighlightBrush) ?? throw new InvalidOperationException();
+			themeAdjustedBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.DesignerAdjustedAreaHighlightBrush) ?? throw new InvalidOperationException();
+			themeUnselectedBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.DesignerUnselectedAreaHighlightBrush) ?? throw new InvalidOperationException();
+
+			themeFieldBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.DesignerFieldBrush) ?? throw new InvalidOperationException();
 		}
 
 		/// <summary>
@@ -74,7 +89,7 @@ namespace SharpEditor.Designer {
 			if (this.IsVisible && IsValidNewDocument(newDocument)) {
 
 				int previousPageIndex = currentDocument?.CurrentPageIndex ?? 0;
-				currentDocument = new DesignerDocumentHolder(newDocument, previousPageIndex);
+				currentDocument = new DesignerDocumentHolder(newDocument, previousPageIndex, themeFieldBrush);
 
 				PageCountTextBlock.Text = currentDocument.PageCount.ToString();
 
@@ -338,14 +353,14 @@ namespace SharpEditor.Designer {
 		}
 
 		public void HighlightMinor(object[]? drawnObjects) {
-			Highlight(currentDocument?.CurrentPage?.MouseHighlights, drawnObjects, Colors.Gray, Colors.Gray, Colors.LightGray, 0.6, DesignerMouseHighlightStrokeThickness, false, false);
+			Highlight(currentDocument?.CurrentPage?.MouseHighlights, drawnObjects, themeUnselectedBrush, themeUnselectedBrush, themeUnselectedBrush, DesignerMouseHighlightStrokeThickness, false, false);
 		}
 
 		public void Highlight(object[]? drawnObjects, bool scrollToArea = false, bool zoomToArea = false) {
-			Highlight(currentDocument?.CurrentPage?.Highlights, drawnObjects, Colors.Lime, Colors.Orange, Colors.Cyan, 0.75, DesignerHighlightStrokeThickness, scrollToArea: scrollToArea, zoomToArea: zoomToArea);
+			Highlight(currentDocument?.CurrentPage?.Highlights, drawnObjects, themeOriginalBrush, themeInnerBrush, themeAdjustedBrush, DesignerHighlightStrokeThickness, scrollToArea: scrollToArea, zoomToArea: zoomToArea);
 		}
 
-		private void Highlight(Canvas? highlightCanvas, object[]? drawnObjects, Color originalColor, Color innerColor, Color adjustedColor, double opacity, double lineThickness, bool scrollToArea = false, bool zoomToArea = false) {
+		private void Highlight(Canvas? highlightCanvas, object[]? drawnObjects, IBrush originalBrush, IBrush innerBrush, IBrush adjustedBrush, double lineThickness, bool scrollToArea = false, bool zoomToArea = false) {
 			if (IsVisible && currentDocument != null && currentDocument?.CurrentPage is DesignerPageHolder currentPage && highlightCanvas != null && currentDocument.PageCount > 0) {
 				try {
 					highlightCanvas.IsVisible = false;
@@ -364,16 +379,16 @@ namespace SharpEditor.Designer {
 									foreach (SharpSheets.Layouts.Rectangle innerRect in areas.Inner) {
 										if (innerRect.Width < 0f || innerRect.Height < 0f) { continue; } // Ignore malformed areas
 
-										highlightCanvas.AddRect(innerRect, new SolidColorBrush(innerColor) { Opacity = 0.8 * opacity }, lineThickness / DesignerViewer.Scale);
+										highlightCanvas.AddRect(innerRect, innerBrush, lineThickness / DesignerViewer.Scale);
 									}
 								}
 
 								if (areas.Adjusted is not null && areas.Original != areas.Adjusted && areas.Adjusted.Width >= 0f && areas.Adjusted.Height >= 0f) {
-									highlightCanvas.AddRect(areas.Adjusted, new SolidColorBrush(adjustedColor) { Opacity = opacity }, lineThickness / DesignerViewer.Scale);
+									highlightCanvas.AddRect(areas.Adjusted, adjustedBrush, lineThickness / DesignerViewer.Scale);
 								}
 
 								if (areas.Original.Width >= 0f && areas.Original.Height >= 0f) {
-									highlightCanvas.AddRect(areas.Original, new SolidColorBrush(originalColor) { Opacity = opacity }, lineThickness / DesignerViewer.Scale);
+									highlightCanvas.AddRect(areas.Original, originalBrush, lineThickness / DesignerViewer.Scale);
 								}
 							}
 						}
@@ -418,6 +433,8 @@ namespace SharpEditor.Designer {
 			private readonly SharpGeometryDrawingDocument designerDocument;
 			private readonly Dictionary<int, DrawingGroup> pages;
 
+			private readonly IBrush fieldBrush;
+
 			public int PageCount => designerDocument.PageCount;
 
 			private int _currentPageIndex;
@@ -432,8 +449,9 @@ namespace SharpEditor.Designer {
 
 			public DesignerPageHolder? CurrentPage { get; private set; }
 
-			public DesignerDocumentHolder(SharpGeometryDrawingDocument designerDocument, int currentPageIndex) {
+			public DesignerDocumentHolder(SharpGeometryDrawingDocument designerDocument, int currentPageIndex, IBrush fieldBrush) {
 				this.designerDocument = designerDocument;
+				this.fieldBrush = fieldBrush;
 
 				//pages = designerDocument.Pages.Select(p => p.drawingGroup.BuildGroup()).ToArray();
 				pages = new Dictionary<int, DrawingGroup>();
@@ -467,7 +485,7 @@ namespace SharpEditor.Designer {
 						pages[_currentPageIndex] = newPage;
 					}
 
-					CurrentPage = new DesignerPageHolder(designerDocument.Pages[_currentPageIndex], newPage);
+					CurrentPage = new DesignerPageHolder(designerDocument.Pages[_currentPageIndex], newPage, fieldBrush);
 				}
 			}
 
@@ -490,7 +508,7 @@ namespace SharpEditor.Designer {
 			public float Width => page.CanvasRect.Width;
 			public float Height => page.CanvasRect.Height;
 
-			public DesignerPageHolder(SharpGeometryDrawingCanvas documentPage, DrawingGroup pageDrawing) {
+			public DesignerPageHolder(SharpGeometryDrawingCanvas documentPage, DrawingGroup pageDrawing, IBrush fieldBrush) {
 				page = documentPage;
 				this.pageDrawing = pageDrawing;
 
@@ -508,10 +526,10 @@ namespace SharpEditor.Designer {
 				Fields = MakeNewFieldCanvas(page.CanvasRect.Width, page.CanvasRect.Height);
 				foreach (CanvasField field in page.Fields.Values.Where(f => f.Rect.Width > 0 && f.Rect.Height > 0)) {
 					Fields.AddHighlight(field.Rect,
-						stroke: field.Type == FieldType.IMAGE ? new SolidColorBrush(Colors.DarkGray) { Opacity = 0.5 } : null,
-						strokeThickness: field.Type == FieldType.IMAGE ? 1 : 0,
+						stroke: field.Type == FieldType.IMAGE ? fieldBrush : null, // TODO This is currently a bit visually vague, and should probably be improved
+						strokeThickness: field.Type == FieldType.IMAGE ? 2 : 0,
 						strokeDashArray: field.Type == FieldType.IMAGE ? new AvaloniaList<double> { 3, 3 } : null,
-						fill: new SolidColorBrush(field.Type == FieldType.IMAGE ? Colors.LightGray : Colors.Blue) { Opacity = 0.1 },
+						fill: field.Type == FieldType.IMAGE ? null : fieldBrush,
 						toolTip: GetFieldTooltip(field));
 				}
 				PageCanvas.Children.Add(Fields);
@@ -661,7 +679,7 @@ namespace SharpEditor.Designer {
 
 	public static class HighlightingUtils {
 
-		public static void AddHighlight(this Canvas canvas, SharpSheets.Layouts.Rectangle rect, Brush? stroke, double? strokeThickness, AvaloniaList<double>? strokeDashArray, Brush? fill, object? toolTip) {
+		public static void AddHighlight(this Canvas canvas, SharpSheets.Layouts.Rectangle rect, IBrush? stroke, double? strokeThickness, AvaloniaList<double>? strokeDashArray, IBrush? fill, object? toolTip) {
 			/*
 			Rectangle highlight = new Rectangle() {
 				Width = rect.Width,
@@ -709,7 +727,7 @@ namespace SharpEditor.Designer {
 			canvas.Children.Add(element);
 		}
 
-		public static void AddRect(this Canvas canvas, SharpSheets.Layouts.Rectangle rect, Brush? stroke, double? strokeThickness) {
+		public static void AddRect(this Canvas canvas, SharpSheets.Layouts.Rectangle rect, IBrush? stroke, double? strokeThickness) {
 			AddHighlight(canvas, rect, stroke, strokeThickness, null, null, null);
 		}
 

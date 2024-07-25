@@ -63,7 +63,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 		private static TextBlock MakeContentsTextBlock(Inline inline) {
 			TextBlock contentsBlock = new TextBlock() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 1, 0, 1), Inlines = new InlineCollection() };
-			contentsBlock.Inlines.Add(new Run("\u2013\u2002") { Foreground = Brushes.Gray });
+			contentsBlock.Inlines.Add(new Run("\u2013\u2002")); // { Foreground = Brushes.Gray });
 			contentsBlock.Inlines.Add(inline);
 			return contentsBlock;
 		}
@@ -179,8 +179,6 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			throw new ArgumentException("Unknown IDocumentationSegment type.");
 		}
 
-		public static readonly Brush CodeBackgroundBrush = new SolidColorBrush(Color.FromRgb(30, 30, 30)); // new SolidColorBrush(Color.FromRgb(114, 114, 118));
-
 		public static FontFamily GetCodeFontFamily() {
 			if ((App.Current?.TryGetResource("EditorFont", out object? editorFont) ?? false) && editorFont is FontFamily codeFamily) {
 				return codeFamily;
@@ -209,7 +207,8 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					};
 					Border codeBorder = new Border() {
 						Child = codeBlock,
-						Background = CodeBackgroundBrush,
+						//Background = CodeBackgroundBrush,
+						Classes = { "codeBorder" },
 						CornerRadius = new CornerRadius(3.0),
 						Padding = new Thickness(3, 1, 3, 1)
 					};
@@ -308,7 +307,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			textArea.SelectionCornerRadius = 1.0; // Can also adjust Selection Brush from here
 			textArea.SelectionBorder = null;
 			textArea.SelectionForeground = null;
-			textArea.SelectionBrush = new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.5 };
+			//textArea.SelectionBrush = new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.5 };
 
 			ScrollViewer codeScroller = new ScrollViewer() {
 				VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
@@ -318,7 +317,8 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			Border codeBorder = new Border {
 				Child = codeScroller,
-				Background = CodeBackgroundBrush,
+				//Background = CodeBackgroundBrush,
+				Classes = { "codeBorder" },
 				Padding = new Thickness(10.0, 5.0, 10.0, 5.0),
 				Margin = ParagraphMargin,
 				CornerRadius = new CornerRadius(5.0)

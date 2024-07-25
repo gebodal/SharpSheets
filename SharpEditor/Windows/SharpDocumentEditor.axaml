@@ -12,7 +12,7 @@
              x:Class="SharpEditor.Windows.SharpDocumentEditor"
 			 FontFamily="{StaticResource ApplicationFont}">
 		
-	<DockPanel Background="#2d2d30">
+	<DockPanel Background="{StaticResource ThemeControlMidBrush}">
 
 		<!-- Status bar goes here -->
 		<Grid DockPanel.Dock="Bottom">
@@ -29,29 +29,32 @@
 				Name="TextZoomTextBox"
 				Width="50"
 				Margin="2,1"
-				Background="#1c1c1f"
-				Foreground="LightGray"
+				Background="{StaticResource ThemeControlLowBrush}"
+				Foreground="{StaticResource ThemeForegroundLowBrush}"
 				BorderThickness="1"
-				BorderBrush="#1c1c1f"
+				BorderBrush="{StaticResource ThemeControlLowBrush}"
 				VerticalContentAlignment="Center"
 				TextAlignment="Left"
 				Text="100%"
 				ToolTip.Tip="Text Zoom Level"
+				ToolTip.HorizontalOffset="5"
 				KeyDown="TextZoomBoxKeyDown"
 				PointerWheelChanged="TextZoomBoxMouseWheel"
 				LostFocus="TextZoomBoxLostFocus"
 				ScrollViewer.VerticalScrollBarVisibility="Disabled"
 				ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
 			<StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0">
-				<TextBlock Name="CursorLineText" Width="50" Margin="20,0" Text="Line" VerticalAlignment="Center"/>
-				<TextBlock Name="CursorColText" Width="50" Margin="20,0" Text="Col" VerticalAlignment="Center"/>
+				<TextBlock Name="CursorLineText" Foreground="{StaticResource ThemeForegroundLowBrush}" Width="50" Margin="20,0" Text="Line" VerticalAlignment="Center"/>
+				<TextBlock Name="CursorColText" Foreground="{StaticResource ThemeForegroundLowBrush}" Width="50" Margin="20,0" Text="Col" VerticalAlignment="Center"/>
 			</StackPanel>
 			<local:ToolbarMessageBox Grid.Column="3" Name="BackgroundMessageControl" VerticalAlignment="Center" Margin="30,0"/>
 			<StackPanel Name="ErrorStatus" Grid.Column="4" IsVisible="False" Orientation="Horizontal">
-				<Border Padding="20,0" Background="#c00000" PointerPressed="ErrorStatusClick">
+				<Border Padding="20,0" Background="{StaticResource ErrorBrush}" PointerPressed="ErrorStatusClick">
 					<StackPanel Orientation="Horizontal">
-						<Image Source="/Images/Exclamation.png" Height="16" Margin="0,0,3,0"/>
-						<TextBlock Name="ErrorCount" Foreground="Black" VerticalAlignment="Center" Margin="10,0,5,0"/>
+						<ContentControl Classes="exclamationIcon"
+										Margin="0,0,3,0"
+										Foreground="{StaticResource ErrorLowBrush}"/>
+						<TextBlock Name="ErrorCount" Foreground="{StaticResource ErrorLowBrush}" VerticalAlignment="Center" Margin="10,0,5,0"/>
 						<ToggleButton x:Name="ErrorPopupToggleButton" Click="ErrorPopupClick" Classes="errorPopupToggleButton">
 							<!-- Button styling goes here -->
 						</ToggleButton>
@@ -63,11 +66,11 @@
 						IsOpen="False" IsLightDismissEnabled="True"
 						Width="200" Height="200"
 						Closed="ErrorPopupClosed"> <!-- StaysOpen="False" -->
-					<Border Background="#2d2d30" MaxWidth="400" MaxHeight="500">
+					<Border Name="ErrorPopupBorder" Background="{StaticResource ThemeControlMidBrush}" MaxWidth="400" MaxHeight="500">
 						<ListBox Name="ErrorPopupListBox"
 							ScrollViewer.VerticalScrollBarVisibility="Auto"
 							ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-							Background="#2d2d30">
+							Background="{StaticResource ThemeControlMidBrush}">
 								
 							<ListBox.ItemTemplate>
 								<DataTemplate x:DataType="local:ErrorPopupEntry">
@@ -80,11 +83,11 @@
 											Text="{Binding Line, Mode=OneWay}"
 											Margin="5"
 											HorizontalAlignment="Center"
-											Foreground="LightGray"/>
+											Foreground="{StaticResource ThemeForegroundLowBrush}"/>
 										<TextBlock Grid.Column="1"
 											Text="{Binding Message, Mode=OneWay}"
 											Margin="5"
-											Foreground="LightGray"
+											Foreground="{StaticResource ThemeForegroundLowBrush}"
 											TextWrapping="Wrap"/>
 										<i:Interaction.Behaviors>
 											<!-- https://stackoverflow.com/a/76991334/11002708 -->
@@ -112,8 +115,8 @@
 			<avaloniaEdit:TextEditor
 				Grid.Column="0"
 				Name="textEditor"
-				Background="#1e1e1e"
-				Foreground="White"
+				Background="{StaticResource ThemeBackgroundBrush}"
+				Foreground="{StaticResource ThemeForegroundBrush}"
 				FontFamily="{StaticResource EditorFont}"
 				FontSize="14"
 				HorizontalScrollBarVisibility="Auto"
@@ -128,15 +131,13 @@
 				</avaloniaEdit:TextEditor.KeyBindings>
 				<!-- ToolTip goes here -->
 				<ToolTip.Tip>
-					<ToolTip Name="TextEditorToolTip" Margin="0" Padding="8,5"
-						Background="#424245"
-						BorderThickness="0.75" BorderBrush="#5e5e63"
-						MinWidth="200" MaxWidth="600"
+					<ToolTip Name="TextEditorToolTip"
+						Classes="sharpToolTip"
 						IsHitTestVisible="False">
 						<StackPanel Name="ToolTipPanel" Orientation="Vertical">
 							<StackPanel.Styles>
 								<Style Selector="TextBlock">
-									<Setter Property="Foreground" Value="White"/>
+									<Setter Property="Foreground" Value="{StaticResource ThemeForegroundBrush}"/>
 									<Setter Property="FontFamily" Value="{StaticResource ApplicationFont}"/>
 								</Style>
 							</StackPanel.Styles>
@@ -147,7 +148,7 @@
 			<GridSplitter
 				Name="Splitter"
 				Grid.Column="1"
-				Width="5" Background="#2d2d30"
+				Width="5" Background="{StaticResource ThemeControlMidBrush}"
 				HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
 			<DockPanel Name="DesignerHolder" Grid.Column="2">
 				<designer:DesignerArea

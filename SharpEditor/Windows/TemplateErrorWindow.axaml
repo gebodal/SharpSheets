@@ -6,8 +6,8 @@
         x:Class="SharpEditor.Windows.TemplateErrorWindow"
         Title="Template Errors" Height="450" Width="400"
 		Icon="/Images/Icon.ico"
-		Background="#424245"
-		Foreground="White"
+		Background="{StaticResource ThemeControlMidHighBrush}"
+		Foreground="{StaticResource ThemeForegroundBrush}"
 		FontFamily="{StaticResource ApplicationFont}">
 
 	<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">

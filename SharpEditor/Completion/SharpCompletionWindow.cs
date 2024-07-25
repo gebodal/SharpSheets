@@ -19,24 +19,27 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using AvaloniaEdit.CodeCompletion;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
 
-namespace SharpEditor {
+namespace SharpEditor.Completion {
 	/// <summary>
 	/// The code completion window.
 	/// </summary>
 	public class SharpCompletionWindow : CompletionWindowBase {
-		ToolTip? toolTip = new ToolTip();
 
 		/// <summary>
 		/// Gets the completion list used in this completion window.
 		/// </summary>
 		public CompletionList CompletionList { get; } = new CompletionList();
 		public int VisibleItemCount => CompletionList.ListBox.VisibleItemCount;
+
+		private readonly ToolTip toolTip = new ToolTip() { Classes = { "sharpToolTip" } };
 
 		/// <summary>
 		/// Creates a new code completion window.
@@ -51,21 +54,16 @@ namespace SharpEditor {
 			this.MinHeight = 15;
 			this.MinWidth = 30;
 
-			//toolTip.PlacementTarget = this;
-			//toolTip.Placement = PlacementMode.Right;
-			ToolTip.SetPlacement(this, PlacementMode.Right);
+			ToolTip.SetPlacement(CompletionList.ListBox, PlacementMode.RightEdgeAlignedTop);
+			ToolTip.SetHorizontalOffset(CompletionList.ListBox, 4);
+			ToolTip.SetVerticalOffset(CompletionList.ListBox, 0);
 			//toolTip.Closed += ToolTip_Closed; // What do?
-
-			this.CloseWhenCaretAtBeginning = true; // Yes?
-			
-			////// MAKE PRETTY
-			toolTip.Background = new SolidColorBrush(new Color(0xff, 0x42, 0x42, 0x45)); // "#424245"
-			toolTip.Foreground = Brushes.White;
-			toolTip.BorderThickness = new Thickness(0.75);
 			toolTip.MaxWidth = 600;
 
-			CompletionList.ListBox.Background = new SolidColorBrush(new Color(0xff, 0x25, 0x25, 0x26)); // "#252526"
-			CompletionList.ListBox.Foreground = Brushes.White;
+			this.CloseWhenCaretAtBeginning = true; // Yes?
+
+			////// MAKE PRETTY
+			this.Classes.Add("completion");
 			CompletionList.ListBox.BorderThickness = new Thickness(0.75);
 			CompletionList.BorderThickness = new Thickness(0);
 			/*
@@ -79,11 +77,27 @@ namespace SharpEditor {
 			//////// MADE PRETTY
 			
 			AttachEvents();
+
+			CompletionList.ListBox.AddHandler(ListBoxItem.PointerPressedEvent, ItemClicked, handledEventsToo: true);
+		}
+
+		private void ItemClicked(object? sender, RoutedEventArgs e) {
+			// There must be a better way of doing this...
+			if(e.Source is Control source) {
+				StyledElement? elem = source;
+				while (elem is not null && elem is not ListBoxItem) {
+					elem = elem.Parent;
+				}
+
+				if(elem is ListBoxItem item && item.DataContext is ICompletionData completionData) {
+					Complete(completionData, e);
+				}
+			}
 		}
 
 		#region ToolTip handling
+
 		/*
-		// Can we do this in Avalonia?
 		void ToolTip_Closed(object? sender, RoutedEventArgs e) {
 			// Clear content after tooltip is closed.
 			// We cannot clear is immediately when setting IsOpen=false
@@ -94,9 +108,7 @@ namespace SharpEditor {
 		*/
 
 		void CompletionList_SelectionChanged(object? sender, SelectionChangedEventArgs e) {
-			/*
-			// What to do here?
-			if(toolTip is null) { return; } // The completion window has already been closed
+			//if(toolTip is null) { return; } // The completion window has already been closed
 			ICompletionData item = CompletionList.SelectedItem;
 			if (item == null) { return; }
 			object description = item.Description;
@@ -110,14 +122,21 @@ namespace SharpEditor {
 				else {
 					toolTip.Content = description;
 				}
-				toolTip.IsOpen = true;
+				//toolTip.IsOpen = true;
+				ToolTip.SetTip(CompletionList.ListBox, toolTip);
+				ToolTip.SetIsOpen(CompletionList.ListBox, true);
 			}
 			else {
-				toolTip.IsOpen = false;
+				//toolTip.IsOpen = false;
+				ToolTip.SetIsOpen(CompletionList.ListBox, false);
 			}
-			*/
 		}
 		#endregion
+
+		void Complete(ICompletionData item, EventArgs insertionRequestEventArgs) {
+			Close();
+			item.Complete(this.TextArea, new AnchorSegment(this.TextArea.Document, this.StartOffset, this.EndOffset - this.StartOffset), insertionRequestEventArgs);
+		}
 
 		void CompletionList_InsertionRequested(object? sender, EventArgs e) {
 			Close();
@@ -125,7 +144,7 @@ namespace SharpEditor {
 			// If the Complete callback pushes stacked input handlers, we don't want to pop those when the CC window closes.
 			ICompletionData item = CompletionList.SelectedItem;
 			if (item != null) {
-				item.Complete(this.TextArea, new AnchorSegment(this.TextArea.Document, this.StartOffset, this.EndOffset - this.StartOffset), e);
+				Complete(item, e);
 			}
 		}
 
@@ -151,12 +170,12 @@ namespace SharpEditor {
 		protected override void OnClosed() {
 			base.OnClosed();
 			/*
-			// What to do here?
 			if (toolTip != null) {
 				toolTip.IsOpen = false;
 				toolTip = null;
 			}
 			*/
+			ToolTip.SetIsOpen(CompletionList.ListBox, false);
 		}
 
 		/// <inheritdoc/>

@@ -19,7 +19,7 @@ namespace SharpEditor.DataManagers {
 
 	public static class SharpEditorPalette {
 
-		private static ConfigName ConfigName => new ConfigName(SharpEditorData.GetEditorName() + "_Highlighting", ".conf");
+		private static ConfigName ConfigName => new ConfigName(SharpEditorData.GetEditorName() + "_Highlighting", ".json");
 
 		public static void Initialise() { } // Dummy method to force static initialisation
 

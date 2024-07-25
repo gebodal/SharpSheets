@@ -12,10 +12,11 @@ namespace SharpEditor.Folding {
 	public class FoldingBackgroundRenderer : IBackgroundRenderer {
 
 		private readonly FoldingManager foldingManager;
-		public Color LineColor { get; set; } = Colors.Gray;
+		public IPen Pen { get; set; }
 
-		public FoldingBackgroundRenderer(FoldingManager foldingManager) {
+		public FoldingBackgroundRenderer(FoldingManager foldingManager, IPen pen) {
 			this.foldingManager = foldingManager;
+			this.Pen = pen;
 		}
 
 		public KnownLayer Layer { get { return KnownLayer.Selection; } } // draw behind selection
@@ -63,18 +64,11 @@ namespace SharpEditor.Folding {
 					end = new Point(xPos, Math.Max(textView.DocumentHeight, textView.Bounds.Height)); // textView.ActualHeight
 				}
 
-				Brush brush = new SolidColorBrush(LineColor) { Opacity = 0.5 };
-				brush.ToImmutable();
-				Pen dashPen = new Pen(brush, 1) {
-					DashStyle = new DashStyle(new double[] { 3, 7 }, 0)
-				};
-				dashPen.ToImmutable();
-				drawingContext.DrawLine(dashPen, start, end);
+				drawingContext.DrawLine(Pen, start, end);
 
 				if (endRect.HasValue) {
-					Pen simplePen = new Pen(brush, 1);
-					simplePen.ToImmutable();
-					drawingContext.DrawLine(simplePen, end, new Point(end.X + 5, end.Y));
+					//Pen simplePen = new Pen(brush, 1);
+					drawingContext.DrawLine(Pen, end, new Point(end.X + 5, end.Y));
 				}
 			}
 		}

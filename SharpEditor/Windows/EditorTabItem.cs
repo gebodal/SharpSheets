@@ -37,7 +37,7 @@ namespace SharpEditor.Windows {
 				Width = double.NaN,
 				//FontSize = 8,
 				VerticalAlignment = VerticalAlignment.Center,
-				Foreground = new SolidColorBrush(Colors.White)
+				//Foreground = new SolidColorBrush(Colors.White)
 			};
 
 			// Close button to remove the tab

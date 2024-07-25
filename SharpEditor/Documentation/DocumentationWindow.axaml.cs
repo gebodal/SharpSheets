@@ -105,6 +105,10 @@ namespace SharpEditor.Documentation {
 			}
 		}
 
+		private bool CanRefresh() {
+			return DocFrame.Children[0] is DocumentationPage page && page.CanRefresh;
+		}
+
 		public void NavigateTo(ConstructorDetails constructor, Func<ConstructorDetails?>? refreshAction) {
 			if (typeof(IMarkupElement).IsAssignableFrom(constructor.DeclaringType)) {
 				NavigateTo(MarkupPageBuilder.GetMarkupElementPage(constructor, this, refreshAction));

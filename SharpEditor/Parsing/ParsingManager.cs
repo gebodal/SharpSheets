@@ -15,6 +15,9 @@ using System.Diagnostics.CodeAnalysis;
 using SharpEditor.DataManagers;
 using AvaloniaEdit.Utils;
 using Avalonia.Threading;
+using Avalonia.Media;
+using Avalonia;
+using SharpEditor.Utilities;
 
 namespace SharpEditor {
 
@@ -47,10 +50,17 @@ namespace SharpEditor {
 			this.textArea = textArea ?? throw new ArgumentNullException(nameof(textArea));
 			this.Document = textArea.Document;
 
-			colorizingLineTransformer = new ParsingStateColorizingTransformer(this, textArea);
+			IBrush ownerBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorOwnerBrush) ?? throw new InvalidOperationException();
+			IBrush childBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorChildBrush) ?? throw new InvalidOperationException();
+			IBrush unusedBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorUnusedBrush) ?? throw new InvalidOperationException();
+			IBrush sameTokenBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorSameTokenBrush) ?? throw new InvalidOperationException();
+			IBrush error1Brush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorErrorBrush1) ?? throw new InvalidOperationException();
+			IBrush error2Brush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorErrorBrush2) ?? throw new InvalidOperationException();
+
+			colorizingLineTransformer = new ParsingStateColorizingTransformer(this, textArea, ownerBrush, childBrush, unusedBrush);
 			backgroundRenderer = new ParsingStateUnderlineRenderer(this);
-			errorRenderer = new ParsingErrorBackgroundRenderer(this);
-			sameTokenRenderer = new ParsingStateSameTokenRenderer(this, textArea);
+			errorRenderer = new ParsingErrorBackgroundRenderer(this, error1Brush, error2Brush);
+			sameTokenRenderer = new ParsingStateSameTokenRenderer(this, textArea, sameTokenBrush);
 
 			InitializeParsingManager();
 		}
@@ -354,175 +364,6 @@ namespace SharpEditor {
 		}
 
 		public event EventHandler? RedrawRequested;
-		#endregion
-
-		#region DocumentColorizingTransformer
-		/*
-		readonly SolidColorBrush ownerBrush = new SolidColorBrush(Colors.White) { Opacity = 0.15 };
-		readonly SolidColorBrush childBrush = new SolidColorBrush(Colors.Orange) { Opacity = 0.15 };
-		readonly SolidColorBrush unusedBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#808080"));
-
-		private bool ColorOwners { get { return parsingState?.ColorOwners ?? false; } }
-
-		protected override void ColorizeLine(DocumentLine line) {
-			if (parsingState == null) { return; }
-			int lineStart = line.Offset;
-			int lineEnd = lineStart + line.Length;
-
-			HashSet<EditorParseSpan> caretChildren = null, caretOwners = null;
-			if (ColorOwners) {
-				caretChildren = new HashSet<EditorParseSpan>();
-				caretOwners = new HashSet<EditorParseSpan>();
-				foreach (EditorParseSpan caretSpan in parsingState.FindSpansContaining(textArea.Caret.Offset)) {
-					caretChildren.UnionWith(caretSpan.Children);
-					caretOwners.UnionWith(caretSpan.Owners);
-				}
-			}
-
-			foreach (EditorParseSpan span in parsingState.FindOverlappingSpans(lineStart, line.Length)) {
-				Brush foregroundBrush = null;
-				Brush backgroundBrush = null;
-				FontStyle? fontStyle = span.FontStyle;
-				float? fontSizeFactor = span.FontSizeFactor;
-
-				if (span.IsUnused) {
-					foregroundBrush = unusedBrush;
-					fontStyle = FontStyles.Italic;
-					fontSizeFactor = null;
-				}
-				else if (span.ForegroundColor != null) {
-					foregroundBrush = new SolidColorBrush(span.ForegroundColor.Value);
-					foregroundBrush.Freeze();
-				}
-
-				if (span.BackgroundColor != null) {
-					backgroundBrush = new SolidColorBrush(span.BackgroundColor.Value);
-				}
-				else if (ColorOwners && line.LineNumber != textArea.Caret.Line && !textArea.Selection.IsMultiline) {
-					if (caretChildren.Contains(span)) {
-						// Caret span owns this span
-						backgroundBrush = childBrush;
-					}
-					else if (caretOwners.Contains(span)) {
-						// This span owns caret span
-						backgroundBrush = ownerBrush;
-					}
-				}
-
-				ChangeLinePart(
-					Math.Max(span.StartOffset, lineStart),
-					Math.Min(span.EndOffset, lineEnd),
-					element => {
-						if (foregroundBrush != null) {
-							element.TextRunProperties.SetForegroundBrush(foregroundBrush);
-						}
-						if(backgroundBrush != null) {
-							element.TextRunProperties.SetBackgroundBrush(backgroundBrush);
-						}
-						if (fontSizeFactor != null) {
-							element.TextRunProperties.SetFontRenderingEmSize(element.TextRunProperties.FontRenderingEmSize * fontSizeFactor.Value);
-							element.TextRunProperties.SetFontHintingEmSize(element.TextRunProperties.FontHintingEmSize * fontSizeFactor.Value);
-						}
-						//element.TextRunProperties.SetTextDecorations(new TextDecorationCollection() { TextDecorations.Strikethrough });
-						Typeface tf = element.TextRunProperties.Typeface;
-						element.TextRunProperties.SetTypeface(new Typeface(
-							tf.FontFamily,
-							fontStyle ?? tf.Style,
-							span.FontWeight ?? tf.Weight,
-							tf.Stretch
-						));
-					}
-				);
-			}
-		}
-		*/
-		#endregion
-
-		#region IBackgroundRenderer
-		/*
-		public KnownLayer Layer {
-			get {
-				// draw behind selection
-				return KnownLayer.Selection;
-			}
-		}
-
-		static readonly TextMarkerTypes underlineMarkerTypes = TextMarkerTypes.SquigglyUnderline | TextMarkerTypes.NormalUnderline | TextMarkerTypes.DottedUnderline;
-
-		public void Draw(TextView textView, DrawingContext drawingContext) {
-			if (textView == null)
-				throw new ArgumentNullException("textView");
-			if (drawingContext == null)
-				throw new ArgumentNullException("drawingContext");
-			if (parsingState == null || !textView.VisualLinesValid)
-				return;
-			ReadOnlyCollection<VisualLine> visualLines = textView.VisualLines;
-			if (visualLines.Count == 0)
-				return;
-			int viewStart = visualLines.First().FirstDocumentLine.Offset;
-			int viewEnd = visualLines.Last().LastDocumentLine.EndOffset;
-			foreach (EditorParseSpan span in parsingState.FindOverlappingSpans(viewStart, viewEnd - viewStart)) {
-				if (span.BackgroundColor != null) {
-					BackgroundGeometryBuilder geoBuilder = new BackgroundGeometryBuilder {
-						AlignToWholePixels = true,
-						CornerRadius = 3
-					};
-					geoBuilder.AddSegment(textView, span);
-					Geometry geometry = geoBuilder.CreateGeometry();
-					if (geometry != null) {
-						Color color = span.BackgroundColor.Value;
-						SolidColorBrush brush = new SolidColorBrush(color);
-						brush.Freeze();
-						drawingContext.DrawGeometry(brush, null, geometry);
-					}
-				}
-				
-				if ((span.MarkerTypes & underlineMarkerTypes) != 0) {
-					foreach (Rect r in BackgroundGeometryBuilder.GetRectsForSegment(textView, span)) {
-						Point startPoint = r.BottomLeft;
-						Point endPoint = r.BottomRight;
-
-						Brush usedBrush = new SolidColorBrush(span.MarkerColor);
-						usedBrush.Freeze();
-						if ((span.MarkerTypes & TextMarkerTypes.SquigglyUnderline) != 0) {
-
-							StreamGeometry geometry = new StreamGeometry();
-							using (StreamGeometryContext ctx = geometry.Open()) {
-								ctx.BeginFigure(startPoint, false, false);
-								ctx.PolyLineTo(CreatePoints(startPoint, endPoint, 2.5), true, false);
-							}
-							geometry.Freeze();
-
-							Pen usedPen = new Pen(usedBrush, 1);
-							usedPen.Freeze();
-							drawingContext.DrawGeometry(Brushes.Transparent, usedPen, geometry);
-						}
-						else if ((span.MarkerTypes & TextMarkerTypes.NormalUnderline) != 0) {
-							Pen usedPen = new Pen(usedBrush, 1);
-							usedPen.Freeze();
-							drawingContext.DrawLine(usedPen, startPoint, endPoint);
-						}
-						else if ((span.MarkerTypes & TextMarkerTypes.DottedUnderline) != 0) {
-							Pen usedPen = new Pen(usedBrush, 1) {
-								DashStyle = DashStyles.Dot
-							};
-							usedPen.Freeze();
-							drawingContext.DrawLine(usedPen, startPoint, endPoint);
-						}
-					}
-				}
-			}
-		}
-
-		Point[] CreatePoints(Point start, Point end, double offset) {
-			int count = Math.Max((int)((end.X - start.X) / offset) + 1, 4);
-			Point[] points = new Point[count];
-			for(int i=0; i<count; i++) {
-				points[i] = new Point(start.X + i * offset, start.Y - ((i + 1) % 2 == 0 ? offset : 0));
-			}
-			return points;
-		}
-		*/
 		#endregion
 
 		#region ITextViewConnect
