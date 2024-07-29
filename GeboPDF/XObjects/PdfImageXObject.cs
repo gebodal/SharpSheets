@@ -56,7 +56,7 @@ namespace GeboPdf.XObjects {
 			this.quality = Math.Max(0, Math.Min(100, quality));
 
 			PngMetadata pngMetadata = imageInfo.Metadata.GetPngMetadata();
-			bool hasTransparency = pngMetadata.HasTransparency || pngMetadata.ColorType == PngColorType.GrayscaleWithAlpha || pngMetadata.ColorType == PngColorType.RgbWithAlpha;
+			bool hasTransparency = pngMetadata.TransparentColor.HasValue || pngMetadata.ColorType == PngColorType.GrayscaleWithAlpha || pngMetadata.ColorType == PngColorType.RgbWithAlpha;
 			if (hasTransparency) {
 				sMask = new PdfSMaskXObject(path, imageInfo.Width, imageInfo.Height, interpolate);
 			}
