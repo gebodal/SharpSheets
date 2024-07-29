@@ -294,10 +294,38 @@ namespace SharpEditor.Windows {
 			return name;
 		}
 
+		private static readonly Dictionary<string, int> themePriorities = new Dictionary<string, int> {
+			{ "Low", 1 },
+			{ "Mid", 2 },
+			{ "MidHigh", 3 },
+			{ "High", 4 },
+			{ "VeryHigh", 5 },
+		};
+		private static readonly Regex themePriorityRegex = new Regex($"({string.Join("|", themePriorities.Keys.OrderByDescending(s => s).Select(Regex.Escape))})(?=$|[A-Z])");
+
+		private static (string baseKey, string highlight, string fullKey, int priority) GetThemeKey(EditorColorSetting setting) {
+			string displayName = GetThemeDisplayName(setting.Name);
+
+			string baseKey = displayName.Split(' ')[0];
+			string fullKey = themePriorityRegex.Replace(displayName.Replace(" ", ""), "");
+
+			int priority = 0;
+			if(themePriorityRegex.Match(setting.Name) is Match m && m.Success) {
+				priority = themePriorities[m.Value];
+			}
+
+			string highlight = "";
+			if (displayName.Contains("Highlight")) {
+				highlight = "Highlight";
+			}
+
+			return (baseKey, highlight, fullKey, priority);
+		}
+
 		private static List<EditorColorSetting> ConvertThemeData(IReadOnlyDictionary<string, Color> paletteData) {
 			return paletteData
 				.Select(kv => new EditorColorSetting(kv.Key, GetThemeDisplayName(kv.Key), kv.Value))
-				.OrderBy(c => c.DisplayName)
+				.OrderBy(GetThemeKey)
 				.ToList();
 		}
 

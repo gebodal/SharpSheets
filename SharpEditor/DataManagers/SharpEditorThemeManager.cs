@@ -84,11 +84,11 @@ namespace SharpEditor.DataManagers {
 			"ThemeAccentColor",
 			"ThemeAccentColor2",
 			"ThemeAccentColor3",
-			"ThemeAccentColor4",
+			//"ThemeAccentColor4", // Not used in editor so far
 			"ErrorColor",
 			"ErrorLowColor",
 			"HyperlinkColor",
-			"HyperlinkVisitedColor",
+			//"HyperlinkVisitedColor", // Not used in editor
 			"EditorDecorationColor",
 			"EditorSelectionColor",
 			"EditorCurrentLineColor",
