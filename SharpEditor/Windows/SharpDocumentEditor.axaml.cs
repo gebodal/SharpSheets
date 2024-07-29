@@ -371,7 +371,7 @@ namespace SharpEditor.Windows {
 		#endregion Text Zoom
 
 		#region Background Messages
-		private static readonly int LowestMessagePriority = int.MinValue;
+		public static readonly int LowestMessagePriority = int.MinValue;
 		public static readonly int ParsingMessagePriority = 100;
 		public static readonly int DrawingMessagePriority = 50;
 		public static readonly int ParsedMessagePriority = 10;

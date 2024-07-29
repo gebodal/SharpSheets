@@ -181,8 +181,8 @@ namespace SharpSheets.Widgets {
 							try {
 								children[i].Draw(canvas, childRects[i]!, cancellationToken);
 							}
-							catch (SharpDrawingException e) {
-								throw e;
+							catch (SharpDrawingException) {
+								throw;
 							}
 							catch(InvalidRectangleException e) {
 								throw new SharpDrawingException(children[i], "Layout error: " + e.Message, e);
