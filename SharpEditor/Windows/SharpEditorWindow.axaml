@@ -21,7 +21,8 @@
 	</Window.KeyBindings>
 
 	<Window.Styles>
-		<StyleInclude Source="avares://Avalonia.Xaml.Interactions.Draggable/Styles.axaml"/>
+		<!--<StyleInclude Source="avares://Avalonia.Xaml.Interactions.Draggable/Styles.axaml"/>-->
+		<StyleInclude Source="/Utilities/DraggableStyles.axaml"/>
 	</Window.Styles>
 
 	<DockPanel Background="{StaticResource ThemeControlMidBrush}">
@@ -323,7 +324,7 @@
 
 			<Border Name="MainGridBorder" IsEnabled="False" IsVisible="False" BorderThickness="3" BorderBrush="{StaticResource ThemeBorderHighBrush}" IsHitTestVisible="False"/>
 
-			<TabControl Name="EditorTabControl" Classes="draggable" Padding="0" Margin="0" BorderThickness="0">
+			<TabControl Name="EditorTabControl" Classes="draggable fileTabs" Padding="0" Margin="0" BorderThickness="0">
 				<TabControl.Styles>
 					<Style Selector="TabControl WrapPanel">
 						<Setter Property="Margin" Value="0,0,0,0"/>

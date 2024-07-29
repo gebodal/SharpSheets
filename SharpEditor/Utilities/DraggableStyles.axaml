@@ -1,0 +1,25 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:i="clr-namespace:Avalonia.Xaml.Interactivity;assembly=Avalonia.Xaml.Interactivity"
+        xmlns:id="using:SharpEditor.Utilities">
+
+	<!-- Based on: https://github.com/AvaloniaUI/Avalonia.Xaml.Behaviors/blob/d62d2aa68e3943b26b8f33cc120f2e8cc707e038/src/Avalonia.Xaml.Interactions.Draggable/Styles.axaml -->
+	
+	<!-- TabControl Drag Styles - Non Virtualizing -->
+
+	<Style Selector=":is(TabControl).draggable > :is(TabItem)">
+		<Setter Property="ZIndex" Value="0" />
+		<Setter Property="(i:Interaction.Behaviors)">
+			<i:BehaviorCollectionTemplate>
+				<i:BehaviorCollection>
+					<id:ItemDragBehavior HorizontalDragThreshold="3" VerticalDragThreshold="3" />
+				</i:BehaviorCollection>
+			</i:BehaviorCollectionTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector=":is(TabControl).draggable > :is(TabItem):pressed">
+		<Setter Property="ZIndex" Value="1" />
+	</Style>
+
+</Styles>
