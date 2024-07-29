@@ -74,6 +74,7 @@ namespace SharpEditor.Windows {
 			editor.UpdateHeader += DocumentHeaderChanged;
 
 			ToolTip.SetTip(Header, editor.CurrentFilePath ?? editor.CurrentFileName);
+			ToolTip.SetShowDelay(Header, 1000);
 		}
 
 		private async void HeaderPanel_PointerPressed(object? sender, PointerPressedEventArgs e) {

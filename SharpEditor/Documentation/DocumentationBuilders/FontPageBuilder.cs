@@ -613,6 +613,8 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 
 			ToolTip.SetTip(border, tooltip);
+			ToolTip.SetHorizontalOffset(border, 10);
+			ToolTip.SetVerticalOffset(border, 10);
 
 			return border;
 		}
@@ -695,6 +697,8 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				Child = elem
 			};
 			ToolTip.SetTip(border, tooltip);
+			ToolTip.SetHorizontalOffset(border, 10);
+			ToolTip.SetVerticalOffset(border, 10);
 
 			return border;
 		}
