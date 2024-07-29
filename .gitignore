@@ -37,6 +37,8 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+# From custom build script
+[Pp]ublished/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/

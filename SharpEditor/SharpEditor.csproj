@@ -12,6 +12,11 @@
     <ApplicationIcon>Images\Icon.ico</ApplicationIcon>
     <Version>0.1.0.0</Version>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsPublishing)' == 'true'">
+    <!-- Trigger this with custom "IsPublishing" flag on publish -->
+    <OutputType>WinExe</OutputType>
+  </PropertyGroup>
   
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
@@ -280,4 +285,10 @@
   <ItemGroup>
     <Folder Include="Assets\Fonts\" />
   </ItemGroup>
+
+  <!-- Prevents issue caused by SharpSheets.xml documentation file being repeatedly copied (not sure why this is happening, though) -->
+  <PropertyGroup>
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+  </PropertyGroup>
+
 </Project>
