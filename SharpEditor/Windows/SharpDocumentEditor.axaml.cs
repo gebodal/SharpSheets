@@ -128,6 +128,11 @@ namespace SharpEditor.Windows {
 			SetDocumentType(true, documentType);
 		}
 
+		public SharpDocumentEditor() : this(null) {
+			this.intentional = false;
+			SetDocumentType(true, DocumentType.UNKNOWN);
+		}
+
 		public void Uninstall() {
 			textEditor.TextArea.Caret.PositionChanged -= Caret_PositionChanged;
 			SharpDataManager.Instance.WarnFontLicensingChanged -= Refresh;
