@@ -21,8 +21,6 @@ namespace SharpEditor.Windows {
 			this.DataContext = this;
 
 			MessagePopupListBox.ItemsSource = PopupEntries;
-			PopupEntries.CollectionChanged += UpdateMessageText;
-			PopupEntries.CollectionChanged += UpdateMessageVisibile;
 
 			timer = new Timer {
 				Interval = 1000,
@@ -31,38 +29,27 @@ namespace SharpEditor.Windows {
 			timer.Elapsed += CleanUp;
 		}
 
-		private void UpdateMessageText(object? sender, NotifyCollectionChangedEventArgs e) {
+		private void UpdateMessage() {
+			string message = "";
 			lock (entriesLock) {
-				string message = "";
-				int highestPriority = int.MinValue;
+				if (PopupEntries.Count > 0) {
+					int highestPriority = int.MinValue;
 
-				for (int i = PopupEntries.Count - 1; i >= 0; i--) {
-					if (PopupEntries[i].Priority > highestPriority && !string.IsNullOrWhiteSpace(PopupEntries[i].Message)) {
-						highestPriority = PopupEntries[i].Priority;
-						message = PopupEntries[i].Message;
+					for (int i = PopupEntries.Count - 1; i >= 0; i--) {
+						if (PopupEntries[i].Priority > highestPriority && !string.IsNullOrWhiteSpace(PopupEntries[i].Message)) {
+							highestPriority = PopupEntries[i].Priority;
+							message = PopupEntries[i].Message;
+						}
 					}
 				}
-
-				Dispatcher.UIThread.Invoke(() => {
-					MessageText.Text = message;
-				});
 			}
-		}
 
-		private void UpdateMessageVisibile(object? sender, NotifyCollectionChangedEventArgs e) {
-			lock (entriesLock) {
-				if (PopupEntries.Count == 0) {
-					Dispatcher.UIThread.Invoke(() => {
-						MessagePopup.IsOpen = false;
-						MessagePanel.IsVisible = false;
-					});
-				}
-				else {
-					Dispatcher.UIThread.Invoke(() => {
-						MessagePanel.IsVisible = true;
-					});
-				}
-			}
+			Dispatcher.UIThread.Invoke(() => {
+				bool hasMessage = !string.IsNullOrEmpty(message);
+				MessageText.Text = message;
+				MessagePanel.IsVisible = hasMessage;
+				MessagePopup.IsOpen &= hasMessage;
+			});
 		}
 
 		public void Start() {
@@ -77,6 +64,7 @@ namespace SharpEditor.Windows {
 			lock (entriesLock) {
 				PopupEntries.Add(newEntry);
 			}
+			UpdateMessage();
 			return newEntry;
 		}
 
@@ -86,25 +74,28 @@ namespace SharpEditor.Windows {
 
 		public bool RemoveMessage(ToolbarMessage? message) {
 			if (message == null) { return false; }
-			else {
-				lock (entriesLock) {
-					return PopupEntries.Remove(message);
-				}
+
+			bool result;
+			lock (entriesLock) {
+				result = PopupEntries.Remove(message);
 			}
+			UpdateMessage();
+			return result;
 		}
 
 		private void CleanUp(object? sender, ElapsedEventArgs e) {
 			if (PopupEntries.Count == 0) { return; }
 			DateTime now = DateTime.UtcNow;
-			while (PopupEntries.Count > 0 && PopupEntries[0].Time < now - PopupEntries[0].Duration) {
-				lock (entriesLock) {
+			lock (entriesLock) {
+				while (PopupEntries.Count > 0 && PopupEntries[0].Time < now - PopupEntries[0].Duration) {
 					PopupEntries.RemoveAt(0);
 				}
 			}
+			UpdateMessage();
 		}
 
 		void OnPointerEnter(object? sender, PointerEventArgs args) {
-			Console.WriteLine("OnPointerEnter");
+			//Console.WriteLine("OnPointerEnter");
 			if (PopupEntries.Count > 0) {
 				MessagePopup.IsOpen = true;
 				args.Handled = true;
@@ -115,7 +106,7 @@ namespace SharpEditor.Windows {
 		}
 
 		private void OnPointerExit(object? sender, PointerEventArgs e) {
-			Console.WriteLine("OnPointerExit");
+			//Console.WriteLine("OnPointerExit");
 			MessagePopup.IsOpen = false;
 		}
 
