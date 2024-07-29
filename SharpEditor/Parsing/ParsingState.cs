@@ -7,7 +7,6 @@ using Avalonia.Threading;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
 using SharpEditor.DataManagers;
-using SharpEditor.TextMarker;
 using SharpSheets.Canvas;
 using SharpSheets.Exceptions;
 using SharpSheets.Parsing;
