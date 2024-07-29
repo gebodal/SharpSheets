@@ -1142,7 +1142,7 @@ namespace GeboPdf.Fonts.TrueType {
 			public override IEnumerable<(ushort[] initial, SequenceLookupRecord[] records)> GetExamples() {
 				ushort[] initial = new ushort[CoverageTables.Length];
 				for (int i = 0; i < CoverageTables.Length; i++) {
-					initial[i] = CoverageTables[i].GetGlyph(0);
+					initial[i] = CoverageTables[i].Length > 0 ? CoverageTables[i].GetGlyph(0) : (ushort)0;
 				}
 
 				yield return (initial, SeqLookupRecords);
@@ -1617,13 +1617,13 @@ namespace GeboPdf.Fonts.TrueType {
 				ushort[] initial = new ushort[InputGlyphCount];
 				ushort[] lookahead = new ushort[LookaheadGlyphCount];
 				for (int i = 0; i < BacktrackGlyphCount; i++) {
-					backtrack[i] = BacktrackCoverageTables[i].GetGlyph(0);
+					backtrack[i] = BacktrackCoverageTables[i].Length > 0 ? BacktrackCoverageTables[i].GetGlyph(0) : (ushort)0;
 				}
 				for (int i = 0; i < InputGlyphCount; i++) {
-					initial[i] = InputCoverageTables[i].GetGlyph(0);
+					initial[i] = InputCoverageTables[i].Length > 0 ? InputCoverageTables[i].GetGlyph(0) : (ushort)0;
 				}
 				for (int i = 0; i < LookaheadGlyphCount; i++) {
-					lookahead[i] = LookaheadCoverageTables[i].GetGlyph(0);
+					lookahead[i] = LookaheadCoverageTables[i].Length > 0 ? LookaheadCoverageTables[i].GetGlyph(0) : (ushort)0;
 				}
 				yield return (backtrack, initial, lookahead, SeqLookupRecords);
 			}
