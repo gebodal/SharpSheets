@@ -17,17 +17,21 @@ namespace SharpSheets.Fonts {
 	public static class FontGraphicsRegistry {
 
 		public static PdfGlyphFont GetPdfFont(FontSetting font) {
-			if (!knownFonts.ContainsKey(font)) {
-				PdfGlyphFont pdfFont = CreateFont(font.Path, font.Tags);
-				knownFonts.Add(font, pdfFont);
+			lock (knownFonts) {
+				if (!knownFonts.ContainsKey(font)) {
+					PdfGlyphFont pdfFont = CreateFont(font.Path, font.Tags);
+					knownFonts.Add(font, pdfFont);
+				}
 			}
 			return knownFonts[font];
 		}
 
 		public static TrueTypeFontFileOutlines GetFontOutlines(FontPath font) {
-			if (!knownOutlines.ContainsKey(font)) {
-				TrueTypeFontFileOutlines outlines = CreateOutlines(font);
-				knownOutlines.Add(font, outlines);
+			lock (knownOutlines) {
+				if (!knownOutlines.ContainsKey(font)) {
+					TrueTypeFontFileOutlines outlines = CreateOutlines(font);
+					knownOutlines.Add(font, outlines);
+				}
 			}
 			return knownOutlines[font];
 		}
@@ -62,9 +66,11 @@ namespace SharpSheets.Fonts {
 				return defaultFonts[format];
 			}
 			else {
-				if (!knownFonts.ContainsKey(font)) {
-					PdfGlyphFont pdfFont = CreateFont(font.Path, font.Tags);
-					knownFonts.Add(font, pdfFont);
+				lock (knownFonts) {
+					if (!knownFonts.ContainsKey(font)) {
+						PdfGlyphFont pdfFont = CreateFont(font.Path, font.Tags);
+						knownFonts.Add(font, pdfFont);
+					}
 				}
 				return knownFonts[font];
 			}
