@@ -29,6 +29,7 @@ namespace SharpSheets.Parsing {
 		IDocumentEntity? IDocumentEntity.Parent => Parent;
 		IEnumerable<IDocumentEntity> IDocumentEntity.Children => Children;
 
+		private HashSet<int> anyVisits; // Set of lines any of our data has been accessed from
 		private Dictionary<int, HashSet<int>> propertyVisits; // Key: line of property, Value: Set of lines it was called from
 		private Dictionary<int, HashSet<int>> flagVisits; // Key: line of flag, Value: Set of lines it was called from
 		private HashSet<int> entryVisits;
@@ -55,6 +56,7 @@ namespace SharpSheets.Parsing {
 		public VisitTrackingContext(IContext original) : this(null, original) { }
 
 		public IEnumerable<ContextProperty<string>> GetLocalProperties(IContext? origin) {
+			VisitThis(origin);
 			foreach (ContextProperty<string> localProperty in original.GetLocalProperties(origin)) {
 				VisitProperty(localProperty.Location, origin);
 				yield return localProperty;
@@ -62,6 +64,7 @@ namespace SharpSheets.Parsing {
 		}
 
 		public IEnumerable<ContextProperty<bool>> GetLocalFlags(IContext? origin) {
+			VisitThis(origin);
 			foreach (ContextProperty<bool> localFlag in original.GetLocalFlags(origin)) {
 				VisitFlag(localFlag.Location, origin);
 				yield return localFlag;
@@ -69,17 +72,20 @@ namespace SharpSheets.Parsing {
 		}
 
 		public IEnumerable<ContextValue<string>> GetEntries(IContext? origin) {
+			VisitThis(origin);
 			VisitEntries(origin);
 			return original.GetEntries(origin);
 		}
 
 		public IEnumerable<ContextValue<string>> GetDefinitions(IContext? origin) {
+			VisitThis(origin);
 			VisitDefinitions(origin);
 			return original.GetDefinitions(origin);
 		}
 
 		public bool TryGetLocalProperty(string key, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out string property, out DocumentSpan? location) {
-			if(original.TryGetLocalProperty(key, origin, isLocalRequest, out property, out location)) {
+			VisitThis(origin);
+			if (original.TryGetLocalProperty(key, origin, isLocalRequest, out property, out location)) {
 				if (location.HasValue) { VisitProperty(location.Value, origin); }
 				return true;
 			}
@@ -91,6 +97,7 @@ namespace SharpSheets.Parsing {
 		}
 
 		public bool TryGetLocalFlag(string key, IContext? origin, bool isLocalRequest, out bool flag, out DocumentSpan? location) {
+			VisitThis(origin);
 			if (original.TryGetLocalFlag(key, origin, isLocalRequest, out flag, out location)) {
 				if (location.HasValue) { VisitFlag(location.Value, origin); }
 				return true;
@@ -103,6 +110,7 @@ namespace SharpSheets.Parsing {
 		}
 
 		public bool TryGetLocalNamedChild(string name, IContext? origin, bool isLocalRequest, [MaybeNullWhen(false)] out IContext namedChild) {
+			VisitThis(origin);
 			if (original.TryGetLocalNamedChild(name, origin, isLocalRequest, out _) && namedChildren.TryGetValue(name, out VisitTrackingContext? trackingNamedChild)) {
 				namedChild = trackingNamedChild;
 				VisitNamedChild(trackingNamedChild, origin);
@@ -114,9 +122,9 @@ namespace SharpSheets.Parsing {
 			}
 		}
 
-
-		[MemberNotNull(nameof(propertyVisits), nameof(flagVisits), nameof(entryVisits), nameof(definitionVisits), nameof(namedChildVisits))]
+		[MemberNotNull(nameof(anyVisits), nameof(propertyVisits), nameof(flagVisits), nameof(entryVisits), nameof(definitionVisits), nameof(namedChildVisits))]
 		public void RefreshVisited() {
+			anyVisits = new HashSet<int>();
 			propertyVisits = new Dictionary<int, HashSet<int>>();
 			flagVisits = new Dictionary<int, HashSet<int>>();
 			entryVisits = new HashSet<int>();
@@ -131,6 +139,11 @@ namespace SharpSheets.Parsing {
 			}
 		}
 
+		private void VisitThis(IContext? origin) {
+			if (origin != null) {
+				anyVisits.Add(origin.Location.Line);
+			}
+		}
 		private void VisitProperty(DocumentSpan propertyLocation, IContext? origin) {
 			if (origin != null) {
 				if (!propertyVisits.ContainsKey(propertyLocation.Line)) { propertyVisits[propertyLocation.Line] = new HashSet<int>(); }
@@ -176,7 +189,7 @@ namespace SharpSheets.Parsing {
 				used.UnionWith(namedChild.GetUsedLines());
 			}
 
-			if(used.Count > 0) {
+			if(used.Count > 0 || anyVisits.Count > 0) {
 				used.Add(Location.Line);
 			}
 
