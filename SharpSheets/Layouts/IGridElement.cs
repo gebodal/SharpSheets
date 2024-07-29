@@ -233,7 +233,22 @@ namespace SharpSheets.Layouts {
 
 			if (remainingElementsRect.Width < 0f || remainingElementsRect.Height < 0f) {
 				//throw new SharpLayoutException(this, "Not enough space to draw children.");
-				return null; // TODO Better to just return zero?
+				//return null; // TODO Better to just return zero?
+
+				Size requiredSpace;
+				if (layout == Layout.COLUMNS) {
+					requiredSpace = new Size(availableSpace.Width - remainingLength, availableSpace.Height);
+				}
+				else {
+					requiredSpace = new Size(availableSpace.Width, availableSpace.Height - remainingLength);
+				}
+
+				if (requiredSpace.Width >= 0f && requiredSpace.Height >= 0f) {
+					return requiredSpace;
+				}
+				else {
+					return null;
+				}
 			}
 
 			Dimension[] rectSizes = remainingElements.Select(c => c.dimension ?? Dimension.Single).ToArray();
