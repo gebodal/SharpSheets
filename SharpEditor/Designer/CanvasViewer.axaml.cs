@@ -263,10 +263,12 @@ namespace SharpEditor.Designer {
 				double cx = xMin + 0.5 * (xMax - xMin); // Centre x
 				double cy = yMin + 0.5 * (yMax - yMin); // Centre y
 
+				double currentDPIscaling = dpiScaleTransform.ScaleX;
+
 				double border = ShowAreaBorderFactor * Math.Max(areaWidth, areaHeight);
 				double areaXScale = CanvasViewScroller.Bounds.Width / (2 * border + areaWidth);
 				double areaYScale = CanvasViewScroller.Bounds.Height / (2 * border + areaHeight);
-				double areaScale = Math.Min(areaXScale, areaYScale);
+				double areaScale = Math.Min(areaXScale, areaYScale) / currentDPIscaling;
 
 				double finalScale = Scale;
 				if (zoomToArea || areaScale < Scale) {
@@ -279,11 +281,13 @@ namespace SharpEditor.Designer {
 				//Console.WriteLine($"CanvasContent > w: {CanvasContent.Width:F3} ({CanvasContent.ActualWidth:F3}), h: {CanvasContent.Height:F3} ({CanvasContent.ActualHeight:F3})");
 				//Console.WriteLine($"CanvasContent (scaled) > w: {Scale * CanvasContent.Width:F3}, h: {Scale * CanvasContent.Height:F3}");
 
-				double horizontalCenter = ((CanvasViewScroller.Viewport.Width / 2) - (areaWidth * finalScale / 2));
-				double horizontalOffset = finalScale * (cx - 0.5 * areaWidth) - horizontalCenter;
+				double finalNonDPIScale = finalScale * currentDPIscaling;
 
-				double verticalCenter = ((CanvasViewScroller.Viewport.Height / 2) - (areaHeight * finalScale / 2));
-				double verticalOffset = finalScale * (cy - 0.5 * areaHeight) - verticalCenter;
+				double horizontalCenter = ((CanvasViewScroller.Viewport.Width / 2) - (areaWidth * finalNonDPIScale / 2));
+				double horizontalOffset = finalNonDPIScale * (cx - 0.5 * areaWidth) - horizontalCenter;
+
+				double verticalCenter = ((CanvasViewScroller.Viewport.Height / 2) - (areaHeight * finalNonDPIScale / 2));
+				double verticalOffset = finalNonDPIScale * (cy - 0.5 * areaHeight) - verticalCenter;
 
 				//CanvasViewScroller.ScrollToHorizontalOffset(horizontalOffset);
 				//CanvasViewScroller.ScrollToVerticalOffset(verticalOffset);
