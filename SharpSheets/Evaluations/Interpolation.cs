@@ -157,10 +157,15 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public static string Format(string format, object? content) {
-			if (content is double || content is float || content is int) {
+			if (content is UFloat uFloat) { content = uFloat.Value; }
+
+			if (content is double || content is float || content is int || content is uint) {
 				format = format.Replace("?", "#");
 				// format = string.Join(";", format.Split(';').Select(f => f.Length == 0 ? "**" : f)); // ???
 				return string.Format($"{{0:{format}}}", content);
+			}
+			else if (!string.IsNullOrEmpty(format)) {
+				throw new EvaluationCalculationException("Format specifiers only allowed for numeric types.");
 			}
 			else {
 				return content?.ToString() ?? ""; // Good fallback here? Throw error instead?
@@ -208,70 +213,64 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
-		public string Evaluate(IEnvironment environment) {
-			object? content = this.content.Evaluate(environment);
+		private static string EvaluateInterpolated(IEnvironment environment, EvaluationNode content, string? format) {
+			object? contentEval = content.Evaluate(environment);
 
 			if (format != null && environment is IInterpolationFormatter formatter) {
-				return formatter.Format(format, content); // string.Format(formatProvider, "{0:" + part.Format + "}", content); // Yes...?
+				return formatter.Format(format, contentEval);
 			}
 			else if (format != null) {
-				return Interpolation.Format(format, content);
+				return Interpolation.Format(format, contentEval);
 			}
 			else {
-				return content?.ToString() ?? ""; // Good fallback?
+				return contentEval?.ToString() ?? ""; // Good fallback?
 			}
+		}
+
+		public string Evaluate(IEnvironment environment) {
+			return EvaluateInterpolated(environment, content, format);
 		}
 
 		public IEnumerable<EvaluationName> GetVariables() {
 			return content.GetVariables();
 		}
-	}
 
-	public class FormattedStringNode : EvaluationNode {
-		private readonly EvaluationNode content;
-		private readonly string format;
+		private class FormattedStringNode : EvaluationNode {
+			private readonly EvaluationNode content;
+			private readonly string format;
 
-		public override bool IsConstant => content.IsConstant;
-		public override EvaluationType ReturnType => EvaluationType.STRING;
+			public override bool IsConstant => content.IsConstant;
+			public override EvaluationType ReturnType => EvaluationType.STRING;
 
-		public FormattedStringNode(EvaluationNode content, string format) {
-			this.content = content;
-			this.format = format;
+			public FormattedStringNode(EvaluationNode content, string format) {
+				this.content = content;
+				this.format = format;
+			}
+
+			public override EvaluationNode Clone() {
+				return new FormattedStringNode(content.Clone(), format);
+			}
+
+			public override EvaluationNode Simplify() {
+				if (format == null) {
+					return content.Simplify();
+				}
+				else if (IsConstant) {
+					return new ConstantNode(Evaluate(Environments.Empty));
+				}
+				else {
+					return new FormattedStringNode(content.Simplify(), format);
+				}
+			}
+
+			public override object Evaluate(IEnvironment environment) {
+				return EvaluateInterpolated(environment, content, format);
+			}
+
+			public override IEnumerable<EvaluationName> GetVariables() => content.GetVariables();
+
+			protected override string GetRepresentation() { throw new NotSupportedException(); }
 		}
-
-		public override EvaluationNode Clone() {
-			return new FormattedStringNode(content.Clone(), format);
-		}
-
-		public override EvaluationNode Simplify() {
-			if (format == null) {
-				return content.Simplify();
-			}
-			else if(IsConstant) {
-				return new ConstantNode(Evaluate(Environments.Empty));
-			}
-			else {
-				return new FormattedStringNode(content.Simplify(), format);
-			}
-		}
-
-		public override object Evaluate(IEnvironment environment) {
-			object? content = this.content.Evaluate(environment);
-
-			if (format != null && environment is IInterpolationFormatter formatter) {
-				return formatter.Format(format, content); // string.Format(formatProvider, "{0:" + part.Format + "}", content); // Yes...?
-			}
-			else if (format != null) {
-				return Interpolation.Format(format, content);
-			}
-			else {
-				return content?.ToString() ?? ""; // Good fallback?
-			}
-		}
-
-		public override IEnumerable<EvaluationName> GetVariables() => content.GetVariables();
-
-		protected override string GetRepresentation() { throw new NotSupportedException(); }
 	}
 
 	public interface IInterpolationFormatter {
