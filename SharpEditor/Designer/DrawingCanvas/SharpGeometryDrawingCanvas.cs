@@ -734,7 +734,7 @@ namespace SharpEditor.Designer.DrawingCanvas {
 			}
 
 			Avalonia.Point point = MakePoint(x, y);
-			GeometryGroupData textGeometryGroup = new GeometryGroupData() { FillRule = Avalonia.Media.FillRule.NonZero };
+			PathGeometryData textGeometry = new PathGeometryData() { FillRule = Avalonia.Media.FillRule.NonZero };
 
 			SolidColorBrushData? brush = new SolidColorBrushData(GetTextColor());
 
@@ -755,31 +755,26 @@ namespace SharpEditor.Designer.DrawingCanvas {
 			for (int i = 0; i < glyphRun.Count; i++) {
 				ushort g = glyphRun[i];
 
-				PathGeometryData? glyphGeometry = glyphOutlines.GetGlyphGeometryData(g, fontsize);
-
-				if (glyphGeometry is not null) {
-					(short xPlacement, short yPlacement) = glyphRun.GetPlacement(i);
-					float xPlaceSized = PdfFont.ConvertDesignSpaceValue(xPlacement, fontsize);
-					float yPlaceSized = PdfFont.ConvertDesignSpaceValue(yPlacement, fontsize);
-					glyphGeometry.Transform = Transform.Translate(runningX + xPlaceSized, yPlaceSized);
-					textGeometryGroup.Children.Add(glyphGeometry);
-				}
+				(short xPlacement, short yPlacement) = glyphRun.GetPlacement(i);
+				float xPlaceSized = PdfFont.ConvertDesignSpaceValue(xPlacement, fontsize);
+				float yPlaceSized = PdfFont.ConvertDesignSpaceValue(yPlacement, fontsize);
+				glyphOutlines.AppendGlyphGeometryData(textGeometry, g, fontsize, runningX + xPlaceSized, yPlaceSized);
 
 				//runningX += pdfFont.GetWidth(g, fontsize);
 				runningX += PdfFont.ConvertDesignSpaceValue(glyphRun.GetAdvanceTotal(i).xAdvance, fontsize);
 			}
 
 			//textGeometryGroup.Transform = GetCurrentTransformMatrix(SharpSheets.Canvas.Transform.Translate((float)point.X, (float)point.Y) * SharpSheets.Canvas.Transform.Scale(1, -1));
-			textGeometryGroup.Transform = GetCurrentTransformMatrix(Transform.Translate((float)point.X, (float)point.Y));
+			textGeometry.Transform = GetCurrentTransformMatrix(Transform.Translate((float)point.X, (float)point.Y));
 
-			GeometryDrawingData textDrawing = new GeometryDrawingData() { Brush = brush, Pen = pen, Geometry = textGeometryGroup };
+			GeometryDrawingData textDrawing = new GeometryDrawingData() { Brush = brush, Pen = pen, Geometry = textGeometry };
 
 			if ((gsState.textRenderingMode & TextRenderingMode.FILL_STROKE) != TextRenderingMode.INVISIBLE) {
 				drawingGroup.Children.Add(textDrawing);
 			}
 
 			if (ClipText) {
-				AppendClipGeometry(textGeometryGroup);
+				AppendClipGeometry(textGeometry);
 			}
 
 			CurrentPenLocation = null;

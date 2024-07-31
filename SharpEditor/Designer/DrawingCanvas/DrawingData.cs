@@ -300,14 +300,20 @@ namespace SharpEditor.Designer.DrawingCanvas {
 		}
 
 		public override Avalonia.Media.Geometry Build() {
-			Avalonia.Media.PathFigures builtFigures = new Avalonia.Media.PathFigures();
-			builtFigures.AddRange(figures.Select(f => f.Build()));
-
-			return new Avalonia.Media.PathGeometry() {
-				Figures = builtFigures,
-				Transform = ConverterUtils.Convert(Transform),
-				FillRule = FillRule
+			Avalonia.Media.StreamGeometry streamGeometry = new Avalonia.Media.StreamGeometry() {
+				//Transform = ConverterUtils.Convert(Transform) // This causes an error. Why?
 			};
+			
+			using(Avalonia.Media.StreamGeometryContext ctx = streamGeometry.Open()) {
+				ctx.SetFillRule(FillRule);
+				for(int i=0; i<figures.Count; i++) {
+					figures[i].Build(ctx);
+				}
+			}
+
+			streamGeometry.Transform = ConverterUtils.Convert(Transform);
+
+			return streamGeometry;
 		}
 
 	}
@@ -330,22 +336,20 @@ namespace SharpEditor.Designer.DrawingCanvas {
 			segments.Add(segment);
 		}
 
-		public Avalonia.Media.PathFigure Build() {
-			Avalonia.Media.PathSegments builtSegments = new Avalonia.Media.PathSegments();
-			builtSegments.AddRange(segments.Select(s => s.Build()));
+		internal void Build(Avalonia.Media.StreamGeometryContext ctx) {
+			ctx.BeginFigure(StartPoint, IsFilled);
 
-			return new Avalonia.Media.PathFigure() {
-				StartPoint = StartPoint,
-				IsClosed = IsClosed,
-				IsFilled = IsFilled,
-				Segments = builtSegments
-			};
+			for(int i=0; i<segments.Count; i++) {
+				segments[i].Build(ctx);
+			}
+
+			ctx.EndFigure(IsClosed);
 		}
 
 	}
 
 	public abstract class PathSegmentData {
-		public abstract Avalonia.Media.PathSegment Build();
+		internal abstract void Build(Avalonia.Media.StreamGeometryContext ctx);
 	}
 
 	public class LineSegmentData : PathSegmentData {
@@ -353,10 +357,8 @@ namespace SharpEditor.Designer.DrawingCanvas {
 
 		public LineSegmentData() : base() { }
 
-		public override Avalonia.Media.PathSegment Build() {
-			return new Avalonia.Media.LineSegment() {
-				Point = Point
-			};
+		internal override void Build(Avalonia.Media.StreamGeometryContext ctx) {
+			ctx.LineTo(Point);
 		}
 	}
 
@@ -366,11 +368,8 @@ namespace SharpEditor.Designer.DrawingCanvas {
 
 		public QuadraticBezierSegmentData() : base() { }
 
-		public override Avalonia.Media.PathSegment Build() {
-			return new Avalonia.Media.QuadraticBezierSegment() {
-				Point1 = Point1,
-				Point2 = Point2
-			};
+		internal override void Build(Avalonia.Media.StreamGeometryContext ctx) {
+			ctx.QuadraticBezierTo(Point1, Point2);
 		}
 	}
 
@@ -381,12 +380,8 @@ namespace SharpEditor.Designer.DrawingCanvas {
 
 		public BezierSegmentData() : base() { }
 
-		public override Avalonia.Media.PathSegment Build() {
-			return new Avalonia.Media.BezierSegment() {
-				Point1 = Point1,
-				Point2 = Point2,
-				Point3 = Point3
-			};
+		internal override void Build(Avalonia.Media.StreamGeometryContext ctx) {
+			ctx.CubicBezierTo(Point1, Point2, Point3);
 		}
 	}
 
@@ -413,35 +408,17 @@ namespace SharpEditor.Designer.DrawingCanvas {
 
 	}
 
-	public class GeometryGroupData : GeometryData {
-		public Avalonia.Media.FillRule FillRule { get; set; } = Avalonia.Media.FillRule.EvenOdd;
-		public IList<GeometryData> Children { get; }
-
-		public GeometryGroupData() : base() {
-			Children = new List<GeometryData>();
-		}
-
-		public override Avalonia.Media.Geometry Build() {
-			Avalonia.Media.GeometryGroup built = new Avalonia.Media.GeometryGroup() {
-				FillRule = FillRule,
-				Transform = ConverterUtils.Convert(Transform)
-			};
-			built.Children.AddRange(Children.Select(c => c.Build()));
-			return built;
-		}
-
-	}
-
 	public static class GlyphGeometryUtils {
 
-		public static PathGeometryData? GetGlyphGeometryData(this TrueTypeFontFileOutlines glyphOutlines, ushort glyph, float fontsize) {
+		public static void AppendGlyphGeometryData(this TrueTypeFontFileOutlines glyphOutlines, PathGeometryData geometry, ushort glyph, float fontsize, float xPlacement, float yPlacement) {
 			float ProcessShort(short value) {
 				return fontsize * (1000f * (value / (float)glyphOutlines.UnitsPerEm)) / 1000f;
 			}
+			Avalonia.Point MakePoint(float x, float y) {
+				return new Avalonia.Point(x + xPlacement, y + yPlacement);
+			}
 
 			if (glyphOutlines.glyf?.glyphOutlines[glyph] is TrueTypeGlyphOutline gOutline) {
-				PathGeometryData geometry = new PathGeometryData() { FillRule = Avalonia.Media.FillRule.NonZero };
-
 				int p = 0, c = 0;
 				bool first = true;
 				while (p < gOutline.PointCount) {
@@ -450,17 +427,17 @@ namespace SharpEditor.Designer.DrawingCanvas {
 						float y = ProcessShort(gOutline.yCoordinates[p]);
 
 						if (first) {
-							geometry.Add(new PathFigureData() { StartPoint = new Avalonia.Point(x, y), IsClosed = true, IsFilled = true });
+							geometry.Add(new PathFigureData() { StartPoint = MakePoint(x, y), IsClosed = true, IsFilled = true });
 							first = false;
 						}
 						else if (p > 0 && !gOutline.onCurve[p - 1]) {
 							float cx = ProcessShort(gOutline.xCoordinates[p - 1]);
 							float cy = ProcessShort(gOutline.yCoordinates[p - 1]);
 
-							geometry[^1].Add(new QuadraticBezierSegmentData() { Point1 = new Avalonia.Point(cx, cy), Point2 = new Avalonia.Point(x, y) });
+							geometry[^1].Add(new QuadraticBezierSegmentData() { Point1 = MakePoint(cx, cy), Point2 = MakePoint(x, y) });
 						}
 						else {
-							geometry[^1].Add(new LineSegmentData() { Point = new Avalonia.Point(x, y) });
+							geometry[^1].Add(new LineSegmentData() { Point = MakePoint(x, y) });
 						}
 					}
 
@@ -471,12 +448,8 @@ namespace SharpEditor.Designer.DrawingCanvas {
 
 					p += 1;
 				}
-
-				return geometry;
 			}
 			else if (glyphOutlines.cff?.glyphs[glyph] is Type2Glyph g2Outline) {
-				PathGeometryData geometry = new PathGeometryData() { FillRule = Avalonia.Media.FillRule.NonZero };
-
 				int p = 0, c = 0;
 				bool first = true;
 				while (p < g2Outline.PointCount) {
@@ -485,7 +458,7 @@ namespace SharpEditor.Designer.DrawingCanvas {
 						float y = ProcessShort(g2Outline.Ys[p]);
 
 						if (first) {
-							geometry.Add(new PathFigureData() { StartPoint = new Avalonia.Point(x, y), IsClosed = true, IsFilled = true });
+							geometry.Add(new PathFigureData() { StartPoint = MakePoint(x, y), IsClosed = true, IsFilled = true });
 							first = false;
 						}
 						else if (p > 1 && !g2Outline.OnCurve[p - 1]) {
@@ -494,10 +467,10 @@ namespace SharpEditor.Designer.DrawingCanvas {
 							float cx2 = ProcessShort(g2Outline.Xs[p - 1]);
 							float cy2 = ProcessShort(g2Outline.Ys[p - 1]);
 
-							geometry[^1].Add(new BezierSegmentData() { Point1 = new Avalonia.Point(cx1, cy1), Point2 = new Avalonia.Point(cx2, cy2), Point3 = new Avalonia.Point(x, y) });
+							geometry[^1].Add(new BezierSegmentData() { Point1 = MakePoint(cx1, cy1), Point2 = MakePoint(cx2, cy2), Point3 = MakePoint(x, y) });
 						}
 						else {
-							geometry[^1].Add(new LineSegmentData() { Point = new Avalonia.Point(x, y) });
+							geometry[^1].Add(new LineSegmentData() { Point = MakePoint(x, y) });
 						}
 					}
 
@@ -508,16 +481,12 @@ namespace SharpEditor.Designer.DrawingCanvas {
 
 					p += 1;
 				}
-
-				return geometry;
 			}
 			else if (glyph != 0) {
-				return glyphOutlines.GetGlyphGeometryData(0, fontsize);
+				glyphOutlines.AppendGlyphGeometryData(geometry, 0, fontsize, xPlacement, yPlacement);
 			}
-			else {
-				// Could not find glyph outline data
-				return null;
-			}
+
+			// Otherwise, could not find glyph outline data
 		}
 
 	}
