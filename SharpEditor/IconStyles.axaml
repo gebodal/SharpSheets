@@ -12,8 +12,10 @@
 		<PathGeometry x:Key="SaveIconGeometry" Figures="M 1,15 H 15 V 5 L 12,1 H 11 V 6 H 4 V 1 H 1 Z M 7,5 H 10 V 1 H 7 Z" FillRule="NonZero"/>
 		<PathGeometry x:Key="SaveAllIconGeometry" Figures="M 1,15 h 9 v -6 l -2,-2 v 2 h -5 v -3 H 1 Z M 5,8 h 2 v -2 h -2 Z M 15,9 v -7 l -2,-2 v 3 h -5 v -3 h -2 v 5 h 2 L 11,9 Z M 10,2 h 2 v -2 h -2 Z" FillRule="NonZero"/>
 		<PathGeometry x:Key="OpenIconGeometry" Figures="M 0,4 L 2,1 H 6 L 8,3 H 13 L 15,5 V 7 H 16 V 8 L 12,15 H 2 L 0,13 Z M 2,4 V 14 L 6,7 H 14 V 5 H 7 L 5,3 H 2 Z" FillRule="EvenOdd"/>
+		<PathGeometry x:Key="OpenIconClipGeometry" Figures="M 15,7 V 8 L 12,15 H 2 V 14 L 6,7 " FillRule="NonZero"/>
 
 		<PathGeometry x:Key="RunIconGeometry" Figures="M 6,2 L 14,7.5 v 1 L 6,14 Z M 8,10 L 11,8 L 8,6" FillRule="EvenOdd"/>
+		<PathGeometry x:Key="RunIconClipGeometry" Figures="M 4,-1 L 16,6.5 v 3 L 4,17 Z" FillRule="NonZero"/>
 
 		<PathGeometry x:Key="UndoIconGeometry" Figures="M  4.5,14 H 10 C 12.5,14 14,12.5 14,9.5 C 14,7.5 12.5, 6 10, 6 H  3 M 6.5,9.5 L  3, 6 L 6.5, 2.5"/>
 		<PathGeometry x:Key="RedoIconGeometry" Figures="M 11.5,14 H  6 C  3.5,14  2,12.5  2,9.5 C  2,7.5  3.5, 6  6, 6 H 13 M 9.5,9.5 L 13, 6 L 9.5, 2.5"/>
@@ -23,10 +25,18 @@
 		<PathGeometry x:Key="NewIconGeometry" Figures="M 3,16 H 14 V 6 L 9,1 H 3 Z M 14,5 L 10,1 M 9,1 V 6 H 14"/>
 		<PathGeometry x:Key="NewSmallIconGeometry" Figures="M 4,15 H 13 V 7 L 8,2 H 4 Z M 13,6 L 9,2 M 8,2 V 7 H 13"/>
 
+		<PathGeometry x:Key="FilledNewIconGeometry" Figures="M 2,16 H 14 V 6 h -6 V 0 H 2 Z M 14,4 h -4 V 0 Z" FillRule="NonZero"/>
+		<PathGeometry x:Key="FilledNewSmallIconGeometry" Figures="M 5,15 H 15 V 6 h -5 V 1 H 5 Z M 15,4 h -3 V 1 Z" FillRule="NonZero"/>
+		<PathGeometry x:Key="FilledNewConfigIconGeometry" Figures="M 2,16 H 14 V 6 h -6 V 0 H 2 Z M 14,4 h -4 V 0 Z M 4,14 v -2 h 3 v 2 Z M 4,11 v -1 h 3 v 1 Z M 4,9 v -1 h 3 v 1 Z M 8,14 v -6 h 4 v 6 Z" FillRule="EvenOdd"/>
+		<PathGeometry x:Key="FilledNewSubjectIconGeometry" Figures="M 2,0 v 7 h 5 v -7 Z M 2,16 h 5 v -7 h -5 Z M 9,0 v 7 h 5 v -7 Z M 9,16 h 5 v -7 h -5 Z" FillRule="NonZero"/>
+
 		<PathGeometry x:Key="CopyIconGeometry" Figures="M 1,16 H 10 V 5 H 1 v 2 Z M 6,4 V 1 H 15 V 12 H 10"/>
 		<PathGeometry x:Key="PasteIconGeometry" Figures="M 1,16 H 7 V 8 H 1 v 2 Z M 7,14 H 12 V 4 H 3 V 7 M 2,4 L 5,1 L 9,1 L 12,4 M 5,2 L 9,2"/>
 		<PathGeometry x:Key="CutIconGeometry" Figures="m 6.9249228,5.7156592 1.9155,1.9155 5.0460002,-5.046 a 1.5,1.5 0 0 1 2.121,0 L 6.9249228,11.667659 a 3,3 0 1 1 -1.0605,-1.0605 l 1.9155,-1.9154998 -1.9155,-1.9155 a 3,3 0 1 1 1.0605,-1.0605 z m 4.0350002,4.035 5.0475,5.0474998 a 1.5,1.5 0 0 1 -2.121,0 l -3.9877502,-3.987 1.0612502,-1.0612498 z M 5.4009228,12.131159 a 1.5,1.5 0 1 0 -2.121,2.121 1.5,1.5 0 0 0 2.121,-2.121 z m 0,-6.8789998 a 1.5,1.5 0 1 0 -2.121,-2.121 1.5,1.5 0 0 0 2.121,2.121 z"/>
 		<PathGeometry x:Key="DeleteIconGeometry" Figures="M 3,3 L 13,13 M 3,13 L 13,3"/>
+
+		<PathGeometry x:Key="FilledCopyIconGeometry" Figures="M 1,16 H 10 V 4 H 1 Z M 6,2 H 12 V 12 H 15 V 0 H 6 Z" FillRule="NonZero"/>
+		<PathGeometry x:Key="FilledPasteIconGeometry" Figures="M 2,15 H 14 V 1 H 12 V 4 H 4 V 1 H 2 Z M 6,0 V 2 H 10 V 0 Z" FillRule="NonZero"/>
 
 		<PathGeometry x:Key="NextIconGeometry" Figures="M  6,16 H 26 M 15,6 L 26,16 L 15,26"/>
 		<PathGeometry x:Key="PrevIconGeometry" Figures="M 26,16 H  6 M 17,6 L  6,16 L 17,26"/>
@@ -50,8 +60,20 @@
 				</TransformGroup>
 			</PathGeometry.Transform>
 		</PathGeometry>
+		<PathGeometry x:Key="FilledWholePageIconGeometry" Figures="m 0.01021415,-11.238231 a 1.250125,1.250125 0 0 0 -0.4277343,0.08789 1.25,1.25 0 0 0 -0.09375,0.03809 1.250125,1.250125 0 0 0 -0.36328137,0.243164 l -3.00000008,3 a 1.25,1.25 0 0 0 0,1.769531 1.25,1.25 0 0 0 1.7695312,0 l 0.8642579,-0.864258 v 5.72754 h -5.7275391 l 0.8642579,-0.864258 a 1.25,1.25 0 0 0 0,-1.769532 1.25,1.25 0 0 0 -0.8847656,-0.36621 1.25,1.25 0 0 0 -0.8847658,0.36621 l -2.9999989,2.99999999 a 1.250125,1.250125 0 0 0 -0.243164,0.363282 1.25,1.25 0 0 0 -0.03809,0.09375 1.250125,1.250125 0 0 0 0,0.855468 1.25,1.25 0 0 0 0.03809,0.09375 1.250125,1.250125 0 0 0 0.243164,0.363282 L -7.8735752,3.899468 a 1.25,1.25 0 0 0 1.7695313,0 1.25,1.25 0 0 0 0,-1.769532 L -6.9683016,1.265675 h 5.7275391 V 6.993214 L -2.1050203,6.128956 a 1.25,1.25 0 0 0 -0.8847657,-0.363282 1.25,1.25 0 0 0 -0.8847657,0.363282 1.25,1.25 0 0 0 0,1.769531 l 3.00000017,3.000001 a 1.250125,1.250125 0 0 0 0.36328138,0.243165 1.25,1.25 0 0 0 0.09375,0.03808 1.250125,1.250125 0 0 0 0.8554686,0 1.25,1.25 0 0 0 0.09375,-0.03808 1.250125,1.250125 0 0 0 0.3632814,-0.243165 L 3.8949802,7.898487 a 1.25,1.25 0 0 0 0,-1.769531 1.25,1.25 0 0 0 -1.7695319,0 L 1.2611906,6.993214 V 1.265675 H 6.98873 L 6.124472,2.129933 a 1.25,1.25 0 0 0 0,1.769531 1.25,1.25 0 0 0 1.7695305,0 l 3.0000025,-3 a 1.250125,1.250125 0 0 0 0.354494,-1.06347699 1.25,1.25 0 0 0 -0.0029,-0.01465 1.250125,1.250125 0 0 0 -0.03516,-0.15820302 1.25,1.25 0 0 0 -0.0029,-0.01172 1.250125,1.250125 0 0 0 -0.313478,-0.52148398 L 7.8940586,-3.870068 a 1.25,1.25 0 0 0 -0.8847646,-0.366211 1.25,1.25 0 0 0 -0.8847659,0.366211 1.25,1.25 0 0 0 0,1.769532 L 6.988786,-1.236279 H 1.2611906 v -5.727539 l 0.8642577,0.864258 a 1.25,1.25 0 0 0 1.7695319,0 1.25,1.25 0 0 0 0,-1.769531 l -3.00000035,-3 a 1.250125,1.250125 0 0 0 -0.0263673,-0.02051 1.25,1.25 0 0 0 -0.20800771,-0.161132 1.250125,1.250125 0 0 0 -0.0703125,-0.03809 1.25,1.25 0 0 0 -0.24023444,-0.09961 1.250125,1.250125 0 0 0 -0.0498047,-0.01172 1.25,1.25 0 0 0 -0.2490234,-0.03223 1.250125,1.250125 0 0 0 -0.0410157,-0.0059 z">
+			<PathGeometry.Transform>
+				<TransformGroup>
+					<ScaleTransform ScaleX="0.8" ScaleY="0.8"/>
+					<TranslateTransform X="16" Y="18"/>
+				</TransformGroup>
+			</PathGeometry.Transform>
+		</PathGeometry>
+
+		<PathGeometry x:Key="FilledNewIconLargeGeometry" Figures="M 4,31 H 28 V 9 h -8 V 1 H 4 Z M 28,7 h -6 V 1 Z" FillRule="NonZero"/>
+		<PathGeometry x:Key="FilledFieldsIconGeometry" Figures="M 8,19 H 24 v -5 H 8 Z M 8,26 H 20 v -5 H 8 Z"/>
 
 		<PathGeometry x:Key="ExclamationIconGeometry" Figures="M 1,1 H 15 V 15 H 1 Z M 2,2 V 14 H 14 V 2 Z M 7,13 h 2 v -2 h -2 Z M 7,3 h 2 v 7 h -2 z" FillRule="EvenOdd"/>
+		<PathGeometry x:Key="FilledExclamationIconGeometry" Figures="M 1,1 H 15 V 15 H 1 Z M 7,13 h 2 v -2 h -2 Z M 7,3 h 2 v 7 h -2 z" FillRule="EvenOdd"/>
 
 		<PathGeometry x:Key="SettingsIconGeometry" Figures="M 6.366,0.183 C 7.443,-0.043 8.555,-0.044 9.632,0.181 9.778,1.141 10.099,2.630 10.850,3.062 11.599,3.496 13.050,3.029 13.954,2.675 c 0.733,0.821 1.289,1.785 1.631,2.830 -0.758,0.606 -1.886,1.628 -1.885,2.494 0,0.901 1.155,1.909 1.887,2.494 -0.345,1.045 -0.901,2.008 -1.634,2.829 -0.904,-0.354 -2.353,-0.821 -3.103,-0.387 -0.750,0.432 -1.071,1.920 -1.216,2.879 -1.077,0.226 -2.189,0.227 -3.266,0.003 C 6.222,14.857 5.901,13.368 5.150,12.935 4.400,12.501 2.949,12.968 2.046,13.323 1.312,12.502 0.757,11.538 0.415,10.491 1.172,9.886 2.300,8.864 2.300,7.999 2.300,7.132 1.172,6.110 0.413,5.504 0.758,4.459 1.314,3.496 2.047,2.675 2.950,3.030 4.400,3.496 5.150,3.062 5.899,2.630 6.220,1.142 6.366,0.184 Z M 8.000,10.395 c 3.195,0.002 3.195,-4.789 0,-4.791 -3.192,0.002 -3.192,4.792 0,4.791 z" FillRule="EvenOdd"/>
 
@@ -67,8 +89,10 @@
 
 		<!-- Centred on 0,0 -->
 		<PathGeometry x:Key="SpannerIconGeometry" Figures="m 1.45566,3.3651006 c 2.2704616,0.948738 2.0696692,3.7964796 -0.201263,4.7443326 l 6.017e-4,-2.3721667 c 0.03009,-1.5260654 -2.5826005,-1.5260654 -2.552507,0 l -0.00179,2.3732273 -1.87e-5,-0.00105 C -3.5697787,7.1607051 -3.7692723,4.3129635 -1.49834,3.3651112 c -9.96e-5,-2.2524884 -8.19e-4,-4.5049779 -0.00132,-6.7574665 -2.2704619,-0.9487493 -2.0694077,-3.7964907 0.201533,-4.7443439 l -6.017e-4,2.3721669 c -0.03009,1.5260655 2.5826005,1.5260655 2.552507,0 l 0.00179,-2.3732274 1.87e-5,0.00105 c 2.2704616,0.9487389 2.4696937,3.7964804 0.198753,4.7443332 -6.53e-5,2.3811398 5.676e-4,4.7300138 0.00132,6.7574771 z"/>
+		<PathGeometry x:Key="SpannerIconClipGeometry" Figures="m 1.7617188,-9.3515625 a 1.3141289,1.3141289 0 0 0 -1.7851563,1.1445313 1.3141289,1.3141289 0 0 0 -1.78125,-1.1425782 c -1.5544102,0.6487852 -2.5315183,2.0448254 -2.609375,3.515625 -0.060627,1.1453215 0.6135172,2.2038683 1.5996094,2.9804688 5.24e-4,1.89339828 0.00171,3.78686739 0.00195,5.6796875 -0.9864769,0.7764319 -1.6617228,1.834958 -1.6015625,2.9804687 0.077257,1.4710426 1.0549829,2.8680574 2.609375,3.5175782 A 1.3141289,1.3141289 0 0 0 -0.02148438,8.1816406 1.3141289,1.3141289 0 0 0 1.7597656,9.3222656 C 3.3141737,8.6734791 4.2912825,7.2774397 4.3691406,5.8066406 4.4297692,4.6613196 3.7556252,3.6027711 2.7695312,2.8261719 c -4.502e-4,-1.7451103 -1.272e-4,-3.68411063 0,-5.6796875 0.9864793,-0.7764322 1.6617242,-1.8349574 1.6015626,-2.9804688 -0.077258,-1.4710434 -1.0549836,-2.8680575 -2.609375,-3.5175781 z"/>
 
 		<PathGeometry x:Key="DesignerIconOutlineGeometry" Figures="M 1,3 V 14 H 16 V 3 Z"/>
+		<PathGeometry x:Key="FilledDesignerIconOutlineGeometry" Figures="M 0,2 V 14 H 16 V 2 Z M 1,3 H 15 V 13 H 1 Z"/>
 		<PathGeometry x:Key="DesignerIconDetailGeometry" Figures="M 8,4 V 12 H 14 V 4 Z M 9,5 h 3 v 1 h -3 Z M 9,10 h 3 v 1 h -3 Z M 10,7 h 3 v 2 h -3 Z" FillRule="EvenOdd"/>
 
 		<PathGeometry x:Key="InfoIconGeometry" Figures="M 8,1 A 6.5,6.5 0 0 1 15,8 A 6.5,6.5 0 0 1 8,15 A 6.5,6.5 0 0 1 1,8 A 6.5,6.5 0 0 1 8,1 Z M 8,11 V 8 M 8,5.5 V 5"/>
@@ -82,12 +106,114 @@
 		<Setter Property="Height" Value="16"/>
 		<Setter Property="Template">
 			<ControlTemplate>
-				<Path Data="{StaticResource NewIconGeometry}"
-					  RenderOptions.EdgeMode="Aliased"
-					  Stroke="{StaticResource ThemeForegroundLowBrush}"
-					  StrokeThickness="1" Stretch="None"
+				<Path Data="{StaticResource FilledNewIconGeometry}"
+					  Fill="{StaticResource ThemeForegroundLowBrush}"
+					  Stretch="None"
 					  Width="{TemplateBinding Width}"
 					  Height="{TemplateBinding Height}"/>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector="ContentControl.configIcon">
+		<Setter Property="Width" Value="16"/>
+		<Setter Property="Height" Value="16"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Path Data="{StaticResource FilledNewConfigIconGeometry}"
+					  Fill="{StaticResource ThemeForegroundLowBrush}"
+					  Stretch="None"
+					  Width="{TemplateBinding Width}"
+					  Height="{TemplateBinding Height}"/>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector="ContentControl.cardSubjectIcon">
+		<Setter Property="Width" Value="16"/>
+		<Setter Property="Height" Value="16"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Path Data="{StaticResource FilledNewSubjectIconGeometry}"
+					  Fill="{StaticResource ThemeForegroundLowBrush}"
+					  Stretch="None"
+					  Width="{TemplateBinding Width}"
+					  Height="{TemplateBinding Height}"/>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector="ContentControl.cardDefinitionIcon">
+		<Setter Property="Width" Value="16"/>
+		<Setter Property="Height" Value="16"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Canvas Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+					<Path Data="{StaticResource FilledNewSubjectIconGeometry}"
+					  Fill="{StaticResource ThemeForegroundLowBrush}"
+					  Stretch="None"
+					  Width="{TemplateBinding Width}"
+					  Height="{TemplateBinding Height}">
+						<Path.Clip>
+							<RectangleGeometry Rect="0,0,8,16"/>
+						</Path.Clip>
+					</Path>
+					<Path Data="{StaticResource SpannerIconGeometry}"
+						  Fill="{StaticResource ThemeAccentBrush}"
+						  Stretch="None"
+						  Width="{TemplateBinding Width}"
+						  Height="{TemplateBinding Height}">
+						<Path.RenderTransform>
+							<TransformGroup>
+								<TranslateTransform X="12" Y="8"/>
+							</TransformGroup>
+						</Path.RenderTransform>
+					</Path>
+				</Canvas>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector="ContentControl.markupIcon">
+		<Style.Resources>
+			<TransformGroup x:Key="spannerRotate">
+				<ScaleTransform ScaleY="0.9"/>
+				<RotateTransform Angle="-50"/>
+			</TransformGroup>
+			<TranslateTransform x:Key="spannerTranslate" X="7.5" Y="9.5"/>
+		</Style.Resources>
+		
+		<Setter Property="Width" Value="16"/>
+		<Setter Property="Height" Value="16"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Canvas Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+					<Path Data="{StaticResource FilledNewIconGeometry}"
+						  Fill="{StaticResource ThemeForegroundLowBrush}"
+						  Stretch="None"
+						  Width="{TemplateBinding Width}"
+						  Height="{TemplateBinding Height}">
+						<Path.Clip>
+							<GeometryGroup Transform="{StaticResource spannerTranslate}">
+								<RectangleGeometry Rect="-1024 -1024 2048 2048" />
+								<GeometryGroup Transform="{StaticResource spannerRotate}">
+									<StaticResource ResourceKey="SpannerIconClipGeometry"/>
+								</GeometryGroup>
+							</GeometryGroup>
+						</Path.Clip>
+					</Path>
+					<Path Fill="{StaticResource ThemeAccentBrush}"
+						  Stretch="None"
+						  Width="{TemplateBinding Width}"
+						  Height="{TemplateBinding Height}"
+						  RenderTransform="{StaticResource spannerTranslate}">
+						<Path.Data>
+							<GeometryGroup Transform="{StaticResource spannerRotate}">
+								<StaticResource ResourceKey="SpannerIconGeometry"/>
+							</GeometryGroup>
+						</Path.Data>
+					</Path>
+				</Canvas>
 			</ControlTemplate>
 		</Setter>
 	</Style>
@@ -97,12 +223,62 @@
 		<Setter Property="Height" Value="16"/>
 		<Setter Property="Template">
 			<ControlTemplate>
+				<Path Data="{StaticResource OpenIconGeometry}"
+					  Fill="{StaticResource ThemeAccentBrush2}"
+					  Stretch="None"
+					  Width="{TemplateBinding Width}"
+					  Height="{TemplateBinding Height}"/>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector="ContentControl.openTemplateIcon">
+		<Style.Resources>
+			<RotateTransform x:Key="spannerRotate" Angle="30"/>
+			<TranslateTransform x:Key="spannerTranslate" X="9.5" Y="7.5"/>
+		</Style.Resources>
+		
+		<Setter Property="Width" Value="16"/>
+		<Setter Property="Height" Value="16"/>
+		<Setter Property="Template">
+			<ControlTemplate>
 				<Canvas>
 					<Path Data="{StaticResource OpenIconGeometry}"
 						  Fill="{StaticResource ThemeAccentBrush2}"
 						  Stretch="None"
 						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}"/>
+						  Height="{TemplateBinding Height}">
+						<Path.Clip>
+							<CombinedGeometry Geometry2="{StaticResource OpenIconClipGeometry}" GeometryCombineMode="Union">
+								<CombinedGeometry.Geometry1>
+									<GeometryGroup Transform="{StaticResource spannerTranslate}">
+										<RectangleGeometry Rect="-1024 -1024 2048 2048" />
+										<GeometryGroup Transform="{StaticResource spannerRotate}">
+											<StaticResource ResourceKey="SpannerIconClipGeometry"/>
+										</GeometryGroup>
+									</GeometryGroup>
+								</CombinedGeometry.Geometry1>
+							</CombinedGeometry>
+						</Path.Clip>
+					</Path>
+					<Path Fill="{StaticResource ThemeAccentBrush}"
+						  Stretch="None"
+						  Width="{TemplateBinding Width}"
+						  Height="{TemplateBinding Height}">
+						<Path.Data>
+							<GeometryGroup Transform="{StaticResource spannerTranslate}">
+								<GeometryGroup Transform="{StaticResource spannerRotate}">
+									<StaticResource ResourceKey="SpannerIconGeometry"/>
+								</GeometryGroup>
+							</GeometryGroup>
+						</Path.Data>
+						<Path.Clip>
+							<GeometryGroup>
+								<RectangleGeometry Rect="-1024 -1024 2048 2048" />
+								<StaticResource ResourceKey="OpenIconClipGeometry"/>
+							</GeometryGroup>
+						</Path.Clip>
+					</Path>
 				</Canvas>
 			</ControlTemplate>
 		</Setter>
@@ -132,115 +308,6 @@
 						Stretch="None"
 						Width="{TemplateBinding Width}"
 						Height="{TemplateBinding Height}"/>
-			</ControlTemplate>
-		</Setter>
-	</Style>
-
-	<Style Selector="ContentControl.configIcon">
-		<Setter Property="Width" Value="16"/>
-		<Setter Property="Height" Value="16"/>
-		<Setter Property="Template">
-			<ControlTemplate>
-				<Canvas Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
-					<Path Data="{StaticResource NewIconGeometry}"
-						  RenderOptions.EdgeMode="Aliased"
-						  Stroke="{StaticResource ThemeForegroundLowBrush}"
-						  StrokeThickness="1" Stretch="None"
-						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}"/>
-					<Path Data="M 4.5,14 h 2.5 v -1 h -2.5 Z M 4.5,11 h 2.5 M 4.5,9 h 2.5 M 9,14 h 3 v -5 h -3 Z"
-						  RenderOptions.EdgeMode="Aliased"
-						  Stroke="{StaticResource ThemeForegroundLowBrush}"
-						  StrokeThickness="1" Stretch="None"
-						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}"/>
-				</Canvas>
-			</ControlTemplate>
-		</Setter>
-	</Style>
-
-	<Style Selector="ContentControl.cardSubjectIcon">
-		<Setter Property="Width" Value="16"/>
-		<Setter Property="Height" Value="16"/>
-		<Setter Property="Template">
-			<ControlTemplate>
-				<Path Data="M 3,1 v 6 h 4 v -7 Z M 3,16 h 4 v -6 h -4 Z M 10,1 v 6 h 4 v -7 Z M 10,16 h 4 v -6 h -4 Z"
-						RenderOptions.EdgeMode="Aliased"
-						Stroke="{StaticResource ThemeForegroundLowBrush}"
-						StrokeThickness="1" Stretch="None"
-						Width="{TemplateBinding Width}"
-						Height="{TemplateBinding Height}"/>
-			</ControlTemplate>
-		</Setter>
-	</Style>
-		
-	<Style Selector="ContentControl.cardDefinitionIcon">
-		<Setter Property="Width" Value="16"/>
-		<Setter Property="Height" Value="16"/>
-		<Setter Property="Template">
-			<ControlTemplate>
-				<Canvas Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
-					<Path Data="M 3,1 v 6 h 4 v -7 Z M 3,16 h 4 v -6 h -4 Z"
-						  RenderOptions.EdgeMode="Aliased"
-						  Stroke="{StaticResource ThemeForegroundLowBrush}"
-						  StrokeThickness="1" Stretch="None"
-						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}"/>
-					<Path Data="{StaticResource SpannerIconGeometry}"
-						  Fill="{StaticResource ThemeAccentBrush}"
-						  Stretch="None"
-						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}">
-						<Path.RenderTransform>
-							<TransformGroup>
-								<TranslateTransform X="12" Y="8"/>
-							</TransformGroup>
-						</Path.RenderTransform>
-					</Path>
-				</Canvas>
-			</ControlTemplate>
-		</Setter>
-	</Style>
-
-	<Style Selector="ContentControl.markupIcon">
-		<Setter Property="Width" Value="16"/>
-		<Setter Property="Height" Value="16"/>
-		<Setter Property="Template">
-			<ControlTemplate>
-				<Canvas Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
-					<Path Data="{StaticResource NewIconGeometry}"
-						  RenderOptions.EdgeMode="Aliased"
-						  Stroke="{StaticResource ThemeForegroundLowBrush}"
-						  StrokeThickness="1" Stretch="None"
-						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}"/>
-					<Path Data="{StaticResource SpannerIconGeometry}"
-						  Stroke="{StaticResource ThemeControlLowBrush}"
-						  StrokeJoin="Round" StrokeThickness="3" Stretch="None"
-						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}">
-						<Path.RenderTransform>
-							<TransformGroup>
-								<ScaleTransform ScaleY="0.9"/>
-								<TranslateTransform X="6.5" Y="8"/>
-								<RotateTransform Angle="-45"/>
-							</TransformGroup>
-						</Path.RenderTransform>
-					</Path>
-					<Path Data="{StaticResource SpannerIconGeometry}"
-						  Fill="{StaticResource ThemeAccentBrush}"
-						  Stretch="None"
-						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}">
-						<Path.RenderTransform>
-							<TransformGroup>
-								<ScaleTransform ScaleY="0.9"/>
-								<TranslateTransform X="6.5" Y="8"/>
-								<RotateTransform Angle="-45"/>
-							</TransformGroup>
-						</Path.RenderTransform>
-					</Path>
-				</Canvas>
 			</ControlTemplate>
 		</Setter>
 	</Style>
@@ -294,10 +361,8 @@
 		<Setter Property="Height" Value="16"/>
 		<Setter Property="Template">
 			<ControlTemplate>
-				<Path Data="{StaticResource CopyIconGeometry}"
-					  RenderOptions.EdgeMode="Aliased"
-					  Stroke="{StaticResource ThemeForegroundLowBrush}"
-					  StrokeThickness="1"
+				<Path Data="{StaticResource FilledCopyIconGeometry}"
+					  Fill="{StaticResource ThemeForegroundLowBrush}"
 					  Stretch="None"
 					  Width="{TemplateBinding Width}"
 					  Height="{TemplateBinding Height}"/>
@@ -310,10 +375,8 @@
 		<Setter Property="Height" Value="16"/>
 		<Setter Property="Template">
 			<ControlTemplate>
-				<Path Data="{StaticResource PasteIconGeometry}"
-					  RenderOptions.EdgeMode="Aliased"
-					  Stroke="{StaticResource ThemeForegroundLowBrush}"
-					  StrokeThickness="1"
+				<Path Data="{StaticResource FilledPasteIconGeometry}"
+					  Fill="{StaticResource ThemeForegroundLowBrush}"
 					  Stretch="None"
 					  Width="{TemplateBinding Width}"
 					  Height="{TemplateBinding Height}"/>
@@ -409,30 +472,33 @@
 	</Style>
 
 	<Style Selector="ContentControl.runPopulateIcon">
+		<Style.Resources>
+			<TranslateTransform x:Key="runTranslate" X="-6" Y="0"/>
+		</Style.Resources>
+		
 		<Setter Property="Width" Value="16"/>
 		<Setter Property="Height" Value="16"/>
 		<Setter Property="Template">
 			<ControlTemplate>
 				<Canvas Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
-					<Path Data="{StaticResource NewSmallIconGeometry}"
-						  Canvas.Left="2"
-						  RenderOptions.EdgeMode="Aliased"
-						  Stroke="{StaticResource ThemeForegroundLowBrush}"
-						  StrokeThickness="1" Stretch="None"
+					<Path Data="{StaticResource FilledNewSmallIconGeometry}"
+						  Fill="{StaticResource ThemeForegroundLowBrush}"
+						  Stretch="None"
 						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}"/>
+						  Height="{TemplateBinding Height}">
+						<Path.Clip>
+							<GeometryGroup Transform="{StaticResource runTranslate}">
+								<RectangleGeometry Rect="-8 -8 32 32" />
+								<StaticResource ResourceKey="RunIconClipGeometry"/>
+							</GeometryGroup>
+						</Path.Clip>
+					</Path>
 					<Path Data="{StaticResource RunIconGeometry}"
-						  Canvas.Left="-6"
-						  Stroke="{StaticResource ThemeControlMidBrush}"
-						  StrokeThickness="2" Stretch="None"
-						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}"/>
-					<Path Data="{StaticResource RunIconGeometry}"
-						  Canvas.Left="-6"
 						  Fill="{StaticResource ThemeAccentBrush}"
 						  Stretch="None"
 						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}"/>
+						  Height="{TemplateBinding Height}"
+						  RenderTransform="{StaticResource runTranslate}"/>
 				</Canvas>
 			</ControlTemplate>
 		</Setter>
@@ -514,10 +580,8 @@
 		<Setter Property="Template">
 			<ControlTemplate>
 				<Canvas Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
-					<Path Data="{StaticResource DesignerIconOutlineGeometry}"
-						  RenderOptions.EdgeMode="Aliased"
-						  Stroke="{StaticResource ThemeForegroundLowBrush}"
-						  StrokeThickness="1"
+					<Path Data="{StaticResource FilledDesignerIconOutlineGeometry}"
+						  Fill="{StaticResource ThemeForegroundLowBrush}"
 						  Stretch="None"
 						  Width="{TemplateBinding Width}"
 						  Height="{TemplateBinding Height}"/>
@@ -538,7 +602,6 @@
 		<Setter Property="Template">
 			<ControlTemplate>
 				<Path Data="{StaticResource ExclamationIconGeometry}"
-					  RenderOptions.EdgeMode="Aliased"
 					  Fill="{TemplateBinding Foreground}"
 					  Stretch="None"
 					  Width="{TemplateBinding Width}"
@@ -612,21 +675,18 @@
 		<Setter Property="Height" Value="32"/>
 		<Setter Property="Template">
 			<ControlTemplate>
-				<Canvas Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
-					<Path Data="{StaticResource NewIconLargeGeometry}"
-						  RenderOptions.EdgeMode="Aliased"
-						  Stroke="{StaticResource ThemeForegroundLowBrush}"
-						  StrokeThickness="1"
-						  Stretch="None"
-						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}"/>
-					<Path Data="{StaticResource WholePageIconGeometry}"
-						  Stroke="{StaticResource ThemeForegroundLowBrush}"
-						  StrokeThickness="1.5" StrokeLineCap="Round"
-						  Stretch="None"
-						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}"/>
-				</Canvas>
+				<Path Data="{StaticResource FilledNewIconLargeGeometry}"
+					  Fill="{StaticResource ThemeForegroundLowBrush}"
+					  Stretch="None"
+					  Width="{TemplateBinding Width}"
+					  Height="{TemplateBinding Height}">
+					<Path.Clip>
+						<GeometryGroup>
+							<RectangleGeometry Rect="-1024 -1024 2048 2048" />
+							<StaticResource ResourceKey="FilledWholePageIconGeometry"/>
+						</GeometryGroup>
+					</Path.Clip>
+				</Path>
 			</ControlTemplate>
 		</Setter>
 	</Style>
@@ -636,23 +696,16 @@
 		<Setter Property="Height" Value="32"/>
 		<Setter Property="Template">
 			<ControlTemplate>
-				<Canvas Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
-					<Path Data="{StaticResource NewIconLargeGeometry}"
-						  RenderOptions.EdgeMode="Aliased"
-						  Stroke="{StaticResource ThemeForegroundLowBrush}"
-						  StrokeThickness="1"
-						  Stretch="None"
-						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}"/>
-					<Path Data="{StaticResource FieldsIconGeometry}"
-						  RenderOptions.EdgeMode="Aliased"
-						  Stroke="{StaticResource ThemeForegroundLowBrush}"
-						  StrokeThickness="1"
-						  Fill="{StaticResource ThemeForegroundLowPartialBrush}"
-						  Stretch="None"
-						  Width="{TemplateBinding Width}"
-						  Height="{TemplateBinding Height}"/>
-				</Canvas>
+				<Path Fill="{StaticResource ThemeForegroundLowBrush}"
+					  Stretch="None"
+					  Width="{TemplateBinding Width}"
+					  Height="{TemplateBinding Height}">
+					<Path.Data>
+						<CombinedGeometry GeometryCombineMode="Exclude"
+										  Geometry1="{StaticResource FilledNewIconLargeGeometry}"
+										  Geometry2="{StaticResource FilledFieldsIconGeometry}"/>
+					</Path.Data>
+				</Path>
 			</ControlTemplate>
 		</Setter>
 	</Style>

@@ -83,7 +83,11 @@
 						<ContentControl Classes="openIcon"/>
 					</MenuItem.Icon>
 				</MenuItem>
-				<MenuItem Header="Open Template..." Click="OpenTemplateFileClick"/>
+				<MenuItem Header="Open Template..." Click="OpenTemplateFileClick">
+					<MenuItem.Icon>
+						<ContentControl Classes="openTemplateIcon"/>
+					</MenuItem.Icon>
+				</MenuItem>
 				<Separator/>
 				<MenuItem Header="Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S">
 					<MenuItem.Icon>
