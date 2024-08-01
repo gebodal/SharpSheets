@@ -65,6 +65,15 @@
 							<Setter Property="Header" Value="{Binding Name}"/>
 							<Setter Property="Command" Value="{Binding ItemCommand}"/>
 							<Setter Property="ItemsSource" Value="{Binding MenuItems}"/>
+							<Style Selector="^:empty">
+								<Setter Property="Icon">
+									<Setter.Value>
+										<Template>
+											<ContentControl Classes="configIcon"/>
+										</Template>
+									</Setter.Value>
+								</Setter>
+							</Style>
 						</ControlTheme>
 					</MenuItem.ItemContainerTheme>
 				</MenuItem>
