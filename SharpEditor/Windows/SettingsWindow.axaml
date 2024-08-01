@@ -9,7 +9,7 @@
 		x:DataType="managers:SharpDataManager"
         mc:Ignorable="d"
         Title="Settings"
-		Icon="/Images/Icon.ico"
+		Icon="/Assets/Icons/Icon.ico"
 		d:DesignWidth="600" d:DesignHeight="500"
 		Width="600" Height="500"
 		MinWidth="300" MinHeight="200"

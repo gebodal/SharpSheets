@@ -7,7 +7,7 @@
 		x:DataType="local:DocumentationWindow"
 		Title="Documentation" d:DesignWidth="700" d:DesignHeight="600"
 		Width="700" Height="600"
-		Icon="/Images/Icon.ico"
+		Icon="/Assets/Icons/Icon.ico"
 		x:Class="SharpEditor.Documentation.DocumentationWindow"
 		Background="{StaticResource ThemeControlMidHighBrush}"
 		Foreground="{StaticResource ThemeForegroundBrush}"

@@ -5,7 +5,7 @@
         mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
         x:Class="SharpEditor.Windows.TemplateErrorWindow"
         Title="Template Errors" Height="450" Width="400"
-		Icon="/Images/Icon.ico"
+		Icon="/Assets/Icons/Icon.ico"
 		Background="{StaticResource ThemeControlMidHighBrush}"
 		Foreground="{StaticResource ThemeForegroundBrush}"
 		FontFamily="{StaticResource ApplicationFont}">

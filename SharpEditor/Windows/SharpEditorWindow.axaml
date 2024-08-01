@@ -7,7 +7,7 @@
         x:Class="SharpEditor.Windows.SharpEditorWindow"
 		x:DataType="local:SharpEditorWindow"
         Title="SharpEditorWindow"
-		Icon="/Images/Icon.ico"
+		Icon="/Assets/Icons/Icon.ico"
 		Closing="OnWindowClosing"
 		FontFamily="{StaticResource ApplicationFont}" FontSize="{StaticResource AppUIFontSize}">
 
