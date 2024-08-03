@@ -30,6 +30,7 @@ namespace SharpSheets.Fonts {
 			}
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
 				// https://support.apple.com/en-gb/guide/font-book/fntbk1004/mac
+				fontsDirs.Add("/System/Library/Fonts"); // Better way of getting this?
 				fontsDirs.Add("/Library/Fonts"); // Better way of getting this?
 				if (Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) is string homeDir) { // Should get home directory
 					fontsDirs.Add(Path.Combine(homeDir, "Library", "Fonts"));
