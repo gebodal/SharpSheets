@@ -16,7 +16,6 @@
 		WindowStartupLocation="CenterOwner"
 		ShowInTaskbar="False"
 		SystemDecorations="Full"
-		Topmost="True"
 		CanResize="True"
 		Background="{StaticResource ThemeControlMidHighBrush}"
 		FontFamily="{StaticResource ApplicationFont}">

@@ -259,8 +259,8 @@ namespace SharpEditor {
 		public SettingsWindow ActivateSettingsWindow() {
 			if (settingsWindow == null || settingsWindow.IsClosed) {
 				settingsWindow = new SettingsWindow();
-				//settingsWindow.ShowDialog(this.window);
-				settingsWindow.Show();
+				settingsWindow.ShowDialog(this.window);
+				//settingsWindow.Show();
 			}
 			else {
 				if (settingsWindow.WindowState == WindowState.Minimized) {

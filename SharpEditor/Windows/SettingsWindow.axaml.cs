@@ -177,10 +177,14 @@ namespace SharpEditor.Windows {
 		private async void BrowseTemplateDirectoryClick(object? sender, RoutedEventArgs e) {
 
 			IStorageFolder? templateFolder = await this.StorageProvider.TryGetFolderFromPathAsync(SharpEditorPathInfo.TemplateDirectory);
+			IStorageFolder? templateParentFolder = null;
+			if (templateFolder is not null) {
+				templateParentFolder = await templateFolder.GetParentAsync();
+			}
 
 			IReadOnlyList<IStorageFolder> values = await this.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions() {
 				AllowMultiple = false,
-				SuggestedStartLocation = templateFolder,
+				SuggestedStartLocation = templateParentFolder ?? templateFolder,
 				Title = "Template Directory"
 				//Description = "Select template directory. This change will not be implemented until Apply is selected.",
 				//ShowNewFolderButton = true
