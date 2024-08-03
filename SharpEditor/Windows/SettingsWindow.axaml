@@ -160,6 +160,7 @@
 																<local:LostFocusUpdateBindingBehavior Text="{Binding Color, Converter={StaticResource colorToStringConv}}"/>
 															</i:Interaction.Behaviors>
 														</TextBox>
+														<Border Grid.Column="4" Background="{StaticResource ThemeBackgroundBrush}"/>
 														<Border Grid.Column="4">
 															<Border.Background>
 																<SolidColorBrush Color="{Binding Color}"/>
