@@ -6,12 +6,17 @@
 			 xmlns:i="clr-namespace:Avalonia.Xaml.Interactivity;assembly=Avalonia.Xaml.Interactivity"
 			 xmlns:ia="clr-namespace:Avalonia.Xaml.Interactions.Core;assembly=Avalonia.Xaml.Interactions"
 			 xmlns:local="using:SharpEditor.Windows"
+			 xmlns:utils="using:SharpEditor.Utilities"
 			 xmlns:designer="clr-namespace:SharpEditor.Designer"
 			 x:DataType="local:SharpDocumentEditor"
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SharpEditor.Windows.SharpDocumentEditor"
 			 FontFamily="{StaticResource ApplicationFont}">
-		
+
+	<UserControl.Resources>
+		<utils:EnumEqualsConverter x:Key="enumEqualsConv"/>
+	</UserControl.Resources>
+	
 	<DockPanel Background="{StaticResource ThemeControlMidBrush}">
 
 		<!-- Status bar goes here -->
@@ -20,6 +25,7 @@
 				<ColumnDefinition Width="Auto" />
 				<ColumnDefinition Width="Auto" />
 				<ColumnDefinition Width="*" />
+				<ColumnDefinition Width="Auto" />
 				<ColumnDefinition Width="Auto" />
 				<ColumnDefinition Width="Auto" />
 			</Grid.ColumnDefinitions>
@@ -47,8 +53,35 @@
 				<TextBlock Name="CursorLineText" Foreground="{StaticResource ThemeForegroundLowBrush}" Width="50" Margin="20,0" Text="Line" VerticalAlignment="Center"/>
 				<TextBlock Name="CursorColText" Foreground="{StaticResource ThemeForegroundLowBrush}" Width="50" Margin="20,0" Text="Col" VerticalAlignment="Center"/>
 			</StackPanel>
-			<local:ToolbarMessageBox Grid.Column="3" Name="BackgroundMessageControl" VerticalAlignment="Center" Margin="30,0"/>
-			<StackPanel Name="ErrorStatus" Grid.Column="4" IsVisible="False" Orientation="Horizontal">
+			<local:ToolbarMessageBox Grid.Column="3" Name="BackgroundMessageControl" VerticalAlignment="Center" Margin="20,0"/>
+			<StackPanel Orientation="Horizontal" Grid.Column="4">
+				<Border ToolTip.Tip="Parse Successful" ToolTip.HorizontalOffset="20" ToolTip.VerticalOffset="-20" Background="Transparent" Margin="5,0,20,0"
+						IsVisible="{Binding LastParseState, Converter={StaticResource enumEqualsConv}, ConverterParameter=SUCCESS}">
+					<Path
+						Width="12"
+						Height="12"
+						HorizontalAlignment="Center"
+						VerticalAlignment="Center"
+						Data="M 1145.607177734375,430 C1145.607177734375,430 1141.449951171875,435.0772705078125 1141.449951171875,435.0772705078125 1141.449951171875,435.0772705078125 1139.232177734375,433.0999755859375 1139.232177734375,433.0999755859375 1139.232177734375,433.0999755859375 1138,434.5538330078125 1138,434.5538330078125 1138,434.5538330078125 1141.482177734375,438 1141.482177734375,438 1141.482177734375,438 1141.96875,437.9375 1141.96875,437.9375 1141.96875,437.9375 1147,431.34619140625 1147,431.34619140625 1147,431.34619140625 1145.607177734375,430 1145.607177734375,430 z"
+						Fill="{StaticResource ThemeForegroundLowBrush}"
+						FlowDirection="LeftToRight"
+						Stretch="Uniform"/>
+				</Border>
+				<Border ToolTip.Tip="Parse Failed" ToolTip.HorizontalOffset="20" ToolTip.VerticalOffset="-20" Background="Transparent" Margin="5,0,20,0"
+						IsVisible="{Binding LastParseState, Converter={StaticResource enumEqualsConv}, ConverterParameter=ERROR}">
+					<Path
+						Width="12"
+						Height="12"
+						HorizontalAlignment="Center"
+						VerticalAlignment="Center"
+						Data="M 1,1 L 11,11 M 1,11 L 11,1"
+						Stroke="{StaticResource ThemeForegroundLowBrush}"
+						StrokeThickness="2"
+						FlowDirection="LeftToRight"
+						Stretch="None"/>
+				</Border>
+			</StackPanel>
+			<StackPanel Name="ErrorStatus" Grid.Column="5" IsVisible="False" Orientation="Horizontal">
 				<Border Padding="20,0" Background="{StaticResource ErrorBrush}" PointerPressed="ErrorStatusClick">
 					<StackPanel Orientation="Horizontal">
 						<ContentControl Classes="exclamationIcon"

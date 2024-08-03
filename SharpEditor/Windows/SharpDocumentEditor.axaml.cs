@@ -488,14 +488,12 @@ namespace SharpEditor.Windows {
 					codeHelper = null;
 				}
 
-				parsingManager.SetParsingState(parsingState);
+				SetParsingState(parsingState);
 
 				UpdateFoldings();
 				UpdateErrorDisplay(null, EventArgs.Empty);
 
-				DesignerArea.Reset();
-				designerGenerator.Reset();
-				//ResetDesignerDocument();
+				ResetDesigner();
 
 				CurrentDocumentType = newDocumentType;
 
@@ -968,6 +966,17 @@ namespace SharpEditor.Windows {
 		public ParsingManager parsingManager;
 		public IParsingState? parsingState;
 
+		public static readonly DirectProperty<SharpDocumentEditor, ParseState> LastParseStateProperty =
+			AvaloniaProperty.RegisterDirect<SharpDocumentEditor, ParseState>(
+				nameof(LastParseState),
+				o => o.LastParseState);
+
+		private ParseState _lastParseState;
+		public ParseState LastParseState {
+			get { return _lastParseState; }
+			private set { SetAndRaise(LastParseStateProperty, ref _lastParseState, value); }
+		}
+
 		[MemberNotNull(nameof(parsingManager))]
 		void InitializeParsingManager() {
 			parsingManager = ParsingManager.Install(textEditor.TextArea);
@@ -990,6 +999,11 @@ namespace SharpEditor.Windows {
 			ParsingManager.Uninstall(parsingManager);
 		}
 
+		private void SetParsingState(IParsingState? newParsingState) {
+			parsingManager.SetParsingState(newParsingState);
+			LastParseState = ParseState.NONE;
+		}
+
 		ToolbarMessage? currentParsingMessage;
 
 		private void ParseStart() {
@@ -1004,6 +1018,7 @@ namespace SharpEditor.Windows {
 			else {
 				DisplayBackgroundMessage("Parsing error", ParsingMessagePriority, ErrorMessageDuration); // TODO Better message
 			}
+			LastParseState = state;
 		}
 
 		private void RedrawAfterParse() {
@@ -1200,6 +1215,12 @@ namespace SharpEditor.Windows {
 
 			//this.IsVisibleChanged += CheckDesignerDrawn;
 			this.LayoutUpdated += CheckDesignerDrawn;
+		}
+
+		private void ResetDesigner() {
+			DesignerArea.Reset();
+			designerGenerator.Reset();
+			//ResetDesignerDocument();
 		}
 
 		private void CheckDesignerDrawn(object? sender, EventArgs e) {

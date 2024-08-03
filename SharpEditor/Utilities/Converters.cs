@@ -64,4 +64,19 @@ namespace SharpEditor.Utilities {
 		}
 	}
 
+	public class EnumEqualsConverter : IValueConverter {
+		public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) {
+			if(value is Enum enumVal) {
+				return enumVal.ToString() == (parameter?.ToString() ?? "");
+			}
+			else {
+				return false;
+			}
+		}
+
+		public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) {
+			throw new NotImplementedException();
+		}
+	}
+
 }
