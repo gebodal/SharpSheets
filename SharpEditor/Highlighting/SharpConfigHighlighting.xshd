@@ -199,14 +199,14 @@
 						</Span>
 						<Span color="Config_DefinitionType">
 							<Begin>(?i:string)\(</Begin>
-							<End>\)\s*(?=\=|\/\/\/|$|\[\s*\])</End>
+							<End>\)\s*(?=\=|\@|\/\/\/|$|\[\s*\])</End>
 							<RuleSet>
 								<Import ruleSet="Regex"/>
 							</RuleSet>
 						</Span>
 						<Span color="Config_DefinitionType">
 							<Begin>(?i:intrange|floatrange)\(</Begin>
-							<End>\)\s*(?=\=|\/\/\/|$)</End>
+							<End>\)\s*(?=\=|\@|\/\/\/|$)</End>
 							<RuleSet>
 								<Rule color="Config_Punctuation">
 									\,
