@@ -180,29 +180,67 @@ namespace SharpEditor.CodeHelpers {
 
 			List<Control> menuItems = new List<Control>();
 
-			if(parsingState?.GetSpansAtOffset(offset)?.Where(s=>s.Entity is CardSubject).Select(s=>s.Entity).FirstOrDefault() is CardSubject subject) {
-				ISegment line = textEditor.Document.GetLineByOffset(offset);
-				if (line != null && Document.GetText(line) is string lineText && lineText.TrimStart().StartsWith("#>")) {
-					MenuItem insertFullTextMenuItem = new MenuItem {
-						Header = "Insert Full Text"
+			if (parsingState?.GetSpansAtOffset(offset)?.Where(s => s.Entity is CardSubject).Select(s => s.Entity).FirstOrDefault() is CardSubject subject
+				&& textEditor.Document.GetLineByOffset(offset) is ISegment line
+				&& Document.GetText(line) is string lineText && lineText.TrimStart().StartsWith("#>")) {
+
+				MenuItem insertFullTextMenuItem = new MenuItem {
+					Header = "Insert Full Text"
+				};
+
+				//insertFullTextMenuItem.Click += (s,e) => textEditor.Dispatcher.Invoke(() => {
+				insertFullTextMenuItem.Click += (s, e) => Dispatcher.UIThread.InvokeAsync(() => { // Yes async?
+					Console.WriteLine("Replacing title with full text");
+					textEditor.Document.Replace(line, subject.ToText() + "\n");
+				});
+
+				/*
+				insertFullTextMenuItem.Click += delegate {
+					Console.WriteLine("Replacing title with full text");
+					textEditor.Document.Replace(line, subject.ToText() + "\n");
+				};
+				*/
+
+				menuItems.Add(insertFullTextMenuItem);
+			}
+			else if (word is null && (!InsideCard(offset) ?? false) && parsingState?.GetCurrentCardSetDefinition(offset) is CardSetConfig cardSetConfig) {
+
+				CardConfig[] cardConfigs = cardSetConfig.cardConfigs.Select(c => c.Value).ToArray();
+
+				List<(string? name, CardConfig config)> listedConfigs = new List<(string? name, CardConfig config)>();
+
+				if (cardConfigs.Length == 1) {
+					if (cardConfigs[0].name is not null) {
+						listedConfigs.Add((cardConfigs[0].name, cardConfigs[0]));
+					}
+					else {
+						listedConfigs.Add((null, cardConfigs[0]));
+					}
+				}
+				else if (cardConfigs.Length > 1) {
+					foreach (CardConfig cardConfig in cardSetConfig.cardConfigs.Select(c => c.Value)) {
+						if (cardConfig.name is not null) {
+							listedConfigs.Add((cardConfig.name, cardConfig));
+						}
+					}
+				}
+
+				foreach ((string? configName, CardConfig cardConfig) in listedConfigs) {
+					string header = configName is not null ? $"Add new {configName} card" : "Add new card";
+
+					MenuItem insertExampleTextMenuItem = new MenuItem {
+						Header = header
 					};
 
-					//insertFullTextMenuItem.Click += (s,e) => textEditor.Dispatcher.Invoke(() => {
-					insertFullTextMenuItem.Click += (s,e) => Dispatcher.UIThread.InvokeAsync(() => { // Yes async?
-						Console.WriteLine("Replacing title with full text");
-						textEditor.Document.Replace(line, subject.ToText() + "\n");
+					insertExampleTextMenuItem.Click += (s, e) => Dispatcher.UIThread.InvokeAsync(() => { // Yes async?
+						Console.WriteLine("Inserting example text");
+						textEditor.Document.Insert(offset, cardConfig.GetExampleText() + '\n');
 					});
 
-					/*
-					insertFullTextMenuItem.Click += delegate {
-						Console.WriteLine("Replacing title with full text");
-						textEditor.Document.Replace(line, subject.ToText() + "\n");
-					};
-					*/
-
-					menuItems.Add(insertFullTextMenuItem);
+					menuItems.Add(insertExampleTextMenuItem);
 				}
 			}
+
 			if (parsingState?.GetCurrentCardSetDefinition(offset) is CardSetConfig cardSetDefinition) {
 				if (menuItems.Count > 0) { menuItems.Add(new Separator()); }
 				menuItems.AddRange(MakeDefinitionMenuItem(cardSetDefinition));
@@ -232,6 +270,21 @@ namespace SharpEditor.CodeHelpers {
 				SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(cardSetDefinition, null); // TODO Any way to refresh here?
 			};
 			yield return documentationMenuItem;
+		}
+
+		protected bool? InsideCard(int offset) {
+			if(parsingState is null) { return null; }
+
+			CardSubjectSpan? nextOrCurrentSubject = parsingState.ConfigSpans
+				.Where(s => s.StartOffset > offset || (s.StartOffset <= offset && s.EndOffset >= offset))
+				.OrderBy(s => s.StartOffset)
+				.FirstOrDefault();
+
+			if(nextOrCurrentSubject is null) { return false; }
+
+			if(nextOrCurrentSubject.StartOffset <= offset) { return true; }
+
+			return nextOrCurrentSubject.Entity is not CardSubject;
 		}
 
 		#endregion

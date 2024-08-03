@@ -182,26 +182,6 @@ namespace SharpSheets.Cards.CardSubjects {
 		}
 		*/
 
-		public string ToText() {
-			StringBuilder result = new StringBuilder();
-			result.Append($"# {Name.Value}");
-
-			bool firstProperty = true;
-			foreach (KeyValuePair<Definition, ContextProperty<object>> property in Properties.ContextProperties) {
-				if (firstProperty) {
-					firstProperty = false;
-					result.Append("\n");
-				}
-				result.Append($"\n{property.Key.name}: {DefinitionType.ValueToString(property.Value.Value)}");
-			}
-
-			foreach (CardSegment segment in segments) {
-				result.Append("\n\n");
-				result.Append(segment.ToText());
-			}
-
-			return result.ToString();
-		}
 	}
 
 	[System.Diagnostics.DebuggerDisplay("## {Heading} (@{Location.Line})")]
@@ -271,44 +251,6 @@ namespace SharpSheets.Cards.CardSubjects {
 			return GetEnumerator();
 		}
 
-		public string ToText() {
-			StringBuilder result = new StringBuilder();
-
-			if (!string.IsNullOrEmpty(Heading.Value) || !string.IsNullOrEmpty(Note.Value) || Details.ContextProperties.Count > 0 || Subject.IndexOf(this) != 0) {
-				result.Append($"##");
-				if (!string.IsNullOrEmpty(Heading.Value)) {
-					result.Append(" " + Heading.Value);
-				}
-				if (!string.IsNullOrEmpty(Note.Value)) {
-					result.Append(" (" + Note.Value + ")");
-				}
-				if(Details.ContextProperties.Count > 0) {
-					result.Append(" [");
-					bool first = true;
-					foreach(KeyValuePair<Definition, ContextProperty<object>> detail in Details.ContextProperties) {
-						if (first) { first = false; }
-						else { result.Append(" "); }
-
-						if(detail.Value.Value is bool boolean) {
-							result.Append((boolean ? "" : "!") + (detail.Key.AllNames.Select(n => n.ToString()).FirstOrDefault(n => !n.Contains(" ")) ?? detail.Key.name));
-						}
-						else {
-							result.Append($"{detail.Key.name}: {DefinitionType.ValueToString(detail.Value.Value)}");
-						}
-					}
-					result.Append("]");
-				}
-			}
-
-			foreach(CardFeature feature in features) {
-				if (result.Length > 0) {
-					result.Append("\n\n");
-				}
-				result.Append(feature.ToText());
-			}
-
-			return result.ToString();
-		}
 	}
 
 	[System.Diagnostics.DebuggerDisplay("### {Title} (@{Location.Line})")]
@@ -418,44 +360,5 @@ namespace SharpSheets.Cards.CardSubjects {
 		}
 		*/
 
-		public string ToText() {
-			StringBuilder result = new StringBuilder();
-
-			if (!string.IsNullOrEmpty(Title.Value) || !string.IsNullOrEmpty(Note.Value) || Details.ContextProperties.Count > 0) {
-				if (IsMultiLine) { result.Append($"###"); }
-				if (!string.IsNullOrEmpty(Title.Value)) {
-					//result.Append(" " + Title);
-					result.Append(Title.Value);
-				}
-				if (!string.IsNullOrEmpty(Note.Value)) {
-					result.Append(" (" + Note.Value + ")");
-				}
-				if (Details.ContextProperties.Count > 0) {
-					result.Append(" [");
-					bool first = true;
-					foreach (KeyValuePair<Definition, ContextProperty<object>> detail in Details.ContextProperties) {
-						if (first) { first = false; }
-						else { result.Append(", "); }
-
-						if (detail.Value.Value is bool boolean) {
-							result.Append((boolean ? "" : "!") + (detail.Key.AllNames.Select(n => n.ToString()).FirstOrDefault(n => !n.Contains(" ")) ?? detail.Key.name));
-						}
-						else {
-							result.Append($"{detail.Key.name}: {DefinitionType.ValueToString(detail.Value.Value)}");
-						}
-					}
-					result.Append("]");
-				}
-
-				if (IsMultiLine) { result.Append("\n"); }
-				else { result.Append(": "); }
-			}
-
-			if (IsListItem) { result.Append("+ "); }
-
-			result.Append(Text.Value.ToString());
-
-			return result.ToString().TrimStart();
-		}
 	}
 }
