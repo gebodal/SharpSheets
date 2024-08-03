@@ -58,8 +58,8 @@
 						</MenuItem.Icon>
 					</MenuItem>
 				</MenuItem>
-			
-				<MenuItem x:Name="TemplatesMenuItem" Header="New From Template">
+
+				<MenuItem x:Name="TemplatesMenuItem" Header="New From Template" Classes="menuContainer">
 					<MenuItem.ItemContainerTheme>
 						<ControlTheme TargetType="MenuItem" x:DataType="local:TemplateMenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
 							<Setter Property="Header" Value="{Binding Name}"/>

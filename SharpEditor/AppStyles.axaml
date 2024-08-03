@@ -312,6 +312,14 @@
 			<Setter Property="IsVisible" Value="False"/>
 		</Style>
 
+		<Style Selector="^.menuContainer /template/ Path#rightArrow">
+			<Setter Property="IsVisible" Value="True"/>
+		</Style>
+
+		<Style Selector="^.menuContainer:empty">
+			<Setter Property="IsEnabled" Value="False"/>
+		</Style>
+		
 		<Style Selector="^:disabled">
 			<Setter Property="Opacity" Value="0.5"/>
 		</Style>
