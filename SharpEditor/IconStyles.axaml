@@ -41,8 +41,13 @@
 		<PathGeometry x:Key="NextIconGeometry" Figures="M  6,16 H 26 M 15,6 L 26,16 L 15,26"/>
 		<PathGeometry x:Key="PrevIconGeometry" Figures="M 26,16 H  6 M 17,6 L  6,16 L 17,26"/>
 
+		<PathGeometry x:Key="NextSmallIconGeometry" Figures="M  3,8 H 13 M 7.5,3 L 13,8 L 7.5,13"/>
+		<PathGeometry x:Key="PrevSmallIconGeometry" Figures="M 13,8 H  3 M 8.5,3 L  3,8 L 8.5,13"/>
+
 		<PathGeometry x:Key="PosIconGeometry" Figures="M 16,5 A 11,11 0 0 1 27,16 A 11,11 0 0 1 16,27 A 11,11 0 0 1 5,16 A 11,11 0 0 1 16,5 Z M 11,16 H 21 M 16,11 V 21"/>
 		<PathGeometry x:Key="NegIconGeometry" Figures="M 16,5 A 11,11 0 0 1 27,16 A 11,11 0 0 1 16,27 A 11,11 0 0 1 5,16 A 11,11 0 0 1 16,5 Z M 11,16 H 21"/>
+
+		<PathGeometry x:Key="CloseIconGeometry" Figures="M 4,4 L 12,12 M 4,12 L 12,4"/>
 
 		<PathGeometry x:Key="CommentIconGeometry" Figures="m 7.1791379,1.4090608 h 2.7075 c 2.9906241,0 5.3889321,2.0594685 5.3889321,5.0500905 0,2.9906215 -2.398308,5.0500907 -5.3889321,5.0500907 v 3.541987 c -3.384375,-1.35375 -8.1225,-4.114196 -8.1225,-8.5138829 0,-2.9906219 2.4243781,-5.1282853 5.415,-5.1282853 z" FillRule="NonZero"/>
 		<PathGeometry x:Key="CommentAddIconGeometry" Figures="M 0,3.5 L 7,3.5 M 3.5,0 L 3.5,7"/>
@@ -99,6 +104,11 @@
 
 		<PathGeometry x:Key="ExternalLinkIconGeometry" Figures="M 16,8 H 6 c -1,0 -2,1 -2,2 V 26 c 0,1 1,2 2,2 H 22 c 1,0 2,-1 2,-2 V 16 M 13,19 L 28,4 M 20,4 H 28 V 12"/>
 
+		<PathGeometry x:Key="ReplaceStartGeometry" Figures="M 9,1 v 6 h 6 v -6 Z M 11,3 h2 v 2 h -2 Z" FillRule="EvenOdd"/>
+		<PathGeometry x:Key="ReplaceArrowGeometry" Figures="M 7.5,2.5 H 3.5 V 7.5 m -2,-2 l 2,2 l 2,-2"/>
+		<PathGeometry x:Key="ReplaceEndGeometry" Figures="M 1,9 v 6 h 6 v -6 Z" FillRule="NonZero"/>
+		<PathGeometry x:Key="ReplaceEndManyGeometry" Figures="M 1,9 h 6 v 6 h -6 Z M 8,9 h 2 v 5 h -2 Z M 11,9 h 2 v 4 h -2 Z" FillRule="NonZero"/>
+		
 	</Styles.Resources>
 
 	<Style Selector="ContentControl.newIcon">
@@ -640,6 +650,51 @@
 		</Setter>
 	</Style>
 
+	<Style Selector="ContentControl.prevSmallIcon">
+		<Setter Property="Width" Value="16"/>
+		<Setter Property="Height" Value="16"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Path Data="{StaticResource PrevSmallIconGeometry}"
+					  Stroke="{StaticResource ThemeForegroundLowBrush}"
+					  StrokeThickness="2" StrokeLineCap="Round"
+					  Stretch="None"
+					  Width="{TemplateBinding Width}"
+					  Height="{TemplateBinding Height}"/>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector="ContentControl.nextSmallIcon">
+		<Setter Property="Width" Value="16"/>
+		<Setter Property="Height" Value="16"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Path Data="{StaticResource NextSmallIconGeometry}"
+					  Stroke="{StaticResource ThemeForegroundLowBrush}"
+					  StrokeThickness="2" StrokeLineCap="Round"
+					  Stretch="None"
+					  Width="{TemplateBinding Width}"
+					  Height="{TemplateBinding Height}"/>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector="ContentControl.closeIcon">
+		<Setter Property="Width" Value="16"/>
+		<Setter Property="Height" Value="16"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Path Data="{StaticResource CloseIconGeometry}"
+					  Stroke="{StaticResource ThemeForegroundLowBrush}"
+					  StrokeThickness="2" StrokeLineCap="Round"
+					  Stretch="None"
+					  Width="{TemplateBinding Width}"
+					  Height="{TemplateBinding Height}"/>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
 	<Style Selector="ContentControl.negIcon">
 		<Setter Property="Width" Value="32"/>
 		<Setter Property="Height" Value="32"/>
@@ -751,6 +806,118 @@
 					  Stretch="None"
 					  Width="{TemplateBinding Width}"
 					  Height="{TemplateBinding Height}"/>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector="ContentControl.replaceIcon">
+		<Setter Property="Width" Value="16"/>
+		<Setter Property="Height" Value="16"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Canvas Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+					<Path Data="{StaticResource ReplaceStartGeometry}"
+						  Fill="{StaticResource ThemeForegroundLowBrush}"
+						  Stretch="None"
+						  Width="{TemplateBinding Width}"
+						  Height="{TemplateBinding Height}"/>
+					<Path Data="{StaticResource ReplaceEndGeometry}"
+						  Fill="{StaticResource ThemeForegroundLowBrush}"
+						  Stretch="None"
+						  Width="{TemplateBinding Width}"
+						  Height="{TemplateBinding Height}"/>
+					<Path Data="{StaticResource ReplaceArrowGeometry}"
+						  Stroke="{StaticResource ThemeAccentBrush}"
+						  StrokeThickness="1" StrokeLineCap="Round" StrokeJoin="Round"
+						  Stretch="None"
+						  Width="{TemplateBinding Width}"
+						  Height="{TemplateBinding Height}"/>
+				</Canvas>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+	
+	<Style Selector="ContentControl.replaceAllIcon">
+		<Setter Property="Width" Value="16"/>
+		<Setter Property="Height" Value="16"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Canvas Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+					<Path Data="{StaticResource ReplaceStartGeometry}"
+						  Fill="{StaticResource ThemeForegroundLowBrush}"
+						  Stretch="None"
+						  Width="{TemplateBinding Width}"
+						  Height="{TemplateBinding Height}"/>
+					<Path Data="{StaticResource ReplaceEndManyGeometry}"
+						  Fill="{StaticResource ThemeForegroundLowBrush}"
+						  Stretch="None"
+						  Width="{TemplateBinding Width}"
+						  Height="{TemplateBinding Height}"/>
+					<Path Data="{StaticResource ReplaceArrowGeometry}"
+						  Stroke="{StaticResource ThemeAccentBrush}"
+						  StrokeThickness="1" StrokeLineCap="Round" StrokeJoin="Round"
+						  Stretch="None"
+						  Width="{TemplateBinding Width}"
+						  Height="{TemplateBinding Height}"/>
+				</Canvas>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector="ContentControl.matchCaseIcon">
+		<Setter Property="Width" Value="12"/>
+		<Setter Property="Height" Value="12"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<TextBlock TextAlignment="Center"
+						   VerticalAlignment="Center" HorizontalAlignment="Center"
+						   Text="Aa"
+						   FontSize="10" FontFamily="{StaticResource EditorFont}"
+						   Foreground="{StaticResource ThemeForegroundLowBrush}"
+						   Width="{TemplateBinding Width}"
+						   Height="{TemplateBinding Height}"/>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector="ContentControl.matchWholeWordIcon">
+		<Setter Property="Width" Value="12"/>
+		<Setter Property="Height" Value="12"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Grid Width="{TemplateBinding Width}" Height="{TemplateBinding Height}"
+					  HorizontalAlignment="Center" VerticalAlignment="Center">
+					<TextBlock TextAlignment="Center"
+							   VerticalAlignment="Stretch" HorizontalAlignment="Center"
+							   Margin="0,0,0,1"
+							   Text="ab"
+							   FontSize="10" FontFamily="{StaticResource EditorFont}"
+							   Foreground="{StaticResource ThemeForegroundLowBrush}"
+							   Width="{TemplateBinding Width}"/>
+					<Path Data="M 0,0.5 H 12 M 0,11.5 H 12"
+						  Stretch="None" Margin="0,0,0,0" ClipToBounds="False"
+						  HorizontalAlignment="Center" VerticalAlignment="Center"
+						  Stroke="{StaticResource ThemeForegroundLowBrush}"
+						  StrokeThickness="1"
+						  Width="{TemplateBinding Width}"
+						  Height="{TemplateBinding Height}"/>
+				</Grid>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector="ContentControl.matchRegexIcon">
+		<Setter Property="Width" Value="12"/>
+		<Setter Property="Height" Value="12"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<TextBlock TextAlignment="Center"
+						   VerticalAlignment="Center" HorizontalAlignment="Center"
+						   Text=".*"
+						   FontSize="10" FontFamily="{StaticResource EditorFont}"
+						   Foreground="{StaticResource ThemeForegroundLowBrush}"
+						   Width="{TemplateBinding Width}"
+						   Height="{TemplateBinding Height}"/>
 			</ControlTemplate>
 		</Setter>
 	</Style>

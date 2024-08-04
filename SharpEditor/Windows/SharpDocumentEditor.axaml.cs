@@ -112,7 +112,7 @@ namespace SharpEditor.Windows {
 			//DataObject.AddPastingHandler(this, PasteEvent);
 
 			SharpDataManager.Instance.WarnFontLicensingChanged += Refresh;
-
+			
 			// Initialise state of text editor
 			if (filename == null) {
 				New(DocumentType.UNKNOWN, false);

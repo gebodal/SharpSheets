@@ -10,15 +10,6 @@
 				<ResourceInclude Source="/ThemeResources.axaml"/>
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
-
-		<x:Double x:Key="AppUIFontSize">12</x:Double>
-		<x:Double x:Key="ControlContentThemeFontSize">12</x:Double>
-
-		<!-- Fonts -->
-		<FontFamily x:Key="ApplicationFont">avares://SharpEditor/Assets/Fonts#Open Sans</FontFamily>
-		<FontFamily x:Key="EditorFont">avares://SharpEditor/Assets/Fonts#Roboto Mono</FontFamily>
-		<FontFamily x:Key="TypeWriterFont">avares://SharpEditor/Assets/Fonts#Nimbus Mono</FontFamily>
-
 	</Application.Resources>
 
 	<Application.Styles>

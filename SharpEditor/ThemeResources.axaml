@@ -44,6 +44,7 @@
 
 	<Color x:Key="EditorDecorationColor">Gray</Color> <!-- Editor line number color, folding color, etc -->
 	<Color x:Key="EditorSelectionColor">#7f778899</Color> <!-- Editor selection color (#50ff0000 is nice too) -->
+	<Color x:Key="EditorSearchResultColor">#50ff0000</Color> <!-- Editor search results color -->
 	<Color x:Key="EditorCurrentLineBorderColor">#33778899</Color> <!-- Current line border in editor -->
 	<Color x:Key="EditorCurrentLineColor">#00000000</Color> <!-- Current line border in editor -->
 	
@@ -105,6 +106,7 @@
 
 	<SolidColorBrush x:Key="EditorDecorationBrush" Color="{DynamicResource EditorDecorationColor}"/>
 	<SolidColorBrush x:Key="EditorSelectionBrush" Color="{DynamicResource EditorSelectionColor}"/>
+	<SolidColorBrush x:Key="EditorSearchResultBrush" Color="{DynamicResource EditorSearchResultColor}"/>
 	<SolidColorBrush x:Key="EditorCurrentLineBorderBrush" Color="{DynamicResource EditorCurrentLineBorderColor}"/>
 	<SolidColorBrush x:Key="EditorCurrentLineBrush" Color="{DynamicResource EditorCurrentLineColor}"/>
 	
@@ -141,15 +143,26 @@
 	<SolidColorBrush x:Key="DatePickerFlyoutPresenterHighlightFill" Opacity="0.4" Color="{DynamicResource ThemeAccentColor}"/>
 	<SolidColorBrush x:Key="TimePickerFlyoutPresenterHighlightFill" Opacity="0.4" Color="{DynamicResource ThemeAccentColor}"/>
 
+
 	<!-- +++++++++++++++++++++++++++ -->
-	<!-- +++++++++ NUMBERS +++++++++ -->
+	<!-- ++++++++++ FONTS ++++++++++ -->
 	<!-- +++++++++++++++++++++++++++ -->
-	
-	<FontFamily x:Key="ContentControlThemeFontFamily">fonts:Inter#Inter, $Default</FontFamily>
 
 	<sys:Double x:Key="FontSizeSmall">10</sys:Double>
 	<sys:Double x:Key="FontSizeNormal">12</sys:Double>
 	<sys:Double x:Key="FontSizeLarge">16</sys:Double>
+
+	<FontFamily x:Key="ApplicationFont">avares://SharpEditor/Assets/Fonts#Open Sans</FontFamily>
+	<FontFamily x:Key="EditorFont">avares://SharpEditor/Assets/Fonts#Roboto Mono</FontFamily>
+	<FontFamily x:Key="TypeWriterFont">avares://SharpEditor/Assets/Fonts#Nimbus Mono</FontFamily>
+
+	<!-- Required AvaloniaEdit resources -->
+	<DynamicResource x:Key="ControlContentThemeFontSize" ResourceKey="FontSizeNormal" />
+	<DynamicResource x:Key="ContentControlThemeFontFamily" ResourceKey="ApplicationFont" />
+
+	<!-- +++++++++++++++++++++++++++ -->
+	<!-- +++++++++ NUMBERS +++++++++ -->
+	<!-- +++++++++++++++++++++++++++ -->
 
 	<Thickness x:Key="ThemeBorderThickness">1</Thickness>
 	<sys:Double x:Key="ThemeDisabledOpacity">0.5</sys:Double>

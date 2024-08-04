@@ -9,7 +9,7 @@
         Title="SharpEditorWindow"
 		Icon="/Assets/Icons/Icon.ico"
 		Closing="OnWindowClosing"
-		FontFamily="{StaticResource ApplicationFont}" FontSize="{StaticResource AppUIFontSize}">
+		FontFamily="{StaticResource ApplicationFont}" FontSize="{StaticResource FontSizeNormal}">
 
 	<Window.KeyBindings>
 		<KeyBinding Gesture="F1" Command="{Binding HelpCommand}"/>

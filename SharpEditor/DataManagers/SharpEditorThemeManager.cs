@@ -91,6 +91,7 @@ namespace SharpEditor.DataManagers {
 			//"HyperlinkVisitedColor", // Not used in editor
 			"EditorDecorationColor",
 			"EditorSelectionColor",
+			"EditorSearchResultColor",
 			"EditorCurrentLineColor",
 			"EditorOwnerColor",
 			"EditorChildColor",
@@ -144,6 +145,7 @@ namespace SharpEditor.DataManagers {
 
 		public static readonly string EditorDecorationBrush = "EditorDecorationBrush";
 		public static readonly string EditorSelectionBrush = "EditorSelectionBrush";
+		public static readonly string EditorSearchResultBrush = "EditorSearchResultBrush";
 		public static readonly string EditorCurrentLineBorderBrush = "EditorCurrentLineBorderBrush";
 		public static readonly string EditorCurrentLineBrush = "EditorCurrentLineBrush";
 
