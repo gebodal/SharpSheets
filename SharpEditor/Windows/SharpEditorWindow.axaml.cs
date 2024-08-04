@@ -261,10 +261,10 @@ namespace SharpEditor.Windows {
 
 		private void UpdateTitle(string? header) {
 			if (header == null) {
-				Title = "SharpEditor";
+				Title = SharpEditorData.GetEditorName();
 			}
 			else {
-				Title = header + " - SharpEditor";
+				Title = $"{header} - {SharpEditorData.GetEditorName()}";
 			}
 		}
 
