@@ -601,7 +601,7 @@
 		<Setter Property="Foreground" Value="{StaticResource ThemeForegroundLowBrush}"/>
 		<Setter Property="Template">
 			<ControlTemplate>
-				<Path Data="{StaticResource ExclamationIconGeometry}"
+				<Path Data="{StaticResource FilledExclamationIconGeometry}"
 					  Fill="{TemplateBinding Foreground}"
 					  Stretch="None"
 					  Width="{TemplateBinding Width}"
