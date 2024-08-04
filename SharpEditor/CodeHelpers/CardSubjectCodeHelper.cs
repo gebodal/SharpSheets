@@ -267,7 +267,7 @@ namespace SharpEditor.CodeHelpers {
 				Header = cardSetDefinition.name + " Documentation..."
 			};
 			documentationMenuItem.Click += delegate {
-				SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(cardSetDefinition, null); // TODO Any way to refresh here?
+				SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(cardSetDefinition, null); // TODO Any way to refresh here?
 			};
 			yield return documentationMenuItem;
 		}

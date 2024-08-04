@@ -764,7 +764,7 @@ namespace SharpEditor.CodeHelpers {
 					&& FontPathRegistry.FindFontPath(lineInfo.argText.Value.value) is not null) {
 
 					MenuItem item = new MenuItem() { Header = lineInfo.argText.Value.value + " Documentation..." };
-					item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(new FontName(lineInfo.argText.Value.value)); };
+					item.Click += delegate { SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(new FontName(lineInfo.argText.Value.value)); };
 					items.Add(item);
 				}
 				else if (typeof(FontPathGrouping).IsAssignableFrom(arg.Type.DisplayType)) {
@@ -773,14 +773,14 @@ namespace SharpEditor.CodeHelpers {
 
 					if (familyParts.Length == 1 && FontPathRegistry.FindFontFamily(familyParts[0]) is not null) {
 						MenuItem item = new MenuItem() { Header = familyParts[0] + " Documentation..." };
-						item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(new FontFamilyName(familyParts[0])); };
+						item.Click += delegate { SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(new FontFamilyName(familyParts[0])); };
 						items.Add(item);
 					}
 					else {
 						foreach (string fontName in familyParts) {
 							if (FontPathRegistry.FindFontPath(fontName) is not null) {
 								MenuItem item = new MenuItem() { Header = fontName + " Documentation..." };
-								item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(new FontName(fontName)); };
+								item.Click += delegate { SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(new FontName(fontName)); };
 								items.Add(item);
 							}
 						}
@@ -791,7 +791,7 @@ namespace SharpEditor.CodeHelpers {
 
 			if (lineInfo.argument is not null && EnumContentBuilder.IsEnum(lineInfo.argument.Type, out EnumDoc? enumDoc)) {
 				MenuItem item = new MenuItem() { Header = enumDoc.type + " Documentation..." };
-				item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(enumDoc, null); };
+				item.Click += delegate { SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(enumDoc, null); };
 				items.Add(item);
 			}
 
@@ -805,7 +805,7 @@ namespace SharpEditor.CodeHelpers {
 
 			foreach(ConstructorDetails contextConstructor in contextConstructors) {
 				MenuItem item = new MenuItem() { Header = contextConstructor.Name + " Documentation..." };
-				item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(contextConstructor, null); };
+				item.Click += delegate { SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(contextConstructor, null); };
 				items.Add(item);
 			}
 

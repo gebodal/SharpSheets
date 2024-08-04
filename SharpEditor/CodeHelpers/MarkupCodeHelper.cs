@@ -264,7 +264,7 @@ namespace SharpEditor.CodeHelpers {
 			if (parsingState != null) {
 				if(parsingState.GetOwner(offset) is MarkupSpan span && span.Name != null && MarkupDocumentation.MarkupConstructors.TryGetValue(span.Name, out ConstructorDetails? contextConstructor)) {
 					MenuItem item = new MenuItem() { Header = "<" + contextConstructor.Name + "> Documentation..." };
-					item.Click += delegate { SharpEditorWindow.Instance?.controller.ActivateDocumentationWindow().NavigateTo(contextConstructor, () => MarkupDocumentation.MarkupConstructors.Get(contextConstructor.Name)); };
+					item.Click += delegate { SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(contextConstructor, () => MarkupDocumentation.MarkupConstructors.Get(contextConstructor.Name)); };
 					items.Add(item);
 				}
 			}

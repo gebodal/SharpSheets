@@ -25,7 +25,7 @@ namespace SharpEditor.Windows {
 
 	public partial class SharpEditorWindow : Window {
 
-		public readonly AppController controller;
+		public readonly AppController? controller;
 
 		// TODO Progress tracker for Generator?
 		private readonly Generator generator;
@@ -44,7 +44,7 @@ namespace SharpEditor.Windows {
 		/// </summary>
 		public event EventHandler? EditorCursorChanged;
 
-		public SharpEditorWindow(AppController controller) {
+		public SharpEditorWindow(AppController? controller) {
 			this.controller = controller;
 			// Create list of tab items
 			DataManager = SharpDataManager.Instance;
@@ -72,11 +72,10 @@ namespace SharpEditor.Windows {
 			if (Instance == null) { Instance = this; } // This seems a little suspect...
 		}
 
-		public SharpEditorWindow() {
+		public SharpEditorWindow() : this(null) {
 			// Dummy constructor to resolve this issue:
 			// Avalonia warning AVLN:0005: XAML resource "avares://SystemTrayMenu/UserInterface/Menu.axaml" won't be reachable via runtime loader, as no public constructor was found
 			// See: https://github.com/AvaloniaUI/Avalonia/issues/11312
-			throw new NotImplementedException();
 		}
 
 		#region Application
@@ -97,12 +96,12 @@ namespace SharpEditor.Windows {
 
 		private void OnWindowClosing(object? sender, WindowClosingEventArgs e) {
 			//Console.WriteLine("SharpEditorWindow.OnWindowClosing");
-			controller.Exit(false);
+			controller?.Exit(false);
 		}
 
 		private void ExitClick(object? sender, RoutedEventArgs e) {
 			//Console.WriteLine("SharpEditorWindow.ExitClick");
-			controller.Exit(true);
+			controller?.Exit(true);
 		}
 
 		protected override async void OnClosing(WindowClosingEventArgs e) {
@@ -143,15 +142,15 @@ namespace SharpEditor.Windows {
 		#region Window Activation Handlers
 
 		public void ShowDocumentationMenuClick() {
-			controller.ActivateDocumentationWindow();
+			controller?.ActivateDocumentationWindow();
 		}
 
 		public void ShowTemplateErrorsMenuClick() {
-			controller.ActivateTemplateErrorWindow();
+			controller?.ActivateTemplateErrorWindow();
 		}
 
 		public void ShowSettingsWindowClick() {
-			controller.ActivateSettingsWindow();
+			controller?.ActivateSettingsWindow();
 		}
 
 		#endregion Window Activation Handlers
@@ -953,7 +952,7 @@ namespace SharpEditor.Windows {
 		}
 
 		private void HelpExecuted() {
-			controller.ActivateDocumentationWindow();
+			controller?.ActivateDocumentationWindow();
 		}
 
 		private void SaveAllExecuted() {

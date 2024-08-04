@@ -334,7 +334,7 @@ namespace SharpEditor.Windows {
 		}
 
 		private static List<EditorColorSetting> GetThemeColors() {
-			if (SharpEditorWindow.Instance?.controller.appInstance is App appInstance) {
+			if (SharpEditorWindow.Instance?.controller?.appInstance is App appInstance) {
 				return ConvertThemeData(SharpEditorThemeManager.GetColors(appInstance));
 			}
 			else {
@@ -349,7 +349,7 @@ namespace SharpEditor.Windows {
 		}
 
 		private void ApplyThemeColorsClick(object? sender, RoutedEventArgs e) {
-			if (SharpEditorWindow.Instance?.controller.appInstance is App appInstance) {
+			if (SharpEditorWindow.Instance?.controller?.appInstance is App appInstance) {
 				SharpEditorThemeManager.SetColors(appInstance, editorColorSettings.ToDictionary(
 					c => c.Name,
 					c => c.Color
@@ -362,7 +362,7 @@ namespace SharpEditor.Windows {
 		}
 
 		private void DefaultThemeColorsClick(object? sender, RoutedEventArgs e) {
-			if (SharpEditorWindow.Instance?.controller.appInstance is App appInstance) {
+			if (SharpEditorWindow.Instance?.controller?.appInstance is App appInstance) {
 				LoadThemeColors(ConvertThemeData(SharpEditorThemeManager.GetDefaultThemeColors(appInstance)));
 			}
 		}
