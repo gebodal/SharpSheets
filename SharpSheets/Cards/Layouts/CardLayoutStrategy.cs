@@ -16,7 +16,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace SharpSheets.Cards.Layouts {
 
-    public class CardLayoutStrategy : AbstractLayoutStrategy {
+	public class CardLayoutStrategy : AbstractLayoutStrategy {
 
 		public override void Draw(ISharpDocument document, CardSetConfig config, DynamicCard[] cards, out List<SharpDrawingException> errors, out List<DynamicCard> errorCards, CancellationToken cancellationToken) {
 			errors = new List<SharpDrawingException>();
@@ -141,24 +141,23 @@ namespace SharpSheets.Cards.Layouts {
 		}
 
 		// Does not draw background
-		private static void Draw(ISharpCanvas canvas, CardArrangement arrangement1, SingleCardLayout cardLayout, Rectangle rect1, CancellationToken cancellationToken) {
+		private static void Draw(ISharpCanvas canvas, CardArrangement arrangement, SingleCardLayout cardLayout, Rectangle fullRect, CancellationToken cancellationToken) {
 
 			if (cancellationToken.IsCancellationRequested) { return; }
 
 			// TODO Are these checks actually necessary?
-			if (arrangement1.sampleSize.Width != rect1.Width || arrangement1.sampleSize.Height != rect1.Height) {
+			if (arrangement.sampleSize.Width != fullRect.Width || arrangement.sampleSize.Height != fullRect.Height) {
 				throw new ArgumentException($"Provided rect is not the same dimensions as layout sample size.");
 			}
 
 			SingleCardLayout layout = cardLayout;
-			Rectangle fullRect = rect1;
-			bool lastCard = layout.index == (arrangement1.Length - 1);
+			bool lastCard = layout.index == (arrangement.Length - 1);
 
-			DynamicCard card = arrangement1.Card;
+			DynamicCard card = arrangement.Card;
 
-			card.DrawOutline(canvas, fullRect, layout.index, arrangement1.Length);
-			Rectangle featuresFullRect = card.RemainingRect(canvas, fullRect, layout.index, arrangement1.Length);
-
+			card.DrawOutline(canvas, fullRect, layout.index, arrangement.Length);
+			Rectangle featuresFullRect = card.RemainingRect(canvas, fullRect, layout.index, arrangement.Length);
+			
 			Rectangle?[] segmentRects = GetSegmentRects(card, layout, featuresFullRect, lastCard, out Rectangle?[] segmentGutters);
 
 			for (int gutterIdx = 0; gutterIdx < segmentGutters.Length; gutterIdx++) {
@@ -171,7 +170,7 @@ namespace SharpSheets.Cards.Layouts {
 				if (cancellationToken.IsCancellationRequested) { return; }
 				if (segmentRects[secIdx] is not null) {
 					try {
-						layout.boxes[secIdx].Draw(canvas, segmentRects[secIdx]!, arrangement1.FontSize, arrangement1.paragraphSpec);
+						layout.boxes[secIdx].Draw(canvas, segmentRects[secIdx]!, arrangement.FontSize, arrangement.paragraphSpec);
 					}
 					catch (InvalidRectangleException e) {
 						canvas.LogError(new SharpDrawingException(layout.boxes[secIdx], "Invalid rectangle.", e));
@@ -201,7 +200,7 @@ namespace SharpSheets.Cards.Layouts {
 
 			Rectangle?[] segmentRects;
 			Rectangle?[] segmentGutters;
-			if (card.CropOnFinalCard && lastCard && heights.Length == 1 && heights[0] < totalAvailableHeight / 2) {
+			if (card.CropOnFinalCard && lastCard && heights.Length == 1 && heights[0] < totalAvailableHeight / 2) { // This fraction of the height should be adjustable
 				segmentRects = new Rectangle?[] { Divisions.Row(rect, Dimension.FromPoints(totalAvailableHeight / 2), card.Gutter, out _, out _, true, Arrangement.FRONT, LayoutOrder.FORWARD) };
 				segmentGutters = Array.Empty<Rectangle>();
 			}
@@ -362,14 +361,6 @@ namespace SharpSheets.Cards.Layouts {
 
 			int calls = 1;
 
-			Rectangle[] featureRects = new Rectangle[arrangement.Length];
-			for (int i = 0; i < arrangement.Length; i++) {
-				featureRects[i] = card.RemainingRect(graphicsState, sampleRect, i, arrangement.Length);
-				// TODO This doesn't account for variable sized outlines!
-			}
-
-			graphicsState.SaveState();
-
 			/*
 			void Print(string message, ArrangementParameters p) {
 				Console.WriteLine(message + $"{p.spec.FontSize}; " + string.Join(", ", p.totalFixedHeights.Zip(featureRects, (f, r) => $"{f} ({r.Height})")));
@@ -377,30 +368,27 @@ namespace SharpSheets.Cards.Layouts {
 			}
 			*/
 
-			graphicsState.SetTextSize(maxFontSize);
-			ArrangementParameters max = GetParameters(graphicsState, cache, featureRects, arrangement, card.Gutter, maxFontSize, spec);
+			ArrangementParameters max = GetParameters(graphicsState, cache, card, sampleRect, arrangement, card.Gutter, maxFontSize, spec);
 			//Print("max: ", max);
 
 			ArrangementParameters final;
 
 			// In the simplest case, all boxes fit into their respective cards at maximum font size
-			if (max.totalFixedHeights.Zip(featureRects, (t, r) => t <= r.Height).All()) {
+			if (max.totalFixedHeights.Zip(max.featureRects, (t, r) => t <= r.Height).All()) {
 				final = max;
 			}
 			else {
 				float minFontSize = 0.5f;
-				graphicsState.SetTextSize(minFontSize);
-				ArrangementParameters min = GetParameters(graphicsState, cache, featureRects, arrangement, card.Gutter, minFontSize, spec);
+				ArrangementParameters min = GetParameters(graphicsState, cache, card, sampleRect, arrangement, card.Gutter, minFontSize, spec);
 				//Print("min: ", min);
 
 				while (max.fontSize - min.fontSize >= fontEpsilon) {
 					calls++;
 					float midFontSize = (max.fontSize + min.fontSize) / 2f;
-					graphicsState.SetTextSize(midFontSize);
-					ArrangementParameters midpoint = GetParameters(graphicsState, cache, featureRects, arrangement, card.Gutter, midFontSize, spec);
+					ArrangementParameters midpoint = GetParameters(graphicsState, cache, card, sampleRect, arrangement, card.Gutter, midFontSize, spec);
 					//Print("mid: ", midpoint);
 
-					if (midpoint.totalFixedHeights.Zip(featureRects, (t, r) => t <= r.Height).All()) {
+					if (midpoint.totalFixedHeights.Zip(midpoint.featureRects, (t, r) => t <= r.Height).All()) {
 						min = midpoint;
 					}
 					else {
@@ -413,18 +401,16 @@ namespace SharpSheets.Cards.Layouts {
 
 			//Print("final: ", final);
 
-			graphicsState.RestoreState();
-
 			if (!final.validArrangement) {
 				return null; // TODO Is this the right approach?
 			}
 
-			Size[][] boxSizes = GetBoxSizes(final.boxHeights, featureRects, card.Gutter);
+			Size[][] boxSizes = GetBoxSizes(final.boxHeights, final.featureRects, card.Gutter);
 
 			SingleCardLayout[] layouts = new SingleCardLayout[arrangement.Length];
 			for (int i = 0; i < layouts.Length; i++) {
-				float finalUnusedHeight = featureRects[i].Height - final.totalFixedHeights[i];
-				layouts[i] = new SingleCardLayout(i, (Size)featureRects[i], final.arrangement[i], boxSizes[i], final.boxHeights[i], finalUnusedHeight);
+				float finalUnusedHeight = final.featureRects[i].Height - final.totalFixedHeights[i];
+				layouts[i] = new SingleCardLayout(i, (Size)final.featureRects[i], final.arrangement[i], boxSizes[i], final.boxHeights[i], finalUnusedHeight);
 			}
 			return new CardArrangement(card, (Size)sampleRect, final.fontSize, final.spec, layouts, final.penalisedSplitCount, calls);
 		}
@@ -450,16 +436,18 @@ namespace SharpSheets.Cards.Layouts {
 			public readonly float fontSize;
 			public readonly ParagraphSpecification spec;
 			public readonly IFixedCardSegmentRect[][] arrangement;
+			public readonly Rectangle[] featureRects;
 			public readonly float[][] boxHeights;
 			public readonly float[] heightsSums;
 			public readonly int penalisedSplitCount;
 			public readonly float[] totalFixedHeights;
 			public readonly bool validArrangement;
 
-			public ArrangementParameters(float fontSize, ParagraphSpecification spec, IFixedCardSegmentRect[][] arrangement, float[][] boxHeights, int penalisedSplitCount, float[] totalFixedHeights, bool validArrangement) {
+			public ArrangementParameters(float fontSize, ParagraphSpecification spec, IFixedCardSegmentRect[][] arrangement, Rectangle[] featureRects, float[][] boxHeights, int penalisedSplitCount, float[] totalFixedHeights, bool validArrangement) {
 				this.fontSize = fontSize;
 				this.spec = spec;
 				this.arrangement = arrangement;
+				this.featureRects = featureRects;
 				this.boxHeights = boxHeights;
 				this.penalisedSplitCount = penalisedSplitCount;
 
@@ -478,13 +466,23 @@ namespace SharpSheets.Cards.Layouts {
 		/// </summary>
 		/// <param name="graphicsState"></param>
 		/// <param name="cache"></param>
-		/// <param name="featureRects"></param>
+		/// <param name="card"></param>
+		/// <param name="sampleRect"></param>
 		/// <param name="arrangement"></param>
 		/// <param name="cardGutter"></param>
 		/// <param name="fontSize"></param>
 		/// <param name="spec"></param>
 		/// <returns></returns>
-		private static ArrangementParameters GetParameters(ISharpGraphicsState graphicsState, CardQueryCache cache, Rectangle[] featureRects, ICardSegmentRect[][] arrangement, float cardGutter, float fontSize, ParagraphSpecification spec) {
+		private static ArrangementParameters GetParameters(ISharpGraphicsState graphicsState, CardQueryCache cache, DynamicCard card, Rectangle sampleRect, ICardSegmentRect[][] arrangement, float cardGutter, float fontSize, ParagraphSpecification spec) {
+
+			graphicsState.SaveState();
+			graphicsState.SetTextSize(fontSize);
+
+			Rectangle[] featureRects = new Rectangle[arrangement.Length];
+			for (int i = 0; i < arrangement.Length; i++) {
+				featureRects[i] = card.RemainingRect(graphicsState, sampleRect, i, arrangement.Length);
+				// TODO This doesn't account for variable sized outlines!
+			}
 
 			// We need to reset the partial boxes so we start taking pieces from the whole original.
 			for (int i = 0; i < arrangement.Length; i++) {
@@ -505,27 +503,27 @@ namespace SharpSheets.Cards.Layouts {
 
 			bool validArrangement = true;
 
-			for (int card = 0; card < arrangement.Length; card++) {
+			for (int cardIdx = 0; cardIdx < arrangement.Length; cardIdx++) {
 
-				boxHeights[card] = new float[arrangement[card].Length];
-				finalArrangement[card] = new IFixedCardSegmentRect[arrangement[card].Length];
-				totalFixedHeights[card] = gutterHeights[card];
-				for (int i = 0; i < arrangement[card].Length; i++) {
+				boxHeights[cardIdx] = new float[arrangement[cardIdx].Length];
+				finalArrangement[cardIdx] = new IFixedCardSegmentRect[arrangement[cardIdx].Length];
+				totalFixedHeights[cardIdx] = gutterHeights[cardIdx];
+				for (int i = 0; i < arrangement[cardIdx].Length; i++) {
 					// Populate array with entries we are certain of here
-					if (arrangement[card][i] is IFixedCardSegmentRect box) {
-						boxHeights[card][i] = cache.GetMinimumHeight(box, fontSize, spec, featureRects[card].Width);
-						totalFixedHeights[card] += boxHeights[card][i];
-						finalArrangement[card][i] = box;
+					if (arrangement[cardIdx][i] is IFixedCardSegmentRect box) {
+						boxHeights[cardIdx][i] = cache.GetMinimumHeight(box, fontSize, spec, featureRects[cardIdx].Width);
+						totalFixedHeights[cardIdx] += boxHeights[cardIdx][i];
+						finalArrangement[cardIdx][i] = box;
 					}
 				}
 
 				// Now move on to boxes of uncertain height (i.e. !IsWhole)
-				for (int i = 0; i < arrangement[card].Length; i++) {
-					if (arrangement[card][i] is IPartialCardSegmentRects partial) {
-						finalArrangement[card][i] = partial.FromAvailableHeight(graphicsState, featureRects[card].Height - totalFixedHeights[card], featureRects[card].Width, fontSize, spec, cache, out float partialHeight);
-						if (finalArrangement[card][i] != null) {
-							boxHeights[card][i] = partialHeight;
-							totalFixedHeights[card] += boxHeights[card][i];
+				for (int i = 0; i < arrangement[cardIdx].Length; i++) {
+					if (arrangement[cardIdx][i] is IPartialCardSegmentRects partial) {
+						finalArrangement[cardIdx][i] = partial.FromAvailableHeight(graphicsState, featureRects[cardIdx].Height - totalFixedHeights[cardIdx], featureRects[cardIdx].Width, fontSize, spec, cache, out float partialHeight);
+						if (finalArrangement[cardIdx][i] != null) {
+							boxHeights[cardIdx][i] = partialHeight;
+							totalFixedHeights[cardIdx] += boxHeights[cardIdx][i];
 							if (partial.PenaliseSplit) {
 								penalisedSplitCount++;
 							}
@@ -544,20 +542,22 @@ namespace SharpSheets.Cards.Layouts {
 			float[][] trimmedBoxHeights = new float[arrangement.Length][];
 
 			// We need to remove null boxes from failed partials
-			for (int card = 0; card < arrangement.Length; card++) {
+			for (int cardIdx = 0; cardIdx < arrangement.Length; cardIdx++) {
 				List<IFixedCardSegmentRect> boxes = new List<IFixedCardSegmentRect>();
 				List<float> heights = new List<float>();
-				for (int i = 0; i < arrangement[card].Length; i++) {
-					if (finalArrangement[card][i] != null) {
-						boxes.Add(finalArrangement[card][i]!);
-						heights.Add(boxHeights[card][i]);
+				for (int i = 0; i < arrangement[cardIdx].Length; i++) {
+					if (finalArrangement[cardIdx][i] != null) {
+						boxes.Add(finalArrangement[cardIdx][i]!);
+						heights.Add(boxHeights[cardIdx][i]);
 					}
 				}
-				trimmedArrangement[card] = boxes.ToArray();
-				trimmedBoxHeights[card] = heights.ToArray();
+				trimmedArrangement[cardIdx] = boxes.ToArray();
+				trimmedBoxHeights[cardIdx] = heights.ToArray();
 			}
 
-			return new ArrangementParameters(fontSize, spec, trimmedArrangement, trimmedBoxHeights, penalisedSplitCount, totalFixedHeights, validArrangement);
+			graphicsState.RestoreState();
+
+			return new ArrangementParameters(fontSize, spec, trimmedArrangement, featureRects, trimmedBoxHeights, penalisedSplitCount, totalFixedHeights, validArrangement);
 		}
 
 		#endregion
