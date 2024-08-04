@@ -281,20 +281,33 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			};
 
 			IHighlightingDefinition? highlightingDefinition;
+			IParsingState? parsingState;
 			if (documentationCode.highlighting == DocumentType.MARKUP) {
 				highlightingDefinition = SharpEditorPalette.BoxMarkupHighlighting;
+				parsingState = new MarkupParsingState(document);
 			}
 			else if (documentationCode.highlighting == DocumentType.CARDCONFIG) {
 				highlightingDefinition = SharpEditorPalette.CardConfigHighlighting;
+				parsingState = new CardConfigParsingState(document);
 			}
 			else if (documentationCode.highlighting == DocumentType.CARDSUBJECT) {
 				highlightingDefinition = SharpEditorPalette.CardSubjectHighlighting;
+				parsingState = new CardSubjectParsingState(document);
 			}
 			else if (documentationCode.highlighting == DocumentType.UNKNOWN) {
 				highlightingDefinition = null;
+				parsingState = null;
 			}
 			else { // Default to sharp config
 				highlightingDefinition = SharpEditorPalette.CharacterSheetHighlighting;
+				parsingState = new CharacterSheetParsingState(document);
+			}
+
+			if(parsingState is not null) {
+				List<AvaloniaEdit.Rendering.IVisualLineTransformer> parsingStateLineTransformers = parsingState.GetLineTransformers().ToList();
+				foreach (AvaloniaEdit.Rendering.IVisualLineTransformer transformer in parsingStateLineTransformers) {
+					textArea.TextView.LineTransformers.Add(transformer);
+				}
 			}
 
 			//textArea.DefaultInputHandler.NestedInputHandlers.Remove(textArea.DefaultInputHandler.Editing);
