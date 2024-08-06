@@ -40,12 +40,20 @@ namespace SharpEditor.DataManagers {
 			return Path.Combine(appData, configDirBasename);
 		}
 
-		private static string GetCurrentConfigName(ConfigName configName) {
-			return configName.BaseName + SharpEditorData.GetVersionString() + configName.Extension;
+		private static string GetCurrentConfigName(ConfigName configName, string? suffix = null) {
+			return configName.BaseName + SharpEditorData.GetVersionString() + (suffix is not null ? suffix : "") + configName.Extension;
+		}
+
+		private static string GetConfigPath(string filename) {
+			return Path.Join(GetCurrentConfigDir(), filename);
 		}
 
 		public static string GetCurrentConfigPath(ConfigName configName) {
-			return Path.Join(GetCurrentConfigDir(), GetCurrentConfigName(configName));
+			return GetConfigPath(GetCurrentConfigName(configName));
+		}
+
+		public static string GetSuffixedCurrentConfigPath(ConfigName configName, string suffix) {
+			return GetConfigPath(GetCurrentConfigName(configName, suffix));
 		}
 
 		private static string? GetOldConfigPath(ConfigName configName) {
@@ -140,6 +148,31 @@ namespace SharpEditor.DataManagers {
 			}
 			catch (JsonException) {
 				return null;
+			}
+		}
+
+		public static bool SaveBackup(ConfigName configName) {
+			string configPath = GetCurrentConfigPath(configName);
+
+			if (File.Exists(configPath)) {
+				Console.WriteLine($"Make backup of existing {configName.BaseName} config.");
+
+				string timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmssffff");
+				string backupConfigPath = GetSuffixedCurrentConfigPath(configName, timestamp);
+
+				try {
+					File.Copy(configPath, backupConfigPath, true);
+				}
+				catch (Exception) {
+					Console.WriteLine($"Error copying {configName.BaseName} config backup.");
+				}
+
+				return File.Exists(backupConfigPath);
+			}
+			else {
+				Console.WriteLine($"No existing {configName.BaseName} config found to backup.");
+
+				return false;
 			}
 		}
 

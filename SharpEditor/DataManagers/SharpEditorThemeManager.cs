@@ -14,13 +14,21 @@ namespace SharpEditor.DataManagers {
 
 		private static ConfigName ConfigName => new ConfigName(SharpEditorData.GetEditorName() + "_Theme", ".json");
 
-		public static IReadOnlyDictionary<string, Color>? defaultTheme = null;
+		private static IReadOnlyDictionary<string, Color>? defaultTheme = null;
 
 		public static void LoadTheme(App appInstance) {
-			IReadOnlyDictionary<string, Color>? themeConfig = SharpConfigManager.Load<Dictionary<string, Color>>(ConfigName, out _);
+			IReadOnlyDictionary<string, Color>? themeConfig = SharpConfigManager.Load<Dictionary<string, Color>>(ConfigName, out bool latest);
 			if (themeConfig is not null) {
 				SetColors(appInstance, themeConfig);
 			}
+			else if (latest && themeConfig is null) {
+				SharpConfigManager.SaveBackup(ConfigName);
+				SaveTheme(appInstance);
+			}
+		}
+
+		private static void SaveTheme(App appInstance) {
+			SharpConfigManager.Save(GetColors(appInstance), ConfigName);
 		}
 
 		public static void SetColors(App appInstance, IReadOnlyDictionary<string, Color> colors) {
@@ -39,7 +47,7 @@ namespace SharpEditor.DataManagers {
 			}
 
 			if (changed) {
-				SharpConfigManager.Save(GetColors(appInstance), ConfigName);
+				SaveTheme(appInstance);
 			}
 		}
 

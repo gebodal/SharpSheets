@@ -73,10 +73,18 @@ namespace SharpEditor.DataManagers {
 		private static void LoadCurrentHighlightingColors() {
 			highlightingColors = LoadDefaultHighlightingColors();
 
-			IReadOnlyDictionary<string, HighlightData>? colorsConfig = SharpConfigManager.Load<Dictionary<string, HighlightData>>(ConfigName, out _);
+			IReadOnlyDictionary<string, HighlightData>? colorsConfig = SharpConfigManager.Load<Dictionary<string, HighlightData>>(ConfigName, out bool latest);
 			if (colorsConfig is not null) {
 				SetColors(colorsConfig, false);
 			}
+			else if (latest && colorsConfig is null) {
+				SharpConfigManager.SaveBackup(ConfigName);
+				SaveCurrentHighlightingColors();
+			}
+		}
+
+		private static void SaveCurrentHighlightingColors() {
+			SharpConfigManager.Save(highlightingColors, ConfigName);
 		}
 
 		public static Dictionary<string, HighlightData> LoadDefaultHighlightingColors() {
@@ -121,7 +129,7 @@ namespace SharpEditor.DataManagers {
 			}
 
 			if (changed) {
-				SharpConfigManager.Save(highlightingColors, ConfigName);
+				SaveCurrentHighlightingColors();
 			}
 
 			if (changed && reloadHighlighting) {

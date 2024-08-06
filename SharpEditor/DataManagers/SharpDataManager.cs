@@ -32,6 +32,10 @@ namespace SharpEditor.DataManagers {
 				Instance = new SharpDataManager();
 			}
 
+			if(latest && loaded is null) {
+				SharpConfigManager.SaveBackup(ConfigName);
+			}
+
 			if (!latest) {
 				SharpConfigManager.Save(Instance, ConfigName);
 			}
