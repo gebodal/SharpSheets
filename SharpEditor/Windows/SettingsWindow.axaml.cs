@@ -147,6 +147,7 @@ namespace SharpEditor.Windows {
 			SharpEditorPathInfo.TemplateDirectory = newTemplateDirectory;
 
 			TemplateDirectoryTextBox.Text = newTemplateDirectory;
+			ApplyButton.IsEnabled = false;
 
 			await MessageBoxes.Show($"Template directory successfully changed to {newTemplateDirectory}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 
