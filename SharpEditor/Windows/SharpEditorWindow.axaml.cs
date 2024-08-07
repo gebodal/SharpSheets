@@ -9,6 +9,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SharpEditor.DataManagers;
+using SharpEditor.Dialogues;
 using SharpEditor.Program;
 using SharpEditor.Registries;
 using SharpSheets.Parsing;
@@ -62,7 +63,12 @@ namespace SharpEditor.Windows {
 			//SavePossible = false;
 			IncrementCommentEnabled = false;
 
-			generator = new Generator(Dispatcher.UIThread) { OpenOnGenerate = SharpDataManager.Instance.OpenOnGenerate };
+			generator = new Generator() { OpenOnGenerate = SharpDataManager.Instance.OpenOnGenerate };
+			generator.GeneratorError += (s,e) => {
+				Dispatcher.UIThread.InvokeAsync(async delegate {
+					await MessageBoxes.Show(this, e.Message, e.Title, MessageBoxButton.OK, e.IsError ? MessageBoxImage.Error : MessageBoxImage.Warning);
+				});
+			};
 			SharpDataManager.Instance.OpenOnGenerateChanged += delegate { generator.OpenOnGenerate = SharpDataManager.Instance.OpenOnGenerate; };
 			generator.Start();
 
@@ -380,7 +386,7 @@ namespace SharpEditor.Windows {
 					message = "You have unsaved changes.";
 				}
 
-				MessageBoxResult result = await MessageBoxes.Show(message + " Do you wish to save before closing?", "Unsaved Changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+				MessageBoxResult result = await MessageBoxes.Show(this, message + " Do you wish to save before closing?", "Unsaved Changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
 
 				if (result == MessageBoxResult.Yes) {
 					await SaveEditorDocument(editor, false, false);
@@ -566,10 +572,10 @@ namespace SharpEditor.Windows {
 				TemplateImports.ImportFile(filepath);
 			}
 			catch (IOException e) {
-				_ = MessageBoxes.Show($"There was an error importing {filepath}: {e.Message ?? "Unknown error"}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				_ = MessageBoxes.Show(this, $"There was an error importing {filepath}: {e.Message ?? "Unknown error"}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 			catch (NotImplementedException e) {
-				_ = MessageBoxes.Show($"Cannot import {filepath}: {e.Message ?? "Unknown error"}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				_ = MessageBoxes.Show(this, $"Cannot import {filepath}: {e.Message ?? "Unknown error"}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 		}
 
@@ -612,7 +618,7 @@ namespace SharpEditor.Windows {
 							OpenEditorDocument(filepath, true);
 						}
 						else if (TemplateImports.IsKnownTemplateFileType(filepath)) {
-							MessageBoxResult result = await MessageBoxes.Show($"Import {System.IO.Path.GetFileName(filepath)} into templates?", "Import Templates", MessageBoxButton.YesNo, MessageBoxImage.Question);
+							MessageBoxResult result = await MessageBoxes.Show(this, $"Import {System.IO.Path.GetFileName(filepath)} into templates?", "Import Templates", MessageBoxButton.YesNo, MessageBoxImage.Question);
 							if (result == MessageBoxResult.Yes) {
 								ImportTemplateFile(filepath);
 							}
@@ -653,7 +659,7 @@ namespace SharpEditor.Windows {
 			if (editor is null) { return; }
 
 			if (editor.CurrentFilePath == null) {
-				MessageBoxResult result = await MessageBoxes.Show("You must save this file before generating.\n\nDo you wish to save now?", "Unsaved Changes", MessageBoxButton.YesNo, MessageBoxImage.Question);
+				MessageBoxResult result = await MessageBoxes.Show(this, "You must save this file before generating.\n\nDo you wish to save now?", "Unsaved Changes", MessageBoxButton.YesNo, MessageBoxImage.Question);
 				if (result == MessageBoxResult.No) {
 					return;
 				}
@@ -665,7 +671,7 @@ namespace SharpEditor.Windows {
 
 			IParser? parser = editor.parsingManager.GetParsingState()?.Parser;
 			if (parser == null) {
-				await MessageBoxes.Show("No parser set for this document.", "Cannot Generate", MessageBoxButton.OK, MessageBoxImage.Error);
+				await MessageBoxes.Show(this, "No parser set for this document.", "Cannot Generate", MessageBoxButton.OK, MessageBoxImage.Error);
 				return;
 			}
 
@@ -705,7 +711,7 @@ namespace SharpEditor.Windows {
 
 			IParser? parser = editor.parsingManager.GetParsingState()?.Parser;
 			if (parser == null) {
-				await MessageBoxes.Show("No parser set for this document.", "Cannot Generate", MessageBoxButton.OK, MessageBoxImage.Error);
+				await MessageBoxes.Show(this, "No parser set for this document.", "Cannot Generate", MessageBoxButton.OK, MessageBoxImage.Error);
 				return;
 			}
 
@@ -783,7 +789,7 @@ namespace SharpEditor.Windows {
 					newEditor.textEditor.Text = TemplateRegistry.GetTemplateContent(templateData.Path);
 				}
 				catch (Exception e) {
-					_ = MessageBoxes.Show($"There was an error opening template {templateData.Name}: {e.Message ?? "Unknown error"}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+					_ = MessageBoxes.Show(this, $"There was an error opening template {templateData.Name}: {e.Message ?? "Unknown error"}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 				}
 			}
 		}

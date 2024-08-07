@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using SharpEditor.DataManagers;
+using SharpEditor.Dialogues;
 using SharpSheets.Utilities;
 using System;
 using System.Collections.Generic;
@@ -75,7 +76,7 @@ namespace SharpEditor.Windows {
 
 			bool copyExisting = false;
 			if (System.IO.Directory.Exists(currentTemplateDirectory) && System.IO.Directory.GetFileSystemEntries(currentTemplateDirectory).Length > 0) {
-				MessageBoxResult result = await MessageBoxes.Show("There are templates in the current directory. Do you wish to copy them to the new location?", "Existing Templates", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+				MessageBoxResult result = await MessageBoxes.Show(this, "There are templates in the current directory. Do you wish to copy them to the new location?", "Existing Templates", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
 
 				if (result == MessageBoxResult.Cancel) {
 					e.Handled = true;
@@ -87,7 +88,7 @@ namespace SharpEditor.Windows {
 			}
 
 			if (System.IO.Directory.Exists(newTemplateDirectory) && System.IO.Directory.GetFileSystemEntries(newTemplateDirectory).Length > 0) {
-				MessageBoxResult result = await MessageBoxes.Show("There are existing files in the specified directory. Do you wish to continue? The existing files will not be deleted.", "Existing Files", MessageBoxButton.YesNo, MessageBoxImage.Question);
+				MessageBoxResult result = await MessageBoxes.Show(this, "There are existing files in the specified directory. Do you wish to continue? The existing files will not be deleted.", "Existing Files", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
 				if (result != MessageBoxResult.Yes) {
 					e.Handled = true;
@@ -111,7 +112,7 @@ namespace SharpEditor.Windows {
 					foreach (string filepath in FileUtils.GetAllFiles(currentTemplateDirectory)) {
 						string destination = GetDestination(filepath);
 						if (System.IO.File.Exists(destination)) {
-							MessageBoxResult result = await MessageBoxes.Show("Some files in the new directory will be overwritten. Do you wish to continue?", "Existing Files", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+							MessageBoxResult result = await MessageBoxes.Show(this, "Some files in the new directory will be overwritten. Do you wish to continue?", "Existing Files", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
 							if (result != MessageBoxResult.Yes) {
 								e.Handled = true;
@@ -131,10 +132,10 @@ namespace SharpEditor.Windows {
 						CopyFile(filepath, destination);
 					}
 					catch (IOException) {
-						MessageBoxResult result = await MessageBoxes.Show($"An error was encountered copying {filepath}. Do you wish to continue?", "Error Copying File", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+						MessageBoxResult result = await MessageBoxes.Show(this, $"An error was encountered copying {filepath}. Do you wish to continue?", "Error Copying File", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
 						if (result != MessageBoxResult.No) {
-							await MessageBoxes.Show("Change of template directory has been aborted. Some files may have been copied.", "Change Aborted", MessageBoxButton.OK, MessageBoxImage.Information);
+							await MessageBoxes.Show(this, "Change of template directory has been aborted. Some files may have been copied.", "Change Aborted", MessageBoxButton.OK, MessageBoxImage.Information);
 
 							e.Handled = true;
 							return;
@@ -149,7 +150,7 @@ namespace SharpEditor.Windows {
 			TemplateDirectoryTextBox.Text = newTemplateDirectory;
 			ApplyButton.IsEnabled = false;
 
-			await MessageBoxes.Show($"Template directory successfully changed to {newTemplateDirectory}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+			await MessageBoxes.Show(this, $"Template directory successfully changed to {newTemplateDirectory}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 
 			e.Handled = true;
 		}

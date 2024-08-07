@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
 using Avalonia;
+using SharpEditor.Dialogues;
 
 namespace SharpEditor {
 
@@ -123,14 +124,14 @@ namespace SharpEditor {
 
 		#region App Initialization
 
-		private static async Task AppInitialization(Visual visual) {
+		private static async Task AppInitialization(Window window) {
 			Console.WriteLine("Checking template directory...");
 			if (!SharpEditorPathInfo.IsTemplateDirectorySet) {
 				Console.WriteLine("Template directory not set.");
-				MessageBoxResult result = await MessageBoxes.Show($"You must select a template directory.\n\nDo you wish to select a custom directory? (The default is {SharpEditorPathInfo.GetDefaultApplicationTemplateDirectory()})\n\nThis can be changed later in Settings.", "Template Directory", MessageBoxButton.YesNo, MessageBoxImage.Information);
+				MessageBoxResult result = await MessageBoxes.Show(window, $"You must select a template directory.\n\nDo you wish to select a custom directory? (The default is {SharpEditorPathInfo.GetDefaultApplicationTemplateDirectory()})\n\nThis can be changed later in Settings.", "Template Directory", MessageBoxButton.YesNo, MessageBoxImage.Information);
 
 				if (result == MessageBoxResult.Yes) {
-					string? selectedPath = (await visual.OpenDirectoryPicker(
+					string? selectedPath = (await window.OpenDirectoryPicker(
 						title: "Select template directory.",
 						allowMultiple: false,
 						startingLocation: Environment.GetFolderPath(Environment.SpecialFolder.Personal)
@@ -144,12 +145,12 @@ namespace SharpEditor {
 					SharpEditorPathInfo.TemplateDirectory = SharpEditorPathInfo.GetDefaultApplicationTemplateDirectory();
 				}
 
-				await MessageBoxes.Show($"The template directory has been set to {SharpEditorPathInfo.TemplateDirectory} (this can be changed in Settings). This directory will now be created if it does not exist.", "Template Directory", MessageBoxButton.OK, MessageBoxImage.Information);
+				await MessageBoxes.Show(window, $"The template directory has been set to {SharpEditorPathInfo.TemplateDirectory} (this can be changed in Settings). This directory will now be created if it does not exist.", "Template Directory", MessageBoxButton.OK, MessageBoxImage.Information);
 			}
 			else if (!Directory.Exists(SharpEditorPathInfo.TemplateDirectory)) {
 				Console.WriteLine("Template directory does not exist.");
 				SharpEditorPathInfo.TemplateDirectory = SharpEditorPathInfo.GetDefaultApplicationTemplateDirectory();
-				await MessageBoxes.Show($"Stored template directory path does not exist. Setting to {SharpEditorPathInfo.TemplateDirectory} (this can be changed in Settings).", "Template Directory", MessageBoxButton.OK, MessageBoxImage.Error);
+				await MessageBoxes.Show(window, $"Stored template directory path does not exist. Setting to {SharpEditorPathInfo.TemplateDirectory} (this can be changed in Settings).", "Template Directory", MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 
 			if (!Directory.Exists(SharpEditorPathInfo.TemplateDirectory)) {

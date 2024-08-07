@@ -17,6 +17,7 @@ using Avalonia.Controls;
 using SharpEditor.Windows;
 using Avalonia.Threading;
 using SharpEditor.Completion;
+using SharpEditor.Dialogues;
 
 namespace SharpEditor.CodeHelpers {
 
@@ -258,7 +259,7 @@ namespace SharpEditor.CodeHelpers {
 					SharpEditorWindow.Instance?.OpenEditorDocument(cardSetDefinition.origin.Path, true);
 				}
 				else {
-					await MessageBoxes.Show("Could not find file.", "Could Not Find File", MessageBoxButton.OK, MessageBoxImage.Error);
+					await MessageBoxes.Show(textEditor, "Could not find file.", "Could Not Find File", MessageBoxButton.OK, MessageBoxImage.Error);
 				}
 			};
 			yield return definitionFileMenuItem;

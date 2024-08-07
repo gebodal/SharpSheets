@@ -1,14 +1,20 @@
 ﻿using Avalonia.Controls;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using Avalonia.VisualTree;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Base;
+using MsBox.Avalonia.Controls;
+using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
+using MsBox.Avalonia.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SharpEditor.Windows {
+namespace SharpEditor.Dialogues {
 
 	public enum MessageBoxButton {
 		OK,
@@ -87,12 +93,37 @@ namespace SharpEditor.Windows {
 
 	public static class MessageBoxes {
 
-		public static async Task<MessageBoxResult> Show(string text, string title, MessageBoxButton button, MessageBoxImage image, WindowStartupLocation startupLocation = WindowStartupLocation.CenterOwner) {
-			IMsBox<ButtonResult> box = MessageBoxManager.GetMessageBoxStandard(title, text, button.AsButtonEnum(), image.AsIcon(), startupLocation);
+		public static async Task<MessageBoxResult> Show(Control owner, string text, string title, MessageBoxButton button, MessageBoxImage image, WindowStartupLocation startupLocation = WindowStartupLocation.CenterOwner) {
+			IMsBox<ButtonResult> box = GetMessageBoxSharp(new MessageBoxStandardParams() {
+				ContentTitle = title,
+				ContentMessage = text,
+				ButtonDefinitions = button.AsButtonEnum(),
+				Icon = image.AsIcon(),
+				WindowStartupLocation = startupLocation,
+				WindowIcon = new WindowIcon(AssetLoader.Open(new Uri(@"avares://SharpEditor/Assets/Icons/Icon.ico"))),
+				SystemDecorations = SystemDecorations.Full
+			});
 
-			ButtonResult result = await box.ShowAsync();
+			ButtonResult result;
+			if (owner is Window window) {
+				result = await box.ShowWindowDialogAsync(window); //.ShowAsync();
+			}
+			else if (owner.GetVisualRoot() is Window root) {
+				result = await box.ShowWindowDialogAsync(root);
+			}
+			else {
+				result = await box.ShowAsync();
+			}
 
 			return result.AsMessageBoxResult();
+		}
+
+		private static IMsBox<ButtonResult> GetMessageBoxSharp(MessageBoxStandardParams msBoxParams) {
+			MsBoxSharpViewModel msBoxSharpViewModel = new MsBoxSharpViewModel(msBoxParams);
+			MsBoxSharpView msBoxSharpView = new MsBoxSharpView {
+				DataContext = msBoxSharpViewModel
+			};
+			return new MsBox<MsBoxSharpView, MsBoxSharpViewModel, ButtonResult>(msBoxSharpView, msBoxSharpViewModel);
 		}
 
 	}

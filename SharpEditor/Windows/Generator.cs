@@ -16,6 +16,20 @@ using Avalonia.Threading;
 
 namespace SharpEditor.Windows {
 
+	public class GeneratorErrorEventArgs : EventArgs {
+
+		public string Message { get; }
+		public string Title { get; }
+		public bool IsError { get; }
+
+		public GeneratorErrorEventArgs(string message, string title, bool isError) {
+			Message = message;
+			Title = title;
+			IsError = isError;
+		}
+
+	}
+
 	public class Generator {
 
 		private class GeneratorData {
@@ -38,13 +52,11 @@ namespace SharpEditor.Windows {
 		private readonly BlockingCollection<GeneratorData> queue;
 		private bool running;
 
-		private readonly Dispatcher uiDispatcher;
+		public event EventHandler<GeneratorErrorEventArgs>? GeneratorError;
 
 		public bool OpenOnGenerate { get; set; }
 
-		public Generator(Dispatcher uiDispatcher) {
-			this.uiDispatcher = uiDispatcher;
-
+		public Generator() {
 			queue = new BlockingCollection<GeneratorData>();
 			running = false;
 
@@ -111,16 +123,12 @@ namespace SharpEditor.Windows {
 						IDocumentContent? content = parser.Parse(filePath, sourcePath, configuration) as IDocumentContent;
 
 						if (content == null) {
-							uiDispatcher.Invoke(async delegate {
-								await MessageBoxes.Show("Something went wrong while parsing the configuration.", "Parsing Error", MessageBoxButton.OK, MessageBoxImage.Error);
-							});
+							GeneratorError?.Invoke(this, new GeneratorErrorEventArgs("Something went wrong while parsing the configuration.", "Parsing Error", true));
 							continue;
 						}
 
 						if (!content.HasContent) {
-							uiDispatcher.Invoke(async delegate {
-								await MessageBoxes.Show("Cannot generate document. Configuration has no content.", "Generator Error", MessageBoxButton.OK, MessageBoxImage.Error);
-							});
+							GeneratorError?.Invoke(this, new GeneratorErrorEventArgs("Cannot generate document. Configuration has no content.", "Generator Error", true));
 							continue;
 						}
 
@@ -156,15 +164,11 @@ namespace SharpEditor.Windows {
 						}
 					}
 					catch (IOException) {
-						uiDispatcher.Invoke(async delegate {
-							await MessageBoxes.Show($"The file {filename} is unavailable.\n\nIs the file open in another program?", "File Busy", MessageBoxButton.OK, MessageBoxImage.Warning);
-						});
+						GeneratorError?.Invoke(this, new GeneratorErrorEventArgs($"The file {filename} is unavailable.\n\nIs the file open in another program?", "File Busy", false));
 						Console.WriteLine($"The file {filename} is unavailable. Is the file open in another program?");
 					}
 					catch (Exception e) {
-						uiDispatcher.Invoke(async delegate {
-							await MessageBoxes.Show($"Something went wrong while generating the PDF:\n{e.Message}", "Generation Error", MessageBoxButton.OK, MessageBoxImage.Error);
-						});
+						GeneratorError?.Invoke(this, new GeneratorErrorEventArgs($"Something went wrong while generating the PDF:\n{e.Message}", "Generation Error", true));
 						Console.WriteLine($"Something went wrong while generating the PDF: {e.Message}");
 					}
 					finally {
