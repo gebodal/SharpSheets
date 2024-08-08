@@ -821,9 +821,12 @@ namespace SharpEditor.Windows {
 		#endregion Text Context Menu
 
 		#region Tooltip
+		private ToolTip currentTooltip;
 
+		[MemberNotNull(nameof(currentTooltip))]
 		void InitializeToolTip() {
-			TextEditorToolTip.IsVisible = false;
+			currentTooltip = TextEditorToolTip;
+			ToolTip.SetTip(textEditor, null); // This is a bit hacky, but it works for now
 
 			textEditor.PointerHover += TextEditorMouseHover;
 			textEditor.PointerHoverStopped += TextEditorMouseHoverStopped;
@@ -845,8 +848,8 @@ namespace SharpEditor.Windows {
 			toolTipOpenPos = position;
 
 			//TextEditorToolTip.IsOpen = true;
+			ToolTip.SetTip(textEditor, currentTooltip);
 			ToolTip.SetIsOpen(textEditor, true);
-			TextEditorToolTip.IsVisible = true;
 		}
 
 		private void CloseToolTip() {
@@ -854,7 +857,7 @@ namespace SharpEditor.Windows {
 
 			//TextEditorToolTip.IsOpen = false;
 			ToolTip.SetIsOpen(textEditor, false);
-			TextEditorToolTip.IsVisible = false;
+			ToolTip.SetTip(textEditor, null);
 		}
 		
 		private void TextEditorPointerMoved(object? sender, PointerEventArgs e) {
