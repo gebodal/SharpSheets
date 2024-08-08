@@ -156,10 +156,6 @@
 	<FontFamily x:Key="EditorFont">avares://SharpEditor/Assets/Fonts#Roboto Mono</FontFamily>
 	<FontFamily x:Key="TypeWriterFont">avares://SharpEditor/Assets/Fonts#Nimbus Mono</FontFamily>
 
-	<!-- Required AvaloniaEdit resources -->
-	<DynamicResource x:Key="ControlContentThemeFontSize" ResourceKey="FontSizeNormal" />
-	<DynamicResource x:Key="ContentControlThemeFontFamily" ResourceKey="ApplicationFont" />
-
 	<!-- +++++++++++++++++++++++++++ -->
 	<!-- +++++++++ NUMBERS +++++++++ -->
 	<!-- +++++++++++++++++++++++++++ -->

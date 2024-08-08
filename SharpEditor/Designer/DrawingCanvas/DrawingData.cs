@@ -64,6 +64,7 @@ namespace SharpEditor.Designer.DrawingCanvas {
 		public Avalonia.RelativePoint EndPoint { get; set; }
 		public GradientStopsData GradientStops { get; set; }
 		public Transform? Transform { get; set; }
+		public Avalonia.RelativePoint TransformOrigin { get; set; }
 
 		public LinearGradientBrushData() : base() {
 			GradientStops = new GradientStopsData();
@@ -75,7 +76,8 @@ namespace SharpEditor.Designer.DrawingCanvas {
 				EndPoint = EndPoint,
 				GradientStops = GradientStops.Build(),
 				SpreadMethod = Avalonia.Media.GradientSpreadMethod.Pad,
-				Transform = ConverterUtils.Convert(Transform)
+				Transform = ConverterUtils.Convert(Transform),
+				TransformOrigin = TransformOrigin
 				//MappingMode = BrushMappingMode.Absolute
 			};
 		}
@@ -89,6 +91,7 @@ namespace SharpEditor.Designer.DrawingCanvas {
 		public float Radius { get; set; }
 		public GradientStopsData GradientStops { get; set; }
 		public Transform? Transform { get; set; }
+		public Avalonia.RelativePoint TransformOrigin { get; set; }
 
 		public RadialGradientBrushData() : base() {
 			GradientStops = new GradientStopsData();
@@ -100,9 +103,12 @@ namespace SharpEditor.Designer.DrawingCanvas {
 				SpreadMethod = Avalonia.Media.GradientSpreadMethod.Pad,
 				//MappingMode = BrushMappingMode.Absolute,
 				Center = Center,
-				GradientOrigin = GradientOrigin,
-				Radius = Radius,
-				Transform = ConverterUtils.Convert(Transform)
+				GradientOrigin = GradientOrigin, 
+				RadiusX = new Avalonia.RelativeScalar(Radius, Avalonia.RelativeUnit.Absolute),
+				RadiusY = new Avalonia.RelativeScalar(Radius, Avalonia.RelativeUnit.Absolute),
+				//Radius = Radius,
+				Transform = ConverterUtils.Convert(Transform),
+				TransformOrigin = TransformOrigin
 			};
 		}
 

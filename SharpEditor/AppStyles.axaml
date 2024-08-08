@@ -1112,7 +1112,7 @@
 		<Setter Property="Background" Value="{StaticResource ThemeControlMidBrush}"/>
 		<Setter Property="Focusable" Value="True"/>
 		<Setter Property="Margin" Value="0 5 5 0"/>
-		<Setter Property="FontSize" Value="{DynamicResource SearchPanelFontSize}"/>
+		<Setter Property="FontSize" Value="{DynamicResource FontSizeNormal}"/>
 		<Setter Property="FontFamily" Value="{DynamicResource ApplicationFont}"/>
 		<Setter Property="Template">
 			<ControlTemplate>

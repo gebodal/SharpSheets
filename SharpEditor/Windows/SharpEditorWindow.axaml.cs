@@ -181,7 +181,7 @@ namespace SharpEditor.Windows {
 		private SharpDocumentEditor? currentlyVisible;
 
 		public SharpDocumentEditor? GetCurrentEditor() {
-			if (editorTabs.Count > 0) {
+			if (editorTabs is not null && EditorTabControl is not null && editorTabs.Count > 0 && EditorTabControl.SelectedIndex >= 0) {
 				return editorTabs[EditorTabControl.SelectedIndex].Content;
 			}
 			else {
