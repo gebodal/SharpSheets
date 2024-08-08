@@ -1044,15 +1044,6 @@ namespace SharpEditor.Windows {
 			SharpDataManager.Instance.WarnFontLicensingChanged += UpdateErrorDisplay;
 
 			ErrorPopupListBox.ItemsSource = ErrorPopupEntries;
-
-			// Ferry scroll wheel events from the Popup to its ListBox
-			ErrorPopup.PointerWheelChanged += (sender, e) => {
-				ErrorPopupListBox.RaiseEvent(e);
-			};
-
-			ErrorPopupBorder.PointerWheelChanged += (sender, e) => {
-				ErrorPopupListBox.RaiseEvent(e);
-			};
 		}
 
 		void UninstallErrorMarkers() {
