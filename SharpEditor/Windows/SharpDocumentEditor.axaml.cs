@@ -1513,6 +1513,15 @@ namespace SharpEditor.Windows {
 		//	OpenCompletionWindow();
 		//}
 
+		public void OpenSearchPanel(bool replaceMode) {
+			if (textEditor.SearchPanel is AvaloniaEdit.Search.SearchPanel searchPanel) {
+				textEditor.Focus();
+				searchPanel.Open();
+				searchPanel.IsReplaceMode = replaceMode;
+				searchPanel.Focus();
+			}
+		}
+
 		#endregion Commands
 
 	}

@@ -866,11 +866,14 @@ namespace SharpEditor.Windows {
 		public ICommand UndoCommand { get; private set; }
 		public ICommand RedoCommand { get; private set; }
 
+		public ICommand FindCommand { get; private set; }
+		public ICommand FindReplaceCommand { get; private set; }
+
 		[MemberNotNull(nameof(OpenCommand), nameof(CloseCommand),
 			nameof(SaveCommand), nameof(SaveAsCommand), nameof(SaveAllCommand),
 			nameof(GenerateCommand), nameof(GeneratePopulateCommand), nameof(GeneratePopulateFromCommand),
 			nameof(IncrementCommentCommand), nameof(DecrementCommentCommand),
-			nameof(HelpCommand),
+			nameof(HelpCommand), nameof(FindCommand), nameof(FindReplaceCommand),
 			nameof(CutCommand), nameof(CopyCommand), nameof(PasteCommand), nameof(DeleteCommand),
 			nameof(UndoCommand), nameof(RedoCommand))]
 		private void InitialiseCommands() {
@@ -888,6 +891,8 @@ namespace SharpEditor.Windows {
 			DecrementCommentCommand = new RelayCommand(DecrementCommentExecuted, CanIncrementComment);
 
 			HelpCommand = new RelayCommand(HelpExecuted);
+			FindCommand = new RelayCommand(FindExecuted, CanFindExecute);
+			FindReplaceCommand = new RelayCommand(FindReplaceExecuted, CanFindReplaceExecute);
 
 			CutCommand = new RelayCommand(CutExecuted, CanCutExecute);
 			CopyCommand = new RelayCommand(CopyExecuted, CanCopyExecute);
@@ -1037,6 +1042,20 @@ namespace SharpEditor.Windows {
 		}
 		private bool CanRedoExecute() {
 			return GetCurrentEditor()?.textEditor.CanRedo ?? false;
+		}
+
+		private void FindExecuted() {
+			GetCurrentEditor()?.OpenSearchPanel(false);
+		}
+		private bool CanFindExecute() {
+			return GetCurrentEditor() is not null;
+		}
+
+		private void FindReplaceExecuted() {
+			GetCurrentEditor()?.OpenSearchPanel(true);
+		}
+		private bool CanFindReplaceExecute() {
+			return GetCurrentEditor() is not null;
 		}
 
 		#endregion Commands

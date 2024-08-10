@@ -141,6 +141,17 @@
 					</MenuItem.Icon>
 				</MenuItem>
 				<Separator/>
+				<MenuItem Header="Find" Command="{Binding FindCommand}" InputGesture="Ctrl+F">
+					<MenuItem.Icon>
+						<ContentControl Classes="findIcon"/>
+					</MenuItem.Icon>
+				</MenuItem>
+				<MenuItem Header="Replace" Command="{Binding FindReplaceCommand}" InputGesture="Ctrl+H">
+					<MenuItem.Icon>
+						<ContentControl Classes="replaceIcon"/>
+					</MenuItem.Icon>
+				</MenuItem>
+				<Separator/>
 				<MenuItem Header="Settings..." Command="{Binding ShowSettingsWindowClick}">
 					<MenuItem.Icon>
 						<ContentControl Classes="settingsIcon"/>
