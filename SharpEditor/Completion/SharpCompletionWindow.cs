@@ -80,22 +80,6 @@ namespace SharpEditor.Completion {
 			//////// MADE PRETTY
 			
 			AttachEvents();
-
-			CompletionList.ListBox.AddHandler(ListBoxItem.PointerPressedEvent, ItemClicked, handledEventsToo: true);
-		}
-
-		private void ItemClicked(object? sender, RoutedEventArgs e) {
-			// There must be a better way of doing this...
-			if(e.Source is Control source) {
-				StyledElement? elem = source;
-				while (elem is not null && elem is not ListBoxItem) {
-					elem = elem.Parent;
-				}
-
-				if(elem is ListBoxItem item && item.DataContext is ICompletionData completionData) {
-					Complete(completionData, e);
-				}
-			}
 		}
 
 		#region ToolTip handling

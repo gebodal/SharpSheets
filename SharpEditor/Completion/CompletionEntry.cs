@@ -35,18 +35,19 @@ namespace SharpEditor.Completion {
 	public class CompletionEntry : ICompletionData {
 
 		public CompletionEntry(string text) {
-			this.Text = text;
+			_text = new TextBlock() { Text = text };
 		}
 
 		public IImage? Image { get { return null; } }
 
-		public string Text { get; private set; }
+		private readonly TextBlock _text;
+		public string Text => _text.Text ?? "";
 
 		public string? Append { get; set; } = null;
 		public string? AfterCaretAppend { get; set; } = null;
 
 		// Use this property if you want to show a fancy UIElement in the drop down list.
-		public object Content { get { return this.Text; } }
+		public object Content => _text;
 
 		public Control[]? DescriptionElements { private get; set; }
 		private StackPanel? descriptionPanel = null;

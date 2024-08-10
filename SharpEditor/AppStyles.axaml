@@ -927,12 +927,6 @@
 	<Style Selector="Border.errorEntry">
 		<Setter Property="Background" Value="{StaticResource ThemeControlHighBrush}"/>
 	</Style>
-	
-	<!-- What is this actually doing? -->
-	<Style Selector=":is(Popup).completion :is(ListBox)">
-		<!--<Setter Property="Background" Value="Red"/>-->
-		<Setter Property="Foreground" Value="Red"/>
-	</Style>
 
 	<Style Selector="folding|FoldingMargin">
 		<Setter Property="FoldingMarkerBrush" Value="{StaticResource EditorDecorationBrush}"/>
