@@ -39,8 +39,8 @@ namespace SharpEditor.Completion {
 		/// <summary>
 		/// Gets the completion list used in this completion window.
 		/// </summary>
-		public CompletionList CompletionList { get; } = new CompletionList();
-		public int VisibleItemCount => CompletionList.ListBox.VisibleItemCount;
+		public SharpCompletionList CompletionList { get; } = new SharpCompletionList();
+		public int VisibleItemCount => CompletionList.ListBox?.VisibleItemCount ?? 0;
 
 		private readonly ToolTip toolTip = new ToolTip() { Classes = { "sharpToolTip" } };
 
@@ -96,7 +96,7 @@ namespace SharpEditor.Completion {
 
 		void CompletionList_SelectionChanged(object? sender, SelectionChangedEventArgs e) {
 			//if(toolTip is null) { return; } // The completion window has already been closed
-			ICompletionData item = CompletionList.SelectedItem;
+			ICompletionData? item = CompletionList.SelectedItem;
 			if (item == null) { return; }
 			object description = item.Description;
 			if (description != null) {
@@ -129,7 +129,7 @@ namespace SharpEditor.Completion {
 			Close();
 			// The window must close before Complete() is called.
 			// If the Complete callback pushes stacked input handlers, we don't want to pop those when the CC window closes.
-			ICompletionData item = CompletionList.SelectedItem;
+			ICompletionData? item = CompletionList.SelectedItem;
 			if (item != null) {
 				Complete(item, e);
 			}
@@ -185,9 +185,8 @@ namespace SharpEditor.Completion {
 		}
 
 		Control GetScrollEventTarget() {
-			if (CompletionList == null)
-				return this;
-			return CompletionList.ScrollViewer ?? CompletionList.ListBox ?? (Control)CompletionList;
+			//return CompletionList.ScrollViewer ?? CompletionList.ListBox ?? (Control)CompletionList;
+			return CompletionList.ListBox ?? (Control)CompletionList;
 		}
 
 		/// <summary>
