@@ -247,24 +247,24 @@ namespace SharpSheets.Markup.Canvas {
 		public static readonly EnvironmentVariableInfo Height = new EnvironmentVariableInfo("height", EvaluationType.FLOAT, "The height of the drawing canvas.");
 		public static readonly EnvironmentVariableInfo Left = new EnvironmentVariableInfo("left", EvaluationType.FLOAT, "The left-hand side x-coordinate of the drawing canvas.");
 		public static readonly EnvironmentVariableInfo Right = new EnvironmentVariableInfo("right", EvaluationType.FLOAT, "The right-hand side x-coordinate of the drawing canvas.");
-		public static readonly EnvironmentVariableInfo Bottom = new EnvironmentVariableInfo("bottom", EvaluationType.FLOAT, "The top edge y-coordinate of the drawing canvas.");
-		public static readonly EnvironmentVariableInfo Top = new EnvironmentVariableInfo("top", EvaluationType.FLOAT, "The bottom edge y-coordinate of the drawing canvas.");
+		public static readonly EnvironmentVariableInfo Bottom = new EnvironmentVariableInfo("bottom", EvaluationType.FLOAT, "The bottom edge y-coordinate of the drawing canvas.");
+		public static readonly EnvironmentVariableInfo Top = new EnvironmentVariableInfo("top", EvaluationType.FLOAT, "The top edge y-coordinate of the drawing canvas.");
 
 		// Drawing rect variables
 		public static readonly EnvironmentVariableInfo DrawWidth = new EnvironmentVariableInfo("drawwidth", EvaluationType.FLOAT, "The width of the actual drawing area on the document page.");
 		public static readonly EnvironmentVariableInfo DrawHeight = new EnvironmentVariableInfo("drawheight", EvaluationType.FLOAT, "The height of the actual drawing area on the document page.");
 		public static readonly EnvironmentVariableInfo DrawLeft = new EnvironmentVariableInfo("drawleft", EvaluationType.FLOAT, "The left-hand side x-coordinate of the drawing area in its own coordinate view.");
 		public static readonly EnvironmentVariableInfo DrawRight = new EnvironmentVariableInfo("drawright", EvaluationType.FLOAT, "The right-hand side x-coordinate of the drawing area in its own coordinate view.");
-		public static readonly EnvironmentVariableInfo DrawBottom = new EnvironmentVariableInfo("drawbottom", EvaluationType.FLOAT, "The top edge y-coordinate of the drawing area in its own coordinate view.");
-		public static readonly EnvironmentVariableInfo DrawTop = new EnvironmentVariableInfo("drawtop", EvaluationType.FLOAT, "The bottom edge y-coordinate of the drawing area in its own coordinate view.");
+		public static readonly EnvironmentVariableInfo DrawBottom = new EnvironmentVariableInfo("drawbottom", EvaluationType.FLOAT, "The bottom edge y-coordinate of the drawing area in its own coordinate view.");
+		public static readonly EnvironmentVariableInfo DrawTop = new EnvironmentVariableInfo("drawtop", EvaluationType.FLOAT, "The top edge y-coordinate of the drawing area in its own coordinate view.");
 
 		// Drawing rect variables
 		public static readonly EnvironmentVariableInfo PageWidth = new EnvironmentVariableInfo("pagewidth", EvaluationType.FLOAT, "The width of the actual drawing area on the document page.");
 		public static readonly EnvironmentVariableInfo PageHeight = new EnvironmentVariableInfo("pageheight", EvaluationType.FLOAT, "The height of the actual drawing area on the document page.");
 		public static readonly EnvironmentVariableInfo PageLeft = new EnvironmentVariableInfo("pageleft", EvaluationType.FLOAT, "The left-hand side x-coordinate of the actual drawing area on the document page.");
 		public static readonly EnvironmentVariableInfo PageRight = new EnvironmentVariableInfo("pageright", EvaluationType.FLOAT, "The right-hand side x-coordinate of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo PageBottom = new EnvironmentVariableInfo("pagebottom", EvaluationType.FLOAT, "The top edge y-coordinate of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo PageTop = new EnvironmentVariableInfo("pagetop", EvaluationType.FLOAT, "The bottom edge y-coordinate of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo PageBottom = new EnvironmentVariableInfo("pagebottom", EvaluationType.FLOAT, "The bottom edge y-coordinate of the actual drawing area on the document page.");
+		public static readonly EnvironmentVariableInfo PageTop = new EnvironmentVariableInfo("pagetop", EvaluationType.FLOAT, "The top edge y-coordinate of the actual drawing area on the document page.");
 
 		// Random seed calculated from area variables
 		public static readonly EnvironmentVariableInfo Seed = new EnvironmentVariableInfo("seed", EvaluationType.INT, "A random seed for this drawing area (based on the actual position on the document page).");
