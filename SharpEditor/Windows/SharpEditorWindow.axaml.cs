@@ -858,6 +858,7 @@ namespace SharpEditor.Windows {
 		public ICommand DecrementCommentCommand { get; private set; }
 
 		public ICommand HelpCommand { get; private set; }
+		public ICommand SettingsCommand { get; private set; }
 
 		public ICommand CutCommand { get; private set; }
 		public ICommand CopyCommand { get; private set; }
@@ -873,7 +874,8 @@ namespace SharpEditor.Windows {
 			nameof(SaveCommand), nameof(SaveAsCommand), nameof(SaveAllCommand),
 			nameof(GenerateCommand), nameof(GeneratePopulateCommand), nameof(GeneratePopulateFromCommand),
 			nameof(IncrementCommentCommand), nameof(DecrementCommentCommand),
-			nameof(HelpCommand), nameof(FindCommand), nameof(FindReplaceCommand),
+			nameof(HelpCommand), nameof(SettingsCommand),
+			nameof(FindCommand), nameof(FindReplaceCommand),
 			nameof(CutCommand), nameof(CopyCommand), nameof(PasteCommand), nameof(DeleteCommand),
 			nameof(UndoCommand), nameof(RedoCommand))]
 		private void InitialiseCommands() {
@@ -891,6 +893,8 @@ namespace SharpEditor.Windows {
 			DecrementCommentCommand = new RelayCommand(DecrementCommentExecuted, CanIncrementComment);
 
 			HelpCommand = new RelayCommand(HelpExecuted);
+			SettingsCommand = new RelayCommand(SettingsExecuted);
+
 			FindCommand = new RelayCommand(FindExecuted, CanFindExecute);
 			FindReplaceCommand = new RelayCommand(FindReplaceExecuted, CanFindReplaceExecute);
 
@@ -1056,6 +1060,10 @@ namespace SharpEditor.Windows {
 		}
 		private bool CanFindReplaceExecute() {
 			return GetCurrentEditor() is not null;
+		}
+
+		private void SettingsExecuted() {
+			controller?.ActivateSettingsWindow();
 		}
 
 		#endregion Commands
