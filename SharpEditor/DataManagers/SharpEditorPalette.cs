@@ -53,6 +53,8 @@ namespace SharpEditor.DataManagers {
 		public static IHighlightingDefinition CardSubjectHighlighting { get; private set; }
 		public static IHighlightingDefinition BoxMarkupHighlighting { get; private set; }
 
+		public static HighlightData UnusedData => HighlightingColors["Editor_Unused"]; // This feels janky?
+
 		public static Brush WidgetBrush { get; private set; }
 		public static Brush MetaPropertyBrush { get; private set; }
 		public static Brush ShapeStyleBrush { get; private set; }

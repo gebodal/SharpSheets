@@ -7,6 +7,7 @@ using SharpSheets.Utilities;
 using SharpSheets.Parsing;
 using SharpSheets.Cards.Definitions;
 using SharpSheets.Exceptions;
+using System.Text.RegularExpressions;
 
 namespace SharpEditor {
 
@@ -206,9 +207,23 @@ namespace SharpEditor {
 				foreach (DocumentLine line in Document.Lines) {
 					int lineIndex = line.LineNumber - 1;
 					if (line.Length > 0 && !(result.results.usedLines?.Contains(lineIndex) ?? true)) {
-						TSpan span = Create(line.Offset, line.Length);
-						span.IsUnused = true;
-						Add(span);
+
+						string lineText = Document.GetText(line);
+						int start = line.Offset;
+						int length = line.Length;
+						int commentStart = GetCommentStart(lineText, out bool hasContent);
+
+						if (!hasContent) { continue; }
+
+						if(commentStart >= 0) {
+							length = commentStart;
+						}
+
+						if (length > 0) {
+							TSpan span = Create(start, length);
+							span.IsUnused = true;
+							Add(span);
+						}
 					}
 				}
 
@@ -302,6 +317,23 @@ namespace SharpEditor {
 
 		public bool IsLineUsed(int line) {
 			return UsedLines?.Contains(line) ?? true;
+		}
+
+		#endregion
+
+		#region Helpers
+
+		private static readonly Regex commentRegex = new Regex(@"(?:\\(?:\\\\)*)?\#");
+		protected int GetCommentStart(string text, out bool hasContent) {
+			if(commentRegex.Match(text) is Match match && match.Success) {
+				int commentIndex = match.Index + match.Length - 1;
+				hasContent = !string.IsNullOrWhiteSpace(text[..commentIndex]);
+				return commentIndex;
+			}
+			else {
+				hasContent = !string.IsNullOrWhiteSpace(text);
+				return -1;
+			}
 		}
 
 		#endregion

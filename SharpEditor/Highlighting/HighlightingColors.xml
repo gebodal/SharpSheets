@@ -56,4 +56,7 @@
 	<Color name="Documentation_Type" foreground="Gold"/>
 	<Color name="Documentation_DefaultValue" foreground="Gray"/>
 
+	<!-- Editor -->
+	<Color name="Editor_Unused" foreground="#808080"/>
+
 </Colors>

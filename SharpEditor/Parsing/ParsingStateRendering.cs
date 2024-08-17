@@ -17,21 +17,19 @@ namespace SharpEditor {
 
 	public class ParsingStateColorizingTransformer : DocumentColorizingTransformer {
 
-		private readonly IBrush ownerBrush; // = new SolidColorBrush(Colors.White) { Opacity = 0.15 };
-		private readonly IBrush childBrush; // = new SolidColorBrush(Colors.Orange) { Opacity = 0.15 };
-		private readonly IBrush unusedBrush; // = new SolidColorBrush(new Color(0xff, 0x80, 0x80, 0x80)); // "#808080"
+		public required IBrush OwnerBrush { get; set; } // = new SolidColorBrush(Colors.White) { Opacity = 0.15 };
+		public required IBrush ChildBrush { get; set; } // = new SolidColorBrush(Colors.Orange) { Opacity = 0.15 };
+		public required IBrush UnusedBrush { get; set; } // = new SolidColorBrush(new Color(0xff, 0x80, 0x80, 0x80)); // "#808080"
+		public required FontStyle UnusedFontStyle { get; set; }
+		public required FontWeight UnusedFontWeight { get; set; }
 
 		private bool ColorOwners { get { return parsingManager.ColorOwners; } }
 
 		private readonly ParsingManager parsingManager;
 		private readonly TextArea textArea;
-		public ParsingStateColorizingTransformer(ParsingManager parsingManager, TextArea textArea, IBrush ownerBrush, IBrush childBrush, IBrush unusedBrush) {
+		public ParsingStateColorizingTransformer(ParsingManager parsingManager, TextArea textArea) {
 			this.parsingManager = parsingManager;
 			this.textArea = textArea;
-
-			this.ownerBrush = ownerBrush;
-			this.childBrush = childBrush;
-			this.unusedBrush = unusedBrush;
 		}
 
 		protected override void ColorizeLine(DocumentLine line) {
@@ -54,11 +52,13 @@ namespace SharpEditor {
 				IBrush? foregroundBrush = null;
 				IBrush? backgroundBrush = null;
 				FontStyle? fontStyle = span.FontStyle;
+				FontWeight? fontWeight = span.FontWeight;
 				float? fontSizeFactor = span.FontSizeFactor;
 
 				if (span.IsUnused) {
-					foregroundBrush = unusedBrush;
-					fontStyle = FontStyle.Italic;
+					foregroundBrush = UnusedBrush;
+					fontStyle = UnusedFontStyle;
+					fontWeight = UnusedFontWeight;
 					fontSizeFactor = null;
 				}
 				else if (span.ForegroundColor != null) {
@@ -72,11 +72,11 @@ namespace SharpEditor {
 				else if (ColorOwners && !textArea.Selection.IsMultiline) { //  && line.LineNumber != textArea.Caret.Line
 					if (caretChildren!.Contains(span)) {
 						// Caret span owns this span
-						backgroundBrush = childBrush;
+						backgroundBrush = ChildBrush;
 					}
 					else if (caretOwners!.Contains(span)) {
 						// This span owns caret span
-						backgroundBrush = ownerBrush;
+						backgroundBrush = OwnerBrush;
 					}
 				}
 
@@ -99,7 +99,7 @@ namespace SharpEditor {
 						element.TextRunProperties.SetTypeface(new Typeface(
 							tf.FontFamily,
 							fontStyle ?? tf.Style,
-							span.FontWeight ?? tf.Weight,
+							fontWeight ?? tf.Weight,
 							tf.Stretch
 						));
 					}

@@ -100,10 +100,10 @@ namespace SharpEditor.DataManagers {
 			"EditorDecorationColor",
 			"EditorSelectionColor",
 			"EditorSearchResultColor",
+			"EditorCurrentLineBorderColor",
 			"EditorCurrentLineColor",
 			"EditorOwnerColor",
 			"EditorChildColor",
-			"EditorUnusedColor",
 			"EditorSameTokenColor",
 			"EditorErrorColor1",
 			"EditorErrorColor2",
@@ -159,7 +159,6 @@ namespace SharpEditor.DataManagers {
 
 		public static readonly string EditorOwnerBrush = "EditorOwnerBrush";
 		public static readonly string EditorChildBrush = "EditorChildBrush";
-		public static readonly string EditorUnusedBrush = "EditorUnusedBrush";
 		public static readonly string EditorSameTokenBrush = "EditorSameTokenBrush";
 
 		public static readonly string EditorErrorBrush1 = "EditorErrorBrush1";

@@ -50,7 +50,6 @@
 	
 	<Color x:Key="EditorOwnerColor">#26ffffff</Color> <!-- Highlight owner spans in editor -->
 	<Color x:Key="EditorChildColor">#26ffa500</Color> <!-- Highlight child spans in editor -->
-	<Color x:Key="EditorUnusedColor">#808080</Color> <!-- Color unused lines in editor (this should be in with syntax highlighting) -->
 	<Color x:Key="EditorSameTokenColor">#33d3d3d3</Color> <!-- Color unused lines in editor (this should be in with syntax highlighting) -->
 	
 	<Color x:Key="EditorErrorColor1">Red</Color> <!-- Parsing error underline -->
@@ -112,7 +111,6 @@
 	
 	<SolidColorBrush x:Key="EditorOwnerBrush" Color="{DynamicResource EditorOwnerColor}"/>
 	<SolidColorBrush x:Key="EditorChildBrush" Color="{DynamicResource EditorChildColor}"/>
-	<SolidColorBrush x:Key="EditorUnusedBrush" Color="{DynamicResource EditorUnusedColor}"/>
 	<SolidColorBrush x:Key="EditorSameTokenBrush" Color="{DynamicResource EditorSameTokenColor}"/>
 	
 	<SolidColorBrush x:Key="EditorErrorBrush1" Color="{DynamicResource EditorErrorColor1}"/>

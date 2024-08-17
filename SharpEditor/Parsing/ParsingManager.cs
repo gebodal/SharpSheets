@@ -39,9 +39,9 @@ namespace SharpEditor {
 	public sealed class ParsingManager : ITextViewConnect {
 		
 		private readonly TextArea textArea;
-		public TextDocument Document { get; private set; }
+		public TextDocument Document { get; private init; }
 
-		private readonly IVisualLineTransformer colorizingLineTransformer;
+		private readonly ParsingStateColorizingTransformer colorizingLineTransformer;
 		private readonly IBackgroundRenderer backgroundRenderer;
 		private readonly IBackgroundRenderer errorRenderer;
 		private readonly IBackgroundRenderer sameTokenRenderer;
@@ -52,12 +52,20 @@ namespace SharpEditor {
 
 			IBrush ownerBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorOwnerBrush) ?? throw new InvalidOperationException();
 			IBrush childBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorChildBrush) ?? throw new InvalidOperationException();
-			IBrush unusedBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorUnusedBrush) ?? throw new InvalidOperationException();
 			IBrush sameTokenBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorSameTokenBrush) ?? throw new InvalidOperationException();
 			IBrush error1Brush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorErrorBrush1) ?? throw new InvalidOperationException();
 			IBrush error2Brush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.EditorErrorBrush2) ?? throw new InvalidOperationException();
 
-			colorizingLineTransformer = new ParsingStateColorizingTransformer(this, textArea, ownerBrush, childBrush, unusedBrush);
+			HighlightData unusedData = SharpEditorPalette.UnusedData;
+			IBrush unusedBrush = new SolidColorBrush(unusedData.Color);
+
+			colorizingLineTransformer = new ParsingStateColorizingTransformer(this, textArea) {
+				OwnerBrush = ownerBrush,
+				ChildBrush = childBrush,
+				UnusedBrush = unusedBrush,
+				UnusedFontStyle = unusedData.FontStyle,
+				UnusedFontWeight = unusedData.FontWeight
+			};
 			backgroundRenderer = new ParsingStateUnderlineRenderer(this);
 			errorRenderer = new ParsingErrorBackgroundRenderer(this, error1Brush, error2Brush);
 			sameTokenRenderer = new ParsingStateSameTokenRenderer(this, textArea, sameTokenBrush);
@@ -77,6 +85,8 @@ namespace SharpEditor {
 				services.AddService(typeof(ParsingManager), manager);
 			}
 
+			SharpEditorPalette.HighlightColorChanged += manager.OnHighlightColorChanged;
+
 			manager.InstallParsing();
 
 			Console.WriteLine("Parsing Manager Installed");
@@ -94,9 +104,20 @@ namespace SharpEditor {
 				services.RemoveService(typeof(ParsingManager));
 			}
 
+			SharpEditorPalette.HighlightColorChanged -= manager.OnHighlightColorChanged;
+
 			manager.UninstallParsing();
 
 			Console.WriteLine("Parsing Manager Uninstalled");
+		}
+
+		private void OnHighlightColorChanged(object? sender, EventArgs e) {
+			HighlightData unusedData = SharpEditorPalette.UnusedData;
+			colorizingLineTransformer.UnusedBrush = new SolidColorBrush(unusedData.Color);
+			colorizingLineTransformer.UnusedFontStyle = unusedData.FontStyle;
+			colorizingLineTransformer.UnusedFontWeight = unusedData.FontWeight;
+
+			textArea.InvalidateVisual();
 		}
 		#endregion
 
