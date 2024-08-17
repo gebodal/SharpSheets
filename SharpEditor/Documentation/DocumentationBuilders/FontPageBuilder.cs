@@ -530,6 +530,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		}
 
 		private static readonly double GlyphElementSize = 50;
+		private static readonly double GlyphElementMarginThickness = 1;
 		private static readonly float GlyphFontSize = 30;
 
 		private static readonly int MaxGlyphCount = 8000;
@@ -544,7 +545,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			int panelCount = 0;
 			foreach (ushort glyphIdx in unicodeKnown.OrderBy(i => gidToUnicode[i]).Concat(Range(fontData.NumGlyphs).Where(i => !unicodeKnown.Contains(i)))) {
 
-				Control glyphElement = MakeGlyphBox(fontData, glyphIdx, gidToUnicode, glyphNames).AddMargin(new Thickness(1));
+				Control glyphElement = MakeGlyphBox(fontData, glyphIdx, gidToUnicode, glyphNames).AddMargin(new Thickness(GlyphElementMarginThickness));
 
 				elementsToAdd.Add(glyphElement);
 
@@ -590,6 +591,11 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			//float glyphHeight = fontData.GetAscent(GlyphFontSize);
 			float glyphWidth = fontData.GetWidth(glyphIdx, GlyphFontSize);
+
+			if(glyphWidth > border.Width) {
+				int widthMultiplier = (int)Math.Ceiling(glyphWidth / GlyphElementSize);
+				border.Width = GlyphElementSize * widthMultiplier + (widthMultiplier - 1) * (2 * GlyphElementMarginThickness);
+			}
 
 			// Calculate the margin to center the Path within the Border
 			double horizontalOffset = (border.Width - glyphWidth) / 2;
