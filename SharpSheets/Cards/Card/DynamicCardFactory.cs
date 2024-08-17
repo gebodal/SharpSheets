@@ -50,7 +50,7 @@ namespace SharpSheets.Cards.Card {
 				orderedSegments = OrderRects(orderedSegments);
 			}
 
-			DynamicCard dynamicCard = new DynamicCard(subject, cardConfig.gutter, cardConfig.joinSplitCards, cardConfig.cropOnFinalCard, backgroundCollection, cardConfig.gutterStyle, outlineCollection, orderedSegments);
+			DynamicCard dynamicCard = new DynamicCard(subject, backgroundCollection, outlineCollection, orderedSegments);
 			if (origins != null) { origins.Add(dynamicCard, subject); }
 			if (configOrigins != null) { configOrigins.Add(dynamicCard, subject.CardConfig); }
 			return dynamicCard;
@@ -269,7 +269,7 @@ namespace SharpSheets.Cards.Card {
 
 			ArrangementCollection<IWidget> segmentOutlines = GetOutlines(segment.Environment, segment.Location, segmentConfig, cardConfig, errors, widgetFactory);
 
-			DynamicSegmentRect rect = new DynamicSegmentRect(segmentConfig, segmentOutlines, entries.ToArray(), segmentConfig.gutter, segmentConfig.splittable, segmentConfig.acceptRemaining, segmentConfig.equalSizeFeatures, segmentConfig.spaceFeatures);
+			DynamicSegmentRect rect = new DynamicSegmentRect(segmentConfig, segmentOutlines, entries.ToArray(), segmentConfig.splittable);
 
 			if (origins != null) { origins.Add(rect, segment); }
 			if (configOrigins != null) { configOrigins.Add(rect, segmentConfig); }
@@ -406,7 +406,7 @@ namespace SharpSheets.Cards.Card {
 
 			ArrangementCollection<IWidget> segmentOutlines = GetOutlines(subject.Environment, subject.Location, segmentConfig, cardConfig, errors, widgetFactory);
 
-			DynamicSegmentRect rect = new DynamicSegmentRect(segmentConfig, segmentOutlines, entries.ToArray(), segmentConfig.gutter, segmentConfig.splittable, segmentConfig.acceptRemaining, segmentConfig.equalSizeFeatures, segmentConfig.spaceFeatures);
+			DynamicSegmentRect rect = new DynamicSegmentRect(segmentConfig, segmentOutlines, entries.ToArray(), segmentConfig.splittable);
 			if (origins != null) { origins.Add(rect, subject); }
 			if (configOrigins != null) { configOrigins.Add(rect, segmentConfig); }
 			return rect;

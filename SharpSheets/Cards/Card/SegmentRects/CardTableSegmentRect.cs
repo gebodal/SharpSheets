@@ -13,15 +13,7 @@ using SharpSheets.Cards.CardSubjects;
 
 namespace SharpSheets.Cards.Card.SegmentRects {
 
-	public class NewCardTableSegmentRect : IFixedCardSegmentRect {
-
-		AbstractCardSegmentConfig IFixedCardSegmentRect.Config => Config;
-		public TableCardSegmentConfig Config { get; }
-		public IFixedCardSegmentRect? Original { get; set; }
-
-		public readonly ArrangementCollection<IWidget> outlines;
-		public bool Splittable { get; }
-		public bool AcceptRemaining => Config.acceptRemaining;
+	public class NewCardTableSegmentRect : AbstractSegmentRect<TableCardSegmentConfig> {
 
 		private readonly RichString[,] entries;
 		private readonly CardFeature[] features;
@@ -32,19 +24,13 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 		private (float column, float row) TableSpacing => Config.tableSpacing;
 
 		private static readonly Regex numberColumnRegex = new Regex(@"^[0-9\-\+\.]+$");
-		private readonly TextHeightStrategy cellHeightStrategy = TextHeightStrategy.AscentDescent;
+		public TextHeightStrategy CellHeightStrategy => Config.cellHeightStrategy;
 
 		protected int StartRow { get; set; } = 0;
 
-		private int partIndex { get; set; } = 0;
-		private int partsCount { get; set; } = 1;
-
-		public NewCardTableSegmentRect(TableCardSegmentConfig config, ArrangementCollection<IWidget> outlines, RichString[,] tableEntries, CardFeature[] features, bool splittable) {
-			Config = config;
-			this.outlines = outlines;
+		public NewCardTableSegmentRect(TableCardSegmentConfig config, ArrangementCollection<IWidget> outlines, RichString[,] tableEntries, CardFeature[] features, bool splittable) : base(config, outlines, splittable) {
 			entries = tableEntries;
 			this.features = features;
-			Splittable = splittable;
 
 			numericColumns = new bool[entries.GetLength(1)];
 			justifications = new Justification[entries.GetLength(1)];
@@ -54,11 +40,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 			}
 		}
 
-		private IWidget GetOutline() {
-			return outlines[partIndex, partsCount];
-		}
-
-		public virtual float CalculateMinimumHeight(ISharpGraphicsState graphicsState, float fontSize, ParagraphSpecification paragraphSpec, float width, CardQueryCache cache) {
+		public override float CalculateMinimumHeight(ISharpGraphicsState graphicsState, float fontSize, ParagraphSpecification paragraphSpec, float width, CardQueryCache cache) {
 			IWidget outline = GetOutline();
 			Rectangle exampleRect = new Rectangle(width, 10000f);
 			Rectangle tempRect;
@@ -77,7 +59,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 		}
 
 		protected float GetTableRowsMinimumHeight(ISharpGraphicsState graphicsState, float fontSize, ParagraphSpecification paragraphSpec, float width) {
-			return GetRowDimensions(graphicsState, entries, numericColumns, width, Config.edgeOffset, fontSize, paragraphSpec, cellHeightStrategy).Select(d => d.Absolute).Sum()
+			return GetRowDimensions(graphicsState, entries, numericColumns, width, Config.edgeOffset, fontSize, paragraphSpec, CellHeightStrategy).Select(d => d.Absolute).Sum()
 				+ (entries.GetLength(0) - 1) * TableSpacing.row // Inter-row spacing
 				+ TableSpacing.row; // Spacing before and after table (half-width each, for filling in cell backgrounds)
 		}
@@ -154,7 +136,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 			return RowColors[(StartRow + i) % RowColors.Length];
 		}
 
-		public void Draw(ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec) {
+		public override void Draw(ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec) {
 			canvas.RegisterAreas(Original ?? this, rect, null, Array.Empty<Rectangle>());
 
 			IWidget outline = GetOutline();
@@ -185,7 +167,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 		/// <summary></summary>
 		/// <exception cref="InvalidRectangleException"></exception>
 		protected Rectangle?[] GetRowRects(ISharpGraphicsState graphicsState, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec) {
-			return Divisions.Rows(rect, GetRowDimensions(graphicsState, entries, numericColumns, rect.Width, Config.edgeOffset, fontSize, paragraphSpec, cellHeightStrategy), TableSpacing.row, false, Arrangement.FRONT, LayoutOrder.FORWARD);
+			return Divisions.Rows(rect, GetRowDimensions(graphicsState, entries, numericColumns, rect.Width, Config.edgeOffset, fontSize, paragraphSpec, CellHeightStrategy), TableSpacing.row, false, Arrangement.FRONT, LayoutOrder.FORWARD);
 		}
 
 		/// <summary></summary>
@@ -205,12 +187,12 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 			Rectangle?[] columnRects = GetColumnRects(rect, columnDimensions, ColumnGutter(canvas, fontSize), Config.edgeOffset);
 			for (int j = 0; j < columnRects.Length; j++) {
 				if (columnRects[j] != null) {
-					canvas.DrawRichText(columnRects[j]!, entries[i, j], fontSize, paragraphSpec, justifications[j], Alignment.CENTRE, cellHeightStrategy, true);
+					canvas.DrawRichText(columnRects[j]!, entries[i, j], fontSize, paragraphSpec, justifications[j], Alignment.CENTRE, CellHeightStrategy, true);
 				}
 			}
 		}
 
-		public IPartialCardSegmentRects Split(int parts) {
+		public override IPartialCardSegmentRects Split(int parts) {
 			if (Splittable) {
 				return new CardTableSegmentRectPieces(this, parts);
 			}
@@ -295,8 +277,8 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 					nextBox = new NewCardTableSegmentRect(original.Config, original.outlines, boxEntries, boxFeatures!, false) {
 						Original = original,
 						StartRow = startRow,
-						partIndex = boxCount - 1,
-						partsCount = Boxes
+						PartIndex = boxCount - 1,
+						PartsCount = Boxes
 					};
 					resultingHeight = cache.GetMinimumHeight(nextBox, fontSize, paragraphSpec, width); // fixedBox.CalculateMinimumHeight1(graphicsState, font, width); // TODO This seems inefficient here?
 				}
@@ -312,7 +294,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 
 			public (RichString[,]?, CardFeature[]?) SplitEntriesByHeight(ISharpGraphicsState graphicsState, RichString[,] entries, CardFeature[] features, float width, float height, float fontSize, ParagraphSpecification paragraphSpec, out RichString[,]? remainingEntries, out CardFeature[]? remainingFeatures) {
 
-				Dimension[] rowDims = NewCardTableSegmentRect.GetRowDimensions(graphicsState, entries, original.numericColumns, width, original.Config.edgeOffset, fontSize, paragraphSpec, original.cellHeightStrategy);
+				Dimension[] rowDims = NewCardTableSegmentRect.GetRowDimensions(graphicsState, entries, original.numericColumns, width, original.Config.edgeOffset, fontSize, paragraphSpec, original.CellHeightStrategy);
 
 				float rowsHeight1 = rowDims[0].Absolute;
 				for (int i = 1; i < rowDims.Length; i++) {

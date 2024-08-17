@@ -140,6 +140,10 @@ namespace SharpSheets.Documentation {
 			return WithArguments(Arguments.Concat(extraArgs).ToArray());
 		}
 
+		public ConstructorDetails WithAdditionalArguments(params ArgumentDetails[] extraArgs) {
+			return WithAdditionalArguments((IEnumerable<ArgumentDetails>)extraArgs);
+		}
+
 		public ConstructorDetails Prefixed(string prefix) {
 			return WithArguments(Arguments.Select(a => a.Prefixed(prefix)).ToArray());
 		}

@@ -14,8 +14,7 @@ using SharpSheets.Parsing;
 using SharpSheets.Cards.Card.SegmentRects;
 using SharpSheets.Cards.CardConfigs;
 
-namespace SharpSheets.Cards.Card
-{
+namespace SharpSheets.Cards.Card {
 
     public class DynamicCard : AbstractCard {
 
@@ -23,28 +22,25 @@ namespace SharpSheets.Cards.Card
 		public CardSetConfig CardSetConfig => Subject.CardConfig.cardSetConfig;
 		public CardConfig CardConfig => Subject.CardConfig;
 
-		public readonly IDetail? gutterStyle;
+		public IDetail? GutterStyle => CardConfig.gutterStyle;
 		public readonly ArrangementCollection<IWidget> backgrounds;
 		public readonly ArrangementCollection<IWidget> outlines;
 
-		public readonly bool joinSplitCards;
+		public bool JoinSplitCards => CardConfig.joinSplitCards;
 
-		public override bool CropOnFinalCard { get; }
+		public override bool CropOnFinalCard => CardConfig.cropOnFinalCard;
 
-		public DynamicCard(CardSubject subject, float gutter, bool joinSplitCards, bool cropOnFinalCard, ArrangementCollection<IWidget> backgrounds, IDetail? gutterStyle, ArrangementCollection<IWidget> outlines, IFixedCardSegmentRect[] segments) {
+		public override float Gutter => CardConfig.gutter;
+
+		public DynamicCard(CardSubject subject, ArrangementCollection<IWidget> backgrounds, ArrangementCollection<IWidget> outlines, IFixedCardSegmentRect[] segments) {
 			this.Subject = subject;
-			this.Gutter = gutter;
-			this.joinSplitCards = joinSplitCards;
 			this.backgrounds = backgrounds;
-			this.gutterStyle = gutterStyle;
 			this.outlines = outlines;
 			this.Segments = segments;
-			this.CropOnFinalCard = cropOnFinalCard;
 		}
 
 		public override IFixedCardSegmentRect[] Segments { get; }
 
-		public override float Gutter { get; }
 
 		protected static IWidget GetFrom(ArrangementCollection<IWidget> collection, int card, int totalCards) {
 			//IWidget rect = collection.GetValue(DynamicCardEnvironments.CardNumberEnvironment(subject.Environment, card, totalCards));
@@ -56,7 +52,7 @@ namespace SharpSheets.Cards.Card
 			return rect;
 			*/
 			IWidget rect = collection.GetValue(card, totalCards);
-			if(rect == null) {
+			if (rect == null) {
 				rect = new Div(new WidgetSetup());
 			}
 			return rect;
@@ -73,14 +69,14 @@ namespace SharpSheets.Cards.Card
 		public override void DrawOutline(ISharpCanvas canvas, Rectangle rect, int card, int totalCards) {
 			IWidget outline = GetOutline(card, totalCards);
 			IWidget background = GetBackground(card, totalCards);
-			Rectangle outlineRect = background.RemainingRect(canvas, rect) ?? rect; // TODO Yes? Should we not draw the outline instead?
+			Rectangle outlineRect = background.RemainingRect(canvas, rect) ?? rect;
 			outline.Draw(canvas, outlineRect, default);
 		}
 
 		public override void DrawBackground(ISharpCanvas canvas, Rectangle[] rects) {
 			List<Rectangle> outlineRects = new List<Rectangle>();
 
-			if (joinSplitCards) {
+			if (JoinSplitCards) {
 				IWidget background = GetBackground(0, 1);
 				Rectangle overallRect = Rectangle.GetCommonRectangle(rects);
 				background.Draw(canvas, overallRect, default);
@@ -101,9 +97,9 @@ namespace SharpSheets.Cards.Card
 		}
 
 		public override void DrawGutter(ISharpCanvas canvas, Rectangle rect) {
-			if (gutterStyle != null) {
-				gutterStyle.Layout = Layout.ROWS;
-				gutterStyle.Draw(canvas, rect);
+			if (GutterStyle != null) {
+				GutterStyle.Layout = Layout.ROWS;
+				GutterStyle.Draw(canvas, rect);
 			}
 		}
 
@@ -132,6 +128,30 @@ namespace SharpSheets.Cards.Card
 			}
 		}
 
+		public class BulletArg : ISharpArgsGrouping {
+			public readonly string? Symbol;
+			public readonly FontSetting? FontPath;
+			public readonly float FontSizeMultiplier;
+			public readonly float Indent;
+			public readonly float Offset;
+
+			/// <summary>
+			/// 
+			/// </summary>
+			/// <param name="symbol"></param>
+			/// <param name="font"></param>
+			/// <param name="size"></param>
+			/// <param name="indent"></param>
+			/// <param name="offset"></param>
+			public BulletArg(string? symbol = null, FontSetting? font = null, float size = 1f, float indent = 0f, float offset = 0f) {
+				Symbol = symbol;
+				FontPath = font;
+				FontSizeMultiplier = Math.Max(0f, size);
+				Indent = indent;
+				Offset = offset;
+			}
+		}
+
 		private readonly RichString text;
 		private readonly Justification justification;
 		private readonly Alignment alignment;
@@ -140,9 +160,7 @@ namespace SharpSheets.Cards.Card
 		//private readonly float paragraphSpacing;
 		private readonly float multiplier;
 
-		public readonly FontSetting? dingbatsPath;
-		public readonly string? bullet;
-		public readonly (float x,float y) bulletOffset;
+		public readonly BulletArg bullet;
 
 		private readonly ParagraphSpecification paragraphSpec;
 
@@ -155,9 +173,7 @@ namespace SharpSheets.Cards.Card
 			float lineSpacing = 1.35f,
 			ParagraphDataArg? paragraph = null,
 			float multiplier = 1f,
-			FontSetting? dingbats = null,
-			string? bullet = null,
-			(float x,float y) bulletOffset = default
+			BulletArg? bullet = null
 		) : base(setup) {
 
 			this.text = RichString.Join("\n", TextFormat.REGULAR, text ?? Enumerable.Empty<RichString>());
@@ -170,9 +186,7 @@ namespace SharpSheets.Cards.Card
 			this.paragraphSpec = new ParagraphSpecification(lineSpacing, paragraph.Spacing, paragraph.Indent);
 			this.multiplier = multiplier;
 
-			this.dingbatsPath = dingbats;
-			this.bullet = bullet;
-			this.bulletOffset = bulletOffset;
+			this.bullet = bullet ?? new BulletArg();
 		}
 
 		private float GetFontSize(ISharpGraphicsState graphicsState) {
@@ -196,12 +210,17 @@ namespace SharpSheets.Cards.Card
 
 			RichString[][] lines = RichStringLineSplitting.SplitParagraphs(canvas, text, rect.Width, finalFontSize, paragraphSpec, true);
 
-			if (bullet != null && bullet.Length > 0) {
+			if (!string.IsNullOrEmpty(bullet.Symbol)) {
 				float firstLineY = RichStringLayout.GetStartY(canvas, rect, lines, finalFontSize, paragraphSpec, alignment, heightStrategy);
 
+				float bulletFontSize = bullet.FontSizeMultiplier * finalFontSize;
+				float bulletIndent = bullet.Indent;
+				float bulletOffset = bullet.Offset * finalFontSize;
+
 				canvas.SaveState();
-				canvas.SetFont(TextFormat.REGULAR, dingbatsPath);
-				canvas.DrawText(bullet, rect.Left + bulletOffset.x, firstLineY + bulletOffset.y);
+				canvas.SetTextSize(bulletFontSize);
+				canvas.SetFont(TextFormat.REGULAR, bullet.FontPath);
+				canvas.DrawText(bullet.Symbol, rect.Left + bulletIndent, firstLineY + bulletOffset);
 				canvas.RestoreState();
 			}
 

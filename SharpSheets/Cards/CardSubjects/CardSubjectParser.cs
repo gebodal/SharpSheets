@@ -344,7 +344,7 @@ namespace SharpSheets.Cards.CardSubjects {
 						initialSetup[entryNameValue.Value] = new ContextProperty<string>(entryNameValue.Location, entryNameValue.Value, entryTextValue.Value.Location, entryTextValue.Value.Value);
 						AssignRelation(currentSubject.Location, lineSpan);
 					}
-					else if ((configStack.Peek().allowSingleLineFeatures || configStack.Peek().allowFeatureFollowOn) && currentSubject.segments.Count > 0) {
+					else if (initialSetup == null && currentSubject.segments.Count > 0) {
 						CheckForTerminator(entryTextValue, out entryTextValue, out bool lineTerminated);
 
 						//Console.WriteLine($"{i,3}: New one-line feature. Name: \"{entryName}\", Note: \"{entryNote}\", Details: \"{entryDetails}\", Text: \"{entryText}\"");

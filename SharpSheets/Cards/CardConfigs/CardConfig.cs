@@ -56,7 +56,6 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		public readonly bool allowFeatureFollowOn;
 		public readonly bool requireFormalSetupEnd;
-		public readonly bool allowSingleLineFeatures;
 
 		public readonly DefinitionGroup definitions;
 		private readonly VariableDefinitionBox variableBox;
@@ -82,12 +81,11 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="source" exclude="true"></param>
 		/// <param name="_description"></param>
 		/// <param name="_paper"></param>
-		/// <param name="_pageMargins" default="(20,20,20,20)"></param>
+		/// <param name="_pageMargins" default="20"></param>
 		/// <param name="_cardGutter"></param>
 		/// <param name="_grid" default="1,1"></param>
 		/// <param name="_allowFeatureFollowOn"></param>
 		/// <param name="_requireFormalSetupEnd"></param>
-		/// <param name="_allowSingleLineFeatures"></param>
 		/// <exception cref="ArgumentNullException"></exception>
 		public CardSetConfig(
 			string name,
@@ -100,8 +98,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			float _cardGutter = 20f,
 			(uint rows, uint columns)? _grid = null,
 			bool _allowFeatureFollowOn = false,
-			bool _requireFormalSetupEnd = false,
-			bool _allowSingleLineFeatures = false
+			bool _requireFormalSetupEnd = false
 		) {
 			this.name = name ?? throw new ArgumentNullException(nameof(name));
 			this.origin = origin;
@@ -119,7 +116,6 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			this.allowFeatureFollowOn = _allowFeatureFollowOn;
 			this.requireFormalSetupEnd = _requireFormalSetupEnd;
-			this.allowSingleLineFeatures = _allowSingleLineFeatures;
 
 			this.definitions = new DefinitionGroup();
 
@@ -181,9 +177,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly ConditionalCollection<AbstractCardSegmentConfig> cardSegments;
 		public IEnumerable<Conditional<AbstractCardSegmentConfig>> AllCardSegments => cardSegments.Concat(cardSetConfig.cardSetSegments);
 
-		private readonly bool singles;
 		private readonly uint? _maxCards;
-		public uint MaxCards { get { return singles ? 1 : (_maxCards ?? cardSetConfig.grid.columns); } } // TODO This should really be left up to the layout strategy
+		public uint MaxCards { get { return _maxCards ?? cardSetConfig.grid.columns; } } // TODO This should really be left up to the layout strategy
 
 		private readonly VariableDefinitionBox variableBox;
 		public IVariableDefinitionBox Variables => variableBox;
@@ -194,25 +189,23 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// /// <param name="cardSetConfig" exclude="true"></param>
 		/// <param name="_name"></param>
 		/// <param name="_description"></param>
-		/// <param name="font"></param>
 		/// <param name="minFontSize"></param>
 		/// <param name="maxFontSize"></param>
 		/// <param name="fontEpsilon"></param>
 		/// <param name="lineSpacing"></param>
 		/// <param name="paragraphSpacing"></param>
 		/// <param name="maxCards"></param>
-		/// <param name="singles"></param>
 		/// <param name="gutter"></param>
 		/// <param name="gutter_"></param>
 		/// <param name="cropOnFinalCard"></param>
 		/// <param name="joinSplitCards"></param>
 		/// <param name="multiCardLayout"></param>
 		/// <param name="allowMultipage"></param>
+		/// <param name="font"></param>
 		public CardConfig(
 			CardSetConfig cardSetConfig,
 			string? _name = null,
 			List<string>? _description = null,
-			FontArgument? font = null,
 			//FontArguments.FontGrouping? font = null,
 			//FontArguments.FontSettingCollection? font_ = null,
 			float minFontSize = 7.5f,
@@ -221,13 +214,13 @@ namespace SharpSheets.Cards.CardConfigs {
 			float lineSpacing = 1.35f,
 			float paragraphSpacing = 3f,
 			uint? maxCards = null,
-			bool singles = false,
 			float gutter = 5f,
 			IDetail? gutter_ = null, // gutter_
 			bool cropOnFinalCard = false,
 			bool joinSplitCards = false,
 			RectangleAllowance multiCardLayout = RectangleAllowance.NONE,
-			bool allowMultipage = true
+			bool allowMultipage = true,
+			FontArgument? font = null
 		) {
 
 			this.name = _name;
@@ -242,7 +235,6 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.fontParams = new FontSizeSearchParams(minFontSize, maxFontSize, fontEpsilon);
 
 			this._maxCards = maxCards;
-			this.singles = singles;
 
 			this.gutter = gutter;
 			this.gutterStyle = gutter_;
@@ -440,6 +432,30 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	public class ParagraphCardSegmentConfig : AbstractCardSegmentConfig {
 
+		public class BulletArg : ISharpArgsGrouping {
+			public readonly string Symbol;
+			public readonly FontSetting? FontPath;
+			public readonly float FontSizeMultiplier;
+			public readonly float Indent;
+			public readonly float Offset;
+
+			/// <summary>
+			/// 
+			/// </summary>
+			/// <param name="symbol"></param>
+			/// <param name="font"></param>
+			/// <param name="size"></param>
+			/// <param name="indent"></param>
+			/// <param name="offset"></param>
+			public BulletArg(string symbol = "\u2022", FontSetting? font = null, float size = 1f, float indent = 0f, float offset = 0f) {
+				Symbol = symbol;
+				FontPath = font;
+				FontSizeMultiplier = Math.Max(0f, size);
+				Indent = indent;
+				Offset = offset;
+			}
+		}
+
 		public readonly IExpression<string> content;
 
 		public readonly ParagraphIndent paragraphIndent;
@@ -449,10 +465,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly Alignment alignment;
 		public readonly TextHeightStrategy heightStrategy;
 
-		public readonly FontSetting? dingbatsPath;
-		public readonly string bullet;
-		public readonly float bulletFontSizeMultiplier;
-		public readonly (float x,float y) bulletOffset;
+		public readonly BulletArg bullet;
 
 		/// <summary>
 		/// 
@@ -468,10 +481,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="alignment"></param>
 		/// <param name="heightStrategy"></param>
 		/// <param name="list"></param>
-		/// <param name="dingbats"></param>
 		/// <param name="bullet"></param>
-		/// <param name="bulletSize">Size multiplier.</param>
-		/// <param name="bulletOffset"></param>
 		/// <param name="_atPosition"></param>
 		/// <param name="format"></param>
 		public ParagraphCardSegmentConfig(
@@ -487,10 +497,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			Alignment alignment = Alignment.TOP,
 			TextHeightStrategy heightStrategy = TextHeightStrategy.LineHeightDescent,
 			ParagraphIndentArg? list = null,
-			FontSetting? dingbats = null,
-			string bullet = "\u2022",
-			float bulletSize = 1f,
-			(float x,float y) bulletOffset = default,
+			BulletArg? bullet = null,
 			int[]? _atPosition = null,
 			RegexFormats? format = null
 		) : base(parent, _name, _description, _splittable, _acceptRemaining, _atPosition, format) {
@@ -505,10 +512,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			this.listIndent = (list ?? new ParagraphIndentArg()).Indent;
 
-			this.dingbatsPath = dingbats;
-			this.bullet = bullet;
-			this.bulletFontSizeMultiplier = Math.Max(0f, bulletSize);
-			this.bulletOffset = bulletOffset;
+			this.bullet = bullet ?? new BulletArg();
 		}
 
 	}
@@ -519,6 +523,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly bool spaceFeatures;
 		public readonly (float column, float row) tableSpacing;
 		public readonly float edgeOffset;
+
+		public readonly TextHeightStrategy cellHeightStrategy;
 
 		public readonly Color[] tableColors;
 
@@ -535,6 +541,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <param name="tableSpacing"></param>
 		/// <param name="edgeOffset"></param>
 		/// <param name="tableColors"></param>
+		/// <param name="cellHeightStrategy"></param>
 		/// <param name="_atPosition"></param>
 		/// <param name="format"></param>
 		public TableCardSegmentConfig(
@@ -549,6 +556,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			(float column, float row) tableSpacing = default,
 			float edgeOffset = 0f,
 			Color[]? tableColors = null,
+			TextHeightStrategy cellHeightStrategy = TextHeightStrategy.AscentDescent,
 			int[]? _atPosition = null,
 			RegexFormats? format = null
 		) : base(parent, _name, _description, _splittable, _acceptRemaining, _atPosition, format) {
@@ -559,6 +567,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.edgeOffset = edgeOffset;
 
 			this.tableColors = tableColors ?? new Color[] { Color.Transparent, ColorUtils.FromGrayscale(0.6f) };
+
+			this.cellHeightStrategy = cellHeightStrategy;
 		}
 
 	}

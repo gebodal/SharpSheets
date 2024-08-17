@@ -8,16 +8,9 @@ using SharpSheets.Cards.Layouts;
 
 namespace SharpSheets.Cards.Card.SegmentRects {
 
-	public class CardTextSegmentRect : IFixedCardSegmentRect {
+	public class CardTextSegmentRect : AbstractSegmentRect<TextCardSegmentConfig> {
 
-		AbstractCardSegmentConfig IFixedCardSegmentRect.Config => Config;
-		public TextCardSegmentConfig Config { get; }
-		public IFixedCardSegmentRect? Original { get; set; }
-
-		public readonly ArrangementCollection<IWidget> outlines;
 		public RichParagraphs Text { get; protected set; }
-		public bool Splittable { get; }
-		public bool AcceptRemaining => Config.acceptRemaining;
 
 		public float ParagraphIndent => Config.paragraphIndent.Indent;
 		public float ParagraphHanging => Config.paragraphIndent.Hanging;
@@ -28,25 +21,15 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 
 		protected bool IsParagraphStart { get; set; } = true;
 
-		private int partIndex { get; set; } = 0;
-		private int partsCount { get; set; } = 1;
-
-		public CardTextSegmentRect(TextCardSegmentConfig config, ArrangementCollection<IWidget> outlines, RichParagraphs text, bool splittable) {
-			Config = config;
-			this.outlines = outlines;
+		public CardTextSegmentRect(TextCardSegmentConfig config, ArrangementCollection<IWidget> outlines, RichParagraphs text, bool splittable) : base(config, outlines, splittable) {
 			Text = text;
-			Splittable = splittable;
-		}
-
-		private IWidget GetOutline() {
-			return outlines[partIndex, partsCount];
 		}
 
 		internal ParagraphSpecification MakeSpec(ParagraphSpecification basis) {
 			return new ParagraphSpecification(basis.LineSpacing, basis.ParagraphSpacing, ParagraphIndent, ParagraphHanging);
 		}
 
-		public virtual float CalculateMinimumHeight(ISharpGraphicsState graphicsState, float fontSize, ParagraphSpecification paragraphSpec, float width, CardQueryCache cache) {
+		public override float CalculateMinimumHeight(ISharpGraphicsState graphicsState, float fontSize, ParagraphSpecification paragraphSpec, float width, CardQueryCache cache) {
 			IWidget outline = GetOutline();
 			Rectangle exampleRect = new Rectangle(width, 10000f);
 			Rectangle tempRect;
@@ -66,7 +49,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 			return totalHeight;
 		}
 
-		public virtual void Draw(ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec) {
+		public override void Draw(ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec) {
 			canvas.RegisterAreas(Original ?? this, rect, null, Array.Empty<Rectangle>());
 
 			IWidget outline = GetOutline();
@@ -92,7 +75,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 			canvas.RestoreState();
 		}
 
-		public IPartialCardSegmentRects Split(int parts) {
+		public override IPartialCardSegmentRects Split(int parts) {
 			if (Splittable) {
 				return new CardTextSegmentRectPieces(this, parts);
 			}
@@ -177,8 +160,8 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 					nextBox = new CardTextSegmentRect(original.Config, original.outlines, boxText, false) {
 						Original = original,
 						IsParagraphStart = remainingIsParagraphStart,
-						partIndex = boxCount - 1,
-						partsCount = Boxes
+						PartIndex = boxCount - 1,
+						PartsCount = Boxes
 					};
 					resultingHeight = cache.GetMinimumHeight(nextBox, fontSize, textSpec, width); // fixedBox.CalculateMinimumHeight1(graphicsState, font, width); // TODO This seems inefficient here?
 				}

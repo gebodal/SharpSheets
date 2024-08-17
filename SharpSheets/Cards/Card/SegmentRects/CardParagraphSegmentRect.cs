@@ -24,15 +24,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 		}
 	}
 
-	public class CardParagraphSegmentRect : IFixedCardSegmentRect {
-
-		AbstractCardSegmentConfig IFixedCardSegmentRect.Config => Config;
-		public ParagraphCardSegmentConfig Config { get; }
-		public IFixedCardSegmentRect? Original { get; set; }
-
-		public readonly ArrangementCollection<IWidget> outlines;
-		public bool Splittable { get; }
-		public bool AcceptRemaining => Config.acceptRemaining;
+	public class CardParagraphSegmentRect : AbstractSegmentRect<ParagraphCardSegmentConfig> {
 
 		public ParagraphIndent ParagraphIndent => Config.paragraphIndent;
 		public ParagraphIndent ListIndent => Config.listIndent;
@@ -46,27 +38,17 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 
 		protected bool IsParagraphStart { get; set; } = true;
 
-		private int partIndex { get; set; } = 0;
-		private int partsCount { get; set; } = 1;
-
-		public CardParagraphSegmentRect(ParagraphCardSegmentConfig config, ArrangementCollection<IWidget> outlines, CardFeatureText[] features, bool splittable) {
-			Config = config;
-			this.outlines = outlines;
+		public CardParagraphSegmentRect(ParagraphCardSegmentConfig config, ArrangementCollection<IWidget> outlines, CardFeatureText[] features, bool splittable) : base(config, outlines, splittable) {
 			Features = features;
-			Splittable = splittable;
 
 			//FullText = new RichParagraphs(features.Select(f => f.Text).ToArray());
-		}
-
-		private IWidget GetOutline() {
-			return outlines[partIndex, partsCount];
 		}
 
 		public ParagraphSpecification MakeSpec(ParagraphSpecification basis, bool listItem) {
 			return new ParagraphSpecification(basis.LineSpacing, basis.ParagraphSpacing, listItem ? ListIndent : ParagraphIndent);
 		}
 
-		public virtual float CalculateMinimumHeight(ISharpGraphicsState graphicsState, float fontSize, ParagraphSpecification paragraphSpec, float width, CardQueryCache cache) {
+		public override float CalculateMinimumHeight(ISharpGraphicsState graphicsState, float fontSize, ParagraphSpecification paragraphSpec, float width, CardQueryCache cache) {
 			IWidget outline = GetOutline();
 			Rectangle exampleRect = new Rectangle(width, 10000f);
 			Rectangle tempRect;
@@ -99,7 +81,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 			return totalHeight;
 		}
 
-		public virtual void Draw(ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec) {
+		public override void Draw(ISharpCanvas canvas, Rectangle rect, float fontSize, ParagraphSpecification paragraphSpec) {
 			canvas.RegisterAreas(Original ?? this, rect, null, Array.Empty<Rectangle>());
 
 			IWidget outline = GetOutline();
@@ -154,14 +136,18 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 
 				canvas.RegisterAreas(Features[i].Feature, featureRect, null, Array.Empty<Rectangle>());
 
-				if (Features[i].IsListItem && (i != 0 || IsParagraphStart) && Config.bullet != null && Config.bullet.Length > 0) {
+				if (Features[i].IsListItem && (i != 0 || IsParagraphStart) && Config.bullet != null && Config.bullet.Symbol.Length > 0) {
 					//float firstLineY = RichStringLayout.GetStartY(featureRect, featureHeights[i], paragraphSpecs[i].FontSize, SharpSheets.Canvas.Text.Alignment.TOP);
 					float firstLineY = RichStringLayout.GetStartY(canvas, featureRect, featureLines[i], fontSize, paragraphSpecs[i], Alignment.TOP, HeightStrategy);
 
+					float bulletFontSize = Config.bullet.FontSizeMultiplier * fontSize;
+					float bulletIndent = Config.bullet.Indent;
+					float bulletOffset = Config.bullet.Offset * fontSize;
+
 					canvas.SaveState();
-					canvas.SetTextSize(Config.bulletFontSizeMultiplier * fontSize);
-					canvas.SetFont(TextFormat.REGULAR, Config.dingbatsPath);
-					canvas.DrawText(Config.bullet, featureRect.Left + Config.bulletOffset.x, firstLineY + Config.bulletOffset.y);
+					canvas.SetTextSize(bulletFontSize);
+					canvas.SetFont(TextFormat.REGULAR, Config.bullet.FontPath);
+					canvas.DrawText(Config.bullet.Symbol, featureRect.Left + bulletIndent, firstLineY + bulletOffset);
 					canvas.RestoreState();
 				}
 
@@ -171,7 +157,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 			}
 		}
 
-		public IPartialCardSegmentRects Split(int parts) {
+		public override IPartialCardSegmentRects Split(int parts) {
 			if (Splittable) {
 				return new CardParagraphSegmentRectPieces(this, parts);
 			}
@@ -306,8 +292,8 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 					nextBox = new CardParagraphSegmentRect(original.Config, original.outlines, boxFeatures, false) {
 						Original = original,
 						IsParagraphStart = remainingIsParagraphStart,
-						partIndex = boxCount - 1,
-						partsCount = Boxes
+						PartIndex = boxCount - 1,
+						PartsCount = Boxes
 					};
 					resultingHeight = cache.GetMinimumHeight(nextBox, fontSize, paragraphSpec, width);
 				}

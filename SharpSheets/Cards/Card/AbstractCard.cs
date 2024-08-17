@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using SharpSheets.Canvas;
 using SharpSheets.Cards.Card.SegmentRects;
 
-namespace SharpSheets.Cards.Card
-{
+namespace SharpSheets.Cards.Card {
 
-    public abstract class AbstractCard {
+	public abstract class AbstractCard {
 
 		public abstract IFixedCardSegmentRect[] Segments { get; }
 
