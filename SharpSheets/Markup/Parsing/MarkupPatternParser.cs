@@ -491,7 +491,7 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				
 				// TODO Need to deal with errors from here
-				DivElement rootDiv = MakeDivElement(patternElement, topLevelPatternVariables, new Dictionary<XMLElement, IIdentifiableMarkupElement>(), source);
+				DivElement rootDiv = MakeDivElement(patternElement, patternElement, topLevelPatternVariables, new Dictionary<XMLElement, IIdentifiableMarkupElement>(), source);
 				
 				LogVisit(patternElement);
 				LogOrigin(patternElement, rootDiv);
@@ -560,7 +560,7 @@ namespace SharpSheets.Markup.Parsing {
 				//setup = MakeDivSetup(divElem, setupVariables);
 			}
 
-			private DivElement MakeDivElement(XMLElement divElem, IVariableBox outerContext, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, DirectoryPath source) {
+			private DivElement MakeDivElement(XMLElement root, XMLElement divElem, IVariableBox outerContext, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, DirectoryPath source) {
 
 				IVariableBox variables = MarkupEnvironments.DrawingStateVariables.AppendVariables(outerContext);
 
@@ -581,7 +581,7 @@ namespace SharpSheets.Markup.Parsing {
 						}
 						else if (childElem.Name == "div") {
 							// This child is constructed as a standard div
-							DivElement child = MakeDivElement(childElem, divElement.Variables, constructed, source);
+							DivElement child = MakeDivElement(root, childElem, divElement.Variables, constructed, source);
 							if (child != null) {
 								divElement.AddElement(child);
 								LogOrigin(childElem, child);
@@ -599,7 +599,7 @@ namespace SharpSheets.Markup.Parsing {
 						}
 						else if (MarkupParsingConstants.IsReferenceElement(childElem.Name)) {
 							// This child is a styled div, and we leave the MakeStyledDivElement method to determine which kind
-							DivElement? styledChild = MakeStyledDivElement(childElem, divElement.Variables, constructed, source);
+							DivElement? styledChild = MakeStyledDivElement(root, childElem, divElement.Variables, constructed, source);
 							if (styledChild != null) {
 								divElement.AddElement(styledChild);
 								LogOrigin(childElem, styledChild);
@@ -635,7 +635,7 @@ namespace SharpSheets.Markup.Parsing {
 							LogVisit(childElem);
 						}
 						else if (MarkupParsingConstants.IsRenderedElement(childElem.Name)) {
-							IIdentifiableMarkupElement? part = MakeElement(divElem, childElem, constructed, fullDrawingVariables, source);
+							IIdentifiableMarkupElement? part = MakeElement(root, childElem, constructed, fullDrawingVariables, source);
 							if (part is IDrawableElement drawable) {
 								divElement.AddElement(drawable);
 								LogOrigin(childElem, drawable);
@@ -679,7 +679,7 @@ namespace SharpSheets.Markup.Parsing {
 				return childDivElement;
 			}
 
-			private KeyedChildrenDivElement? MakeStyledDivElement(XMLElement divElem, IVariableBox outerContext, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, DirectoryPath source) {
+			private KeyedChildrenDivElement? MakeStyledDivElement(XMLElement root, XMLElement divElem, IVariableBox outerContext, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, DirectoryPath source) {
 
 				// Get regex which determines which child elements are valid children
 				Regex namedChildRegex = MarkupParsingConstants.GetReferenceElementChildrenRegex(divElem.Name);
@@ -753,7 +753,7 @@ namespace SharpSheets.Markup.Parsing {
 
 				foreach (XMLElement childElem in divElem.Elements) {
 					if (namedChildRegex.IsMatch(childElem.Name)) {
-						DivElement child = MakeDivElement(childElem, divElement.Variables, constructed, source);
+						DivElement child = MakeDivElement(root, childElem, divElement.Variables, constructed, source);
 						if (child != null) {
 							divElement.AddNamedChild(childElem.Name, child);
 							LogOrigin(childElem, child);
