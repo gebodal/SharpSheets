@@ -1,1 +1,89 @@
 # Card Subjects Tutorial
+
+With SharpSheets you can create cards, with custom layouts and content options. The customisation of the card design is done through __card configuration__ files, which are discussed in [this tutorial](Cards/Configuration Tutorial). The card content -- the text and data that is used to populate the card design -- is specified in __card subject__ files, which are described here.
+
+
+## Basic Structure
+
+Card subject files are used to specify the content associated with a particular collection of cards. Each file consists of one or more card "subjects", each one the subject of a single card -- which may, however, be drawn on multiple grid spaces in the card layout, but represents a single "entity" of some kind. Each subject is also associated with a specific card configuration, which are specified in the card subject file -- and you may have cards which use different configurations in the same file.
+
+Each card subject has a __name__, zero or more __properties__ (key-value data which belongs to the whole card), and zero or more __segments__ (different sections of the card's content). Each segment has an optional __heading__, an optional __subheading__, zero or more __details__ (key-value data which belongs only to this segment), and zero or more __features__ (the lowest-level elements that contain the bulk of a card's text content). Each feature has an optional __title__, an optional __subtitle__, zero or more __details__ (again, key-value data that belongs only to this feature), and optional text content.
+
+The basic structure of a card subject looks like this:
+
+```cardsubject
+# Name
+property: value
+
+## Heading (subheading) [detail: value, detailFlag]
+
+Inline Feature Title (feature subtitle) [detail: value, detailFlag]: Feature text.
+
+### Separate Feature Title (feature subtitle) [detail: value, detailFlag]
+Feature text.
+
+% This is a comment.
+```
+
+Hash characters, `#`, are used to indicate lines containing headings -- for the whole card, for a segment, or for a feature. The number of `#` characters indicates the level of the heading.
+
+Card subject headings begin with a single `#` and contain only the card name.
+
+Segment headings begin with `##` and may contain the segment heading, subheading, and details. Note that each of these components is optional, and you can actually have an empty section heading with just `##` on a line.
+
+Feature headings begin with `###` and may contain the feature title, subtitle, and details. Again, each of these components is optional, and so you can have an empty feature heading with just `###` on a line.
+
+For both segment and feature headings, the basic structure is to have the primary title be the initial text, the secondary title to follow the primary in round brackets, `()`, and the details to come at the end in square brackets, `[]`. The primary title may not contain any of `()[]\#`, the secondary title may not contain any of `()[]`, and the details content may not contain `[]`.
+
+You can also write features without separate heading lines. These are structured the same way as the feature headings, except without the leading `###`. After the heading content, you can write a colon, `:`, followed by the feature text.
+
+A line of text, without subheading (in `()`) or details (in `[]`), will be interpreted as a title-less feature, and the text will be used as the feature text. In some cases, this text may be appended to the text of the previous feature -- see above.
+
+Properties are written as `key: value`, where `key` is the name of a property specified for the card in the configuration file, and `value` is data of an appropriate type for the definition. You can look in the documentation for the particular card configuration for a list of the possible properties. Each property is placed on a separate line, and they all come between the main card subject heading (the line with the card name) and the first segment or feature -- any property that comes after the first segment or feature will be interpreted as an inline feature.
+
+Details come in square brackets, `[]`, at the end of segment or feature headings, and contain a comma-separated list of key-value pairs, written as `key: value`, or Boolean flags, written as `flagName`. Each one corresponds to a definition in the corresponding segment or feature configuration, which may be found in the configuration documentation. Note that commas must be escaped inside any detail values, and `[]` characters are not allowed.
+
+Comments begin with a percent-sign, `%`, and continue to the end of the line. Note this means any instance of the `%` character that you wish to include in the card text must be escaped, as in: `\\%`.
+
+### Feature Text
+
+Features contain 
+
+Inline features 
+
+Line terminators
+
+List
+
+
+### Tables
+
+### Expressions
+
+
+## Common Patterns
+
+### Required Headings
+
+
+
+## Relation to Card Configuration Files
+
+## Card Subject
+
+Properties
+
+## Card Segment
+
+Details
+
+## Card Feature
+
+Details
+List
+Table
+
+
+
+
+`allowfeaturefollowon`, `requireformalsetupend`

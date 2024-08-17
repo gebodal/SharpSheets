@@ -6,20 +6,22 @@ Here "card" is a loose term, simply meaning the division of a page into areas wh
 
 The templates are described using card configuration files, which use the same basic syntax as the standard SharpSheets configuration files described in [the tutorial](Tutorial). There are some additional structures used in the card configurations for describing different elements of the card design, a full list of which can be found [here](Cards/Configuration Elements).
 
-An important aspect of the card layout system is that the text size can be dynamically selected to give better packing of the cards (both for their own content, and for the cards on the page), based on a maximum and minimum fontsize specified in the configuration file. In general, font sizes larger than the maximum will never be used, but smaller font sizes may be if there is no other way to arrange the card content. Note that these font size restrictions only apply when specified, and in general text of any size may be drawn to the card if desired.
+An important aspect of the card layout system is that the text size can be dynamically determined to give better packing of the cards (both for their own content, and for the cards on the page), based on a maximum and minimum fontsize specified in the configuration file. In general, font sizes larger than the maximum will never be used, but smaller font sizes may be if there is no other way to arrange the card content. Note that these font size restrictions only apply to certain card elements, and in general text of any size may be drawn to the card if desired.
 
-A card's content can also be spread over multiple cards, if allowed, in order to respect the minimum specified font sized.
+A card's content can also be spread over multiple cards, if allowed by the card config, in order to respect the minimum specified font size.
 
 This tutorial will cover the basic usage of these configuration files, and how they define a pattern for corresponding card subject files, which contain the data which will populate the card templates for drawing to the page.
 
 
 ## Basic Configuration Structure
 
-Each card configuration file actually represents a set of possible card templates. Within a file, we define `card` elements, which themselves are composed of `outline` elements for the (you guessed it) outline of the card area, and various "segment" elements which describe the main sections of the card content. Segments can either be simple text, or can be more complex "dynamic segments", whose content can also be templated. These dynamic segments are then composed of `feature` elements, which describe individual portions of the card sections.
+Each card configuration file actually represents a __set__ of possible card templates. Within a file, we define `card` elements, which themselves are composed of `outline` elements for the (you guessed it) outline of the card area, and various "segment" elements which describe the main sections of the card content. Segments can either be simple text, or can be more complex "dynamic segments", whose content can also be templated. These dynamic segments are then composed of `feature` elements, which describe individual portions of the card sections.
 
 Basically: cards are made up of segments, and segments are made up of features. And you can define multiple card templates within one card configuration file.
 
-You can also define segments and outlines which belong to all cards within the configuration file. If you have no `card` elements in a configuration, then a default card template will be constructed that uses all the top level segments and outlines defined.
+You can also define segments and outlines which belong to all cards within the configuration file by defining them at the top level of the document (i.e. not inside any other `card` elements).
+
+And if you have no `card` elements in a configuration, then a default card template will be constructed that uses all the top level segments and outlines defined.
 
 A simplified version of this structure would look something like:
 
@@ -43,7 +45,7 @@ segment:
 
 The card templates also make use of "expressions": simple instructions that can be embedded in the configuration file to change the content based on data provided at a later date (by the user in a card subject file, for example). These make use of variables -- pieces of data whose values will change depending on input -- some of which are defined by SharpSheets, and others you define yourself.
 
-Certain information is always available by SharpSheets: each card has a `name`; each segment has a `heading` and a `subheading`; and each feature has a `title`, a `subtitle`, and `text` content. There are also other useful pieces of data made available to you, but those are the most common variables you will need.
+Certain information is always made available by SharpSheets: each card has a `name`; each segment has a `heading` and a `subheading`; and each feature has a `title`, a `subtitle`, and `text` content. There are also other useful pieces of data made available to you, but those are the most common variables you will need.
 
 To define your own variables, which will then become pieces of data that can be specified in the card subject files that use your configuration, we use the following syntax:
 
@@ -56,6 +58,27 @@ You can define variables for: the entire configuration file, individual cards, s
 Within these card elements, the actual content makes use of the widget types familiar from the [configuration files](Tutorial) used elsewhere. There is a special widget type, `cardtext`, which is intended for use within card configuration elements, and will be discussed below. Other than that, all the widgets and shapes available elsewhere in SharpSheets are available for card configurations (and you can of course define your own in Markup for use with your card designs).
 
 
+## Drawing Cards
+
+The result of drawing a set of card subjects with a specified card configuration will be one or more pages of one or more cards, each page arranged in a grid, where each card takes up one or more spaces in that grid. These spaces may be joined by a card background (in which case they will be in a rectangle), or be drawn as separate cards. If separate, cards may be drawn on different pages. Note: all this behaviour can be controlled by properties of the config.
+
+Each configuration file must use the same grid for laying out all card types it contains -- this is so that they can be drawn interleaved, rather than needing to be on separate pages.
+
+
+## Relation to Card Subject Files
+
+Card subject files contain one or more "card subjects" -- a collection of data which describes the subject of a particular card to be drawn to the page (possibly in more than one card grid space) -- with macros indicating which card configuration is to be used for a given set of these subjects.
+
+Each subject has a name, zero or more __properties__ (pieces of data which belong to the whole card), and zero or more __segments__ (subsections which contain more card content). Each segment has an optional heading, an optional subheading, zero or more __details__ (pieces of data which belong to just that segment), and zero or more __features__ (pieces of content to be drawn on the card). Each feature has an optional title, an optional subtitle, zero or more __details__, and optional text content. In general, a feature must have at least one of title, subtitle, details, or text, but can have all if desired.
+
+The way in which this data is drawn to the page is controlled by the card configuration, which is contained in its own configuration file, the structure of which is described below.
+
+The properties and details which may be specified on the card subject and its segments/features is specified in the configuration file, and any unrecognised or missing elements will produce errors when the card subject file is parsed and drawn.
+
+Each of the elements described above selects a configuration from the provided configuration elements, and draws its content according to that config. The configuration element is chosen according to the data provided in the card subject file, and the properties and details allowed and required.
+
+For a full tutorial on the card subject file format, see [here](Cards/Subjects Tutorial).
+
 
 ## Important Concepts
 
@@ -67,7 +90,7 @@ A widget does not have to use up all of the available space with its content, an
 
 However, it may actually be a child of the widget (or some other descendent) that has the remaining area, not the widget itself. To determine the remaining area of a widget, SharpSheets will check if the widget has any area not used by its children (determined by the widget pattern itself -- so this can be specified for Markup patterns): if the widget does have remaining space, that will be returned as the remaining area; otherwise, the widget's children will be queried in document order to see if any of them have remaining space (and they will query their children, and so on). If no space is found, the widget does not have a remaining area. If one of the descendents does (searched depth-first in document order), then that area will be used.
 
-Remember that some widgets, like the `section` [widget](widget::Section), will fill their remaining area with a text field if they have no children. If you want to have more control over where the remaining area is assigned, you can use a `div` [widget](widget::Div) as a placeholder for that space. `div` widgets do not fill their remaining area with content, and if a `size` is set (e.g. `1`) will happily take up any available space.
+Remember that some widgets, like the `section` [widget](widget::Section), will fill their remaining area with a text field if they have no children. If you want to have more control over where the remaining area is assigned, you can use a `div` [widget](widget::Div) as a placeholder for that space. `div` widgets do not fill their remaining area with content, and if a relative `size` is set (e.g. `1`) will happily take up any available space.
 
 Remaining areas are used a lot for things like `outline` elements, and so you can create something like the following:
 
@@ -78,12 +101,12 @@ outline:
 		div # This will provide the remaining area for the outline
 ```
 
-And then any content inside the outline will be drawn as if it was a child of the `div` widget.
+And then any content inside the outline will be drawn as if it was a child of the `div` widget -- but note, would not inherit any properties from the `div` widget.
 
 
 ### Definitions
 
-Definitions allow you to specify what information is required to draw your cards. For example, if your card represents a character in a game, then you may need a number describing how much health that character has. You could do that like so:
+Definitions allow you to specify what information is required to draw your cards. For example, if your card represents a character in a game, then you may want a number describing how much health that character has. You could do that like so:
 
 ```CardConfig
 def health: int
@@ -91,7 +114,7 @@ def health: int
 
 Here we have created a definition named "health", whose value must be an integer. This value must now be specified in the card subject file when the content for a card is described.
 
-However, definitions have more possibilities than this: we can specify a value which must be provided for each card (as above), a value which __may__ be specified but has some default value if one is not provided, or we can have a definition whose value is fixed and cannot be changed by the card subject file. Each of these looks as follows:
+However, definitions have more possibilities than this: we can specify a value which must be provided for each card (as above), a value which __may__ be specified but has some default value if one is not provided, or we can have a definition whose value is specified and cannot be changed by the card subject file. Each of these looks as follows:
 
 ```CardConfig
 # Must be specified by user
@@ -104,7 +127,7 @@ def name3 = 10
 
 Each one consists of the `def` keyword, followed by the name of the definition, and then either: a colon (`:`) and value type; a colon (`:`), value type, equals sign (`=`), and default value; or an equals sign (`=`) and value (this value may be an expression which makes use of previously defined variables/definitions).
 
-Additionally, each definition may have more than one name (referred to as "aliases"), which gives more freedom when specifying value names in the card subject file. These aliases are separated by `|` characters, like so:
+Additionally, each definition may have more than one name (referred to as "aliases"), which gives more freedom when specifying value names in the card subject file. These aliases are separated by pipe characters (`|`), like so:
 
 ```CardConfig
 def name|alias1|alias2: int
@@ -172,7 +195,7 @@ def myval: floatrange(0, 1)
 
 `category` and `multicategory` must be followed by brackets, `()`, containing a comma-separated (`,`) list of strings. These strings are the only allowed values for these definitions, with `category` allowing a single value, and `multicategory` allowing an array of such values. However, any case-insensitive initial substring provided for one of these definitions will be converted into the corresponding full string. So, if we have `category(Hello, World)`, this will allow `H`, `h`, `he`, or `hel` to mean `Hello`, and `WORLD`, `WOR`, or `W` to mean `World`. If there are potential values which share initial substrings, then the first match alphabetically will be chosen -- meaning that, in practice, the values are sorted alphabetically, and the first one that starts with the provided string will be chosen. So, `category(Two, Three)` would interpret `t` as `Three`, and `tw` as `Two`. Categorical definitions are intended to allow more robust instructions in the card configuration, while still providing flexibility for the user of the card subject file, as SharpSheets will deal with checking the provided strings and converting them into a standard format.
 
-Any definition type except `category` and `multicategory` may be suffixed with one or two `[]` bracket pairs to indicate an array of values (only rank 1 or two arrays are allowed). This means the user can provide one or more values of the specified type in the card subject file, and you can use those values to produce variable-length content in the card template.
+Any definition type except `category` and `multicategory` may be suffixed with one or two `[]` bracket pairs to indicate an array of values (only rank 1 or 2 arrays are allowed). This means the user can provide one or more values of the specified type in the card subject file, and you can use those values to produce variable-length content in the card template.
 
 Note that there is a limitation of the syntax when it comes to creating zero-length arrays, for example when creating definitions with default values where the default value is an array with no elements. As all expressions must have a known return type, you cannot simply create an empty array with `array()`, as the element type would be unknown. Instead, you must create an array of the appropriate type, and then slice that array to produce a zero-length array. For example, for a zero-length array of strings: `array("")[0:0]`. Or for integers: `array(0)[0:0]`. Which looks a bit silly, but there you go.
 
@@ -211,9 +234,9 @@ Within the function expression, all existing variables will be available, with t
 
 ### Using Expressions
 
-Card configurations are designed to be highly configurable, and must be reactive to changing values provided in the card subject data. As such, you can express properties and text data as mathematical expressions, which can use any variable (or function) defined for the configuration and provided in the card subject file, as well as the built-in variables and functions provided by SharpSheets.
+Card configurations are designed to be highly configurable, and must be reactive to changing values provided in the card subject data. As such, you can express properties and text data as mathematical expressions, which can use any variable (or function) defined for the configuration, as well as the built-in variables and functions provided by SharpSheets.
 
-Expressions themselves consist of variables (i.e. named pieces of data, where the value can change depending on circumstances), constants (such as numbers, e.g. `1`, `3.14`, or strings, `"Hello World"`), operators (such as `+` for addition and `-` for subtraction), and functions (which are operations that take one or more arguments, such as `max(1, 2)` or `sum(width, height)`).
+Expressions themselves consist of variables (i.e. named pieces of data, where the value can change depending on circumstances), constants (such as numbers, e.g. `1`, `3.14`, or strings, e.g. `"Hello World"`), operators (such as `+` for addition and `-` for subtraction), and functions (which are operations that take one or more arguments, such as `max(1, 2)` or `sum(width, height)`).
 
 The list of built-in variables and functions, separated by element type, can be found [here](Cards/Environments).
 
@@ -259,14 +282,14 @@ The expression syntax and functionality is the same as that described for Markup
 
 A quick comment about how parsing of properties and entries is conducted in card configuration files: In practice, expressions used as properties and entries in the configuration file will first be evaluated as mathematical expressions, and then converted to strings before being re-parsed as standard SharpSheets configuration content. This means that you can build most content in string form, if you desire, to then be parsed.
 
-However, conversion to and from strings is controlled by the SharpSheets parsing system, and therefore is symmetric under most circumstances -- meaning that if you use expressions liberally, you should never notice the effects of this process.
+Conversion to and from strings is controlled by the SharpSheets parsing system, and therefore is symmetric under most circumstances -- meaning that if you use expressions liberally, you should never notice the effects of this process.
 
 
 #### Condition
 
-One special use of expressions in card configuration files is the `condition` property which can be assigned to any element (card configuration element or widget) in a card configuration file except for the `card` [element](card::card). This property determines if the element in question will be included in the drawn instance of the card. The property must have a Boolean expression as its value, and will be evaluated with the card subject data and any variables specific to its owner or ancestor card configuration element type.
+One special use of expressions in card configuration files is the `condition` property which can be assigned to any element (card configuration element or widget) in a card configuration file -- except for the implied `CardsConfiguration` [document-level element](card::CardsConfiguration). This property determines if the element in question will be included in the drawn instance of the card. The property must have a Boolean expression as its value, and will be evaluated with the card subject data and any variables specific to its owner or ancestor card configuration element type.
 
-For example, card outlines have access to an integer variable `cardnum`, which indicates the zero-based index of the current card being drawn (in the case where the card content is too long and is spread over multiple cards this number will be greater than zero). If you only wish to draw the card's name on the first of such a sequence of cards, you could do that in the following way:
+For example, card outlines have access to an integer variable `cardnum`, which indicates the zero-based index of the current card being drawn (in the case where the card content is too long and is spread over multiple cards this number may be greater than zero). If you only wish to draw the card's name on the first of such a sequence of cards, you could do that in the following way:
 
 ```CardConfig
 outline:
@@ -308,7 +331,7 @@ text:
 	- World
 ```
 
-When using a `foreach` property, the entire element will be copied, including any children. As such, you can create very complex repeating patterns in your card configuration files without having to specify repeated content over and over. The source of the `foreach` items can even be a hard-coded array, as opposed to a user-provided variable length array, to reduce the need for repeated elements:
+When using a `foreach` property, the entire element will be copied, including any children. As such, you can create very complex repeating patterns in your card configuration files without having to specify repeated content over and over. The source of the `foreach` items can even be a hard-coded array, as opposed to a user-provided variable-length one, to reduce the need for repeated elements:
 
 ```CardConfig
 text:
@@ -319,7 +342,7 @@ text:
 
 ### Regex Formats
 
-A shared concept between different card elements is that of regex formatting of text -- specifically, the `format` properties (`format.regular`, `format.bold`, etc) of the `textblock` and `feature` elements. These formatting properties are used to apply a [text format](enum::TextFormat) to arbitrary text.
+A shared concept between different card elements is that of regex formatting of text -- specifically, the `format` properties (`format.regular`, `format.bold`, etc) of the `textblock` and `feature` elements. These formatting properties are used to apply a [text format](enum::TextFormat) to arbitrary text coming from the card subject files.
 
 Each format is specified as a regular expression, and any instance of that pattern in the target text will be instructed to use the associated text format (i.e. the font associated with that format). The regular expression syntax uses the .NET regex engine, which is based on Perl 5.
 
@@ -340,36 +363,336 @@ format.bold: keyword
 ```
 
 
-## Cards
-### Outline
-### Background
+## Cards Configuration
+
+When a card configuration file is parsed, it creates a `CardsConfiguration` [element](card::CardsConfiguration), which is an abstract element type (i.e. you don't manually declare one in the file, it's just getting made in the background) that contains information that relates to all card types in the config file, and general information about page layout and card layout.
+
+Card configuration properties must be declared at the top level of the file (i.e. no indentation). Useful properties include: `paper`, for paper size; `grid`, for the number of rows and columns in the card grid; `cardgutter`, for the spacing between individual cards; and so on. See the [documentation](card::CardsConfiguration) for a full list of properties and their descriptions.
+
+The card configuration may contain definitions, `outline` elements, `background` elements, and card segment elements. These will be inherited by any `card` elements defined in the document. Note that the order of elements does not matter here -- if a segment is defined at the top level __after__ a `card`, it will still be inherited.
+
+
+## Card
+
+The highest level concrete element within a card configuration is the `card` [element](card::Card). This represents a particular card and the information that the corresponding card subjects must provide. Each card type inherits all of the top level outline and segment elements, along with any variable and function definitions.
+
+If no `card` element is defined in the configuration file, then an empty one will be created during parsing, simply inheriting all the contents of the config file.
+
+The definitions associated with a card specify the information that must/can be provided for card subjects using the config. Having multiple card types per file allows for sharing designs and layout between cards which share some but not all information. For example, if you had cards for a game representing both creatures and equipment, they might both share some general properties -- "Alignment", or similar -- but one might have "Health" while the other has "Charges". In this case, "Alignment" would be declared at the top level, whereas "Health" would be declared on a "Creature" card element, and "Charges" on an "Equipment" card. It might look something like this:
+
+```CardConfig
+def alignment: category(Good, Neutral, Evil)
+
+card:
+	@name: Creature
+	def health: uint
+
+card:
+	@name: Equipment
+	def charges: uint
+
+outline:
+	text:
+		- $name (_${alignment}_)
+		fontsize: 20
+	div:
+		size: 1 # Remaining space for card content
+
+## Segments, etc., could go here
+```
+
+The advantage here is that the card outlines/background need not be repeated if they are the same for the different card types -- and the same for any shared segments.
+
+When definitions are specified which require a value, these values must be present in the card subject for the containing card configuration to be used. This is the main mechanism by which a card configuration is chosen for a given subject, along with any `condition` expressions specified on the `card` element.
+
+
+### Card Outline
+
+Cards may draw an outline around each grid space they are drawn in, and the design of this is controlled by an `outline` [element](card::Outline). Each grid space will only use one outline, but many outlines can be defined for each card. Outlines can make use of `condition` properties to control which one is selected for a given card (and a given grid space that the card is drawn in, through the `$cardnum` variable).
+
+Outlines have access to two special variables: `$card` or `$cardnum` (aliases for the same variable), and `$cardcount` or `$totalcards` (again, aliases). These two variables allow for the outline to change between different grid spaces. A common use-case would be drawing a particular outline on the first and/or last card:
+
+```CardConfig
+outline:
+	condition: cardnum == 0
+
+	# Outline content for first card here
+
+outline:
+	condition: cardnum == cardcount - 1
+
+	# Outline content for last card here
+```
+
+Note that the `$cardnum` variable is zero-indexed (hence the last card has index `${cardcount - 1}`).
+
+Card outlines may contain any content you like, including `cardtext` [widgets](Widget::CardText) -- a good starting point is to include the cards `$name`, and potentially data from other top-level definitions.
+
+
+### Card Background
+
+In addition to an outline, the card also has the possibility of drawing a "background", which is drawn behind the outline and any other card content. This ic controlled by a `background` [element](card::Background).
+
+In the case where a single card is spread over multiple grid spaces, it can be drawn with a single contiguous background joining those spaces together -- this is controlled by the `joinsplitcards` property of the card configuration, in which case the background will be drawn for the rectangular convex hull of the card grid spaces (the smallest rectangle that contains all the grid spaces). Otherwise, the background will be drawn for each grid space separately.
+
+The `background` element has access to the same variables as the `outline`, notably `$card`/`$cardnum` and `$cardcount`/`$totalcards`. In the case where `joinsplitcards` is specified, then the outline will drawn with values of 0 for `$card` and 1 for `$cardcount`.
+
+An important note about `background` elements is how the remaining space for a card is calculated: In the case where cards are not joined, then the background will be drawn and its remaining areas calculated using the same logic. However, when joined, the background will be drawn once for the whole joined area, but still calculate its remaining areas as if it were being used only for the appropriate grid space (this helps keep card areas consistent across different numbers of grid spaces used). In this case, the `$card` and `$cardcount` variables will be set to the appropriate values for the number of used grid spaces. Keep this in note when creating more dynamic card backgrounds!
+
+As for outlines, backgrounds may contain any content you like, including `cardtext` [widgets](Widget::CardText).
+
+
 ## Card Segments
-### Outline
+
+So, now we've got the outline and background drawn, onto the actual card content!
+
+In addition to the subject-level data which can be added to card subjects, there are also card "segments". There can be a variable number of segments in a given card subject, and the data inside them can be interpreted differently by the configuration file by providing different segment configurations.
+
+Each segment has, at minimum, `$heading`, `$subheading`, and `$featurecount`/`$totalfeatures` variables. `$heading` is the optional title of the segment, `$subheading` is an optional note after the title, and `$featurecount`/`$totalfeatures` is an integer count of the card features in this segment. Segments can also have definitions, which work in much the same way as for `card` elements, meaning that required definition values must be present for the segment configuration to be used. Segments may also have `condition` properties to provide additional, fine-grained control over which segment config is used. Both the `condition` and the required definitions must be satisfied for the config to be used.
+
+Segments come in four different flavours: `textblock`, `paragraphs`, `table`, and (saving the best for last) `segment`. The first three are more rigid in their styling, and are useful for particular purposes. The last, `segment`, is a more general purpose, dynamic configuration, which may contain arbitrary content containing general widgets (much like `outline` and `background` above).
+
+All the segment types make use of features, with the difference being that `textblock`, `paragraphs`, and `table` have pre-defined ways of displaying their feature contents, whereas `segment` allows for additional (and condtional) choices in feature layout.
+
+As segment configurations are chosen for each card segment based on the data in that segment, it is possible to write a configuration that does not have a default segment configuration -- and unlike for cards, no default segment configuration is inserted. This will be flagged to the user of the card subject file, and so you can use this as a way to enforce formatting requirements for the user, but you may also wish to include a default segment configurationwhich has no condition or definitions to catch any card segments that do not conform to the more specific segment configs.
+
+
+#### Splittable
+
+When drawing, the available card areas will be divided up into vertically-arranged blocks, and each segment will be assigned a block -- the segment may take up two or more blocks on consecutive cards if it is "splittable", or you may specify that it is not splittable, in which case it will always be drawn in a single block on one card. If split, each segment will have a maximum of one block per card grid area. The sizes of these blocks is determined when the card is drawn, based on card content and the dynamically chosen text size for any `cardtext` [widgets](Widget::CardText).
+
+This formatting option is controlled by the `splittable` flag of the segment.
+
+
+#### Segment Ordering
+
+Each of these elements shares an `atposition` property, which can be used to specify a position within the card segment list that this particular segment should occupy -- independent of its document-order position in the card subject file. This has two important uses: enforcing certain structural expectations of the card layout, without requiring the user to write the segments in that order; and including information from the card-level definitions into the flow of the card content, so that it can be typeset along with the other segments (and automatically sized, e.g. with `cardtext` [widgets](Widget::CardText)), without the user needing to enter the information again. This second option is only possible using the `segment` [element](card::Segment), as discussed below.
+
+`atposition` is specified as a signed integer array (i.e. a comma separated list of signed integers), interpreted as a list of indexes, with the most significant index first. The first index represents a location within the list of segments -- with negative indexes being offsets from the end of the segment list. Subsequent indexes are not related to the segment list, but are interpreted as orderings -- negative indexes are still offsets from the "end", and so will be considered "larger" than positive indexes.
+
+Segments will be sorted according to these positions before layout, thus allowing you to specify exact positions in a hierarchical way for the segments provided by the users. Positions are sorted from most to least significant index (i.e. first to last). The first differing index will be used to compare two positions -- so, `0,1,3` is less than `0,2,4`, as the leading `0` indexes are equal but the `1` is less than `2` (and the `3` and `4` do not affect this ordering). Negative leading indexes will be adjusted based on the length of the segment list before comparison (i.e. for a length 3 segment list, position `2` is equivalent to `-1`). If the positions are different lengths, and no differing index can be found in the overlap (where `1,2,3` and `1,2` overlap for the first two indexes, `1,2`), then the length of the position index array will be used to determine the ordering. If two segments have the same position, they will be included in the final list at the specified position in document order.
+
+For example:
+
+```unknown
+0 < 1
+1 < 1,0
+1,0 < 1,1
+1,5 < 2,0
+1,5 < 2
+1,0 < 1,-1
+
+## Assuming there are 3 segments:
+1 == -2
+2 == -1
+-3 < 1
+1 < -2,0
+```
+
+You can combine `atposition` with `alwaysinclude` for `segment` [elements](card::Segment) to insert additional segments into the card, beyond what is supplied by the user in the card subject file.
+
+
+#### Accept Remaining
+
+Each segment configuration also had an `acceptremaining` flag, which indicates whether the segment should include unused space in the card grid space (inside the background and outline, of course) in its own area when drawing its own outline. This allows for more visual control over the card, as you can specify if unused space should be filled with a segment outline.
+
+
+### Segment Outline
+
+Like the whole card, each segment may have an `outline` drawn around its assigned block(s). In the case of multiple blocks on different cards, the outline will be drawn around each block separately. `$partnum` and `$partcount`/`$totalparts` variables are provided in the segment `outline` configuration element to facilitate this. `$partnum` is the index of the current block within the segment (zero-indexed), and `$partcount`/`$totalparts` is the total number of blocks within the segment. As such, if you only wish to draw outline content around the first or last block, or draw a different outline around each block after the first, you may do so.
+
+You can specify multiple outline configurations for each segment, and the first one (in document order) which satisfies its condition will be used.
+
+So, for example:
+
+```CardConfig
+segment:
+	outline:
+		condition: $partnum == 0
+		## Only drawn for the first block
+	outline:
+		condition: $partnum == $partcount - 1
+		## Only drawn for the last block
+	outline:
+		## No condition, drawn for each block except the first and last
+```
+
+Note that this conditional logic can also be applied within the outline configuration:
+
+```CardConfig
+segment:
+	outline:
+		cardtext:
+			condition: $partnum == 0
+			- *$heading*
+		div # Segment content will be drawn inside this div
+```
+
+Note that, unlike for `card` elements, segment outlines are not shared between segment configuration elements (and cannot be inherited from outside, as these outlines are intended for the whole card).
+
+
 ### Segment Types
-#### TextBlock
-[Element](card::TextBlock)
+
+Now let's look at the individual segment types themselves.
+
+
 #### Paragraphs
-[Element](card::Paragraphs)
+
+The `paragraphs` [element](card::Paragraphs) creates a segment that treats each feature as a separate paragraph of text. The textual content of each feature paragraph can be controlled using the `content` property, which is a string expression that may access feature environment variables (notably, `$title`, `$subtitle`, and `$text`). The text for each feature will be the evaluation of this expression with that feature's data. For example, if you wish to include the feature title at the beginning of the paragraph (separated by a colon from the text), but only if a title has been provided, you could have the following:
+
+```cardconfig
+paragraphs:
+	content: ${len(title) > 0 ? ("_*" + title + ":*_ ") : ""}$text
+```
+
+If you do not provide a `content` expression, then the feature `$text` will be used as a default.
+
+The `paragraphs` element also allows for formatting the indentation of each feature paragraph, and the formatting of any list features (features which are indicated as being part of a list in the card subject file). This is done through the `paragraph` and `list` properties, like so:
+
+```cardconfig
+paragraphs:
+	paragraph.indent: 10 # Indentation for first line
+	paragraph.hanging: 0 # Indentation for following lines
+	list.indent: 10 # Indentation for first line of a list feature
+	list.hanging: 10 # Indentation for following list feature lines
+```
+
+The bullet-point symbol can also be adjusted for list features, using the various `bullet` properties. Note that `offset` is a fraction of the final text size (i.e. after any adjustment for card layout), but that `indent` is a fixed absolute distance. The bullet symbol can be more than a single character, if desired, and you can specify a separate font for the bullet symbol -- which makes it more straightforward to use a symbol font, or similar, without it interfering with the rest of the text.
+
+`paragraphs` also supports regex formatting of the text content. This is applied to the entire result of the `content` expression, not just the `$text` variable of the feature.
+
+
+#### TextBlock
+
+The `textblock` [element](card::TextBlock) creates a single piece of text from all features in the segment, by concatenating the content of each feature with some delimiter. Like the `paragraphs` element, `textblock` has a `content` property, which is used to specify the textual content of each feature. There is also a `delimiter` string property, which specifies what text is inserted between feature content (note that you could use newline characters here, `\\n`, to produce output similar to `paragraphs`, but you will lose certain useful formatting features this way -- but nobody can stop you, if you really want to).
+
+As for `paragraphs`, if you do not provide a `content` expression, then the feature `$text` will be used as a default.
+
+Note that, as leading and trailing whitespace is trimmed for properties, you can add spaces to the delimiter string by using escape sequences (such as `\\u0020` for the space character).
+
+So, for a fairly standard textblock, you could have the following:
+
+```cardconfig
+textblock:
+	content: ${len(title) > 0 ? (title + ": ") : ""}$text
+	delimiter: ,\u0020
+```
+
+
 #### Table
-[Element](card::Table)
+
+The `table` [element](card::Table) can be used to create a simple table structure with colored rows. Here each feature is considered to be a single row in the table. This segment configuration relies on the feature data being written in the card subject file in a more structured way, such that each feature can be broken down into columns. The table delimiter character for the card subject file is the pipe character, `|`, and it is also a good idea to put line terminator sequences at the end of each feature line (i.e. `\\\\`).
+
+This looks something like the following:
+
+```cardsubject
+## Table Segment
+Heading 1 | Heading 2 | Heading 3 \\
+Start 1   | Middle 1  | End 1     \\
+Start 2   | Middle 2  | End 2     \\
+```
+
+The text in each cell on the first row will be written in bold text, to indicate a header.
+
+The rows of the table may be colored, using the `tablecolors` property. This is an array of color values, and the colors will be chosen for each row in a cyclical manner, from this provided array, starting with the first (i.e. header) row.
+
+As each segment configuration must be chosen in some way from the list of available options, one possibility for table segments is to use the card segment `$subheading` in the card subject file to indicate that the segment is laid out as a table. This configuration might look something like this:
+
+```cardconfig
+table:
+	condition: lower($subheading) == "table"
+	tablecolors: none, Gray # Table colors alternately transparent and gray
+```
+
+And this would look something like the following in the card subject file:
+
+```cardsubject
+## My Segment Name (table)
+Heading 1 | Heading 2 | Heading 3 \\
+Start 1   | Middle 1  | End 1     \\
+```
+
+As for other segment formats, you can specify an `outline` element to draw the segment heading and other information.
+
+
 #### Segment
-[Element](card::Segment)
+
+The `segment` [element](card::Segment) is the most customizable of the segment formats, as it is completely dynamic in its layout of features. However, each feature is assigned space from a vertically arranged list of rectangular feature blocks within the segment block (each appropriately sized to the feature content at the chosen font size). As such, there are some layouts which cannot be achieved with `segment`, such as arranging all feature content in a single text block (hence the `textblock` element). However, for many card layouts, the `segment` element will be the go-to configuration format.
+
+Within a `segment` element, you must define `feature` elements which describe the layout for the feature contents. Each feature can have its own definitions and `condition` to specify the required data for that feature configuration to be used. Feature configuration elements are discussed below.
+
+`segment` elements, in addition to the `atposition` property, have an `alwaysinclude` property which can be used to indicate that the segment should always be included, regardless of whether there is a corresponding segment in the card subject. Any `segment` which has `alwaysinclude` set to true should include only one `feature` element, which should contain the graphical content to be drawn for this segment. Note that as there is no corresponding card segment or features, such elements cannot make use of segment or feature variables, but they can make use of definitions whose value is not specified by the user. Usually such segments will be used for including card-subject-level information in the main layout of the card (and therefore dynamically resized and laid out). If you do not specify an `atposition` property for such a `segment`, then it will use a default position of `0`, and will be ordered accordingly (paying attention to document order, etc.).
+
+An example use case of this might be a card which contains some "note" field on the card subject, which you would like to draw at the end of the card content, at the same fontsize as the other dynamic segments. This could be done like so:
+
+```cardconfig
+card:
+	def notes: string = ""
+
+	segment:
+		condition: len($notes) > 0
+		alwaysinclude
+		atposition: -1,-1
+
+		feature:
+			cardtext:
+				- _Note_: $note
+```
+
+The `segment` configuration also has options for controlling the amount of space that features take up in the card layout: `equalsizefeatures` and `spacefeatures`. `equalsizefeatures` causes, unsurprisingly, each feature to be given the same amount of space -- that is, each feature will be given as much vertical space as the largest feature in the segment. `spacefeatures` will cause the features to be given additional space to fill up any remaining height -- as when `acceptremaining` is set to true. Each feature will be given an equal amount of additional space -- note that, if `equalsizefeatures` is false, this does not mean that the features will have the same overall space, just that they will each receive an equal divisions of the remaining space.
+
+
 ##### Feature
-###### CardText
+
+Each `feature` element may contain definitions, along with the graphical content to be drawn for the feature, expressed as widgets, as for the `outline` and `background` elements.
+
+Feature configurations do not make use of remaining space, and are expected to take up all the space they are assigned. It is also assumed that their content size will be adjustable using `cardtext` widgets -- fixed-size components can be used, but a fully fixed-sized `feature` may cause issues with the card layout algorithm. Any `size` on the feature top-level widgets will be ignored, as the feature size is determined by the card layout algorithm rather than the standard grid-layout algorithm (which takes over when arranging the internal feature content).
+
+Each feature has access to its own zero-based index in the segment through the `$featurenum` variable, and also has access to the segment `$featurecount`/`$totalfeatures` variable, and as such can change its content based on its position in the segment (if, for example, you want to style the first feature differently). Additionally, the feature has access to a Boolean `listitem` variable, which is true if the feature is written as a list entry in the card subject file.
+
+A main advantage of the `segment`/`feature` setup, as opposed to `paragraphs` for example, is that you can specify different definitions, and therefore conditional content, for different features within the same segment. The data provided in the card subject file will determine which feature configuration is chosen (this is discussed in more detail later). Depending on the exact requirements of your configuration, you may wish to have a default feature configuration to use as a fallback -- note that no default feature configuration will be created for any `segment`.
 
 
-## Which Card/Segment/Outline/background Gets Selected
-## Arrangement of Content
+## CardText Widgets
 
-## Relation to Card Subject Files
+The `cardtext` [widget](Widget::CardText) is designed to be used with dynamic `segment` configurations, and functions in a very similar way to the `text` [widget](Widget::Text). The main difference is that you cannot directly specify a fontsize for the `cardtext` widget -- instead, its font size is determined by the card layout algorithm, such that each card uses the largest fontsize that allows it to fit all its content in the available area.
+
+The `multiplier` property can be used to alter the relative size of the text, with `1` indicating that the standard chosen fontsize should be used.
+
+There are `bullet` properties which can be used to specify a leading bullet-point, in a similar manner to the `paragraphs` segment.
+
+Otherwise, `cardtext` functions the same as any other widget. Note that it should not be used outside of card configuration files, as the fontsize is not determined in the same way for sheet configuration files.
+
+
+## Which Configuration Element Gets Selected
+
+For all of the `background`, `outline`, `card`, various segment, and `feature` configuration elements, there is the question of which configuration will be selected for a particular part of a card subject file.
+
+In general, this works in the following way: For each appropriate element type, the following checks are performed for each available configuration element in priority order (see below). If the configuration element has (and can have) definitions, the card subject component is checked for the presence of any required definitions. So card subject properties are checked against `card` (and global `CardsConfiguration`) definitions, card segment details against segment definitions from the selected card config, and card feature details against feature definitions from the selected card segment config. Next, the `condition` expression if checked, if present (remember that the default `condition` is just `true`). This may use variables defined for the element in question. If all the required definitions have a provided value, and the condition evaluates to `true`, then this configuration element will be chosen, and searcgh will stop.
+
+The priority order is primarily based on document order -- so that the matching configuration element with the lowest line number will be selected. The exceptions to this are for card-level and document-level segment, outline, and background elements. For these elements, the card-level elements will be considered first (in document order), followed by the document-level elements (again, in document order).
+
+As such, the ordering of elements within the document is very important for choosing the correct configuration. Generally speaking, the more specific elements (i.e. those with more definitions and more constrained `condition` expressions) should come earlier in the document, followed by more general elements, and finally default elements (i.e. those without definitions and with no `condition` specified) should come last.
+
+
 ## Documentation
 
+You can provide documentation for your card configurations and the configuration elements using the `name` property and `description` entries available on these elements. There is also a document-level `description` property (but no document-level `name`, as the name of the overall configuration is taken from the configuration file name) which provides a general description of the configuration.
 
+As the `name` property is also used by several widgets, it is often sensible to make this a local property (i.e. `@name`). The `description` is provided as entry values. This looks something like the following:
 
+```cardconfig
+- This is a document-level configuration description.
+- Text provided on multiple lines will be concatenated
+- to form a single paragraph.
 
+card:
+	@name: Card Style Name
+	- And here is a description for a particular card
+	- layout, which can explain its particular use.
+```
 
-
-
+It is a very good idea to document your configurations, as this information can be displayed in the editor documentation, allowing users (and yourself, somewhere down the line!) to get an understanding of how your configuration should be used, without having to read through the whole configuration file.
 
 
 ## Putting It All Together
@@ -385,7 +708,7 @@ configProperty2: value2
 def value1: int
 def value2 = value1 + 5
 
-# Card backgrounds and outlines
+# Global card backgrounds and outlines
 background:
 	condition: expression
 	# Contents...
@@ -407,6 +730,10 @@ card:
 
 	# Card definitions
 	def cardValue: int
+
+	# Specific card outline
+	outline:
+		# Contents...
 
 	# Card segments
 	segment:
@@ -431,7 +758,7 @@ card:
 card:
 	# Contents...
 
-# Universal card segments
+# Global card segments
 segment:
 	# Contents
 ```
