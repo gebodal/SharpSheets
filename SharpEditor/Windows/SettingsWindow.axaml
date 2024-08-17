@@ -161,7 +161,7 @@
 															</i:Interaction.Behaviors>
 														</TextBox>
 														<Border Grid.Column="4" Background="{StaticResource ThemeBackgroundBrush}"/>
-														<Border Grid.Column="4">
+														<Border Grid.Column="4" BorderThickness="1" BorderBrush="{StaticResource ThemeBorderMidBrush}">
 															<Border.Background>
 																<SolidColorBrush Color="{Binding Color}"/>
 															</Border.Background>
@@ -230,7 +230,7 @@
 												<local:LostFocusUpdateBindingBehavior Text="{Binding Color, Converter={StaticResource colorToStringConv}}"/>
 											</i:Interaction.Behaviors>
 										</TextBox>
-										<Border Grid.Column="4">
+										<Border Grid.Column="4" BorderThickness="1" BorderBrush="{StaticResource ThemeBorderMidBrush}">
 											<Border.Background>
 												<SolidColorBrush Color="{Binding Color}"/>
 											</Border.Background>
