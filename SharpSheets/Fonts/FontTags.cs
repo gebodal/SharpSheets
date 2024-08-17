@@ -110,6 +110,17 @@ namespace SharpSheets.Fonts {
 			return a.Equals(b);
 		}
 
+		public override string ToString() {
+			IEnumerable<string> GetParts() {
+				yield return $"script: {ScriptTag}";
+				if (LangSysTag is not null) { yield return $"langsys: {LangSysTag}"; }
+				foreach (string feature in FeatureTags.Sort()) {
+					yield return feature;
+				}
+			}
+			return "{" + string.Join(", ", GetParts()) + "}";
+		}
+
 	}
 
 }

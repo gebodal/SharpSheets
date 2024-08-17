@@ -245,6 +245,20 @@ namespace SharpEditor.DataManagers {
 					}
 				}
 			}
+			else if (type == typeof(SharpSheets.Fonts.FontTags)) {
+				if (value is SharpSheets.Fonts.FontTags fontTags) {
+					return fontTags.ToString();
+				}
+				else if (value is string fontTagsStr) {
+					try {
+						SharpSheets.Fonts.FontTags parsed = SharpSheets.Fonts.FontTags.Parse(fontTagsStr);
+						return parsed.ToString();
+					}
+					catch (FormatException) {
+						return fontTagsStr;
+					}
+				}
+			}
 			else if (type.IsArray) {
 				if (value is Array array) {
 					/*
