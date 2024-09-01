@@ -23,7 +23,6 @@ namespace SharpEditor.CodeHelpers {
 
 		public static TextBlock GetToolTipTextBlock(string? text = null) {
 			TextBlock block = BaseContentBuilder.GetContentTextBlock(text, TextBlockMargin);
-			if (text != null) block.Text = text;
 			return block;
 		}
 
