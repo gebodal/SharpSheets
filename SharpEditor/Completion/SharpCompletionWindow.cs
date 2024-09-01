@@ -95,6 +95,7 @@ namespace SharpEditor.Completion {
 		*/
 
 		void CompletionList_SelectionChanged(object? sender, SelectionChangedEventArgs e) {
+			if (!(CompletionList.ListBox.IsVisible && CompletionList.ListBox.IsEnabled)) { return; }
 			//if(toolTip is null) { return; } // The completion window has already been closed
 			ICompletionData? item = CompletionList.SelectedItem;
 			if (item == null) { return; }
@@ -115,6 +116,7 @@ namespace SharpEditor.Completion {
 			}
 			else {
 				//toolTip.IsOpen = false;
+				ToolTip.SetTip(CompletionList.ListBox, null);
 				ToolTip.SetIsOpen(CompletionList.ListBox, false);
 			}
 		}

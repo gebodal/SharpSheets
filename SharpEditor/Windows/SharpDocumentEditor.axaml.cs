@@ -661,26 +661,25 @@ namespace SharpEditor.Windows {
 		}
 
 		void OpenCompletionWindow() {
-			if (codeHelper != null) {
+			if (codeHelper != null && completionWindow is null) {
 				IList<ICompletionData> data = codeHelper.GetCompletionData();
 
 				if (data.Count > 0) {
 					int startOffset = codeHelper.GetCompletionStartOffset();
 					//Console.WriteLine($"Caret: {textEditor.CaretOffset}, Start: {startOffset}");
 					completionWindow = new SharpCompletionWindow(textEditor.TextArea) { StartOffset = startOffset };
-
-					string startingText = textEditor.Document.GetText(completionWindow.StartOffset, completionWindow.EndOffset - completionWindow.StartOffset);
-
 					completionWindow.CompletionList.CompletionData.AddRange(data);
 
-					if (!string.IsNullOrEmpty(startingText)) {
-						completionWindow.CompletionList.SelectItem(startingText);
-					}
+					string startingText = textEditor.Document.GetText(completionWindow.StartOffset, completionWindow.EndOffset - completionWindow.StartOffset);
 
 					completionWindow.Show();
 					completionWindow.Closed += delegate {
 						completionWindow = null;
 					};
+
+					if (!string.IsNullOrEmpty(startingText)) {
+						completionWindow.CompletionList.SelectItem(startingText);
+					}
 				}
 			}
 		}
