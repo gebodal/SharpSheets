@@ -32,6 +32,7 @@ namespace SharpSheets.Evaluations {
 			LowerFunction.Instance, UpperFunction.Instance, TitleCaseFunction.Instance,
 			StringJoinFunction.Instance, StringSplitFunction.Instance,
 			StringFormatFunction.Instance,
+			StringReplaceFunction.Instance,
 			MinVarFunction.Instance, MaxVarFunction.Instance,
 			SumFunction.Instance,
 			FloorFunction.Instance, CeilingFunction.Instance,

@@ -286,4 +286,46 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 	}
 
+	public class StringReplaceFunction : AbstractFunction {
+
+		public static readonly StringReplaceFunction Instance = new StringReplaceFunction();
+		private StringReplaceFunction() { }
+
+		public override EvaluationName Name { get; } = "replace";
+		public override string? Description { get; } = "Replace any occurrence of a substring within an input string with another value.";
+
+		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
+			new EnvironmentFunctionArgList(
+				new EnvironmentFunctionArg("input", EvaluationType.STRING, null),
+				new EnvironmentFunctionArg("oldValue", EvaluationType.STRING, null),
+				new EnvironmentFunctionArg("newValue", EvaluationType.STRING, null)
+				)
+		);
+
+		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+			EvaluationType arg1Type = args[0].ReturnType;
+			EvaluationType arg2Type = args[1].ReturnType;
+			EvaluationType arg3Type = args[2].ReturnType;
+			if (arg1Type == EvaluationType.STRING && arg2Type == EvaluationType.STRING && arg3Type == EvaluationType.STRING) {
+				return EvaluationType.STRING;
+			}
+			else {
+				throw new EvaluationTypeException($"Replace not defined for operands of type {arg1Type}, {arg2Type}, and {arg3Type}.");
+			}
+		}
+
+		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			object? a = args[0].Evaluate(environment);
+			object? b = args[1].Evaluate(environment);
+			object? c = args[2].Evaluate(environment);
+
+			if (a is string input && b is string oldValue && c is string newValue) {
+				return input.Replace(oldValue, newValue);
+			}
+			else {
+				throw new EvaluationTypeException($"Replace not defined for operands of type {EvaluationUtils.GetDataTypeName(a)}, {EvaluationUtils.GetDataTypeName(b)}, and {EvaluationUtils.GetDataTypeName(c)}.");
+			}
+		}
+	}
+
 }
