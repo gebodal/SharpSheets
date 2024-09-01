@@ -148,6 +148,9 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			if (GetFontText(fontFile, NameID.NameTableVersion) is string version) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Version", GetVersionNumber(version)));
 			}
+			if (GetFontText(fontFile, NameID.CopyrightNotice) is string copyright) {
+				fontProperties.Children.Add(GetFontPropertyBlock("Copyright Notice", copyright));
+			}
 			if (GetFontText(fontFile, NameID.TrademarkNotice) is string trademark) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Trademark Notice", trademark));
 			}
