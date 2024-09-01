@@ -23,13 +23,14 @@ namespace SharpSheets.Markup.Elements {
 		void Draw(MarkupCanvas canvas);
 	}
 
-	public interface IShapeElement : IDrawableElement {
-
+	public interface IGeometryElement : IDrawableElement {
 		/// <summary></summary>
 		/// <exception cref="MarkupCanvasStateException"></exception>
 		/// <exception cref="EvaluationException"></exception>
 		void AssignGeometry(MarkupCanvas canvas);
+	}
 
+	public interface IShapeElement : IGeometryElement {
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		IPathCalculator? GetPath(MarkupCanvas canvas);

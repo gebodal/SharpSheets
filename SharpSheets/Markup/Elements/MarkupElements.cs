@@ -116,7 +116,7 @@ namespace SharpSheets.Markup.Elements {
 		public string? ID { get; }
 		public StyleSheet StyleSheet { get; }
 
-		readonly IShapeElement[] elements;
+		private readonly IShapeElement[] elements;
 
 		/// <summary>
 		/// Constructor for ClipPath.

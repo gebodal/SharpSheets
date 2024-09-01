@@ -635,7 +635,7 @@ namespace SharpSheets.Markup.Parsing {
 							LogVisit(childElem);
 						}
 						else if (MarkupParsingConstants.IsRenderedElement(childElem.Name)) {
-							IIdentifiableMarkupElement? part = MakeElement(root, childElem, constructed, fullDrawingVariables, source);
+							IIdentifiableMarkupElement? part = MakeElement(root, childElem, constructed, new HashSet<XMLElement>() { divElem }, fullDrawingVariables, source);
 							if (part is IDrawableElement drawable) {
 								divElement.AddElement(drawable);
 								LogOrigin(childElem, drawable);
@@ -773,14 +773,14 @@ namespace SharpSheets.Markup.Parsing {
 				return divElement;
 			}
 
-			private IIdentifiableMarkupElement? MakeElement(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, IVariableBox initialVariables, DirectoryPath source) {
+			private IIdentifiableMarkupElement? MakeElement(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, ISet<XMLElement> disallowed, IVariableBox initialVariables, DirectoryPath source) {
 				// TODO Need to deal with errors in this method
 
 				if (constructed.TryGetValue(elem, out IIdentifiableMarkupElement? existing)) { return existing; }
 
 				IIdentifiableMarkupElement? finalElement = null;
 
-				StyleSheet styleSheet = GetStyleSheet(root, elem, constructed, initialVariables, source, out IVariableBox variables);
+				StyleSheet styleSheet = GetStyleSheet(root, elem, constructed, new HashSet<XMLElement>(disallowed) { elem }, initialVariables, source, out IVariableBox variables);
 				string? id = GetAttribute(elem, "id", false, s => s, null);
 				//string classname = GetAttribute(elem, "class", false, s => s, null);
 
@@ -853,7 +853,7 @@ namespace SharpSheets.Markup.Parsing {
 					List<IDrawableElement> gElements = new List<IDrawableElement>();
 					foreach (XMLElement gElem in elem.Elements) {
 						try {
-							IIdentifiableMarkupElement? gBoxElem = MakeElement(root, gElem, constructed, variables, source); // TODO Deal with errors?
+							IIdentifiableMarkupElement? gBoxElem = MakeElement(root, gElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source); // TODO Deal with errors?
 							if (gBoxElem is IDrawableElement gShapeElem) {
 								gElements.Add(gShapeElem);
 								LogOrigin(gElem, gShapeElem);
@@ -877,7 +877,7 @@ namespace SharpSheets.Markup.Parsing {
 					foreach (XMLNode node in elem.Children) {
 						try {
 							if (node is XMLElement textPieceElem && (textPieceElem.Name == "tspan" || textPieceElem.Name == "textPath")) {
-								IIdentifiableMarkupElement? boxElem = MakeElement(root, textPieceElem, constructed, variables, source); // TODO Deal with errors?
+								IIdentifiableMarkupElement? boxElem = MakeElement(root, textPieceElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source); // TODO Deal with errors?
 								if (boxElem is ITextPiece textPiece) {
 									pieces.Add(textPiece);
 									LogOrigin(textPieceElem, boxElem);
@@ -915,7 +915,7 @@ namespace SharpSheets.Markup.Parsing {
 					}
 					else { // elem.Name.LocalName == "textPath"
 						string? pathUrl = GetAttribute(elem, "path", false, s => s, null);
-						IIdentifiableMarkupElement? path = EvaluateURL(root, pathUrl, true, constructed, variables, source);
+						IIdentifiableMarkupElement? path = EvaluateURL(root, pathUrl, true, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source);
 
 						if (!pieces.All(p => p is TSpan)) {
 							LogError(elem, "All child nodes of textPath must be tspan elements."); // Odd way of doing this. Shouldn't the error be on the child?
@@ -940,7 +940,7 @@ namespace SharpSheets.Markup.Parsing {
 					foreach (XMLNode node in elem.Children) {
 						try {
 							if (node is XMLElement textPieceElem && textPieceElem.Name == "tspan") {
-								IIdentifiableMarkupElement? boxElem = MakeElement(root, textPieceElem, constructed, variables, source); // TODO Deal with errors?
+								IIdentifiableMarkupElement? boxElem = MakeElement(root, textPieceElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source); // TODO Deal with errors?
 								if (boxElem is TSpan tspan) {
 									tspans.Add(tspan);
 									LogVisit(textPieceElem);
@@ -1024,7 +1024,7 @@ namespace SharpSheets.Markup.Parsing {
 					List<IShapeElement> clipElements = new List<IShapeElement>();
 					foreach (XMLElement clipElem in elem.Elements) {
 						try {
-							IIdentifiableMarkupElement? gBoxElem = MakeElement(root, clipElem, constructed, variables, source); // TODO Deal with errors?
+							IIdentifiableMarkupElement? gBoxElem = MakeElement(root, clipElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source); // TODO Deal with errors?
 							if (gBoxElem is IShapeElement gShapeElem) {
 								clipElements.Add(gShapeElem);
 							}
@@ -1046,7 +1046,7 @@ namespace SharpSheets.Markup.Parsing {
 					List<IShapeElement> symbolElements = new List<IShapeElement>();
 					foreach (XMLElement symbolElem in elem.Elements) {
 						try {
-							IIdentifiableMarkupElement? gBoxElem = MakeElement(root, symbolElem, constructed, variables, source); // TODO Deal with errors?
+							IIdentifiableMarkupElement? gBoxElem = MakeElement(root, symbolElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source); // TODO Deal with errors?
 							if (gBoxElem is IShapeElement gShapeElem) {
 								symbolElements.Add(gShapeElem);
 							}
@@ -1075,7 +1075,7 @@ namespace SharpSheets.Markup.Parsing {
 				else if (elem.Name == "use") {
 
 					if (RequiredAttribute(elem, "href", false, s => s, out ContextProperty<string> urlAttr)) {
-						XMLElement? referenced = EvalualteURLElement(root, urlAttr.Value);
+						XMLElement? referenced = EvalualteURLElement(root, urlAttr.Value, new HashSet<XMLElement>(disallowed) { elem });
 						if (referenced != null) {
 							LogVisit(referenced);
 							foreach (XMLNode referencedNode in referenced.TraverseNodes()) {
@@ -1104,7 +1104,7 @@ namespace SharpSheets.Markup.Parsing {
 
 							XMLElement cloned = referenced.Clone(elem, replacementAttributes);
 
-							IIdentifiableMarkupElement? clonedElement = MakeElement(root, cloned, constructed, variables, source);
+							IIdentifiableMarkupElement? clonedElement = MakeElement(root, cloned, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source);
 
 							if (clonedElement is IDrawableElement drawableHref) {
 								TransformExpression translation = TransformExpression.Translate(
@@ -1182,7 +1182,7 @@ namespace SharpSheets.Markup.Parsing {
 			private static readonly SolidPaint defaultFillPaint = new SolidPaint(null, MarkupEnvironments.BackgroundExpression);
 			private static readonly SolidPaint defaultTextPaint = new SolidPaint(null, MarkupEnvironments.TextColorExpression);
 
-			private StyleSheet GetStyleSheet(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, IVariableBox initialVariables, DirectoryPath source, out IVariableBox finalVariables) {
+			private StyleSheet GetStyleSheet(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, ISet<XMLElement> disallowed, IVariableBox initialVariables, DirectoryPath source, out IVariableBox finalVariables) {
 
 				// Get foreach expression for this div, using outer context variables
 				ForEachExpression? forEach = GetAttribute(elem, "for-each", false, s => ForEachExpression.Parse(s, initialVariables), null);
@@ -1197,11 +1197,11 @@ namespace SharpSheets.Markup.Parsing {
 				}
 
 				StyleSheet styleSheet = new StyleSheet(
-					_clip_path: GetClipPath(root, elem, constructed, variables, source),
+					_clip_path: GetClipPath(root, elem, constructed, disallowed, variables, source),
 					clip_rule: GetAttribute(elem, "clip-rule", true, s => MarkupValueParsing.ParseEnum<AreaRule>(s, variables), null),
 					//Color = GetAttribute(elem, "color", true, s => MarkupValueParsing.ParseColor(s, variables), null),
 					//Fill = GetAttribute(elem, "fill", true, s => GetPaint(root, s, variables), new SolidPaint(Color.Black)),
-					fill: GetPaint(root, elem, "fill", true, variables, defaultFillPaint), // elem.GetAttribute("fill", true) is ContextProperty<string> fillAttr ? GetPaint(root, fillAttr, variables) : new SolidPaint(Color.Black),
+					fill: GetPaint(root, elem, "fill", true, disallowed, variables, defaultFillPaint), // elem.GetAttribute("fill", true) is ContextProperty<string> fillAttr ? GetPaint(root, fillAttr, variables) : new SolidPaint(Color.Black),
 					fill_opacity: GetAttribute(elem, "fill-opacity", true, s => FloatExpression.Parse(s, variables), null),
 					fill_rule: GetAttribute(elem, "fill-rule", true, s => MarkupValueParsing.ParseEnum<AreaRule>(s, variables), null),
 					//FontFamily = null, // TODO How to get this?
@@ -1214,7 +1214,7 @@ namespace SharpSheets.Markup.Parsing {
 					//Overflow = GetAttribute(elem, "overflow", false, s => MarkupValueParsing.ParseEnum<Overflow>(s, variables), null),
 					//StopColor = GetAttribute(elem, "stop-color", false, s => ParseColor(s), null), // Not inherited
 					//StopOpacity = GetAttribute(elem, "stop-opacity", false, s => FloatExpression.Parse(s, variables), null), // Not inherited
-					stroke: GetPaint(root, elem, "stroke", true, variables, null), // GetAttribute(elem, "stroke", true, s => MarkupValueParsing.ParseColor(s, variables), null),
+					stroke: GetPaint(root, elem, "stroke", true, disallowed, variables, null), // GetAttribute(elem, "stroke", true, s => MarkupValueParsing.ParseColor(s, variables), null),
 					stroke_dasharray: GetAttribute(elem, "stroke-dasharray", true, s => MarkupValueParsing.ParseSVGNumbers(s, variables), null),
 					stroke_dashoffset: GetAttribute(elem, "stroke-dashoffset", true, s => FloatExpression.Parse(s, variables), null),
 					stroke_linecap: GetAttribute(elem, "stroke-linecap", true, s => MarkupValueParsing.ParseEnum<LineCapStyle>(s, variables), null), // Default: CanvasConstants.LineCapStyle.BUTT
@@ -1694,11 +1694,11 @@ namespace SharpSheets.Markup.Parsing {
 
 			#region SVG Elements
 
-			private ClipPath? GetClipPath(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, IVariableBox variables, DirectoryPath source) {
+			private ClipPath? GetClipPath(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, ISet<XMLElement> disallowed, IVariableBox variables, DirectoryPath source) {
 				ClipPath? clipPath = null;
 
 				if (GetAttribute(elem, "clip-path", false) is ContextProperty<string> clipPathAttr) {
-					if (EvaluateURL(root, clipPathAttr.Value, false, constructed, variables, source) is IIdentifiableMarkupElement identified) {
+					if (EvaluateURL(root, clipPathAttr.Value, false, constructed, disallowed, variables, source) is IIdentifiableMarkupElement identified) {
 						if (identified is ClipPath identifiedClipPath) {
 							clipPath = identifiedClipPath;
 						}
@@ -1711,17 +1711,17 @@ namespace SharpSheets.Markup.Parsing {
 					}
 					// TODO Parse simple shapes
 					else {
-						LogError(clipPathAttr, "Invalid clipPath string.");
+						LogError(clipPathAttr, "Could not evaluate clip-path string.");
 					}
 				}
 
 				return clipPath;
 			}
 
-			private ICanvasPaint? GetPaint(XMLElement root, XMLElement element, string name, bool inheritable, IVariableBox variables, ICanvasPaint? defaultPaint) {
+			private ICanvasPaint? GetPaint(XMLElement root, XMLElement element, string name, bool inheritable, ISet<XMLElement> disallowed, IVariableBox variables, ICanvasPaint? defaultPaint) {
 
 				if (GetAttribute(element, name, inheritable) is ContextProperty<string> paintAttr) {
-					if (EvalualteURLElement(root, paintAttr.Value) is XMLElement elem) {
+					if (EvalualteURLElement(root, paintAttr.Value, disallowed) is XMLElement elem) {
 						try {
 							string? id = GetAttribute(elem, "id", false, s => s, null);
 
@@ -1794,24 +1794,28 @@ namespace SharpSheets.Markup.Parsing {
 
 			#region Utilities
 
-			private static XMLElement? EvalualteURLElement(XMLElement root, string? url) {
+			private static XMLElement? EvalualteURLElement(XMLElement root, string? url, ISet<XMLElement> disallowed) {
 				if (url == null) { return null; }
 				url = XMLParsing.NormaliseURL(url);
 				if (url != null) {
-					return root.TraverseChildren().OfType<XMLElement>().FirstOrDefault(e => e.GetAttribute1("id", false)?.Value == url);
+					XMLElement? evaluated = root.TraverseChildren().OfType<XMLElement>().FirstOrDefault(e => e.GetAttribute1("id", false)?.Value == url);
+
+					if (evaluated != null && !disallowed.Contains(evaluated)) {
+						return evaluated;
+					}
 				}
 				return null;
 			}
 
-			private IIdentifiableMarkupElement? EvaluateURL(XMLElement root, string? url, bool forceCopy, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, IVariableBox variables, DirectoryPath source) {
+			private IIdentifiableMarkupElement? EvaluateURL(XMLElement root, string? url, bool forceCopy, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, ISet<XMLElement> disallowed, IVariableBox variables, DirectoryPath source) {
 
-				XMLElement? elem = EvalualteURLElement(root, url);
+				XMLElement? elem = EvalualteURLElement(root, url, disallowed);
 
 				if (!forceCopy && elem != null && constructed.TryGetValue(elem, out IIdentifiableMarkupElement? existing)) {
 					return existing;
 				}
 				else if (elem != null) {
-					IIdentifiableMarkupElement? result = MakeElement(root, elem, constructed, variables, source);
+					IIdentifiableMarkupElement? result = MakeElement(root, elem, constructed, disallowed, variables, source);
 					LogVisit(elem);
 					return result;
 				}
