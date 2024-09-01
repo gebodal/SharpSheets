@@ -429,6 +429,7 @@ namespace GeboPdf.Fonts.TrueType {
 
 			int contour = 0;
 			int contourStart = 0;
+			int contourStartFinal = 0;
 			for (int i = 0; i < xCoordinates.Count; i++) {
 
 				if (i == contourStart && !onCurve[i]) {
@@ -451,7 +452,7 @@ namespace GeboPdf.Fonts.TrueType {
 					onCurveFinal.Add(true);
 				}
 				else {
-					if (i > 0 && !onCurve[i - 1]) {
+					if (i > 0 && i != contourStart && !onCurve[i - 1]) {
 						xCoordinatesFinal.Add((short)((xCoordinates[i - 1] + xCoordinates[i]) / 2f));
 						yCoordinatesFinal.Add((short)((yCoordinates[i - 1] + yCoordinates[i]) / 2f));
 						onCurveFinal.Add(true);
@@ -465,17 +466,16 @@ namespace GeboPdf.Fonts.TrueType {
 				if (contour < endPtsOfContours.Count && endPtsOfContours[contour] == i) {
 
 					if (!onCurve[i]) {
-						if (onCurve[contourStart]) {
-							xCoordinatesFinal.Add(xCoordinates[contourStart]);
-							yCoordinatesFinal.Add(yCoordinates[contourStart]);
-							onCurveFinal.Add(true);
-						}
-						// Already dealt with !onCurve[contourEnd] && !onCurve[contourStart] above
+						// All final contours should begin with an onCurve point
+						xCoordinatesFinal.Add(xCoordinatesFinal[contourStartFinal]);
+						yCoordinatesFinal.Add(yCoordinatesFinal[contourStartFinal]);
+						onCurveFinal.Add(true);
 					}
 
 					endPtsOfContoursFinal.Add((ushort)(xCoordinatesFinal.Count - 1));
 					contour++;
 					contourStart = i + 1;
+					contourStartFinal = xCoordinatesFinal.Count;
 				}
 			}
 
