@@ -102,6 +102,13 @@ namespace SharpEditor.DataManagers {
 		}
 
 		[ObservableProperty]
+		private bool showWhitespace = false;
+		public event EventHandler? ShowWhitespaceChanged;
+		partial void OnShowWhitespaceChanged(bool value) {
+			ShowWhitespaceChanged?.Invoke(this, new EventArgs());
+		}
+
+		[ObservableProperty]
 		private bool wrapLines = false;
 		public event EventHandler? WrapLinesChanged;
 		partial void OnWrapLinesChanged(bool value) {
@@ -113,6 +120,13 @@ namespace SharpEditor.DataManagers {
 		public event EventHandler? TextZoomChanged;
 		partial void OnTextZoomChanged(double value) {
 			TextZoomChanged?.Invoke(this, new EventArgs());
+		}
+
+		[ObservableProperty]
+		private int tabWidth = 4;
+		public event EventHandler? TabWidthChanged;
+		partial void OnTabWidthChanged(int value) {
+			TabWidthChanged?.Invoke(this, new EventArgs());
 		}
 
 		#endregion

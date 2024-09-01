@@ -71,6 +71,19 @@ namespace SharpEditor.DataManagers {
 			return defaultTheme;
 		}
 
+		public static IBrush? GetBrush(IResourceDictionary resources, string brushName) {
+			if (resources.TryGetResource(brushName, null, out object? value) && value is IBrush brush) {
+				return brush;
+			}
+			else {
+				return null;
+			}
+		}
+
+		public static IBrush? GetBrush(Application appInstance, string brushName) {
+			return GetBrush(appInstance.Resources, brushName);
+		}
+
 		public static readonly IReadOnlyList<string> resourceNames = new List<string>() {
 			"ThemeForegroundColor",
 			"ThemeForegroundLowColor",
@@ -98,6 +111,7 @@ namespace SharpEditor.DataManagers {
 			"HyperlinkColor",
 			//"HyperlinkVisitedColor", // Not used in editor
 			"EditorDecorationColor",
+			"EditorTextMarkerColor",
 			"EditorSelectionColor",
 			"EditorSearchResultColor",
 			"EditorCurrentLineBorderColor",
@@ -152,6 +166,7 @@ namespace SharpEditor.DataManagers {
 		public static readonly string HyperlinkVisitedBrush = "HyperlinkVisitedBrush";
 
 		public static readonly string EditorDecorationBrush = "EditorDecorationBrush";
+		public static readonly string EditorTextMarkerBrush = "EditorTextMarkerBrush";
 		public static readonly string EditorSelectionBrush = "EditorSelectionBrush";
 		public static readonly string EditorSearchResultBrush = "EditorSearchResultBrush";
 		public static readonly string EditorCurrentLineBorderBrush = "EditorCurrentLineBorderBrush";

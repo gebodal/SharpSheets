@@ -92,22 +92,6 @@ namespace SharpEditor.Windows {
 			InitializeCompletionWindow();
 			InitializeContextMenu();
 
-			textEditor.Options.HighlightCurrentLine = true;
-			textEditor.Options.EnableEmailHyperlinks = textEditor.Options.EnableHyperlinks = false;
-			textEditor.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
-			textEditor.Options.AllowScrollBelowDocument = true;
-
-			textEditor.TextArea.SelectionCornerRadius = 1.0; // Can also adjust Selection Brush from here
-			textEditor.TextArea.SelectionBorder = null;
-			textEditor.TextArea.SelectionForeground = null;
-			//textEditor.TextArea.SelectionBrush = new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.5 };
-
-			//textEditor.TextArea.TextView.CurrentLineBackground = Brushes.Transparent; // new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.0 };
-			//textEditor.TextArea.TextView.CurrentLineBorder = new Pen(new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.3 }, 2f);
-
-			//textEditor.SnapsToDevicePixels = true;
-			//textEditor.SetValue(RenderOptions.EdgeModeProperty, EdgeMode.Aliased);
-
 			// TODO Pasting event handling goes here (not yet implemented)
 			//DataObject.AddPastingHandler(this, PasteEvent);
 
@@ -173,6 +157,25 @@ namespace SharpEditor.Windows {
 
 		[MemberNotNull(nameof(lineNumberControls))]
 		void InitializeTextEditorDependencyProperties() {
+
+			textEditor.Options.HighlightCurrentLine = true;
+			textEditor.Options.EnableEmailHyperlinks = textEditor.Options.EnableHyperlinks = false;
+			textEditor.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
+			textEditor.Options.AllowScrollBelowDocument = true;
+
+			textEditor.TextArea.SelectionCornerRadius = 1.0; // Can also adjust Selection Brush from here
+			textEditor.TextArea.SelectionBorder = null;
+			textEditor.TextArea.SelectionForeground = null;
+			//textEditor.TextArea.SelectionBrush = new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.5 };
+
+			//textEditor.TextArea.TextView.CurrentLineBackground = Brushes.Transparent; // new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.0 };
+			//textEditor.TextArea.TextView.CurrentLineBorder = new Pen(new SolidColorBrush(Colors.LightSlateGray) { Opacity = 0.3 }, 2f);
+
+			//textEditor.SnapsToDevicePixels = true;
+			//textEditor.SetValue(RenderOptions.EdgeModeProperty, EdgeMode.Aliased);
+
+			textEditor.Options.ShowSpacesGlyph = "\u2022";
+
 			// Line numbers
 			textEditor.ShowLineNumbers = true;
 			List<Control> lineNumberControlsList = new List<Control>();
@@ -202,6 +205,19 @@ namespace SharpEditor.Windows {
 			// Show end of line
 			textEditor.Options.ShowEndOfLine = SharpDataManager.Instance.ShowEndOfLine;
 			SharpDataManager.Instance.ShowEndOfLineChanged += OnShowEndOfLineChanged;
+
+			// Show whitespace
+			textEditor.Options.ShowSpaces = textEditor.Options.ShowTabs = SharpDataManager.Instance.ShowWhitespace;
+			SharpDataManager.Instance.ShowWhitespaceChanged += OnShowWhitespaceChanged;
+
+			// Tab width
+			textEditor.Options.IndentationSize = SharpDataManager.Instance.TabWidth;
+			SharpDataManager.Instance.TabWidthChanged += OnTabWidthChanged;
+
+			// NonPrintableCharacterBrush
+			if (SharpEditorWindow.Instance?.controller?.appInstance is App currentApp) {
+				textEditor.TextArea.TextView.NonPrintableCharacterBrush = SharpEditorThemeManager.GetBrush(currentApp, SharpEditorThemeManager.EditorTextMarkerBrush) ?? Brushes.Red;
+			}
 		}
 
 		void UninstallTextEditorDependencyProperties() {
@@ -236,6 +252,14 @@ namespace SharpEditor.Windows {
 
 		private void OnShowEndOfLineChanged(object? sender, EventArgs e) {
 			this.textEditor.Options.ShowEndOfLine = SharpDataManager.Instance.ShowEndOfLine;
+		}
+
+		private void OnShowWhitespaceChanged(object? sender, EventArgs e) {
+			this.textEditor.Options.ShowSpaces = this.textEditor.Options.ShowTabs = SharpDataManager.Instance.ShowWhitespace;
+		}
+
+		private void OnTabWidthChanged(object? sender, EventArgs e) {
+			this.textEditor.Options.IndentationSize = SharpDataManager.Instance.TabWidth;
 		}
 
 		#endregion TextEditor Dependency Properties

@@ -181,6 +181,13 @@
 						</CheckBox>
 					</MenuItem.Icon>
 				</MenuItem>
+				<MenuItem Header="Show Whitespace" Name="ShowWhitespaceButton" Click="ToggleMenuItemCheckBox">
+					<MenuItem.Icon>
+						<CheckBox IsChecked="{Binding DataManager.ShowWhitespace}" IsHitTestVisible="False">
+							<ContentControl Classes="whitespaceIcon"/>
+						</CheckBox>
+					</MenuItem.Icon>
+				</MenuItem>
 			</MenuItem> <!-- End of View menu -->
 			<MenuItem Header="_Generate">
 				<MenuItem Header="Generate" Command="{Binding GenerateCommand}" InputGesture="Ctrl+G">

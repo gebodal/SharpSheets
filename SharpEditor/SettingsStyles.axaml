@@ -84,6 +84,7 @@
 		<Setter Property="Background" Value="Transparent" />
 		<Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderMidBrush}" />
 		<Setter Property="BorderThickness" Value="{DynamicResource ThemeBorderThickness}" />
+		<Setter Property="HorizontalAlignment" Value="Left" />
 		<Setter Property="Padding" Value="4,0,0,0" />
 		<Setter Property="VerticalContentAlignment" Value="Center" />
 		<Setter Property="HorizontalContentAlignment" Value="Left" />

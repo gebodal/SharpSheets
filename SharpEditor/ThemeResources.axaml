@@ -43,6 +43,7 @@
 	<Color x:Key="HyperlinkVisitedColor">#C58AF9</Color>
 
 	<Color x:Key="EditorDecorationColor">Gray</Color> <!-- Editor line number color, folding color, etc -->
+	<Color x:Key="EditorTextMarkerColor">#ff808080</Color> <!-- Whitespace and end of line marker color -->
 	<Color x:Key="EditorSelectionColor">#7f778899</Color> <!-- Editor selection color (#50ff0000 is nice too) -->
 	<Color x:Key="EditorSearchResultColor">#50ff0000</Color> <!-- Editor search results color -->
 	<Color x:Key="EditorCurrentLineBorderColor">#33778899</Color> <!-- Current line border in editor -->
@@ -104,6 +105,7 @@
 	<SolidColorBrush x:Key="HyperlinkVisitedBrush" Color="{DynamicResource HyperlinkVisitedColor}"/>
 
 	<SolidColorBrush x:Key="EditorDecorationBrush" Color="{DynamicResource EditorDecorationColor}"/>
+	<SolidColorBrush x:Key="EditorTextMarkerBrush" Color="{DynamicResource EditorTextMarkerColor}"/>
 	<SolidColorBrush x:Key="EditorSelectionBrush" Color="{DynamicResource EditorSelectionColor}"/>
 	<SolidColorBrush x:Key="EditorSearchResultBrush" Color="{DynamicResource EditorSearchResultColor}"/>
 	<SolidColorBrush x:Key="EditorCurrentLineBorderBrush" Color="{DynamicResource EditorCurrentLineBorderColor}"/>

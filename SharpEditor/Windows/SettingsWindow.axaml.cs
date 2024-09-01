@@ -33,6 +33,7 @@ namespace SharpEditor.Windows {
 
 			TemplateDirectoryTextBox.Text = SharpEditorPathInfo.TemplateDirectory;
 			DPITextBox.Text = SharpDataManager.Instance.ScreenDPI.ToString();
+			TabWidthTextBox.Text = SharpDataManager.Instance.TabWidth.ToString();
 		}
 
 		public bool IsClosed { get; private set; } = false;
@@ -217,6 +218,25 @@ namespace SharpEditor.Windows {
 		}
 
 		private void DPITextBoxKeyDown(object? sender, Avalonia.Input.KeyEventArgs e) {
+			if(e.Key == Avalonia.Input.Key.Enter) {
+				this.Focus();
+			}
+		}
+
+		#endregion
+
+		#region Tab Width
+
+		private void OnTabWidthTextLostFocus(object? sender, RoutedEventArgs e) {
+			if(int.TryParse(TabWidthTextBox.Text, out int newTabWidth) && newTabWidth > 0) {
+				SharpDataManager.Instance.TabWidth = newTabWidth;
+			}
+			else {
+				DPITextBox.Text = SharpDataManager.Instance.TabWidth.ToString();
+			}
+		}
+
+		private void TabWidthTextBoxKeyDown(object? sender, Avalonia.Input.KeyEventArgs e) {
 			if(e.Key == Avalonia.Input.Key.Enter) {
 				this.Focus();
 			}

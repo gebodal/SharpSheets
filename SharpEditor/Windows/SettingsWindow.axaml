@@ -42,6 +42,36 @@
 			KeyboardNavigation.TabNavigation="Cycle">
 			<StackPanel Orientation="Vertical" Margin="0 0 0 50">
 
+				<HeaderedContentControl Classes="settings" Header="Editor" Padding="8">
+					<StackPanel>
+						<CheckBox
+							Content="Show Line Numbers"
+							Margin="4"
+							IsChecked="{Binding ShowLineNumbers}"/>
+						<CheckBox
+							Content="Wrap Lines"
+							Margin="4"
+							IsChecked="{Binding WrapLines}"/>
+						<CheckBox
+							Content="Show End of Line"
+							Margin="4"
+							IsChecked="{Binding ShowEndOfLine}"/>
+						<CheckBox
+							Content="Show Whitespace"
+							Margin="4"
+							IsChecked="{Binding ShowWhitespace}"/>
+						<Grid Margin="4">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="10"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+							<TextBlock Grid.Column="0" Text="Tab Width" VerticalAlignment="Center"/>
+							<TextBox Grid.Column="2" x:Name="TabWidthTextBox" LostFocus="OnTabWidthTextLostFocus" KeyDown="TabWidthTextBoxKeyDown"/>
+						</Grid>
+					</StackPanel>
+				</HeaderedContentControl>
+
 				<HeaderedContentControl Classes="settings" Header="Designer" Padding="8">
 					<StackPanel>
 						<CheckBox

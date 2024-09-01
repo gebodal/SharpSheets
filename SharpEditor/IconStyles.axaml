@@ -21,6 +21,7 @@
 		<PathGeometry x:Key="RedoIconGeometry" Figures="M 11.5,14 H  6 C  3.5,14  2,12.5  2,9.5 C  2,7.5  3.5, 6  6, 6 H 13 M 9.5,9.5 L 13, 6 L 9.5, 2.5"/>
 
 		<PathGeometry x:Key="WrapIconGeometry" Figures="M 14,2 L 14,6.5 C 14,8.5 12.5,10 10,10 H  3 M 6.5,6.5 L  3,10 L 6.5,13.5"/>
+		<PathGeometry x:Key="WhitespaceIconGeometry" Figures="M 1.5,1 V 15 M 14.5,1 V 15 M 3,7.5 H 13 M 5.5,10 l -2.5,-2.5 2.5,-2.5 M 10.5,10 l 2.5,-2.5 -2.5,-2.5"/>
 
 		<PathGeometry x:Key="NewIconGeometry" Figures="M 3,16 H 14 V 6 L 9,1 H 3 Z M 14,5 L 10,1 M 9,1 V 6 H 14"/>
 		<PathGeometry x:Key="NewSmallIconGeometry" Figures="M 4,15 H 13 V 7 L 8,2 H 4 Z M 13,6 L 9,2 M 8,2 V 7 H 13"/>
@@ -558,6 +559,20 @@
 				<Path Data="{StaticResource WrapIconGeometry}"
 					  Stroke="{StaticResource ThemeForegroundLowBrush}"
 					  StrokeThickness="1.5" StrokeLineCap="Round" Stretch="None"
+					  Width="{TemplateBinding Width}"
+					  Height="{TemplateBinding Height}"/>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+
+	<Style Selector="ContentControl.whitespaceIcon">
+		<Setter Property="Width" Value="16"/>
+		<Setter Property="Height" Value="16"/>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Path Data="{StaticResource WhitespaceIconGeometry}"
+					  Stroke="{StaticResource ThemeForegroundLowBrush}"
+					  StrokeThickness="1" StrokeLineCap="Round" Stretch="None"
 					  Width="{TemplateBinding Width}"
 					  Height="{TemplateBinding Height}"/>
 			</ControlTemplate>
