@@ -86,7 +86,7 @@ namespace GeboPdf.Patterns {
 			this.shadingType = shadingType;
 			this.colorSpace = colorSpace ?? throw new ArgumentNullException(nameof(colorSpace));
 
-			if (background != null && background.ColorSpace != this.colorSpace) {
+			if (background is not null && background.ColorSpace != this.colorSpace) {
 				throw new ArgumentException("Any background provided to a shading dictionary must match the provided color space.");
 			}
 			this.background = background;
