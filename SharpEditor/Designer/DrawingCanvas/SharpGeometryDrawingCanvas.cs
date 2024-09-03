@@ -285,7 +285,8 @@ namespace SharpEditor.Designer.DrawingCanvas {
 				StartPoint = new Avalonia.RelativePoint(MakePoint(x1, y1), Avalonia.RelativeUnit.Absolute),
 				EndPoint = new Avalonia.RelativePoint(MakePoint(x2, y2), Avalonia.RelativeUnit.Absolute),
 				GradientStops = gradientStops,
-				Transform = GetCurrentTransformMatrix()
+				Transform = GetCurrentTransformMatrix(),
+				TransformOrigin = new Avalonia.RelativePoint(MakePoint(0, 0), Avalonia.RelativeUnit.Absolute)
 				//MappingMode = BrushMappingMode.Absolute
 			};
 
@@ -329,7 +330,8 @@ namespace SharpEditor.Designer.DrawingCanvas {
 				Center = new Avalonia.RelativePoint(MakePoint(x1, y1), Avalonia.RelativeUnit.Absolute),
 				GradientOrigin = new Avalonia.RelativePoint(MakePoint(x2, y2), Avalonia.RelativeUnit.Absolute),
 				Radius = r1,
-				Transform = GetCurrentTransformMatrix()
+				Transform = GetCurrentTransformMatrix(),
+				TransformOrigin = new Avalonia.RelativePoint(MakePoint(0, 0), Avalonia.RelativeUnit.Absolute)
 			};
 
 			return brush;
@@ -683,7 +685,7 @@ namespace SharpEditor.Designer.DrawingCanvas {
 		}
 
 		public ISharpGraphicsState SetTransform(Transform transform) {
-			gsState.pagetransform = GetBaseTransform(CanvasRect) * transform;
+			gsState.pagetransform = GeometryTransform * transform;
 			return this;
 		}
 
