@@ -7,7 +7,7 @@ using SharpSheets.Widgets;
 using SharpEditor.DataManagers;
 using System.Linq;
 
-namespace SharpEditor {
+namespace SharpEditor.Parsing.ParsingState {
 
 	public sealed class CharacterSheetParsingState : SharpConfigParsingState<SharpConfigSpan> {
 

@@ -13,7 +13,7 @@ using Avalonia;
 using SharpEditor.CodeHelpers;
 using SharpSheets.Utilities;
 
-namespace SharpEditor {
+namespace SharpEditor.Parsing {
 
 	public class ParsingStateColorizingTransformer : DocumentColorizingTransformer {
 

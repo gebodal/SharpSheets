@@ -11,7 +11,7 @@ using SharpSheets.Canvas;
 using SharpSheets.Exceptions;
 using SharpSheets.Parsing;
 
-namespace SharpEditor {
+namespace SharpEditor.Parsing {
 
 	public delegate void SegmentRedrawHandler(ISegment segment, DispatcherPriority redrawPriority);
 

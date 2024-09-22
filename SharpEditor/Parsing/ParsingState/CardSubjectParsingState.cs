@@ -17,7 +17,7 @@ using SharpEditor.DataManagers;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Evaluations;
 
-namespace SharpEditor {
+namespace SharpEditor.Parsing.ParsingState {
 
 	public class CardSubjectParsingState : ParsingState<CardSubjectSpan> {
 

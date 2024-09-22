@@ -18,6 +18,7 @@ using SharpEditor.Windows;
 using Avalonia.Threading;
 using SharpEditor.Completion;
 using SharpEditor.Dialogues;
+using SharpEditor.Parsing.ParsingState;
 
 namespace SharpEditor.CodeHelpers {
 

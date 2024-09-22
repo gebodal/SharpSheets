@@ -10,7 +10,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SharpEditor.DataManagers;
 using SharpEditor.Dialogues;
-using SharpEditor.Program;
+using SharpEditor.Templates;
 using SharpEditor.Registries;
 using SharpSheets.Parsing;
 using System;

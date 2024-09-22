@@ -20,6 +20,8 @@ using SharpEditor.DataManagers;
 using SharpEditor.Designer;
 using SharpEditor.Folding;
 using SharpEditor.Indentation;
+using SharpEditor.Parsing;
+using SharpEditor.Parsing.ParsingState;
 using SharpEditor.Utilities;
 using SharpSheets.Exceptions;
 using SharpSheets.Parsing;

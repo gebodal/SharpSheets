@@ -9,7 +9,7 @@ using SharpSheets.Cards.Definitions;
 using SharpSheets.Exceptions;
 using System.Text.RegularExpressions;
 
-namespace SharpEditor {
+namespace SharpEditor.Parsing {
 
 	public abstract class SharpConfigParsingState<TSpan> : ParsingState<TSpan> where TSpan : SharpConfigSpan {
 

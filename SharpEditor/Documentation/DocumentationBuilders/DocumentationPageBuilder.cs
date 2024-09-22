@@ -22,6 +22,8 @@ using AvaloniaEdit.Highlighting;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using SharpEditor.Parsing.ParsingState;
+using SharpEditor.Parsing;
 
 namespace SharpEditor.Documentation.DocumentationBuilders {
 

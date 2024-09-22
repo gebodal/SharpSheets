@@ -23,6 +23,8 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using SharpEditor.Windows;
 using SharpEditor.Completion;
+using SharpEditor.Parsing.ParsingState;
+using SharpEditor.Parsing;
 
 namespace SharpEditor.CodeHelpers {
 

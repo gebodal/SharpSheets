@@ -6,7 +6,7 @@ using SharpEditor.DataManagers;
 using SharpSheets.Fonts;
 using SharpSheets.Utilities;
 
-namespace SharpEditor.Program {
+namespace SharpEditor.Templates {
 
 	public static class TemplateImports {
 

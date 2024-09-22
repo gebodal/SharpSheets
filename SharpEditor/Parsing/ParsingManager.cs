@@ -19,7 +19,7 @@ using Avalonia.Media;
 using Avalonia;
 using SharpEditor.Utilities;
 
-namespace SharpEditor {
+namespace SharpEditor.Parsing {
 
 	public sealed class ResultEntry {
 		public CompilationResult results;

@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using SharpEditor.Windows;
 
-namespace SharpEditor.Desktop;
+namespace SharpEditor;
 
 class Program {
 

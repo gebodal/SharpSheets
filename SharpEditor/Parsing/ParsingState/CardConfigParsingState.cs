@@ -10,11 +10,9 @@ using SharpSheets.Cards.CardConfigs;
 using SharpEditor.DataManagers;
 using SharpSheets.Cards.Card;
 using SharpSheets.Cards.CardSubjects;
-using System.Diagnostics.Eventing.Reader;
 using SharpSheets.Widgets;
-using System;
 
-namespace SharpEditor {
+namespace SharpEditor.Parsing.ParsingState {
 
 	public sealed class CardConfigParsingState : SharpConfigParsingState<CardConfigSpan> {
 

@@ -15,7 +15,7 @@ using System.Linq;
 using SharpEditor.DataManagers;
 using System.Diagnostics.CodeAnalysis;
 
-namespace SharpEditor {
+namespace SharpEditor.Parsing.ParsingState {
 	public class MarkupParsingState : ParsingState<MarkupSpan> {
 
 		public MarkupParsingState(TextDocument document) : base(document) { }
@@ -283,7 +283,7 @@ namespace SharpEditor {
 					if (i is MarkupPattern pattern) {
 						return pattern.Variables;
 					}
-					else if(i is DivElement div) {
+					else if (i is DivElement div) {
 						return div.Variables;
 					}
 					else {
@@ -374,7 +374,7 @@ namespace SharpEditor {
 					break;
 				}
 			}
-			
+
 			return allDrawnObjects;
 		}
 
