@@ -151,9 +151,9 @@ namespace SharpSheets.PDFs {
 			return GeboPdf.Objects.PdfRectangle.FromDimensions(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
 		}
 
-		private static GeboPdf.Graphics.PdfDeviceColor ConvertColor(Color color, out float alpha) {
+		private static GeboPdf.Graphics.PdfDeviceColor ConvertColor(Color color, out float alpha, bool forceRGB) {
 			alpha = color.A / 255f;
-			if (color.R == color.G && color.G == color.B) {
+			if (!forceRGB && color.R == color.G && color.G == color.B) {
 				return new PdfGrayColor(color.R / 255f);
 			}
 			else {
@@ -324,14 +324,14 @@ namespace SharpSheets.PDFs {
 
 		public ISharpGraphicsState SetStrokeColor(Color color) {
 			state.strokePaint = new CanvasSolidPaint(color);
-			canvas.SetStrokingColor(ConvertColor(color, out float alpha));
+			canvas.SetStrokingColor(ConvertColor(color, out float alpha, false));
 			canvas.SetStrokingAlphaConstant(alpha);
 			return this;
 		}
 
 		public ISharpGraphicsState SetFillColor(Color color) {
 			state.fillPaint = new CanvasSolidPaint(color);
-			canvas.SetNonStrokingColor(ConvertColor(color, out float alpha));
+			canvas.SetNonStrokingColor(ConvertColor(color, out float alpha, false));
 			canvas.SetNonStrokingAlphaConstant(alpha);
 			return this;
 		}
@@ -345,6 +345,14 @@ namespace SharpSheets.PDFs {
 		private static PdfFunction MakeGradientInterpolationFunction(IReadOnlyList<ColorStop> stops) {
 
 			stops = stops.Select(s => new ColorStop(s.Stop, s.Color.WithOpacity(1.0f))).OrderBy(s => s.Stop).ToList();
+
+			// Not sure why this is necessary, but something broke when using /Domain other than [0 1]
+			if(stops.Count > 1 && stops[0].Stop > 0f) {
+				stops = stops.Prepend(new ColorStop(0f, stops[0].Color)).ToList();
+			}
+			if(stops.Count > 1 && stops[^1].Stop < 1f) {
+				stops = stops.Append(new ColorStop(1f, stops[^1].Color)).ToList();
+			}
 
 			if (stops.Count == 0) {
 				// Return a simple interpolation between black and white
@@ -450,7 +458,7 @@ namespace SharpSheets.PDFs {
 
 			PdfFunction shadingFunction = MakeGradientInterpolationFunction(stops);
 
-			PdfColor? backgroundColor = stops.Count > 0 ? (r1 < r2 ? ConvertColor(stops[0].Color, out _) : ConvertColor(stops[^1].Color, out _)) : null;
+			PdfColor? backgroundColor = stops.Count > 0 ? (r1 < r2 ? ConvertColor(stops[0].Color, out _, true) : ConvertColor(stops[^1].Color, out _, true)) : null;
 
 			PdfShadingDictionary shadingDictionary = PdfRadialShadingDictionary.Create(
 				PdfColorSpace.DeviceRGB, backgroundColor,
@@ -749,7 +757,7 @@ namespace SharpSheets.PDFs {
 					PdfAnnotationFlags.Print, fieldName, tooltip,
 					PdfFieldFlags.None, textFieldFlags, (maxLen > 0 ? (int?)maxLen : null),
 					new PdfTextString(value ?? ""), new PdfTextString(value ?? ""),
-					state.fonts.GetPdfFont(format), fontSize, ConvertColor(color, out _), ConvertJustification(justification),
+					state.fonts.GetPdfFont(format), fontSize, ConvertColor(color, out _, false), ConvertJustification(justification),
 					PdfWidgetRotation.R0 // TODO This should be editable
 					);
 
@@ -788,7 +796,7 @@ namespace SharpSheets.PDFs {
 						pdf.AcroForm, pdfPage, ConvertRectangle(this.GetPageSpaceRect(rect)),
 						PdfAnnotationFlags.Print, fieldName, tooltip,
 						PdfFieldFlags.None, false, false,
-						ConvertCheckType(checkType), ConvertColor(color, out _),
+						ConvertCheckType(checkType), ConvertColor(color, out _, false),
 						null
 					);
 
