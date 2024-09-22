@@ -60,6 +60,7 @@
 	<Color x:Key="DesignerInnerAreaHighlightColor">#99ffa500</Color> <!-- Highlight color for inner rect in designer -->
 	<Color x:Key="DesignerAdjustedAreaHighlightColor">#bf00ffff</Color> <!-- Highlight color for adjusted rect in designer -->
 	<Color x:Key="DesignerUnselectedAreaHighlightColor">#bf808080</Color> <!-- Highlight color for unselected rect in designer on mouseover -->
+	<Color x:Key="DesignerHandlesHighlightColor">#bfff6e00</Color> <!-- Highlight color for unselected rect in designer on mouseover -->
 	
 	<Color x:Key="DesignerFieldColor">#190000ff</Color> <!-- Color for fields in designer -->
 	
@@ -122,6 +123,7 @@
 	<SolidColorBrush x:Key="DesignerInnerAreaHighlightBrush" Color="{DynamicResource DesignerInnerAreaHighlightColor}"/>
 	<SolidColorBrush x:Key="DesignerAdjustedAreaHighlightBrush" Color="{DynamicResource DesignerAdjustedAreaHighlightColor}"/>
 	<SolidColorBrush x:Key="DesignerUnselectedAreaHighlightBrush" Color="{DynamicResource DesignerUnselectedAreaHighlightColor}"/>
+	<SolidColorBrush x:Key="DesignerHandlesHighlightBrush" Color="{DynamicResource DesignerHandlesHighlightColor}"/>
 	
 	<SolidColorBrush x:Key="DesignerFieldBrush" Color="{DynamicResource DesignerFieldColor}"/>
 	

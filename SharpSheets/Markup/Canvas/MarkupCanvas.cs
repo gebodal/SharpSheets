@@ -266,6 +266,14 @@ namespace SharpSheets.Markup.Canvas {
 			return Layouts.Rectangle.RectangleFromBounding(minX, minY, maxX, maxY);
 		}
 
+		public static PathHandleData TransformHandles(PathHandleData handles, Transform transform) {
+			return new PathHandleData(
+				handles.Locations.Select(p => transform.Map(p)).ToArray(),
+				handles.OnCurve,
+				handles.IsClosed
+				);
+		}
+
 	}
 
 	public class MarkupCanvas {
@@ -566,7 +574,7 @@ namespace SharpSheets.Markup.Canvas {
 		public MarkupCanvas RegisterArea(object owner, RectangleExpression rect) {
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
 			Layouts.Rectangle finalRect = TransformRectangle(rect);
-			return this.RegisterArea(owner, finalRect, null, Array.Empty<Rectangle>());
+			return this.RegisterArea(owner, finalRect, null, Array.Empty<Rectangle>(), null);
 		}
 
 		/// <summary></summary>
@@ -574,7 +582,15 @@ namespace SharpSheets.Markup.Canvas {
 		/// <exception cref="MarkupCanvasStateException"> If the canvas has an unclosed child canvas. </exception>
 		public MarkupCanvas RegisterArea(object owner, Rectangle rect) {
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
-			return this.RegisterArea(owner, rect, null, Array.Empty<Rectangle>());
+			return this.RegisterArea(owner, rect, null, Array.Empty<Rectangle>(), null);
+		}
+
+		/// <summary></summary>
+		/// <returns> This MarkupCanvas instance. </returns>
+		/// <exception cref="MarkupCanvasStateException"> If the canvas has an unclosed child canvas. </exception>
+		public MarkupCanvas RegisterArea(object owner, Rectangle rect, PathHandleData[]? handles) {
+			if (Canvas is null) { throw new MarkupCanvasStateException(); }
+			return this.RegisterArea(owner, rect, null, Array.Empty<Rectangle>(), handles);
 		}
 
 		/// <summary></summary>
@@ -586,13 +602,13 @@ namespace SharpSheets.Markup.Canvas {
 			Layouts.Rectangle rectArea = TransformRectangle(rect);
 			Margins rectMargins = Evaluate(margins, Margins.Zero);
 			Layouts.Rectangle finalRect = rectArea.Margins(rectMargins, false);
-			return this.RegisterArea(owner, finalRect, null, Array.Empty<Rectangle>());
+			return this.RegisterArea(owner, finalRect, null, Array.Empty<Rectangle>(), null);
 		}
 
 		/// <summary></summary>
 		/// <returns> This MarkupCanvas instance. </returns>
 		/// <exception cref="MarkupCanvasStateException"> If the canvas has an unclosed child canvas. </exception>
-		public MarkupCanvas RegisterArea(object owner, Rectangle originalRect, Rectangle? adjustedRect, Rectangle[] innerAreas) {
+		public MarkupCanvas RegisterArea(object owner, Rectangle originalRect, Rectangle? adjustedRect, Rectangle[] innerAreas, PathHandleData[]? handles) {
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
 			// Rectangle needs transforming back to original space
 			//Layouts.Rectangle finalRect = MarkupGeometry.TransformRectangle(rect, geometry.State.InverseTransform * geometry.CanvasOriginTranslation);
@@ -603,7 +619,8 @@ namespace SharpSheets.Markup.Canvas {
 			Rectangle originalFinal = MarkupGeometry.TransformRectangle(originalRect, rectTransform);
 			Rectangle? adjustedFinal = adjustedRect != null ? MarkupGeometry.TransformRectangle(adjustedRect, rectTransform) : null;
 			Rectangle[] innerFinal = innerAreas.Select(i => MarkupGeometry.TransformRectangle(i, rectTransform)).ToArray();
-			Canvas.RegisterAreas(owner, originalFinal, adjustedFinal, innerFinal);
+			PathHandleData[]? handlesFinal = handles?.Select(h => MarkupGeometry.TransformHandles(h, rectTransform)).ToArray();
+			Canvas.RegisterAreas(owner, originalFinal, adjustedFinal, innerFinal, handlesFinal);
 			return this;
 		}
 

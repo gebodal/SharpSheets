@@ -188,7 +188,7 @@ namespace SharpSheets.Canvas {
 
 		public Rectangle CanvasRect { get; }
 
-		public void RegisterAreas(object owner, Rectangle original, Rectangle? adjusted, Rectangle[] inner) { } // Unused for this canvas
+		public void RegisterAreas(object owner, Rectangle original, Rectangle? adjusted, Rectangle[] inner, PathHandleData[]? handles) { } // Unused for this canvas
 
 		public void LogError(SharpDrawingException error) => drawingErrors.Add(error);
 		public IEnumerable<SharpDrawingException> GetDrawingErrors() => drawingErrors;

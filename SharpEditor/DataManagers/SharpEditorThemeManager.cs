@@ -125,6 +125,7 @@ namespace SharpEditor.DataManagers {
 			"DesignerInnerAreaHighlightColor",
 			"DesignerAdjustedAreaHighlightColor",
 			"DesignerUnselectedAreaHighlightColor",
+			"DesignerHandlesHighlightColor",
 			"DesignerFieldColor",
 		};
 
@@ -183,6 +184,7 @@ namespace SharpEditor.DataManagers {
 		public static readonly string DesignerInnerAreaHighlightBrush = "DesignerInnerAreaHighlightBrush";
 		public static readonly string DesignerAdjustedAreaHighlightBrush = "DesignerAdjustedAreaHighlightBrush";
 		public static readonly string DesignerUnselectedAreaHighlightBrush = "DesignerUnselectedAreaHighlightBrush";
+		public static readonly string DesignerHandlesHighlightBrush = "DesignerHandlesHighlightBrush";
 
 		public static readonly string DesignerFieldBrush = "DesignerFieldBrush";
 

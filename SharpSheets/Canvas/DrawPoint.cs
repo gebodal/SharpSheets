@@ -3,7 +3,7 @@ using System;
 
 namespace SharpSheets.Canvas {
 
-	public readonly struct DrawPoint {
+	public readonly struct DrawPoint : IEquatable<DrawPoint> {
 		public static readonly DrawPoint Zero = new DrawPoint(0f, 0f);
 
 		public float X { get; }
@@ -45,6 +45,26 @@ namespace SharpSheets.Canvas {
 			float dx = b.X - a.X;
 			float dy = b.Y - a.Y;
 			return (float)Math.Sqrt(dx * dx + dy * dy);
+		}
+
+		public bool Equals(DrawPoint other) {
+			return X == other.X && Y == other.Y;
+		}
+
+		public override bool Equals(object? obj) {
+			return obj is DrawPoint point && Equals(point);
+		}
+
+		public static bool operator ==(DrawPoint left, DrawPoint right) {
+			return left.Equals(right);
+		}
+
+		public static bool operator !=(DrawPoint left, DrawPoint right) {
+			return !(left == right);
+		}
+
+		public override int GetHashCode() {
+			return HashCode.Combine(X, Y);
 		}
 	}
 

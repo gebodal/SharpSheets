@@ -59,23 +59,31 @@ namespace SharpSheets.Markup.Elements {
 			List<IPathCalculator> completePaths = new List<IPathCalculator>();
 			List<IPathCalculator>? currentPathParts = null;
 
+			List<(DrawPoint p, bool c)>? currentHandle = null; // new List<(DrawPoint, bool)>();
+
+			static PathHandleData[]? MakeHandles(List<(DrawPoint p, bool c)>? data, bool isClosed) {
+				return data is not null ? new PathHandleData[] { new PathHandleData(data.Select(i => i.p).ToArray(), data.Select(i => i.c).ToArray(), isClosed) } : null;
+			}
+
 			DrawPoint? start = null;
 			DrawPoint? previous = null;
 			for(int i=0; i<data.Length; i++) {
 				if (data[i] is MoveOperation move) {
-					if(currentPathParts != null && currentPathParts.Count > 0 && CompositePathCalculator.Create(currentPathParts.ToArray(), false) is IPathCalculator partCalc) {
+					if(currentPathParts != null && currentPathParts.Count > 0 && CompositePathCalculator.Create(currentPathParts.ToArray(), MakeHandles(currentHandle, false), false) is IPathCalculator partCalc) {
 						completePaths.Add(partCalc);
 					}
 
 					start = canvas.TransformPoint(move.startPoint);
 					previous = start;
 					currentPathParts = new List<IPathCalculator>();
+					currentHandle = new List<(DrawPoint, bool)>() { (start.Value, true) };
 				}
 				else if (data[i] is LineOperation line) {
 					if (currentPathParts is null || !previous.HasValue) { continue; }
 
 					DrawPoint end = canvas.TransformPoint(line.endPoint);
 					currentPathParts.Add(new LinePathCalculator(previous.Value, end));
+					currentHandle!.Add((end, true));
 					previous = end;
 				}
 				else if (data[i] is CubicOperation cubic) {
@@ -85,8 +93,12 @@ namespace SharpSheets.Markup.Elements {
 					DrawPoint c1 = canvas.TransformPoint(cubic.controlPoint1);
 					DrawPoint c2 = canvas.TransformPoint(cubic.controlPoint2);
 					DrawPoint e = canvas.TransformPoint(cubic.endPoint);
+					PathHandleData handles = new PathHandleData(new DrawPoint[] { s, c1, c2, e }, new bool[] { true, false, false, true }, false);
 
-					currentPathParts.Add(LUTPathCalculator.Create((float t, out Vector v) => CubicOperation.GetPoint(s, c1, c2, e, t, out v), 100, false));
+					currentPathParts.Add(LUTPathCalculator.Create((float t, out Vector v) => CubicOperation.GetPoint(s, c1, c2, e, t, out v), new PathHandleData[] { handles }, 100, false));
+					currentHandle!.Add((c1, false));
+					currentHandle!.Add((c2, false));
+					currentHandle!.Add((e, true));
 
 					previous = e;
 				}
@@ -96,8 +108,11 @@ namespace SharpSheets.Markup.Elements {
 					DrawPoint s = previous.Value;
 					DrawPoint c = canvas.TransformPoint(quadratic.controlPoint);
 					DrawPoint e = canvas.TransformPoint(quadratic.endPoint);
+					PathHandleData handles = new PathHandleData(new DrawPoint[] { s, c, e }, new bool[] { true, false, true }, false);
 
-					currentPathParts.Add(LUTPathCalculator.Create((float t, out Vector v) => QuadraticOperation.GetPoint(s, c, e, t, out v), 100, false));
+					currentPathParts.Add(LUTPathCalculator.Create((float t, out Vector v) => QuadraticOperation.GetPoint(s, c, e, t, out v), new PathHandleData[] { handles }, 100, false));
+					currentHandle!.Add((c, false));
+					currentHandle!.Add((e, true));
 
 					previous = e;
 				}
@@ -113,6 +128,8 @@ namespace SharpSheets.Markup.Elements {
 					bool sweep = canvas.Evaluate(arc.sweep, false);
 
 					currentPathParts.Add(EllipseArcCalculator.Create(s, e, rx, ry, angle, largeArc, sweep));
+					currentHandle!.Add((s, true));
+					currentHandle!.Add((e, true));
 
 					previous = e;
 				}
@@ -124,15 +141,16 @@ namespace SharpSheets.Markup.Elements {
 						start = null;
 						previous = null;
 
-						if (currentPathParts.Count > 0 && CompositePathCalculator.Create(currentPathParts.ToArray(), true) is IPathCalculator closingPartCalc) {
+						if (currentPathParts.Count > 0 && CompositePathCalculator.Create(currentPathParts.ToArray(), MakeHandles(currentHandle, true), true) is IPathCalculator closingPartCalc) {
 							completePaths.Add(closingPartCalc);
 						}
 					}
 					currentPathParts = null;
+					currentHandle = null;
 				}
 			}
 
-			if (currentPathParts != null && currentPathParts.Count > 0 && CompositePathCalculator.Create(currentPathParts.ToArray(), false) is IPathCalculator finalPartCalc) {
+			if (currentPathParts != null && currentPathParts.Count > 0 && CompositePathCalculator.Create(currentPathParts.ToArray(), MakeHandles(currentHandle, false), false) is IPathCalculator finalPartCalc) {
 				completePaths.Add(finalPartCalc);
 			}
 
@@ -140,7 +158,7 @@ namespace SharpSheets.Markup.Elements {
 				return completePaths[0];
 			}
 			else {
-				return CompositePathCalculator.Create(completePaths.ToArray(), false);
+				return CompositePathCalculator.Create(completePaths.ToArray(), null, false);
 			}
 		}
 

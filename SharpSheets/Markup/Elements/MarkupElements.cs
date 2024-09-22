@@ -61,7 +61,7 @@ namespace SharpSheets.Markup.Elements {
 			}
 		}
 
-		private Rectangle? CalculateBounds(MarkupCanvas canvas, bool register) {
+		private (Rectangle? bounds, PathHandleData[] handles) CalculateBounds(MarkupCanvas canvas, bool register) {
 			canvas.SaveState();
 
 			if (StyleSheet.DrawingCoords != null) {
@@ -72,14 +72,17 @@ namespace SharpSheets.Markup.Elements {
 			}
 
 			Rectangle? bounds = null;
+			List<PathHandleData> handles = new List<PathHandleData>();
 
 			foreach (IDrawableElement elem in elements) {
 				Rectangle? elemBounds = null;
+				PathHandleData[]? elemHandles = null;
 				if (elem is Grouping other) {
-					elemBounds = other.CalculateBounds(canvas, false);
+					(elemBounds, elemHandles) = other.CalculateBounds(canvas, false);
 				}
-				else if (elem is IShapeElement shapeElem) {
-					elemBounds = shapeElem.GetPath(canvas)?.GetBoundingBox();
+				else if (elem is IShapeElement shapeElem && shapeElem.GetPath(canvas) is IPathCalculator shapeElemPath) {
+					elemBounds = shapeElemPath.GetBoundingBox();
+					elemHandles = shapeElemPath.GetPathHandles();
 				}
 
 				if (elemBounds is not null) {
@@ -94,15 +97,19 @@ namespace SharpSheets.Markup.Elements {
 						bounds = Rectangle.Union(bounds, elemBounds);
 					}
 				}
+
+				if(elemHandles is not null && elemHandles.Length > 0) {
+					handles.AddRange(elemHandles);
+			}
 			}
 
 			if (register && bounds is not null) {
-				canvas.RegisterArea(this, bounds);
+				canvas.RegisterArea(this, bounds, handles.Count > 0 ? handles.ToArray() : null);
 			}
 
 			canvas.RestoreState();
 
-			return bounds;
+			return (bounds, handles.ToArray());
 		}
 	}
 
@@ -160,9 +167,12 @@ namespace SharpSheets.Markup.Elements {
 
 				if (canvas.CollectingDiagnostics) {
 					Rectangle? bounds = null;
+					List<PathHandleData> handles = new List<PathHandleData>();
 
 					foreach (IShapeElement elem in elements) {
-						Rectangle? elemBounds = elem.GetPath(canvas)?.GetBoundingBox();
+						if (elem.GetPath(canvas) is IPathCalculator path) {
+							Rectangle? elemBounds = path.GetBoundingBox();
+							PathHandleData[]? elemHandles = path.GetPathHandles();
 						if (elemBounds is not null) {
 							if (bounds == null) {
 								bounds = elemBounds;
@@ -170,11 +180,16 @@ namespace SharpSheets.Markup.Elements {
 							else {
 								bounds = Rectangle.Union(bounds, elemBounds);
 							}
+								canvas.RegisterArea(elem, elemBounds, elemHandles is not null ? elemHandles : null);
+							}
+							if (elemHandles is not null) {
+								handles.AddRange(elemHandles);
+							}
 						}
 					}
 
 					if (bounds is not null) {
-						canvas.RegisterArea(this, bounds);
+						canvas.RegisterArea(this, bounds, handles.Count > 0 ? handles.ToArray() : null);
 					}
 				}
 			}

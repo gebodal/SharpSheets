@@ -97,7 +97,12 @@ namespace SharpSheets.Markup.Elements {
 				AssignGraphicsParameters(canvas, out bool fill, out bool stroke);
 				AssignGeometry(canvas);
 				RenderFinalGeometry(canvas, fill, stroke);
-				if (canvas.CollectingDiagnostics && GetPath(canvas)?.GetBoundingBox() is Layouts.Rectangle boundingRect) { canvas.RegisterArea(this, boundingRect); }
+				//if (canvas.CollectingDiagnostics && GetPath(canvas)?.GetBoundingBox() is Layouts.Rectangle boundingRect) { canvas.RegisterArea(this, boundingRect); }
+				if (canvas.CollectingDiagnostics && GetPath(canvas) is IPathCalculator path) {
+					if (path.GetBoundingBox() is Layouts.Rectangle boundingRect) {
+						canvas.RegisterArea(this, boundingRect, path.GetPathHandles());
+					}
+				}
 				canvas.RestoreState();
 			}
 		}

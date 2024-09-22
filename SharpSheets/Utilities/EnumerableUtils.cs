@@ -173,6 +173,10 @@ namespace SharpSheets.Utilities {
 			return source.Select(selector).WhereNotNull();
 		}
 
+		public static IEnumerable<TResult> SelectAll<TResult>(this IEnumerable<IEnumerable<TResult>> source) {
+			return source.SelectMany(i => i);
+		}
+
 		public static IEnumerable<T> Concat<T>(params IEnumerable<T>[] sources) {
 			for (int i = 0; i < sources.Length; i++) {
 				foreach (T elem in sources[i]) {

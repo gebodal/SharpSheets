@@ -30,13 +30,15 @@ namespace SharpEditor.Designer.DrawingCanvas {
 		public Rectangle Original { get; }
 		public Rectangle? Adjusted { get; }
 		public Rectangle[] Inner { get; }
+		public PathHandleData[]? Handles { get; }
 
 		public Rectangle Total { get; }
 
-		public RegisteredAreas(Rectangle original, Rectangle? adjusted, Rectangle[] inner) {
+		public RegisteredAreas(Rectangle original, Rectangle? adjusted, Rectangle[] inner, PathHandleData[]? handles) {
 			Original = original;
 			Adjusted = adjusted;
 			Inner = inner;
+			Handles = handles;
 
 			Total = Adjusted is not null ? Rectangle.Union(Original, Adjusted) : Original;
 		}

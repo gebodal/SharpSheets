@@ -45,6 +45,7 @@ namespace SharpEditor.Designer {
 		private readonly IBrush themeInnerBrush;
 		private readonly IBrush themeAdjustedBrush;
 		private readonly IBrush themeUnselectedBrush;
+		private readonly IBrush themeHandleBrush;
 
 		private readonly IBrush themeFieldBrush;
 
@@ -71,6 +72,7 @@ namespace SharpEditor.Designer {
 			themeInnerBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.DesignerInnerAreaHighlightBrush) ?? throw new InvalidOperationException();
 			themeAdjustedBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.DesignerAdjustedAreaHighlightBrush) ?? throw new InvalidOperationException();
 			themeUnselectedBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.DesignerUnselectedAreaHighlightBrush) ?? throw new InvalidOperationException();
+			themeHandleBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.DesignerHandlesHighlightBrush) ?? throw new InvalidOperationException();
 
 			themeFieldBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.DesignerFieldBrush) ?? throw new InvalidOperationException();
 		}
@@ -353,14 +355,14 @@ namespace SharpEditor.Designer {
 		}
 
 		public void HighlightMinor(object[]? drawnObjects) {
-			Highlight(currentDocument?.CurrentPage?.MouseHighlights, drawnObjects, themeUnselectedBrush, themeUnselectedBrush, themeUnselectedBrush, DesignerMouseHighlightStrokeThickness, false, false);
+			Highlight(currentDocument?.CurrentPage?.MouseHighlights, drawnObjects, themeUnselectedBrush, themeUnselectedBrush, themeUnselectedBrush, themeUnselectedBrush, DesignerMouseHighlightStrokeThickness, false, false);
 		}
 
 		public void Highlight(object[]? drawnObjects, bool scrollToArea = false, bool zoomToArea = false) {
-			Highlight(currentDocument?.CurrentPage?.Highlights, drawnObjects, themeOriginalBrush, themeInnerBrush, themeAdjustedBrush, DesignerHighlightStrokeThickness, scrollToArea: scrollToArea, zoomToArea: zoomToArea);
+			Highlight(currentDocument?.CurrentPage?.Highlights, drawnObjects, themeOriginalBrush, themeInnerBrush, themeAdjustedBrush, themeHandleBrush, DesignerHighlightStrokeThickness, scrollToArea: scrollToArea, zoomToArea: zoomToArea);
 		}
 
-		private void Highlight(Canvas? highlightCanvas, object[]? drawnObjects, IBrush originalBrush, IBrush innerBrush, IBrush adjustedBrush, double lineThickness, bool scrollToArea = false, bool zoomToArea = false) {
+		private void Highlight(Canvas? highlightCanvas, object[]? drawnObjects, IBrush originalBrush, IBrush innerBrush, IBrush adjustedBrush, IBrush handleBrush, double lineThickness, bool scrollToArea = false, bool zoomToArea = false) {
 			if (IsVisible && currentDocument != null && currentDocument?.CurrentPage is DesignerPageHolder currentPage && highlightCanvas != null && currentDocument.PageCount > 0) {
 				try {
 					highlightCanvas.IsVisible = false;
@@ -389,6 +391,12 @@ namespace SharpEditor.Designer {
 
 								if (areas.Original.Width >= 0f && areas.Original.Height >= 0f) {
 									highlightCanvas.AddRect(areas.Original, originalBrush, lineThickness / DesignerViewer.Scale);
+								}
+							}
+
+							if(areas.Handles is not null && areas.Handles.Length > 0) {
+								foreach(SharpSheets.Canvas.PathHandleData handles in areas.Handles) {
+									highlightCanvas.AddHandles(handles, handleBrush, lineThickness / DesignerViewer.Scale);
 								}
 							}
 						}
@@ -731,6 +739,57 @@ namespace SharpEditor.Designer {
 			AddHighlight(canvas, rect, stroke, strokeThickness, null, null, null);
 		}
 
+		private static readonly double handleDotSizeFactor = 1.75;
+
+		public static void AddHandles(this Canvas canvas, SharpSheets.Canvas.PathHandleData handles, IBrush brush, double strokeThickness) {
+
+			DrawingGroup drawingGroup = new DrawingGroup();
+
+			DrawingElement element = new DrawingElement(drawingGroup) {
+				//LayoutTransform = TestBlock.LayoutTransform,
+				Width = canvas.Width,
+				Height = canvas.Height
+			};
+
+			Point MakePoint(SharpSheets.Canvas.DrawPoint p) {
+				return new Point(p.X, canvas.Height - p.Y);
+			}
+
+			if(handles.Length > 1) {
+				StreamGeometry skeletonGeometry = new StreamGeometry();
+				using (Avalonia.Media.StreamGeometryContext ctx = skeletonGeometry.Open()) {
+					ctx.BeginFigure(MakePoint(handles.Locations[0]), false);
+					for (int i = 1; i < handles.Length; i++) {
+						ctx.LineTo(MakePoint(handles.Locations[i]), true); // handles.OnCurve[i-1] || handles.OnCurve[i]
+					}
+					ctx.EndFigure(handles.IsClosed);
+				}
+
+				GeometryDrawing skeleton = new GeometryDrawing {
+					Geometry = skeletonGeometry,
+					Pen = new Pen(brush, strokeThickness)
+				};
+
+				drawingGroup.Children.Add(skeleton);
+			}
+
+			for (int i = 0; i < handles.Length; i++) {
+				GeometryDrawing drawing = new GeometryDrawing {
+					Geometry = new EllipseGeometry() {
+						Center = MakePoint(handles.Locations[i]),
+						RadiusX = strokeThickness * handleDotSizeFactor,
+						RadiusY = strokeThickness * handleDotSizeFactor
+					},
+					Pen = new Pen(brush, strokeThickness),
+					Brush = handles.OnCurve[i] ? brush : null
+				};
+
+				drawingGroup.Children.Add(drawing);
+			}
+
+			canvas.Children.Add(element);
+		}
+
 		public static void UpdateHighlightStrokeWidth(this Canvas canvas, double strokeThickness) {
 			/*
 			foreach (Shape shape in canvas.Children.OfType<Shape>()) {
@@ -741,10 +800,17 @@ namespace SharpEditor.Designer {
 			foreach(DrawingElement element in canvas.Children.OfType<DrawingElement>()) {
 				if (element.drawing is DrawingGroup elementGroup) {
 					foreach (Drawing i in elementGroup.Children) {
-						if (i is GeometryDrawing g && g.Pen is Pen p) {
-							//g.Pen?.Thickness = strokeThickness;
-							g.Pen = new Pen(p.Brush, strokeThickness, p.DashStyle, p.LineCap, p.LineJoin, p.MiterLimit);
-							element.InvalidateVisual();
+						if (i is GeometryDrawing g) {
+							if (g.Geometry is EllipseGeometry e) {
+								e.RadiusX = strokeThickness * handleDotSizeFactor;
+								e.RadiusY = strokeThickness * handleDotSizeFactor;
+								element.InvalidateVisual();
+							}
+							if (g.Pen is Pen p) {
+								//g.Pen?.Thickness = strokeThickness;
+								g.Pen = new Pen(p.Brush, strokeThickness, p.DashStyle, p.LineCap, p.LineJoin, p.MiterLimit);
+								element.InvalidateVisual();
+							}
 						}
 					}
 				}

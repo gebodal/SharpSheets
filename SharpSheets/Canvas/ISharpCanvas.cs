@@ -145,7 +145,7 @@ namespace SharpSheets.Canvas {
 	public interface ISharpCanvas : ISharpGraphicsState {
 
 		//void RegisterArea(object owner, Rectangle area);
-		void RegisterAreas(object owner, Rectangle originalArea, Rectangle? adjustedArea, Rectangle[] innerAreas);
+		void RegisterAreas(object owner, Rectangle originalArea, Rectangle? adjustedArea, Rectangle[] innerAreas, PathHandleData[]? handles);
 
 		ISharpCanvas Clip();
 		ISharpCanvas EoClip();
@@ -202,6 +202,32 @@ namespace SharpSheets.Canvas {
 
 		void LogError(SharpDrawingException error);
 		IEnumerable<SharpDrawingException> GetDrawingErrors();
+	}
+
+	public class PathHandleData {
+
+		public DrawPoint[] Locations { get; }
+		public bool[] OnCurve { get; }
+		public bool IsClosed { get; }
+
+		public int Length => Locations.Length;
+
+		public PathHandleData(DrawPoint[] locations, bool[] onCurve, bool isClosed) {
+			if(locations.Length != onCurve.Length) {
+				throw new ArgumentException("Number of location and onCurve values must match.", nameof(onCurve));
+			}
+
+			Locations = locations;
+			OnCurve = onCurve;
+			IsClosed = isClosed;
+		}
+
+		public PathHandleData(DrawPoint[] locations, bool isClosed) {
+			Locations = locations;
+			OnCurve = true.MakeArray(Locations.Length);
+			IsClosed = isClosed;
+		}
+
 	}
 
 	public class SharpCanvasGraphicsSnapshot { // TODO ISharpGraphicsData?
@@ -431,6 +457,10 @@ namespace SharpSheets.Canvas {
 
 		public static void LogError(this ISharpCanvas canvas, object origin, string message, Exception innerException) {
 			canvas.LogError(new SharpDrawingException(origin, message, innerException));
+		}
+
+		public static void RegisterAreas(this ISharpCanvas canvas, object owner, Rectangle originalArea, Rectangle? adjustedArea, Rectangle[] innerAreas) {
+			canvas.RegisterAreas(owner, originalArea, adjustedArea, innerAreas, null);
 		}
 
 	}

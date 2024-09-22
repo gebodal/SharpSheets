@@ -74,7 +74,7 @@ namespace SharpSheets.Markup.Elements {
 			DrawPoint centre = canvas.TransformPoint(this.centre);
 			float rx = canvas.TransformLength(this.rx);
 			float ry = canvas.TransformLength(this.ry);
-			return LUTPathCalculator.Create((float t, out Vector v) => { return GetPoint(centre, rx, ry, t, out v); }, 100, true);
+			return LUTPathCalculator.Create((float t, out Vector v) => { return GetPoint(centre, rx, ry, t, out v); }, null, 100, true);
 		}
 
 		private static DrawPoint GetPoint(DrawPoint centre, float rx, float ry, float t, out Vector normal) {

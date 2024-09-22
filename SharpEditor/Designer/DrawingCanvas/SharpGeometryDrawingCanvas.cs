@@ -165,11 +165,11 @@ namespace SharpEditor.Designer.DrawingCanvas {
 		#endregion
 
 		#region Areas
-		public void RegisterAreas(object owner, Rectangle originalArea, Rectangle? adjustedArea, Rectangle[] innerAreas) {
+		public void RegisterAreas(object owner, Rectangle originalArea, Rectangle? adjustedArea, Rectangle[] innerAreas, PathHandleData[]? handles) {
 			if (!areas.ContainsKey(owner)) {
 				areas.Add(owner, new List<RegisteredAreas>());
 			}
-			areas[owner].Add(new RegisteredAreas(originalArea, adjustedArea, innerAreas));
+			areas[owner].Add(new RegisteredAreas(originalArea, adjustedArea, innerAreas, handles));
 		}
 
 		public Dictionary<object, RegisteredAreas> GetAreas(Avalonia.Point point) {

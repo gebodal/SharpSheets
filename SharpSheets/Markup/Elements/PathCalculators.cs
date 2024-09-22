@@ -11,6 +11,7 @@ namespace SharpSheets.Markup.Elements {
 		bool IsClosed { get; }
 		DrawPoint? PointAt(float distance, out Vector? normal);
 		Layouts.Rectangle? GetBoundingBox();
+		PathHandleData[]? GetPathHandles();
 	}
 
 	public static class PathCalculatorUtils {
@@ -76,6 +77,10 @@ namespace SharpSheets.Markup.Elements {
 		public Layouts.Rectangle GetBoundingBox() {
 			return Layouts.Rectangle.RectangleFromBounding(point1.X, point1.Y, point2.X, point2.Y);
 		}
+
+		public PathHandleData[] GetPathHandles() {
+			return new PathHandleData[] { new PathHandleData(new DrawPoint[] { point1, point2 }, new bool[] { true, true }, false) };
+		}
 	}
 
 	class CirclePathCalculator : IPathCalculator {
@@ -107,6 +112,10 @@ namespace SharpSheets.Markup.Elements {
 		public Layouts.Rectangle GetBoundingBox() {
 			return Layouts.Rectangle.RectangleFromBounding(centre.X - radius, centre.Y - radius, centre.X + radius, centre.Y + radius);
 		}
+
+		public PathHandleData[]? GetPathHandles() {
+			return null;
+		}
 	}
 
 	public class PolylinePathCalculator : IPathCalculator {
@@ -130,7 +139,7 @@ namespace SharpSheets.Markup.Elements {
 			this.points = points;
 			this.lengths = lengths;
 			this.distances = distances;
-			Length = distances.Length > 0 ? distances[distances.Length - 1] : 0f;
+			Length = distances.Length > 0 ? distances[^1] : 0f;
 			IsClosed = isClosed;
 		}
 
@@ -150,6 +159,10 @@ namespace SharpSheets.Markup.Elements {
 
 		public Layouts.Rectangle GetBoundingBox() {
 			return PathCalculatorUtils.BoundingBoxFromPoints(points);
+		}
+
+		public PathHandleData[]? GetPathHandles() {
+			return points is not null ? new PathHandleData[] { new PathHandleData(points, true.MakeArray(points.Length), IsClosed) } : null;
 		}
 
 		public static IPathCalculator Create(DrawPoint[] pointsIn, bool closed) {
@@ -238,6 +251,10 @@ namespace SharpSheets.Markup.Elements {
 			return new Layouts.Rectangle(position.X, position.Y, width, height);
 		}
 
+		public PathHandleData[]? GetPathHandles() {
+			return null;
+		}
+
 		public static IPathCalculator RoundedRectPath(DrawPoint position, float width, float height, float rx, float ry) {
 			float left = position.X, right = position.X + width, bottom = position.Y, top = position.Y + height;
 			return CompositePathCalculator.Create(new IPathCalculator[] {
@@ -249,7 +266,7 @@ namespace SharpSheets.Markup.Elements {
 				EllipseArcCalculator.Create(new DrawPoint(left + rx, bottom), new DrawPoint(left, bottom+ry), rx, ry, 0f, false, false),
 				new LinePathCalculator(new DrawPoint(left, bottom+ry), new DrawPoint(left, top-ry)),
 				EllipseArcCalculator.Create(new DrawPoint(left, top-ry), new DrawPoint(left+rx, top), rx, ry, 0f, false, false)
-			}, true)!; // Should never be null, as we are passing a non-zero number of notnull calculators
+			}, Array.Empty<PathHandleData>(), true)!; // Should never be null, as we are passing a non-zero number of notnull calculators
 		}
 	}
 
@@ -301,7 +318,7 @@ namespace SharpSheets.Markup.Elements {
 				float cy = cxp * sinA + cyp * cosA + (y1 + y2) / 2f;
 				centre = new DrawPoint(cx, cy);
 
-				float Angle(float ux, float uy, float vx, float vy) {
+				static float Angle(float ux, float uy, float vx, float vy) {
 					// Angle between two vectors u and v -> (ux,uy), (vx,vy)
 					float sign = (ux * vy - uy * vx) < 0 ? -1 : +1;
 					float dot = ux * vx + uy * vy;
@@ -344,7 +361,8 @@ namespace SharpSheets.Markup.Elements {
 
 		public static IPathCalculator Create(DrawPoint p1, DrawPoint p2, float rx, float ry, float angle, bool largeArc, bool sweep) {
 			EllipseArcCalculator calc = new EllipseArcCalculator(p1.X, p1.Y, p2.X, p2.Y, rx, ry, angle, largeArc, sweep);
-			return LUTPathCalculator.Create((float t, out Vector v) => calc.Point(t, out v), 100, false);
+			PathHandleData handles = new PathHandleData(new DrawPoint[] { p1, p2 }, new bool[] { true, true }, false);
+			return LUTPathCalculator.Create((float t, out Vector v) => calc.Point(t, out v), new PathHandleData[] { handles }, 100, false);
 		}
 	}
 
@@ -358,14 +376,16 @@ namespace SharpSheets.Markup.Elements {
 		public bool IsClosed { get; }
 
 		private readonly Layouts.Rectangle bounds;
+		private readonly PathHandleData[]? handles;
 
-		private LUTPathCalculator(LUTFunc func, float[] distances, Layouts.Rectangle bounds, bool isClosed) {
+		private LUTPathCalculator(LUTFunc func, float[] distances, Layouts.Rectangle bounds, PathHandleData[]? handles, bool isClosed) {
 			this.func = func;
 			this.distances = distances;
-			Length = distances[distances.Length - 1];
+			Length = distances[^1];
 			IsClosed = isClosed;
 
 			this.bounds = bounds;
+			this.handles = handles;
 		}
 
 		public DrawPoint? PointAt(float distance, out Vector? normal) {
@@ -405,7 +425,11 @@ namespace SharpSheets.Markup.Elements {
 			return bounds;
 		}
 
-		public static IPathCalculator Create(LUTFunc func, int n, bool isClosed) {
+		public PathHandleData[]? GetPathHandles() {
+			return handles;
+		}
+
+		public static IPathCalculator Create(LUTFunc func, PathHandleData[]? handles, int n, bool isClosed) {
 
 			n = Math.Max(n, 1);
 
@@ -427,7 +451,7 @@ namespace SharpSheets.Markup.Elements {
 				previous = current;
 			}
 
-			return new LUTPathCalculator(func, distances, Layouts.Rectangle.RectangleFromBounding(minX, minY, maxX, maxY), isClosed);
+			return new LUTPathCalculator(func, distances, Layouts.Rectangle.RectangleFromBounding(minX, minY, maxX, maxY), handles, isClosed);
 		}
 	}
 
@@ -440,14 +464,16 @@ namespace SharpSheets.Markup.Elements {
 		public bool IsClosed { get; }
 
 		private readonly Layouts.Rectangle? bounds;
+		private readonly PathHandleData[]? handles;
 
-		private CompositePathCalculator(IPathCalculator[] segments, float[] distances, Layouts.Rectangle? bounds, bool isClosed) {
+		private CompositePathCalculator(IPathCalculator[] segments, float[] distances, Layouts.Rectangle? bounds, PathHandleData[]? handles, bool isClosed) {
 			this.segments = segments;
 			this.distances = distances;
-			Length = distances.Length > 0 ? distances[distances.Length - 1] : 0f;
+			Length = distances.Length > 0 ? distances[^1] : 0f;
 			IsClosed = isClosed;
 
 			this.bounds = bounds;
+			this.handles = handles;
 		}
 
 		public DrawPoint? PointAt(float distance, out Vector? normal) {
@@ -483,7 +509,12 @@ namespace SharpSheets.Markup.Elements {
 			return bounds;
 		}
 
-		public static IPathCalculator? Create(IPathCalculator[] segments, bool isClosed) {
+		public PathHandleData[] GetPathHandles() {
+			//return segments.Select(s => s.GetPathHandles()).WhereNotNull().SelectAll().Distinct().ToArray();
+			return handles is not null ? handles : segments.Select(s => s.GetPathHandles()).WhereNotNull().SelectAll().ToArray();
+		}
+
+		public static IPathCalculator? Create(IPathCalculator[] segments, PathHandleData[]? handles, bool isClosed) {
 			if(segments.Length == 0) {
 				return null;
 			}
@@ -506,7 +537,7 @@ namespace SharpSheets.Markup.Elements {
 				}
 			}
 
-			return new CompositePathCalculator(segments, distances, bounds, isClosed);
+			return new CompositePathCalculator(segments, distances, bounds, handles, isClosed);
 		}
 	}
 
