@@ -100,7 +100,7 @@ namespace SharpSheets.Markup.Elements {
 
 				if(elemHandles is not null && elemHandles.Length > 0) {
 					handles.AddRange(elemHandles);
-			}
+				}
 			}
 
 			if (register && bounds is not null) {
@@ -173,13 +173,13 @@ namespace SharpSheets.Markup.Elements {
 						if (elem.GetPath(canvas) is IPathCalculator path) {
 							Rectangle? elemBounds = path.GetBoundingBox();
 							PathHandleData[]? elemHandles = path.GetPathHandles();
-						if (elemBounds is not null) {
-							if (bounds == null) {
-								bounds = elemBounds;
-							}
-							else {
-								bounds = Rectangle.Union(bounds, elemBounds);
-							}
+							if (elemBounds is not null) {
+								if (bounds == null) {
+									bounds = elemBounds;
+								}
+								else {
+									bounds = Rectangle.Union(bounds, elemBounds);
+								}
 								canvas.RegisterArea(elem, elemBounds, elemHandles is not null ? elemHandles : null);
 							}
 							if (elemHandles is not null) {
@@ -413,51 +413,53 @@ namespace SharpSheets.Markup.Elements {
 
 			FilePath? filepath = canvas.Evaluate(this.filepath, null);
 			//Console.WriteLine("Image filepath: " + (filepath?.Path ?? "null"));
-			if (filepath != null) {
 
-				if (!filepath.Exists) {
-					// Log error?
-					return;
-				}
+			if(filepath is null) {
+				canvas.LogError(this, "No image file provided.", new InvalidOperationException());
+				return;
+			}
+			else if (!filepath.Exists) {
+				canvas.LogError(this, $"The provided file does not exist: {filepath.Path}", new FileNotFoundException(null, filepath.Path));
+				return;
+			}
 
-				canvas.SaveState();
+			canvas.SaveState();
 
-				// TODO What to do about DrawingCoords here?
+			// TODO What to do about DrawingCoords here?
 
-				// Apply any transform we may have been given
-				if (StyleSheet.Transform != null) {
-					canvas.ApplyTransform(StyleSheet.Transform);
-				}
+			// Apply any transform we may have been given
+			if (StyleSheet.Transform != null) {
+				canvas.ApplyTransform(StyleSheet.Transform);
+			}
 
-				// If we have a clip path, apply it
-				if (StyleSheet.ClipPath != null) {
-					StyleSheet.ClipPath.Apply(canvas);
-				}
+			// If we have a clip path, apply it
+			if (StyleSheet.ClipPath != null) {
+				StyleSheet.ClipPath.Apply(canvas);
+			}
 
+			try {
+				CanvasImageData imageData = new CanvasImageData(filepath);
+
+				Rectangle viewBox = new Rectangle(0f, 0f, imageData.Width, imageData.Height);
+				RectangleExpression placement = new RectangleExpression(x, y, width, height);
+				canvas.ApplyViewBox(placement, viewBox, preserveAspectRatio, out RectangleExpression contentRect);
 				try {
-					CanvasImageData imageData = new CanvasImageData(filepath);
-
-					Rectangle viewBox = new Rectangle(0f, 0f, imageData.Width, imageData.Height);
-					RectangleExpression placement = new RectangleExpression(x, y, width, height);
-					canvas.ApplyViewBox(placement, viewBox, preserveAspectRatio, out RectangleExpression contentRect);
-					try {
-						canvas.AddImage(imageData, contentRect, -1); // -1 aspect so that image conforms to contentRect aspect (allowing for "none" preserveAspectRatio values)
-					}
-					catch (IOException e) {
-						canvas.LogError(this, $"Could not draw image {imageData.Path.Path}.", e);
-					}
-
-					if (canvas.CollectingDiagnostics) { canvas.RegisterArea(this, placement); }
+					canvas.AddImage(imageData, contentRect, -1); // -1 aspect so that image conforms to contentRect aspect (allowing for "none" preserveAspectRatio values)
 				}
 				catch (IOException e) {
-					throw new InvalidOperationException($"Cannot access image file: {filepath.Path}", e);
-				}
-				catch (SystemException e) {
-					throw new InvalidOperationException($"Error drawing image element: " + e.Message, e);
+					canvas.LogError(this, $"Could not draw image {imageData.Path.Path}.", e);
 				}
 
-				canvas.RestoreState();
+				if (canvas.CollectingDiagnostics) { canvas.RegisterArea(this, placement); }
 			}
+			catch (IOException e) {
+				throw new InvalidOperationException($"Cannot access image file: {filepath.Path}", e);
+			}
+			catch (SystemException e) {
+				throw new InvalidOperationException($"Error drawing image element: " + e.Message, e);
+			}
+
+			canvas.RestoreState();
 		}
 	}
 

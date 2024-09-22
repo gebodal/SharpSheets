@@ -220,12 +220,13 @@ namespace SharpSheets.Markup.Parsing {
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public static FilePathExpression ParseFilePath(string text, DirectoryPath source, IVariableBox variables) {
+			//Console.WriteLine($"ParseFilePath, source = {source.Path}, text = {text}");
 			FilePath concretePath = new FilePath(source.Path, text);
 			if (concretePath.Exists) {
 				return concretePath;
 			}
 			else {
-				return new FilePathExpression(Evaluation.Parse(text, variables));
+				return new FilePathExpression(source.Path, Evaluation.Parse(text, variables));
 			}
 		}
 

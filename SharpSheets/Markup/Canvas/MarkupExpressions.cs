@@ -1183,26 +1183,29 @@ namespace SharpSheets.Markup.Canvas {
 
 		public bool IsConstant { get { return value != null; } }
 
-		private readonly EvaluationNode? evaluation;
+		private readonly EvaluationNode[]? evaluation2;
 		private readonly FilePath? value;
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
-		public FilePathExpression(EvaluationNode evaluation) {
-			if (evaluation.ReturnType != MarkupEvaluationTypes.FILE_PATH && evaluation.ReturnType != EvaluationType.STRING) {
-				throw new EvaluationTypeException("Invalid evaluation type for FilePathExpression: " + evaluation.ReturnType);
+		public FilePathExpression(EvaluationNode evaluation1, params EvaluationNode[] additional) {
+
+			List<EvaluationNode> evaluations = evaluation1.Yield().Concat(additional).ToList();
+
+			if (evaluations.Any(e => e.ReturnType != MarkupEvaluationTypes.FILE_PATH && e.ReturnType != EvaluationType.STRING)) {
+				throw new EvaluationTypeException("Invalid evaluation types for FilePathExpression: " + string.Join(", ", evaluations.Select(e => e.ReturnType)));
 			}
-			else if (evaluation.IsConstant) {
-				this.evaluation = null;
-				this.value = EvaluatePath(evaluation, Environments.Empty);
+			else if (evaluations.All(e=>e.IsConstant)) {
+				this.evaluation2 = null;
+				this.value = EvaluatePath(evaluations, Environments.Empty);
 			}
 			else {
-				this.evaluation = evaluation;
+				this.evaluation2 = evaluations.ToArray();
 				this.value = null;
 			}
 		}
 		public FilePathExpression(FilePath value) {
-			this.evaluation = null;
+			this.evaluation2 = null;
 			this.value = value;
 		}
 		[return: NotNullIfNotNull(nameof(value))]
@@ -1212,7 +1215,7 @@ namespace SharpSheets.Markup.Canvas {
 		}
 
 		public IEnumerable<EvaluationName> GetVariables() {
-			return IsConstant ? Enumerable.Empty<EvaluationName>() : evaluation!.GetVariables();
+			return IsConstant ? Enumerable.Empty<EvaluationName>() : evaluation2!.SelectMany(e => e.GetVariables());
 		}
 
 		public FilePath Evaluate(IEnvironment environment) {
@@ -1220,23 +1223,37 @@ namespace SharpSheets.Markup.Canvas {
 				return value;
 			}
 			else {
-				return EvaluatePath(evaluation!, environment);
+				return EvaluatePath(evaluation2!, environment);
 			}
 		}
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
-		private static FilePath EvaluatePath(EvaluationNode evaluation, IEnvironment environment) {
-			object? abs = evaluation.Evaluate(environment);
-			if(abs is FilePath filePath) {
-				return filePath;
+		private static FilePath EvaluatePath(IEnumerable<EvaluationNode> evaluations, IEnvironment environment) {
+			object?[] absVals = evaluations.Select(e => e.Evaluate(environment)).ToArray();
+
+			if (absVals.Length == 1) {
+				if (absVals[0] is FilePath filePath) {
+					return filePath;
+				}
+				else if (absVals[0] is string fileString) {
+					return new FilePath(fileString);
+				}
+				else {
+					throw new EvaluationTypeException("Invalid result type for FilePathExpression: " + (absVals[0]?.GetType().Name ?? "null"));
+				}
 			}
-			else if(abs is string fileString) {
-				return new FilePath(fileString);
+			else if (absVals.Length > 0) {
+				string[] parts = absVals.Select(e => e switch {
+					FilePath path => path.ToString(),
+					string text => text,
+					_ => throw new EvaluationCalculationException("Invalid component type for file path expression")
+				}).ToArray();
+				return new FilePath(parts);
 			}
 			else {
-				throw new EvaluationTypeException("Invalid result type for FilePathExpression: " + (abs?.GetType().Name ?? "null"));
+				throw new EvaluationTypeException("No values provided for file path expression.");
 			}
 		}
 
@@ -1245,7 +1262,7 @@ namespace SharpSheets.Markup.Canvas {
 				return $"FilePathExpression({value})";
 			}
 			else {
-				return $"FilePathExpression({evaluation})";
+				return $"FilePathExpression({string.Join(", ", evaluation2!.Select(e => e.ToString()))})";
 			}
 		}
 
