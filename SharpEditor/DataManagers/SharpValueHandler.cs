@@ -57,7 +57,7 @@ namespace SharpEditor.DataManagers {
 			else if (Nullable.GetUnderlyingType(type) is Type nulledType) {
 				return GetTypeName(nulledType);
 			}
-			else if(type == typeof(Numbered<ChildHolder>)) {
+			else if (type == typeof(Numbered<ChildHolder>)) {
 				return "(numbered children) Div".Replace(' ', NO_BREAK_SPACE); // TODO Need better name
 			}
 			else if (type.GetGenericArguments().FirstOrDefault() is Type listType && type.GetGenericTypeDefinition() == typeof(List<>)) {
@@ -111,9 +111,14 @@ namespace SharpEditor.DataManagers {
 			else if (typeof(CardFeatureConfig).IsAssignableFrom(type)) {
 				return "FeatureConfig";
 			}
+			else if (type.TryGetGenericArguments(typeof(IExpression<>), out Type[]? expressionTypes) && expressionTypes.Length == 1) {
+				return $"(expression) {GetTypeName(expressionTypes[0])}";
+			}
+			/*
 			else if (type == typeof(IExpression<string>)) {
 				return "StringExpression";
 			}
+			*/
 			else if (type == typeof(IDrawableElement)) {
 				return "DrawableElement";
 			}

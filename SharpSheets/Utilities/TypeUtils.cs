@@ -16,6 +16,19 @@ namespace SharpSheets.Utilities {
 			}
 		}
 
+		public static bool TryGetGenericTypeDefinition(this Type type, [MaybeNullWhen(false)] out Type genericType) {
+			try {
+				if (type.IsGenericType) {
+					genericType = type.GetGenericTypeDefinition();
+					return true;
+				}
+			}
+			catch (SystemException) { }
+
+			genericType = null;
+			return false;
+		}
+
 		public static Type[] GetInterfacesOrSelf(this Type type) {
 			if (type.IsInterface) {
 				return type.Yield().Concat(GetInterfacesRecursive(type)).Distinct().ToArray();
@@ -104,6 +117,42 @@ namespace SharpSheets.Utilities {
 			}
 			else {
 				return type.TryGetGenericTypeDefinition() == genericType;
+			}
+		}
+
+		/// <summary></summary>
+		/// <exception cref="ArgumentException"></exception>
+		public static bool TryGetGenericArguments(this Type type, Type genericType, [MaybeNullWhen(false)] out Type[] genericArgs) {
+			// TODO This needs checking to make sure it does what is intended
+
+			if (!genericType.IsGenericType) {
+				throw new ArgumentException("Provided type must be a raw generic type.");
+			}
+
+			Console.WriteLine($"TryGetGenericArguments({type}, {genericType})");
+
+			Type? genericTypeDefinition = null;
+
+			if (genericType.IsInterface) {
+				try {
+					Console.WriteLine("Try get interface type");
+					genericTypeDefinition = type.GetInterfacesOrSelf().FirstOrDefault(i => i.TryGetGenericTypeDefinition() == genericType);
+					Console.WriteLine($"Got interface type: {genericTypeDefinition}");
+				}
+				catch (TargetInvocationException) { }
+			}
+			else if (type.TryGetGenericTypeDefinition() is Type genericTypeDef) {
+				genericTypeDefinition = genericTypeDef;
+				Console.WriteLine($"Got generic type: {genericTypeDefinition}");
+			}
+
+			if (genericTypeDefinition != null) {
+				genericArgs = genericTypeDefinition.GetGenericArguments();
+				return true;
+			}
+			else {
+				genericArgs = null;
+				return false;
 			}
 		}
 
