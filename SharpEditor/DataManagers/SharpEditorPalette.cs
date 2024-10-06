@@ -33,7 +33,11 @@ namespace SharpEditor.DataManagers {
 		[MemberNotNull(nameof(CardConfigHighlighting))]
 		[MemberNotNull(nameof(CardSubjectHighlighting))]
 		[MemberNotNull(nameof(BoxMarkupHighlighting))]
-		[MemberNotNull(nameof(WidgetBrush), nameof(MetaPropertyBrush), nameof(ShapeStyleBrush), nameof(TypeBrush), nameof(DefaultValueBrush), nameof(DefinitionNameBrush), nameof(DefinitionTypeBrush), nameof(MarkupElementBrush), nameof(MarkupAttributeBrush), nameof(MarkupPunctuationBrush))]
+		[MemberNotNull(nameof(WidgetBrush), nameof(MetaPropertyBrush),
+			nameof(ShapeStyleBrush), nameof(TypeBrush),
+			nameof(DefaultValueBrush), nameof(DefinitionNameBrush), nameof(DefinitionTypeBrush),
+			nameof(MarkupElementBrush), nameof(MarkupAttributeBrush), nameof(MarkupPunctuationBrush),
+			nameof(CardSubjectTitleBrush), nameof(CardSegmentTitleBrush), nameof(CardFeatureTitleBrush), nameof(CardFeatureListBrush))]
 		private static void LoadAll() {
 			LoadCharacterSheetHighlightings();
 			LoadCardConfigHighlightings();
@@ -70,6 +74,12 @@ namespace SharpEditor.DataManagers {
 		public static Brush MarkupElementBrush { get; private set; }
 		public static Brush MarkupAttributeBrush { get; private set; }
 		public static Brush MarkupPunctuationBrush { get; private set; }
+
+		public static Brush CardSubjectTitleBrush { get; private set; }
+		public static Brush CardSegmentTitleBrush { get; private set; }
+		public static Brush CardFeatureTitleBrush { get; private set; }
+		public static Brush CardFeatureListBrush { get; private set; }
+
 
 		[MemberNotNull(nameof(highlightingColors))]
 		private static void LoadCurrentHighlightingColors() {
@@ -235,7 +245,11 @@ namespace SharpEditor.DataManagers {
 			BoxMarkupHighlighting = customHighlighting;
 		}
 
-		[MemberNotNull(nameof(WidgetBrush), nameof(MetaPropertyBrush), nameof(ShapeStyleBrush), nameof(TypeBrush), nameof(DefaultValueBrush), nameof(DefinitionNameBrush), nameof(DefinitionTypeBrush), nameof(MarkupElementBrush), nameof(MarkupAttributeBrush), nameof(MarkupPunctuationBrush))]
+		[MemberNotNull(nameof(WidgetBrush), nameof(MetaPropertyBrush),
+			nameof(ShapeStyleBrush), nameof(TypeBrush), nameof(DefaultValueBrush),
+			nameof(DefinitionNameBrush), nameof(DefinitionTypeBrush),
+			nameof(MarkupElementBrush), nameof(MarkupAttributeBrush), nameof(MarkupPunctuationBrush),
+			nameof(CardSubjectTitleBrush), nameof(CardSegmentTitleBrush), nameof(CardFeatureTitleBrush), nameof(CardFeatureListBrush))]
 		private static void AssignHighlightingColors() {
 			WidgetBrush = new SolidColorBrush(highlightingColors["Config_Widget"].Color);
 			MetaPropertyBrush = new SolidColorBrush(highlightingColors["Config_MetaProperty"].Color);
@@ -249,6 +263,11 @@ namespace SharpEditor.DataManagers {
 			MarkupElementBrush = new SolidColorBrush(highlightingColors["XML_TagName"].Color);
 			MarkupAttributeBrush = new SolidColorBrush(highlightingColors["XML_AttributeName"].Color);
 			MarkupPunctuationBrush = new SolidColorBrush(highlightingColors["XML_Punctuation"].Color);
+
+			CardSubjectTitleBrush = new SolidColorBrush(highlightingColors["CardSubject_CardTitle"].Color);
+			CardSegmentTitleBrush = new SolidColorBrush(highlightingColors["CardSubject_SegmentTitle"].Color);
+			CardFeatureTitleBrush = new SolidColorBrush(highlightingColors["CardSubject_FeatureTitle"].Color);
+			CardFeatureListBrush = new SolidColorBrush(highlightingColors["CardSubject_ListMarker"].Color);
 		}
 
 		public static Brush GetTypeBrush(Type? type) {

@@ -117,7 +117,7 @@ namespace SharpEditor.CodeHelpers {
 
 				// Check if we've run against the word borders
 				if (char.IsWhiteSpace(nextChar) || !(char.IsLetterOrDigit(nextChar) || nextChar == '.')) {
-					return nextPos;
+					return direction == LogicalDirection.Backward ? offset : nextPos;
 				}
 
 				// Continue search

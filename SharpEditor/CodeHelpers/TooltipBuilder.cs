@@ -194,6 +194,10 @@ namespace SharpEditor.CodeHelpers {
 			return DefinitionContentBuilder.MakeDefinitionEntries(definition, evaluationEnvironment, TextBlockMargin);
 		}
 
+		public static TextBlock MakeDefinitionsBlock(IEnumerable<Definition> definitions, IEnvironment? evaluationEnvironment) {
+			return DefinitionContentBuilder.MakeDefinitionsBlock(definitions, evaluationEnvironment, TextBlockMargin);
+		}
+
 		public static TextBlock GetVariableBoxEntries(IVariableBox variables, bool indented = true) {
 			return EnvironmentsContentBuilder.GetVariableBoxEntries(variables, indented ? IndentedMargin : TextBlockMargin);
 		}

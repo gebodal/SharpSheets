@@ -1,0 +1,150 @@
+﻿# Expressions
+
+Many aspects of SharpSheets files are designed to be highly configurable, and must be reactive to different input data and layouts. As such, certain components of a file can be expressed as mathematical expressions, which can use any available information to make decisions about content.
+
+Expressions consist of variables (named pieces of data, where the value can change depending on circumstances), constants (such as numbers, e.g. `1`, `3.14`, or strings, `"Hello World"`), operators (such as `+` for addition and `-` for subtraction), and functions (which are more complex operations that take one or more arguments, such as `max(1, 2)` or `sum(width, height)`).
+
+The list of variables available at a given point is dependent on the file type, the file element the expression belongs to, and other structure and content decisions made by you when writing the file. Check the documentation for a given file type to find information about this. However, some functions and variables are available in most contexts, and they are detailed below.
+
+For those with experience in other programming languages, note that expressions in SharpSheets are purely functional, and cannot update any kind of "program state".
+
+All variable and function names are case insensitive, meaning that `VARIABLE`, `variable`, and `VARiable` are all considered the same variable or function name.
+
+The expressions used in SharpSheets are statically typed, meaning that each variable, and the result of each expression, has a known, fixed type. This means that the output type of a given expression must be known after it has been parsed, and can be inferred from a valid expression.
+
+In some cases, expressions can be written directly, as just `x + y`, for example. However, if you wish to embed an expression into text, or similar, then you must escape the expression using `${}` or `{}`. Some file types allow for missing the initial dollar-sign, `$`, and others do not -- check the documentation to get more detailed information (in particular, sheet configuration files do not, so as not to confuse with grouped data properties). An embedded expression would look something like:
+
+```unknown
+This is some text with this value, ${x + y}, embedded into it.
+```
+
+### Variables
+
+Variables can be included in an expression as either a raw variable name (i.e. `myvariable`), or with a dollar-sign prefix (i.e. `$myvariable`). In either case, the variable name is case insensitive.
+
+
+### Constants
+
+Values can be floating point, integer, boolean (with `true` and `false`), and strings (enclosed in double quote marks, `"`).
+
+For strings, double quotes can be included if escaped using `\\"`.
+
+
+### Operators
+
+The following operators are defined:
+
+```unknown
+Multiply: *
+Exponentiate: **
+Divide: /
+Remainder/Modulo: %
+Add: +
+Subtract: -
+Unary positive: +
+Unary negative: -
+Less than: <
+Greater than: >
+Less than or equal: <=
+Greater than or equal: >=
+Equals: ==
+Not equals: !=
+Boolean AND: &, &&, and
+Boolean XOR: ^
+Boolean OR: |, ||, or
+Unary Negate: !
+Indexer: x[y]
+Accessor: x.y
+Forgiving: ??
+Ternary: x ? y : z
+```
+
+Note that not all operators are defined for all types (i.e. you cannot multiple two strings, etc.).
+
+The Boolean AND and OR operators can be expressed in multiple ways, but this does not affect functionality. Both AND and OR are "short-circuit" operators, in that the second operand will not be evaluate if the first is `true`. The text forms, `and`/`or` should be surrounded with whitespace.
+
+The "forgiving" operator is used when an expression might fail to produce a value under certain circumstances (either because of an undefined variable, or calculation error), and there is a known backup value. The result of the operation will be the first value if it can be successfully evaluated, otherwise the second value will be used.
+
+The ternary operator works as expected from other programming languages. For an expression `x ? y : z`, `x` must be an expression which evaluates to a Boolean, and `y` and `z` must be expressions with a compatible return type. If `x` is `true`, then `y` will be returned, otherwise `z`. In some cases it necessary to wrap ternary operations in braces (`()`) to ensure the correct parse for the expression.
+
+
+### Functions
+
+Functions are included as `functionname(argument1, argument2)`, where the number of arguments is variable, and may be zero.
+
+As for variables, function names are case insensitive.
+
+Arguments may be variables, constants, or full expressions.
+
+See below for a list of the functions available in all standard contexts.
+
+
+### Arrays and Tuples
+
+SharpSheets supports ordered, indexed collections in the form of arrays and tuples. Arrays can have any length, whereas tuples have a specified length (however, in general, tuples can only be specified as Markup argument types, where the length is enforced by the SharpSheets parser).
+
+Arrays and tuples must hold values of the same type.
+
+In order to index into a collection (i.e. select a particular value based on its position in the collection), you use the index operator: `x[y]`. Here `x` is some expression which evaluates to an array or tuple, and `y` is an expression which evaluates to an integer index.
+
+Arrays and tuples are zero-indexed in SharpSheets, meaning that the first element is at index 0, and for a collection with `n` elements, the last element is at index `n-1`.
+
+There are several functions that are very useful when dealing with collections: The `len()` function can be used to determine the length of a collection -- e.g. `len(myarray)`. Collections can be concatenated using the `concat()` function, provided that contain data of compatible types -- e.g. `concat(array1, array2)`. You can also create an array from individual elements using the `array()` function -- e.g. `array(1, 2, 3)`.
+
+
+### List Comprehension
+
+Similarly to certain popular programming languages, SharpSheets evaluations allow for "list comprehensions", which are a way to create an array from another collection. This can be used either to transform the data in the collection, filter it, or both.
+
+The syntax for this uses the following pattern: `x for y in z` or `x for y in z if c`. Here `z` is an expression which evaluates to a collection, `y` is a name for the loop variable which will represent each entry in the array one at a time, `x` is an expression (which may use the loop variable) which will be evaluated to produce each entry in the resulting array, and `c` is an optional expression (which must evaluate to a boolean) that is used to filter the list. The collection, `z`, will be iterated over, with each value being assigned to the variable name provided (`y` in the example) one at a time -- this value, using that variable name, will be available for the expressions `x` and `c`. You can use any valid name for `y`, as long as it is not already defined. The condition, `c`, will be evaluated for each value in the input collection (__not__ the transformed values from `x`), and the corresponding entry will only be included in the resulting array if this condition evaluated to `true`.
+
+For example, if you have an array of integers, `values`, and want to double each entry, you can use:
+
+```
+i*2 for i in values
+```
+
+If you want to include only values greater than zero:
+
+```
+i for i in values if i > 0
+```
+
+Or if you want to include only the doubles of each value greater than zero:
+
+```
+i*2 for i in values if i > 0
+```
+
+List comprehensions can include expressions of arbitrary complexity, and can make use of external variables if available.
+
+
+### String Values and Enums
+
+When an enumeration type is used in an expression (such as [TextFormat](enum::TextFormat) or [Justification](enum::Justification)), it is written in the expression as a string -- this means it must be contained in double quote marks. It is important to bear in mind that general string equality operations are case sensitive, and hence the use of the `lower()` or `upper()` functions is sometimes advised if enum and string equality is required. If a variable with an enumeration type is compared against a constant string in an expression, the equality will be case insensitive.
+
+``` unknown
+enumVar == "MYVALUE" # Case insensitive
+stringVar == "MYVALUE" # Case sensitive
+"myvalue" == "MYVALUE" # Case sensitive
+```
+
+
+### Error Handling and Try
+
+Under certain conditions expressions can produce errors, notably in the cases where a variable is sometimes not provided with a value in the current context. In such cases, the `try(...)` function can be used to test whether an expression will evaluate or not. This function returns true if the expression evaluated and returned a value, otherwise false.
+
+
+## Basic Environment
+
+Below is a list of the variables and functions available in most contexts in SharpSheets. There will likely be more available in any given context. Operators are always available, regardless of context.
+
+### Variables
+
+[[BasisEnvironmentVariables]]
+
+### Functions
+
+For functions, a type of "any" means that the function accepts a variety of value types for that argument -- the function documentation may still list some restrictions on the input values, however.
+
+[[BasisEnvironmentFunctions]]

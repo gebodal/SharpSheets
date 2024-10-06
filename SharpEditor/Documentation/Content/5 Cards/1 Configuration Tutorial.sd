@@ -236,13 +236,9 @@ Within the function expression, all existing variables will be available, with t
 
 Card configurations are designed to be highly configurable, and must be reactive to changing values provided in the card subject data. As such, you can express properties and text data as mathematical expressions, which can use any variable (or function) defined for the configuration, as well as the built-in variables and functions provided by SharpSheets.
 
-Expressions themselves consist of variables (i.e. named pieces of data, where the value can change depending on circumstances), constants (such as numbers, e.g. `1`, `3.14`, or strings, e.g. `"Hello World"`), operators (such as `+` for addition and `-` for subtraction), and functions (which are operations that take one or more arguments, such as `max(1, 2)` or `sum(width, height)`).
+See [here](Tutorial/Expressions) for information on expressions and their syntax.
 
 The list of built-in variables and functions, separated by element type, can be found [here](Cards/Environments).
-
-All variable and function names are case insensitive, meaning that `VARIABLE`, `variable`, and `VARiable` are all considered to be the same variable or function name.
-
-The expressions used in SharpSheets are statically typed, meaning that each variable, and the result of each expression, has a fixed type. This means that the output type of a given expression is known ahead of time, and can be inferred from the expression.
 
 Single variables can be substituted into property or entry values by stating the variable name with a dollar-sign (`$`) prefix, for example:
 
@@ -255,7 +251,7 @@ text: # Note that, in practice, this would need to be inside a card element (e.g
 	- $myvar
 ```
 
-However, full expressions must be placed inside dollar-sign (`$`) preceeded curly-braces, `{}`, such as:
+Full expressions must be placed inside dollar-sign (`$`) preceeded curly-braces, `{}`, such as:
 
 ```CardConfig
 def myHalfFontSize: float = 10
@@ -274,8 +270,6 @@ def myvar: string = "Testing"
 text:
 	- ${"My variable is " + myvar}
 ```
-
-The expression syntax and functionality is the same as that described for Markup patterns, so check elsewhere in this documentation for discussion of the use of expressions.
 
 
 #### Value Parsing
@@ -370,6 +364,8 @@ When a card configuration file is parsed, it creates a `CardsConfiguration` [ele
 Card configuration properties must be declared at the top level of the file (i.e. no indentation). Useful properties include: `paper`, for paper size; `grid`, for the number of rows and columns in the card grid; `cardgutter`, for the spacing between individual cards; and so on. See the [documentation](card::CardsConfiguration) for a full list of properties and their descriptions.
 
 The card configuration may contain definitions, `outline` elements, `background` elements, and card segment elements. These will be inherited by any `card` elements defined in the document. Note that the order of elements does not matter here -- if a segment is defined at the top level __after__ a `card`, it will still be inherited.
+
+Note that some top-level properties, notably `requireformalsetupend` and `allowfeaturefollowon`, affect how the card subject file is formatted -- this is intended to make writing the card subject files more intuitive for different configurations. See the documentation on [card subjects](Cards/Subjects Tutorial) for more information on this.
 
 
 ## Card
@@ -596,7 +592,7 @@ The text in each cell on the first row will be written in bold text, to indicate
 
 The rows of the table may be colored, using the `tablecolors` property. This is an array of color values, and the colors will be chosen for each row in a cyclical manner, from this provided array, starting with the first (i.e. header) row.
 
-As each segment configuration must be chosen in some way from the list of available options, one possibility for table segments is to use the card segment `$subheading` in the card subject file to indicate that the segment is laid out as a table. This configuration might look something like this:
+As each segment configuration must be chosen in some way from the list of available options, one recommendation for table segments is to use the card segment `$subheading` in the card subject file to indicate that the segment is laid out as a table. This configuration might look something like this:
 
 ```cardconfig
 table:
@@ -675,6 +671,21 @@ The priority order is primarily based on document order -- so that the matching 
 As such, the ordering of elements within the document is very important for choosing the correct configuration. Generally speaking, the more specific elements (i.e. those with more definitions and more constrained `condition` expressions) should come earlier in the document, followed by more general elements, and finally default elements (i.e. those without definitions and with no `condition` specified) should come last.
 
 
+### Required Headings
+
+A recommended pattern for allowing the user to directly specify which configuration element to use for a part of the subject (or where there is no additional data to include as definitions for the system to use to make a decision) is to use a specific heading or subheading in the condition. For example:
+
+```cardconfig
+segment:
+	condition: lower(heading) == "my title"
+
+segment:
+	condition: lower(subheading) == "table"
+```
+
+This is particularly useful for tables (as above), as the user can simply append "(table)" to the segment heading to indicate that the contents should use the table segment configuration.
+
+
 ## Documentation
 
 You can provide documentation for your card configurations and the configuration elements using the `name` property and `description` entries available on these elements. There is also a document-level `description` property (but no document-level `name`, as the name of the overall configuration is taken from the configuration file name) which provides a general description of the configuration.
@@ -693,6 +704,15 @@ card:
 ```
 
 It is a very good idea to document your configurations, as this information can be displayed in the editor documentation, allowing users (and yourself, somewhere down the line!) to get an understanding of how your configuration should be used, without having to read through the whole configuration file.
+
+
+## Archives
+
+You can include an archive of card subjects to accompany your configuration file -- for example to provide the user with a bunch of standard card contents, or a set of card templates they can use as a basis for their own cards.
+
+This is done by including one or more `archive` properties at the root level of the document. The value of these properties is a filepath (relative to the configuration file) of a file containing the archive card subjects. The `archive` property, unlike other properties, can be specified multiple times to include multiple archive files, if desired.
+
+The contents of the archive files is card subject data, without any specified card configuration for the document. All subjects in the document must be valid for the current configuration file, or an error will be produced.
 
 
 ## Putting It All Together

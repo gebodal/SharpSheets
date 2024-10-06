@@ -32,22 +32,22 @@ namespace SharpSheets.Cards.Card
 				if (x is null || y is null) {
 					return x is null && y is null;
 				}
-				return x.cardSetConfig.name == y.cardSetConfig.name;
+				return x.cardSetConfig.Name == y.cardSetConfig.Name;
 			}
 
 			public int GetHashCode(CardConfig obj) {
-				return obj.cardSetConfig.name.GetHashCode();
+				return obj.cardSetConfig.Name.GetHashCode();
 			}
 
 			public bool Equals(CardSetConfig? x, CardSetConfig? y) {
 				if (x is null || y is null) {
 					return x is null && y is null;
 				}
-				return x.name == y.name;
+				return x.Name == y.Name;
 			}
 
 			public int GetHashCode(CardSetConfig obj) {
-				return obj.name.GetHashCode();
+				return obj.Name.GetHashCode();
 			}
 		}
 

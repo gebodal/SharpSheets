@@ -599,8 +599,6 @@ namespace SharpSheets.Cards.Layouts {
 				used = new List<bool[,]>();
 			}
 
-			private int GetIndex(int row, int col) => row * Columns + col;
-
 			private void AddPage() {
 				bool[,] newPage = new bool[Rows, Columns];
 				newPage.Fill(false); // Just to be safe
@@ -804,16 +802,42 @@ namespace SharpSheets.Cards.Layouts {
 
 	}
 
-	public enum RectangleAllowance { NONE, ANY, WIDE, TALL }
+	/// <summary>
+	/// Indicates the allowed arrangements of grid spaces that can
+	/// be used for a card layout on the page.
+	/// </summary>
+	public enum RectangleAllowance {
+		/// <summary>
+		/// Only single grid spaces allowed for an individual card.
+		/// </summary>
+		NONE,
+		/// <summary>
+		/// Any arrangement of grid spaces allowed.
+		/// </summary>
+		ANY,
+		/// <summary>
+		/// Only arrangements that are at least as wide as they are tall.
+		/// </summary>
+		WIDE,
+		/// <summary>
+		/// Only arrangements that are at least as tall as they are wide.
+		/// </summary>
+		TALL,
+		/// <summary>
+		/// Only arrangements which are exactly as wide as they are tall.
+		/// </summary>
+		SQUARE
+	}
 
 	public static class RectangleAllowanceUtils {
 
 		public static bool Allowed(this RectangleAllowance allowance, int width, int height) {
 			return allowance switch {
-				RectangleAllowance.NONE => true,
+				RectangleAllowance.NONE => width == 1 && height == 1,
 				RectangleAllowance.ANY => true,
 				RectangleAllowance.WIDE => width >= height,
 				RectangleAllowance.TALL => height >= width,
+				RectangleAllowance.SQUARE => width == height,
 				_ => throw new ArgumentException($"Invalid {nameof(RectangleAllowance)} value.", nameof(allowance))
 			};
 		}

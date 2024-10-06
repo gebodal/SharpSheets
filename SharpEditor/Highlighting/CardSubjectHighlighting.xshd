@@ -1,9 +1,10 @@
 ﻿<?xml version="1.0"?>
 <SyntaxDefinition name="CardSubjects" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
 	<Color name="CardSubject_CardTitle" foreground="#3ca5fb" fontWeight="normal"/>
-	<Color name="CardSubject_SectionTitle" foreground="#00eaea" fontWeight="normal"/>
-	<Color name="CardSubject_FeatureTitle" foreground="#09abfc" fontWeight="normal"/>
+	<Color name="CardSubject_SegmentTitle" foreground="#3ca5fb" fontWeight="normal"/>
+	<Color name="CardSubject_FeatureTitle" foreground="#3ca5fb" fontWeight="normal"/>
 	<Color name="CardSubject_BaseColor" foreground="#dcdcdc" fontWeight="normal"/>
+	<Color name="CardSubject_ListMarker" foreground="#dcdcdc" fontWeight="normal"/>
 	<Color name="CardSubject_Property" foreground="#dbab04" fontWeight="normal"/>
 	<Color name="CardSubject_TitleDetails" foreground="#4ec9b0" fontWeight="normal"/>
 	<Color name="CardSubject_TitleDetailName" foreground="#199254" fontWeight="normal"/>
@@ -12,7 +13,18 @@
 	<Color name="CardSubject_VariableFormatting" foreground="#935970" fontWeight="normal" fontStyle="italic"/>
 	<Color name="CardSubject_Comment" foreground="#808080" fontWeight="normal" fontStyle="italic"/>
 	<Color name="CardSubject_CommentEmphasis" foreground="#a1a1a1" fontWeight="bold"/>
-	
+
+	<RuleSet name="CommentRules" ignoreCase="true">
+		<Span color="CardSubject_Comment">
+			<Begin>(?&lt;!\\)\%</Begin>
+			<RuleSet ignoreCase="false">
+				<Rule color="CardSubject_CommentEmphasis">
+					\b (TODO | FIX(ME)?) \b
+				</Rule>
+			</RuleSet>
+		</Span>
+	</RuleSet>
+
 	<RuleSet name="VariableRules" ignoreCase="true">
 		<Rule color="CardSubject_Variable">
 			\$[a-z][a-z0-9]*
@@ -70,39 +82,52 @@
 	<!-- This is the main ruleset. -->
 	<RuleSet ignoreCase="true">
 
-		<Span color="CardSubject_Comment">
-			<Begin>(?&lt;!\\)\%</Begin>
-			<RuleSet ignoreCase="false">
-				<Rule color="CardSubject_CommentEmphasis">
-					\b (TODO | FIX(ME)?) \b
-				</Rule>
-			</RuleSet>
-		</Span>
+		<Import ruleSet="CommentRules"/>
 			
 		<Span color="CardSubject_Macro">
-			<Begin>^(\=+|\s+\=\=+)</Begin>
+			<Begin>^(\=+|\s+\=\=+)\s*(?=\%|$)</Begin>
+			<End>(?=\%|$)</End>
 		</Span>
 
 		<Span color="CardSubject_Macro">
 			<Begin>^\#(\=|\!)</Begin>
+			<End>(?=\%)</End>
+		</Span>
+
+		<!--
+		<Span color="CardSubject_BaseColor">
+			<Begin>^\+\s</Begin>
+			<End>(?=\%)</End>
+			<RuleSet>
+				<Import ruleSet="CommentRules"/>
+				<Import ruleSet="VariableRules"/>
+
+				<Rule color="CardSubject_BaseColor">
+					.
+				</Rule>
+			</RuleSet>
+		</Span>
+		-->
+
+		<Span color="CardSubject_FeatureTitle">
+			<Begin>^\#\#\#+</Begin>
+			<End>(?=\%)</End>
+			<RuleSet>
+				<Import ruleSet="TitleDetailsRules"/>
+			</RuleSet>
+		</Span>
+
+		<Span color="CardSubject_SegmentTitle">
+			<Begin>^\#\# (?=[^\#]|$)</Begin>
+			<End>(?=\%)</End>
+			<RuleSet>
+				<Import ruleSet="TitleDetailsRules"/>
+			</RuleSet>
 		</Span>
 
 		<Span color="CardSubject_CardTitle">
 			<Begin>^(\#\>|\#(?!\=|\!))</Begin>
-			<RuleSet>
-				<Import ruleSet="TitleDetailsRules"/>
-			</RuleSet>
-		</Span>
-
-		<Span color="CardSubject_SectionTitle">
-			<Begin>^\#\# (?=[^\#]|$)</Begin>
-			<RuleSet>
-				<Import ruleSet="TitleDetailsRules"/>
-			</RuleSet>
-		</Span>
-
-		<Span color="CardSubject_FeatureTitle">
-			<Begin>^\#\#\#+</Begin>
+			<End>(?=\%)</End>
 			<RuleSet>
 				<Import ruleSet="TitleDetailsRules"/>
 			</RuleSet>
@@ -127,8 +152,13 @@
 		</Span>
 		-->
 
+		<Span color="CardSubject_ListMarker">
+			<Begin>^\+\s</Begin>
+			<End>(?=[^\s])</End>
+		</Span>
+
 		<Span color="CardSubject_Property">
-			<Begin>^[^\#\=\:](\\\{|[^\:\[\{])*(?=\:|\[)</Begin>
+			<Begin>(?&lt;=^|\+\s+)[^\#\=\:\%](\\\%|\\\{|[^\:\[\{\%])*(?=\:|\[)</Begin>
 			<End>\:</End>
 			<RuleSet>
 				<Import ruleSet="TitleDetailsRules"/>

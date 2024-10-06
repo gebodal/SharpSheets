@@ -12,6 +12,8 @@ Each card subject has a __name__, zero or more __properties__ (key-value data wh
 The basic structure of a card subject looks like this:
 
 ```cardsubject
+#= MyCardConfiguration
+
 # Name
 property: value
 
@@ -19,13 +21,19 @@ property: value
 
 Inline Feature Title (feature subtitle) [detail: value, detailFlag]: Feature text.
 
++ List feature text.
+
 ### Separate Feature Title (feature subtitle) [detail: value, detailFlag]
 Feature text.
 
 % This is a comment.
 ```
 
-Hash characters, `#`, are used to indicate lines containing headings -- for the whole card, for a segment, or for a feature. The number of `#` characters indicates the level of the heading.
+Hash characters, `#`, are used to indicate different types of line which indicate file structure.
+
+A hash followed by an equals sign, `#=`, is used to mark the card configuration to be used for the following card subjects. This is discussed in more detail later.
+
+One or more hash characters are used to indicate lines containing headings -- for the whole card, for a segment, or for a feature. The number of `#` characters indicates the level of the heading.
 
 Card subject headings begin with a single `#` and contain only the card name.
 
@@ -39,6 +47,8 @@ You can also write features without separate heading lines. These are structured
 
 A line of text, without subheading (in `()`) or details (in `[]`), will be interpreted as a title-less feature, and the text will be used as the feature text. In some cases, this text may be appended to the text of the previous feature -- see above.
 
+Features may be marked as being __list features__, which can be used by the configuration to add a bullet-point or similar styling. A line which begins with `+` followed by one or more whitespace characters will be interpreted as a list feature. List features can have titles, subtitles, and details as for other features.
+
 Properties are written as `key: value`, where `key` is the name of a property specified for the card in the configuration file, and `value` is data of an appropriate type for the definition. You can look in the documentation for the particular card configuration for a list of the possible properties. Each property is placed on a separate line, and they all come between the main card subject heading (the line with the card name) and the first segment or feature -- any property that comes after the first segment or feature will be interpreted as an inline feature.
 
 Details come in square brackets, `[]`, at the end of segment or feature headings, and contain a comma-separated list of key-value pairs, written as `key: value`, or Boolean flags, written as `flagName`. Each one corresponds to a definition in the corresponding segment or feature configuration, which may be found in the configuration documentation. Note that commas must be escaped inside any detail values, and `[]` characters are not allowed.
@@ -47,43 +57,184 @@ Comments begin with a percent-sign, `%`, and continue to the end of the line. No
 
 ### Feature Text
 
-Features contain 
+The text of a card feature can be included in several different ways, either on a single line or multiple lines. The card configuration will determine how multi-line card features are treated in the card subject file.
 
-Inline features 
+In general, the following features are equivalent:
 
-Line terminators
+```cardsubject
+% Single line feature
+Feature Title (feature subtitle): Feature text, which contains words.
 
-List
+% Feature with header
+### Feature Title (feature subtitle)
+Feature text, which contains words.
+
+% Feature with header and text on multiple lines.
+### Feature Title (feature subtitle)
+Feature text,
+which contains words
+```
+
+For features with seperate headings (a line beginning with `###`), text on multiple following lines will be concatenated (with spaces added between each line), to produce a single piece of text. This allows you to decide on your own line length, if you prefer that to wrapped lines in the editor (or just very long lines!). Empty lines indicate the start of a new feature, such that the following contains two features:
+
+```cardsubject
+### Headered Feature
+Text for this
+feature.
+
+A new title-less, inline feature.
+```
+
+Inline features (this without a separate header line), are treated differently depending on whether the configuration has the __Allow Feature Follow On__ flag set. If a configuration allows feature follow-on, then inline features may be written on multiple sequential lines, like so:
+
+```cardsubject
+% Configuration allows feature follow on
+
+Feature Title: This text
+continues onto the line below.
+```
+
+Empty lines will still cause the text to be considered as two separate features. Lines which are not separated by an empty line, but both contain a recognisable feature title, will still be treated as two separate features, as in:
+
+```cardsubject
+Feature One: First feature text.
+Feature Two: Second feature text.
+```
+
+However, if the configuration does not allow feature follow on, then the same lines would produce two features:
+
+```cardsubject
+% Configuration does not allow feature follow on
+
+Feature Title: This is one feature.
+This is another feature (a title-less one).
+```
+
+In all card subject files, if you wish to indicate explicitly that a line of text is the end of a feature, then you may use `\\\\` at the end of the line (this is particularly useful for tables, as discussed below).
+
+List features follow all the same rules as for inline features.
 
 
 ### Tables
 
+Some card styles allow for segments which will be drawn as tables. For these segments, the table cells are taken from the feature text data (titles and subtitles are ignored, and details cannot be provided), which is split using the pip character, `|`, as a delimiter. If the configuration allows for feature follow on, you will also need a line terminator at the end of each line (or add empty lines between each feature). This looks something like the following:
+
+```cardsubject
+## Feature Title (table)
+Header 1 | Header 2 \\
+Cell 1   | Cell 2   \\
+Cell 3   | Cell 4   \\
+```
+
+The `(table)` subheading is not a requirement, but is a recommended way for configurations to determine which segments are intended to be tables. Check the configuration documentation for specifics.
+
+Generally, the first row of a table will be considered as a "header" row, and the contents displayed differently for visual effect.
+
+
 ### Expressions
 
+Property values, detail values, and feature texts may contain expressions. These can either be escaped variable names (i.e. `$variablename`), or entire expressions inside escaped curly-braces (e.g. `${variable + 1}`) -- both cases __require__ dollar-sign prefixes.
 
-## Common Patterns
+All definitions for the current feature, segment, and subject are available for use in expressions, along with data from the enclosing element (e.g. a feature's `$featurenum`). A list of the available variables for different card elements can be found [here](Cards/Environments).
 
-### Required Headings
+See [here](Tutorial/Expressions) for information on expressions and their syntax.
 
+
+### Setup End
+
+The card subject must be able to determine when to stop looking for subject properties, and to start interpreting lines as features and segments. By default, this switch happens when the first segment header is encountered. However, if a configuration disables the __Require Formal Setup End__ flag, then the property list ends with the first line that cannot be parsed as a property value. Generally this is used for card subject files whose features and segments are generally titleless (i.e. just paragraphs of text).
+
+If a line of text is provided that does not match the `name: value` property or the `#` prefixed heading syntax, then it will be interpreted as a titleless feature, and a titleless segment will be created to hold it.
+
+This is included to make certain card subject files more readable, and depends on the configuration file being used (it is disabled by default).
+
+
+### Archive Subjects
+
+Configurations can also supply an archive of predefined card subjects for you to include in your file.
+
+You include an archive subject using `#>` followed by the subject's name:
+
+```cardsubject
+#= MyConfigurationWithArchive
+
+#> My Archived Subject
+```
+
+Each archived subject will have a unique name, and you can include multiple of the same subject in a file, if desired.
+
+__Note:__ In the editor, you can expand any archived subjects included in this way so that the subject data is written directly into the file, which is useful for editing "template" subjects provided by the configuration author.
+
+
+## File-Level Commands
+
+In addition to the card subject data, you can also specify information about the file contents -- in particular, the card configuration to be used to the card subjects (this is required).
+
+A line beginning with `#=` is used to specify the card configuration to use for following card subjects. The name of the configuration comes after the equals sign. You can have more than one configuration in the file, with each one containing one or more card subjects. For example:
+
+```cardsubject
+#= ConfigurationOne
+
+# Subject One
+% Subject data goes here...
+
+#= ConfigurationTwo
+
+# Subject Two
+% Subject data goes here...
+```
+
+The name corresponds to a card configuration file inside the templates directory -- all configuration files saved inside the directory are logged and stored for use in card subject files. The name is just the configuration filename, without its extension, and it case insensitive. So, for example, a file at `/path/to/templatesdir/MyCardConfig.scd` will be available with the name `MyCardConfig`. The relative path of the configuration file within the template directory is ignored, with only the filename used (this does mean you cannot have two card configurations with the same name in two different subdirectories).
+
+You can also revert to the previously specified configuration using a line containing just `#!`. For example:
+
+```cardsubject
+#= ConfigurationOne
+
+# Subject One
+% Using ConfigurationOne
+
+#= ConfigurationTwo
+
+# Subject Two
+% Using ConfigurationTwo
+
+#!
+
+# Subject Three
+% Using ConfigurationOne again
+```
+
+For slightly more detail: When a configuration is specified, it is pushed onto a stack of configurations. When a `#!` line is encountered, the top of the stack is popped, and the previous configuration used for any successive subjects. If the stack is empty when a subject is declared, this will cause an error. Whenever a subject is declared, the configuration currently at the top of the stack is used for that subject.
+
+Changing the configuration will cause the next subject card to be drawn on a new page (as there is no guarantee that two configurations use the same card grid layout).
+
+If you want to manually specify that a new page should be started in the middle of the card subject file, you can do this by including a line that starts with one or more equals signs, `=`, like so:
+
+```cardsubject
+# Subject One
+% Subject data goes here...
+
+=====
+
+# Subject Two
+% Will be drawn on a new page
+```
+
+You can use any number of equal sign characters, and can include comments at the end of the line (with a `%` comment character, of course).
 
 
 ## Relation to Card Configuration Files
 
-## Card Subject
+Each subject, segment, and feature must select a configuration element from the configuration file during parsing. Exactly which configuration gets selected depends on the design of the configuration file and the data you have provided in the card subject file.
 
-Properties
+Card configuration elements can specify definitions (pieces of data that can or must be provided) and conditions (a test of the card data to determine if the element can be used). In general, the subject will select the first configuration element in the configuration file that: specifies the same definitions as provided in the card subject file; and passes the condition expression. The condition may simply default to true, in which case only the presence of definition values is considered.
 
-## Card Segment
-
-Details
-
-## Card Feature
-
-Details
-List
-Table
+Card features and segments provide the definition data as "details", and card subjects as "properties". If there are conflicts with the data provided and the data expected, this will produce errors during parsing that will indicate the missing or unexpected data.
 
 
+### Required Headings
+
+A recommended pattern for identifying the correct configuration elements for segments (and sometimes features) is to use the heading or subheading in the card subject file. Check the configuration documentation for segment/feature configurations that use this pattern.
 
 
-`allowfeaturefollowon`, `requireformalsetupend`

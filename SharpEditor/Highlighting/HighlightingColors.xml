@@ -32,9 +32,10 @@
 
 	<!-- CardSubjectHighlighting -->
 	<Color name="CardSubject_CardTitle" foreground="#3ca5fb" fontWeight="normal"/>
-	<Color name="CardSubject_SectionTitle" foreground="#00eaea" fontWeight="normal"/>
-	<Color name="CardSubject_FeatureTitle" foreground="#09abfc" fontWeight="normal"/>
+	<Color name="CardSubject_SegmentTitle" foreground="#3ca5fb" fontWeight="normal"/>
+	<Color name="CardSubject_FeatureTitle" foreground="#3ca5fb" fontWeight="normal"/>
 	<Color name="CardSubject_BaseColor" foreground="#dcdcdc" fontWeight="normal"/>
+	<Color name="CardSubject_ListMarker" foreground="#dcdcdc" fontWeight="normal"/>
 	<Color name="CardSubject_Property" foreground="#dbab04" fontWeight="normal"/>
 	<Color name="CardSubject_TitleDetails" foreground="#4ec9b0" fontWeight="normal"/>
 	<Color name="CardSubject_TitleDetailName" foreground="#199254" fontWeight="normal"/>
@@ -57,6 +58,6 @@
 	<Color name="Documentation_DefaultValue" foreground="Gray"/>
 
 	<!-- Editor -->
-	<Color name="Editor_Unused" foreground="#808080"/>
+	<Color name="Editor_Unused" foreground="#808080"/> <!-- foreground="cf0000" fontStyle="italic" is nice  -->
 
 </Colors>

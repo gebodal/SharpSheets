@@ -74,13 +74,9 @@ You can also pass an `example-size` and `example-canvas` to a `<pattern>` elemen
 
 Markup patterns are designed to be highly configurable, and must be reactive to changing properties and available space. As such, certain attributes of markup elements can be expressed as mathematical expressions, which can use information such as the data provided as properties to the pattern by the user from a configuration file, or information such as the width and height of the space the pattern is to be drawn in.
 
-Expressions consist of variables (named pieces of data, where the value can change depending on circumstances), constants (such as numbers, e.g. `1`, `3.14`, or strings, `"Hello World"`), operators (such as `+` for addition and `-` for subtraction), and functions (which are more complex operations that take one or more arguments, such as `max(1, 2)` or `sum(width, height)`).
+See [here](Tutorial/Expressions) for information on expressions and their syntax.
 
 The list of variables available at a given point in the pattern is dependent on the pattern type, and on the arguments and variables declared in the pattern. Hovering over a pattern element in the editor will show a list of the available variables -- some of which are discussed in detail below.
-
-All variable and function names are case insensitive, meaning that `VARIABLE`, `variable`, and `VARiable` are all considered the same variable or function name.
-
-The expressions used in SharpSheets are statically typed, meaning that each variable, and the result of each expression, has a fixed type. This means that the output type of a given expression is known ahead of time, and can be inferred from the expression.
 
 Most expressions can simply be written directly, such as:
 
@@ -88,11 +84,11 @@ Most expressions can simply be written directly, such as:
 <div x="width / 2" y="height / 2"/>
 ```
 
-However, in some cases, notably for element text, expressions must be escaped, using `{}`:
+However, in some cases, notably for element text, expressions must be escaped, using `{}` (you do not need a dollar-sign prefix, but can include one if desired):
 
 ``` Markup
 <text>Hello world, this div is {width}pts wide and {height}pts tall.
-And {width * height} square pts in area.</text>
+And ${width * height} square pts in area.</text>
 ```
 
 When variable string values are required for attributes (i.e. string values which can have non-constant values), they will have to be provided as expressions, which means that constant values will have to be provided in quotes __inside__ the attribute quotes:
@@ -109,9 +105,7 @@ Many multi-part data is provided as a list of numerical values, such as margins,
 <area name="remaining" margins="{0} {offset} {0} {offset}"/>
 ```
 
-Under certain conditions expressions can produce errors, notably in the cases where an argument has not been provided with a value in the configuration file, and no default value has been specified (a "non-optional" property). In such cases, the `try(...)` function can be used to test whether an expression will evaluate or not.
-
-When an enumeration type is used (such as [TextFormat](enum::TextFormat) or [Justification](enum::Justification)), it is written in an expression as a string -- this means it must be contained in double quote marks. It is important to bear in mind that general string equality operations are case sensitive, and hence the use of the `lower()` or `upper()` functions is sometimes advised if enum and string equality is required. If a variable with an enumeration type is compared against a constant string in an expression, the equality will be case insensitive. Note that custom enumeration types (see below) use the case insensitive equality operations.
+Note that custom enumeration types (see below) use the case insensitive equality operations. As a reminder:
 
 ``` Markup
 <element attribute='enumVar == "MYVALUE"'/> <!-- Case insensitive -->

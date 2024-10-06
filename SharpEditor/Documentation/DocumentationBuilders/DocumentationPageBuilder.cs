@@ -253,9 +253,9 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		private static Control GetConstructorLinks(IEnumerable<CardSetConfig> configs, Func<string, CardSetConfig?>? refreshAction, DocumentationWindow window) {
 			StackPanel contentsStack = new StackPanel() { Margin = ParagraphMargin };
 
-			foreach (CardSetConfig config in configs.OrderBy(d => d.name)) {
-				ClickableRun constructorClickable = new ClickableRun(config.name);
-				constructorClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(config, () => refreshAction?.Invoke(config.name));
+			foreach (CardSetConfig config in configs.OrderBy(d => d.Name)) {
+				ClickableRun constructorClickable = new ClickableRun(config.Name);
+				constructorClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(config, () => refreshAction?.Invoke(config.Name));
 				contentsStack.Children.Add(new TextBlock() {
 					Margin = new Thickness(0, 1, 0, 1),
 					Inlines = new InlineCollection() { constructorClickable }

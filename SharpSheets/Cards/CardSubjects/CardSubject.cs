@@ -93,6 +93,23 @@ namespace SharpSheets.Cards.CardSubjects {
 		IEnvironment Environment { get; }
 	}
 
+	public static class CardDocumentEntityUtils {
+
+		public static DefinitionGroup AllDefinitions(this ICardDocumentEntity entity) {
+			IEnumerable<DefinitionGroup> GetDefinitions() {
+				yield return entity.Definitions;
+				ICardDocumentEntity? parent = entity.Parent as ICardDocumentEntity;
+				while(parent is not null) {
+					yield return parent.Definitions;
+					parent = parent.Parent as ICardDocumentEntity;
+				}
+			}
+
+			return new DefinitionGroup(GetDefinitions().SelectAll());
+		}
+
+	}
+
 	[System.Diagnostics.DebuggerDisplay("# {Name} (@{Location.Line})")]
 	public class CardSubject : ICardDocumentEntity, IEnumerable<CardSegment> {
 

@@ -36,17 +36,27 @@ namespace SharpSheets.Cards.CardConfigs {
 		DirectoryPath Source { get; }
 	}
 
-	public interface ICardConfigComponent { }
+	public interface ICardConfigComponent {
+		public string? Name { get; }
+		public string? Description { get; }
+	}
 
 	public enum LayoutStrategy { CARD, SCROLL }
 
+	/// <summary>
+	/// This element represents a set of card configurations, and defines any information
+	/// shared by all such cards, along with default values for card configuration properties.
+	/// This element also controls some aspects of how corresponding card subject files must
+	/// be formatted. The page layout for the final card document is determined by the properties
+	/// of this element.
+	/// </summary>
 	public class CardSetConfig : ICardSegmentParent, ICardConfigComponent {
 		
-		public readonly string name;
+		public string Name { get; }
 		public readonly FilePath origin;
 		public DirectoryPath Source { get; }
 
-		public readonly string? description;
+		public string? Description { get; }
 
 		public readonly AbstractLayoutStrategy layoutStrategy;
 		public readonly PageSize paper;
@@ -74,18 +84,25 @@ namespace SharpSheets.Cards.CardConfigs {
 		public IReadOnlyList<CardSubject> Examples => examples;
 
 		/// <summary>
-		/// 
+		/// Constructor for CardSetConfig.
 		/// </summary>
 		/// <param name="name" exclude="true"></param>
 		/// <param name="origin" exclude="true"></param>
 		/// <param name="source" exclude="true"></param>
-		/// <param name="_description"></param>
-		/// <param name="_paper"></param>
-		/// <param name="_pageMargins" default="20"></param>
-		/// <param name="_cardGutter"></param>
-		/// <param name="_grid" default="1,1"></param>
-		/// <param name="_allowFeatureFollowOn"></param>
-		/// <param name="_requireFormalSetupEnd"></param>
+		/// <param name="_description">A description for this set of card configurations, to be displayed
+		/// in the documentation. Multiple entries will be combined with spaces.</param>
+		/// <param name="_paper">The paper size to use for document pages when generating the card content.
+		/// A variety of common paper size options are available, such as "A4" or "letter", or alternatively
+		/// a size may be specified explicitly (as in "20 x 20 cm").</param>
+		/// <param name="_pageMargins" default="20">Margins to use for the page area, separating the cards
+		/// from the edge of the paper.</param>
+		/// <param name="_cardGutter">The spacing used between cards in the card grid, both horizontally and
+		/// vertically.</param>
+		/// <param name="_grid" default="1,1">The number of rows and columns for the card grid on the page.</param>
+		/// <param name="_allowFeatureFollowOn">Flag to indicate that inline features are allowed to be split
+		/// over multiple lines in the subject file.</param>
+		/// <param name="_requireFormalSetupEnd">Flag to indicate that the card subject file must use explicit
+		/// segment headings to indicate the end of the subject setup data.</param>
 		/// <exception cref="ArgumentNullException"></exception>
 		public CardSetConfig(
 			string name,
@@ -98,13 +115,13 @@ namespace SharpSheets.Cards.CardConfigs {
 			float _cardGutter = 20f,
 			(uint rows, uint columns)? _grid = null,
 			bool _allowFeatureFollowOn = false,
-			bool _requireFormalSetupEnd = false
+			bool _requireFormalSetupEnd = true
 		) {
-			this.name = name ?? throw new ArgumentNullException(nameof(name));
+			this.Name = name ?? throw new ArgumentNullException(nameof(name));
 			this.origin = origin;
 			this.Source = source;
 
-			this.description = _description is not null ? string.Join(" ", _description.Select(s=>s.Trim())) : null;
+			this.Description = _description is not null ? string.Join(" ", _description.Select(s=>s.Trim())) : null;
 
 			//this.layoutStrategy = _layoutStrategy == LayoutStrategy.CARD ? AbstractLayoutStrategy.Card : AbstractLayoutStrategy.Scroll;
 			this.layoutStrategy = AbstractLayoutStrategy.Card;
@@ -151,10 +168,14 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
+	/// <summary>
+	/// This element represents an individual card configuration. Various aspects of the
+	/// card layout can be controlled using this element's properties.
+	/// </summary>
 	public class CardConfig : ICardSegmentParent, ICardConfigComponent {
 
-		public readonly string? name;
-		public readonly string? description;
+		public string? Name { get; }
+		public string? Description { get; }
 
 		public readonly CardSetConfig cardSetConfig;
 		public DirectoryPath Source => cardSetConfig.Source;
@@ -184,24 +205,34 @@ namespace SharpSheets.Cards.CardConfigs {
 		public IVariableDefinitionBox Variables => variableBox;
 
 		/// <summary>
-		/// 
+		/// Constructor for CardConfig.
 		/// </summary>
-		/// /// <param name="cardSetConfig" exclude="true"></param>
-		/// <param name="_name"></param>
-		/// <param name="_description"></param>
-		/// <param name="minFontSize"></param>
-		/// <param name="maxFontSize"></param>
-		/// <param name="fontEpsilon"></param>
-		/// <param name="lineSpacing"></param>
-		/// <param name="paragraphSpacing"></param>
-		/// <param name="maxCards"></param>
-		/// <param name="gutter"></param>
-		/// <param name="gutter_"></param>
-		/// <param name="cropOnFinalCard"></param>
-		/// <param name="joinSplitCards"></param>
-		/// <param name="multiCardLayout"></param>
-		/// <param name="allowMultipage"></param>
-		/// <param name="font"></param>
+		/// <param name="cardSetConfig" exclude="true"></param>
+		/// <param name="_name">The name for this card configuration.</param>
+		/// <param name="_description">A description for this card configuration, to be displayed
+		/// in the documentation. Multiple entries will be combined with spaces.</param>
+		/// <param name="minFontSize">The minimum font size to use for card text during layout.</param>
+		/// <param name="maxFontSize">The maximum font size to use for card text during layout.</param>
+		/// <param name="fontEpsilon">The minimum font difference to be considered when searching
+		/// for the final layout font size.</param>
+		/// <param name="lineSpacing">The line spacing to use for card text, which is the distance between
+		/// successive text baselines, measured in multiples of the layout fontsize.</param>
+		/// <param name="paragraphSpacing">The spacing to be used between paragraphs of text, measured in points.
+		/// This spacing is in addition to any line spacing.</param>
+		/// <param name="maxCards">The maximum number of card grid spaces that an individual card subject
+		/// may occupy. Defaults to the number of columns in the grid.</param>
+		/// <param name="gutter">Spacing between card segment blocks, measured in points.</param>
+		/// <param name="gutter_">Gutter style for the card configuration.
+		/// This style is used to draw detailing in the spaces between segment blocks.</param>
+		/// <param name="cropOnFinalCard">Flag to indicate that the segments in the final card grid space
+		/// should be cropped rather than sized to fill any leftover space.</param>
+		/// <param name="joinSplitCards">Flag to indicate that separate card grid spaces for the same
+		/// card subject should be joined using the card background.</param>
+		/// <param name="multiCardLayout">The layout strategy to use when arranging mulitple cards grid spaces
+		/// in the card grid.</param>
+		/// <param name="allowMultipage">Flag to indicate that cards are allowed to draw sections on multiple
+		/// pages.</param>
+		/// <param name="font">The default font to use for the card text content.</param>
 		public CardConfig(
 			CardSetConfig cardSetConfig,
 			string? _name = null,
@@ -223,8 +254,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			FontArgument? font = null
 		) {
 
-			this.name = _name;
-			this.description = _description is not null ? string.Join(" ", _description.Select(s => s.Trim())) : null;
+			this.Name = _name;
+			this.Description = _description is not null ? string.Join(" ", _description.Select(s => s.Trim())) : null;
 
 			this.cardSetConfig = cardSetConfig;
 
@@ -262,8 +293,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		//public readonly CardConfig cardConfig;
 		public readonly ICardSegmentParent parent;
 
-		public readonly string? name;
-		public readonly string? description;
+		public string? Name { get; }
+		public string? Description { get; }
 
 		public readonly bool splittable;
 		public readonly bool acceptRemaining;
@@ -298,8 +329,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		) {
 			this.parent = parent;
 
-			this.name = _name;
-			this.description = _description is not null ? string.Join(" ", _description.Select(s => s.Trim())) : null;
+			this.Name = _name;
+			this.Description = _description is not null ? string.Join(" ", _description.Select(s => s.Trim())) : null;
 
 			this.splittable = _splittable;
 			this.acceptRemaining = _acceptRemaining;
@@ -316,6 +347,11 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
+	/// <summary>
+	/// This element represents a card segment with arbitrary content.
+	/// Layout settings for the feature contents can be specified, along
+	/// with outlines for the segment area.
+	/// </summary>
 	public class DynamicCardSegmentConfig : AbstractCardSegmentConfig {
 
 		public readonly bool equalSizeFeatures;
@@ -327,19 +363,26 @@ namespace SharpSheets.Cards.CardConfigs {
 		public bool AlwaysInclude { get; }
 
 		/// <summary>
-		/// 
+		/// Constructor for <see cref="DynamicCardSegmentConfig"/>.
 		/// </summary>
-		/// <param name="parent" exclude="true"></param>
-		/// <param name="_name"></param>
-		/// <param name="_description"></param>
-		/// <param name="_splittable"></param>
-		/// <param name="_acceptRemaining"></param>
-		/// <param name="_equalSizeFeatures"></param>
-		/// <param name="_spaceFeatures"></param>
-		/// <param name="gutter"></param>
-		/// <param name="_alwaysInclude"></param>
-		/// <param name="_atPosition"></param>
-		/// <param name="format"></param>
+		/// <param name="parent" exclude="true">The parent element for this configuration.</param>
+		/// <param name="_name">The name for this segment configuration.</param>
+		/// <param name="_description">A description for this segment configuration, to be displayed
+		/// in the documentation. Multiple entries will be combined with spaces.</param>
+		/// <param name="_splittable">Flag to indicate that this segment may be split
+		/// across multiple card faces.</param>
+		/// <param name="_acceptRemaining">Flag to indicate that this segment accepts
+		/// and remaining area on the card, which will be included when drawing the outline.</param>
+		/// <param name="_equalSizeFeatures">Flag to indicate that all features should be given
+		/// the same amount of space on the card.</param>
+		/// <param name="_spaceFeatures">Flag to indicate that each feature should take an
+		/// equal share of any remaining space in the segment area.</param>
+		/// <param name="gutter">The spacing between feature areas.</param>
+		/// <param name="_alwaysInclude">Flag to indicate that this segment should always
+		/// be included in the card, rather than being prompted by data in the card subject.</param>
+		/// <param name="_atPosition">Specifies an override position for this segment
+		/// when drawing the card content.</param>
+		/// <param name="format">Regular expressions controlling formatting to be applied to feature texts.</param>
 		public DynamicCardSegmentConfig(
 			//CardConfig cardConfig,
 			ICardSegmentParent parent,
@@ -366,6 +409,12 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
+	/// <summary>
+	/// This element represents a card segment which displays features as
+	/// a continuous string of text. A delimiter, and a prefix and tail
+	/// can be specified for the text content, along with text layout
+	/// parameters and outlines for the segment area.
+	/// </summary>
 	public class TextCardSegmentConfig : AbstractCardSegmentConfig {
 
 		public readonly IExpression<string> content;
@@ -380,23 +429,27 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly TextHeightStrategy heightStrategy;
 
 		/// <summary>
-		/// 
+		/// Constructor for <see cref="TextCardSegmentConfig"/>.
 		/// </summary>
-		/// <param name="parent" exclude="true"></param>
-		/// <param name="_content" default="default"></param>
-		/// <param name="_delimiter" default="\n"></param>
-		/// <param name="_prefix" default="null"></param>
-		/// <param name="_tail" default="null"></param>
-		/// <param name="_name"></param>
-		/// <param name="_description"></param>
-		/// <param name="_splittable"></param>
-		/// <param name="_acceptRemaining"></param>
-		/// <param name="paragraph"></param>
-		/// <param name="justification"></param>
-		/// <param name="alignment"></param>
-		/// <param name="heightStrategy"></param>
-		/// <param name="_atPosition"></param>
-		/// <param name="format"></param>
+		/// <param name="parent" exclude="true">The parent element for this configuration.</param>
+		/// <param name="_content" default="default">Text expression to use for converting each feature into text.</param>
+		/// <param name="_delimiter" default="\n">A delimiter to use between each feature's textual representation.</param>
+		/// <param name="_prefix" default="null">Prefix text to add before the delimited feature texts.</param>
+		/// <param name="_tail" default="null">Suffix text to add after the delimited feature texts.</param>
+		/// <param name="_name">The name for this segment configuration.</param>
+		/// <param name="_description">A description for this segment configuration, to be displayed
+		/// in the documentation. Multiple entries will be combined with spaces.</param>
+		/// <param name="_splittable">Flag to indicate that this segment may be split
+		/// across multiple card faces.</param>
+		/// <param name="_acceptRemaining">Flag to indicate that this segment accepts
+		/// and remaining area on the card, which will be included when drawing the outline.</param>
+		/// <param name="paragraph">Paragraph indentation specification for this configuration.</param>
+		/// <param name="justification">The horizontal justification to use for the text within the segment area.</param>
+		/// <param name="alignment">The vertical alignment to use for the text within the segment area.</param>
+		/// <param name="heightStrategy">The height calculation strategy to use when arranging the text within the segment area.</param>
+		/// <param name="_atPosition">Specifies an override position for this segment
+		/// when drawing the card content.</param>
+		/// <param name="format">Regular expressions controlling formatting to be applied to feature texts.</param>
 		public TextCardSegmentConfig(
 			//CardConfig cardConfig,
 			ICardSegmentParent parent,
@@ -430,6 +483,13 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
+	/// <summary>
+	/// This element represents a card segment which displays features as
+	/// individual paragraphs of text. Text layout parameters can be specified
+	/// for the paragraphs, along with outlines for the segment area. Parameters
+	/// for layout of list features as bullet point entries can also be
+	/// provided.
+	/// </summary>
 	public class ParagraphCardSegmentConfig : AbstractCardSegmentConfig {
 
 		public class BulletArg : ISharpArgsGrouping {
@@ -440,13 +500,18 @@ namespace SharpSheets.Cards.CardConfigs {
 			public readonly float Offset;
 
 			/// <summary>
-			/// 
+			/// Constructor for <see cref="BulletArg"/>.
 			/// </summary>
-			/// <param name="symbol"></param>
-			/// <param name="font"></param>
-			/// <param name="size"></param>
-			/// <param name="indent"></param>
-			/// <param name="offset"></param>
+			/// <param name="symbol">The symbol (which may be arbitrary text) to use for
+			/// the bullet in list entries. If an empty string is provided, then
+			/// list paragraphs will be drawn with no symbol or indentation.</param>
+			/// <param name="font">The font to use for the bullet symbol.</param>
+			/// <param name="size">The font size at which to draw the bullet symbol,
+			/// as a multiplier of the current text size.</param>
+			/// <param name="indent">The identation at which to draw the bullet symbol,
+			/// expressed in points.</param>
+			/// <param name="offset">The offset from the baseline at which to draw the
+			/// bullet symbol, as a fraction of the current font size.</param>
 			public BulletArg(string symbol = "\u2022", FontSetting? font = null, float size = 1f, float indent = 0f, float offset = 0f) {
 				Symbol = symbol;
 				FontPath = font;
@@ -468,22 +533,26 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly BulletArg bullet;
 
 		/// <summary>
-		/// 
+		/// Constructor for <see cref="ParagraphCardSegmentConfig"/>.
 		/// </summary>
-		/// <param name="parent" exclude="true"></param>
-		/// <param name="_content" default="default"></param>
-		/// <param name="_name"></param>
-		/// <param name="_description"></param>
-		/// <param name="_splittable"></param>
-		/// <param name="_acceptRemaining"></param>
-		/// <param name="paragraph"></param>
-		/// <param name="justification"></param>
-		/// <param name="alignment"></param>
-		/// <param name="heightStrategy"></param>
-		/// <param name="list"></param>
-		/// <param name="bullet"></param>
-		/// <param name="_atPosition"></param>
-		/// <param name="format"></param>
+		/// <param name="parent" exclude="true">The parent element for this configuration.</param>
+		/// <param name="_content" default="default">Text expression to use for converting each feature into text.</param>
+		/// <param name="_name">The name for this segment configuration.</param>
+		/// <param name="_description">A description for this segment configuration, to be displayed
+		/// in the documentation. Multiple entries will be combined with spaces.</param>
+		/// <param name="_splittable">Flag to indicate that this segment may be split
+		/// across multiple card faces.</param>
+		/// <param name="_acceptRemaining">Flag to indicate that this segment accepts
+		/// and remaining area on the card, which will be included when drawing the outline.</param>
+		/// <param name="paragraph">Paragraph indentation specification for non-list features in this configuration.</param>
+		/// <param name="justification">The horizontal justification to use for the text within the segment area.</param>
+		/// <param name="alignment">The vertical alignment to use for the text within the segment area.</param>
+		/// <param name="heightStrategy">The height calculation strategy to use when arranging the text within the segment area.</param>
+		/// <param name="list">Paragraph indentation specification for list features in this configuration.</param>
+		/// <param name="bullet">List bullet point specification for this configuration.</param>
+		/// <param name="_atPosition">Specifies an override position for this segment
+		/// when drawing the card content.</param>
+		/// <param name="format">Regular expressions controlling formatting to be applied to feature texts.</param>
 		public ParagraphCardSegmentConfig(
 			//CardConfig cardConfig,
 			ICardSegmentParent parent,
@@ -517,6 +586,11 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
+	/// <summary>
+	/// This element represents a card segment which displays features as
+	/// rows of a table. Row colors and cell layout parameters can be specified
+	/// for the table, along with outlines for the segment area.
+	/// </summary>
 	public class TableCardSegmentConfig : AbstractCardSegmentConfig {
 
 		public readonly bool equalSizeFeatures;
@@ -529,21 +603,29 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly Color[] tableColors;
 
 		/// <summary>
-		/// 
+		/// Constructor for <see cref="TableCardSegmentConfig"/>.
 		/// </summary>
-		/// <param name="parent" exclude="true"></param>
-		/// <param name="_name"></param>
-		/// <param name="_description"></param>
-		/// <param name="_splittable"></param>
-		/// <param name="_acceptRemaining"></param>
-		/// <param name="_equalSizeFeatures"></param>
-		/// <param name="_spaceFeatures"></param>
-		/// <param name="tableSpacing"></param>
-		/// <param name="edgeOffset"></param>
-		/// <param name="tableColors"></param>
-		/// <param name="cellHeightStrategy"></param>
-		/// <param name="_atPosition"></param>
-		/// <param name="format"></param>
+		/// <param name="parent" exclude="true">The parent element for this configuration.</param>
+		/// <param name="_name">The name for this segment configuration.</param>
+		/// <param name="_description">A description for this segment configuration, to be displayed
+		/// in the documentation. Multiple entries will be combined with spaces.</param>
+		/// <param name="_splittable">Flag to indicate that this segment may be split
+		/// across multiple card faces.</param>
+		/// <param name="_acceptRemaining">Flag to indicate that this segment accepts
+		/// and remaining area on the card, which will be included when drawing the outline.</param>
+		/// <param name="_equalSizeFeatures">Flag to indicate that all rows (i.e. features) should be
+		/// given the same amount of space in the table.</param>
+		/// <param name="_spaceFeatures">Flag to indicate that each row (i.e. feature) should take an
+		/// equal share of any remaining space in the segment area.</param>
+		/// <param name="tableSpacing">Column and row spacing for the table cells.</param>
+		/// <param name="edgeOffset">A horizontal offset for the table contents from the edge of
+		/// the segment area.</param>
+		/// <param name="tableColors">Colors for the table rows, which will used cyclically over the
+		/// whole table.</param>
+		/// <param name="cellHeightStrategy">The height calculation strategy to use when arranging text within each cell area.</param>
+		/// <param name="_atPosition">Specifies an override position for this segment
+		/// when drawing the card content.</param>
+		/// <param name="format">Regular expressions controlling formatting to be applied to feature texts.</param>
 		public TableCardSegmentConfig(
 			//CardConfig cardConfig,
 			ICardSegmentParent parent,
@@ -573,12 +655,18 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
+	/// <summary>
+	/// This element represents a card feature configuration, and the layout
+	/// with which the corresponding feature data will be drawn to the card.
+	/// You can also supply "format" patterns, which can be used to apply text
+	/// formatting to the feature text content before drawing.
+	/// </summary>
 	public class CardFeatureConfig : IHasVariableDefinitionBox, ICardConfigComponent {
 
 		public readonly AbstractCardSegmentConfig cardSegmentConfig;
 
-		public readonly string? name;
-		public readonly string? description;
+		public string? Name { get; }
+		public string? Description { get; }
 
 		public readonly DefinitionGroup definitions;
 		private InterpolatedContext? layout;
@@ -599,12 +687,13 @@ namespace SharpSheets.Cards.CardConfigs {
 		public IVariableDefinitionBox Variables => variableBox;
 
 		/// <summary>
-		/// 
+		/// Constructor for <see cref="CardFeatureConfig"/>.
 		/// </summary>
-		/// <param name="cardSegment" exclude="true"></param>
-		/// <param name="_name"></param>
-		/// <param name="_description"></param>
-		/// <param name="format"></param>
+		/// <param name="cardSegment" exclude="true">The parent segment configuration.</param>
+		/// <param name="_name">The name for this feature configuration.</param>
+		/// <param name="_description">A description for this feature configuration, to be displayed
+		/// in the documentation. Multiple entries will be combined with spaces.</param>
+		/// <param name="format">Regular expressions controlling formatting to be applied to the feature text.</param>
 		public CardFeatureConfig(
 			AbstractCardSegmentConfig cardSegment,
 			string? _name = null,
@@ -614,8 +703,8 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			this.cardSegmentConfig = cardSegment;
 
-			this.name = _name;
-			this.description = _description is not null ? string.Join(" ", _description.Select(s => s.Trim())) : null;
+			this.Name = _name;
+			this.Description = _description is not null ? string.Join(" ", _description.Select(s => s.Trim())) : null;
 
 			this.layout = null;
 			this.regexFormats = format;

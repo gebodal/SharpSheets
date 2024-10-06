@@ -27,7 +27,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				return MakeErrorPage("Invalid card configuration.");
 			}
 
-			return MakePage(GetCardSetConfigPageContent(cardSetConfig, window), cardSetConfig.name, () => GetCardSetConfigPageContent(refreshAction?.Invoke(), window));
+			return MakePage(GetCardSetConfigPageContent(cardSetConfig, window), cardSetConfig.Name, () => GetCardSetConfigPageContent(refreshAction?.Invoke(), window));
 		}
 
 		private static Control GetCardSetConfigPageContent(CardSetConfig? cardSetConfig, DocumentationWindow window) {
@@ -42,13 +42,13 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			configSourceButton.Click += delegate { SharpEditorWindow.Instance?.OpenEditorDocument(cardSetConfig.origin.Path, true); };
 			stack.Children.Add(headerGrid);
 
-			if (!string.IsNullOrWhiteSpace(cardSetConfig.description)) {
-				stack.Children.Add(MakeDescriptionBlock(cardSetConfig.description));
+			if (!string.IsNullOrWhiteSpace(cardSetConfig.Description)) {
+				stack.Children.Add(MakeDescriptionBlock(cardSetConfig.Description));
+				stack.Children.Add(MakeSeparator());
 			}
-			stack.Children.Add(MakeSeparator());
-			
 
-			if(cardSetConfig.cardConfigs.Count == 1 && cardSetConfig.cardConfigs.First() is Conditional<CardConfig> singleCard && singleCard.Condition.IsTrue && string.IsNullOrWhiteSpace(singleCard.Value.description)) {
+
+			if (cardSetConfig.cardConfigs.Count == 1 && cardSetConfig.cardConfigs.First() is Conditional<CardConfig> singleCard && singleCard.Condition.IsTrue && string.IsNullOrWhiteSpace(singleCard.Value.Description)) {
 				// Singular card config or dummy card config
 				List<Definition> cardDefinitions = singleCard.Value.definitions.ToList(); // The card will reference back to the setConfig definitions
 				if (cardDefinitions.Count > 0) {
@@ -72,18 +72,11 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				foreach (Conditional<CardConfig> card in cardSetConfig.cardConfigs) {
 					stack.Children.Add(MakeSeparator());
 
-					TextBlock segmentHeaderBlock = MakeTitleBlock(2);
-					if (!string.IsNullOrWhiteSpace(card.Value.name)) {
-						segmentHeaderBlock.Inlines?.Add(new Run("[Card] ") { Foreground = SharpEditorPalette.DefaultValueBrush });
-						segmentHeaderBlock.Inlines?.Add(new Run(card.Value.name) { Foreground = SharpEditorPalette.WidgetBrush });
-					}
-					else {
-						segmentHeaderBlock.Inlines?.Add(new Run("[Unnamed Card]") { Foreground = SharpEditorPalette.DefaultValueBrush });
-					}
+					TextBlock segmentHeaderBlock = MakeTitleBlock(MakeHeaderInlines(card.Value.Name, "Card"), 2);
 					stack.Children.Add(segmentHeaderBlock);
 
-					if (!string.IsNullOrWhiteSpace(card.Value.description)) {
-						stack.Children.Add(MakeDescriptionBlock(card.Value.description));
+					if (!string.IsNullOrWhiteSpace(card.Value.Description)) {
+						stack.Children.Add(MakeDescriptionBlock(card.Value.Description));
 					}
 					if (!card.Condition.IsConstant) {
 						stack.Children.Add(MakeConditionBlock(card.Condition));
@@ -139,7 +132,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		}
 
 		private static IEnumerable<Inline> MakeCardConfigHeaderInlines(CardSetConfig cardSetConfig) {
-			yield return new Run(cardSetConfig.name) { Foreground = SharpEditorPalette.WidgetBrush };
+			yield return new Run(cardSetConfig.Name) { Foreground = SharpEditorPalette.WidgetBrush };
 		}
 
 		private static void SeparateDefinitions(IEnumerable<Definition> allDefinitions,
@@ -172,18 +165,11 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		public static Control MakeCardSegmentElement(Conditional<AbstractCardSegmentConfig> segment, int titleLevel, DocumentationWindow window) {
 			StackPanel segmentPanel = new StackPanel() { Orientation = Orientation.Vertical };
 
-			TextBlock segmentHeaderBlock = MakeTitleBlock(titleLevel);
-			if (!string.IsNullOrWhiteSpace(segment.Value.name)) {
-				segmentHeaderBlock.Inlines?.Add(new Run("[Segment] ") { Foreground = SharpEditorPalette.DefaultValueBrush });
-				segmentHeaderBlock.Inlines?.Add(new Run(segment.Value.name) { Foreground = SharpEditorPalette.WidgetBrush });
-			}
-			else {
-				segmentHeaderBlock.Inlines?.Add(new Run("[Unnamed Segment]") { Foreground = SharpEditorPalette.DefaultValueBrush });
-			}
+			TextBlock segmentHeaderBlock = MakeTitleBlock(MakeHeaderInlines(segment.Value.Name, "Segment"), titleLevel);
 			segmentPanel.Children.Add(segmentHeaderBlock);
 
-			if (!string.IsNullOrWhiteSpace(segment.Value.description)) {
-				segmentPanel.Children.Add(MakeDescriptionBlock(segment.Value.description));
+			if (!string.IsNullOrWhiteSpace(segment.Value.Description)) {
+				segmentPanel.Children.Add(MakeDescriptionBlock(segment.Value.Description));
 			}
 			if (!segment.Condition.IsConstant) {
 				segmentPanel.Children.Add(MakeConditionBlock(segment.Condition));
@@ -210,18 +196,11 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		public static Control MakeCardFeatureElements(Conditional<CardFeatureConfig> feature, int titleLevel, DocumentationWindow window) {
 			StackPanel featurePanel = new StackPanel() { Orientation = Orientation.Vertical };
 
-			TextBlock featureHeaderBlock = MakeTitleBlock(titleLevel);
-			if (!string.IsNullOrWhiteSpace(feature.Value.name)) {
-				featureHeaderBlock.Inlines?.Add(new Run("[Feature] ") { Foreground = SharpEditorPalette.DefaultValueBrush });
-				featureHeaderBlock.Inlines?.Add(new Run(feature.Value.name) { Foreground = SharpEditorPalette.WidgetBrush });
-			}
-			else {
-				featureHeaderBlock.Inlines?.Add(new Run("[Unnamed Feature]") { Foreground = SharpEditorPalette.DefaultValueBrush });
-			}
+			TextBlock featureHeaderBlock = MakeTitleBlock(MakeHeaderInlines(feature.Value.Name, "Feature"), titleLevel);
 			featurePanel.Children.Add(featureHeaderBlock);
 
-			if (!string.IsNullOrWhiteSpace(feature.Value.description)) {
-				featurePanel.Children.Add(MakeDescriptionBlock(feature.Value.description));
+			if (!string.IsNullOrWhiteSpace(feature.Value.Description)) {
+				featurePanel.Children.Add(MakeDescriptionBlock(feature.Value.Description));
 			}
 
 			if (!feature.Condition.IsConstant) {
@@ -239,6 +218,16 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 		private static TextBlock MakeDescriptionBlock(string description) {
 			return GetContentTextBlock(description, IndentedMargin);
+		}
+
+		private static IEnumerable<Inline> MakeHeaderInlines(string? name, string typeName) {
+			if (!string.IsNullOrWhiteSpace(name)) {
+				yield return new Run(name) { Foreground = SharpEditorPalette.WidgetBrush };
+				yield return new Run($" ({typeName})") { Foreground = SharpEditorPalette.DefaultValueBrush };
+			}
+			else {
+				yield return new Run($"[Unnamed {typeName}]") { Foreground = SharpEditorPalette.DefaultValueBrush };
+			}
 		}
 
 		private static TextBlock MakeConditionBlock(BoolExpression condition) {

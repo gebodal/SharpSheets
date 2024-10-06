@@ -82,7 +82,7 @@ namespace SharpSheets.Cards.CardConfigs {
 							CardSetConfig? config = parser.ParseContent(configPath, configSource, configText, out CompilationResult compilationResult);
 							buildErrors = compilationResult.errors.ToList();
 							if (config != null) {
-								alreadySeen.Add(config.name, config);
+								alreadySeen.Add(config.Name, config);
 							}
 							return config;
 						}
@@ -120,7 +120,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			private readonly IReadOnlyDictionary<string, CardSetConfig> values;
 
 			public ReadOnlyCardConfigRegistry(IEnumerable<CardSetConfig> values) {
-				this.values = values.ToDictionary(p => p.name, StringComparer.InvariantCultureIgnoreCase);
+				this.values = values.ToDictionary(p => p.Name, StringComparer.InvariantCultureIgnoreCase);
 			}
 
 			public CardSetConfig? GetSetConfig(DirectoryPath source, string name, out List<SharpParsingException> buildErrors) {

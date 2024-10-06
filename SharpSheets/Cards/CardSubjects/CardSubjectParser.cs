@@ -30,7 +30,7 @@ namespace SharpSheets.Cards.CardSubjects {
 
 		private static readonly Regex commentRegex = new Regex(@"(?<!\\)(?:(\\\\)*)(?<comment>\%.+)$");
 
-		private static readonly Regex divisionRegex = new Regex(@"^(\=+|\s+\=\=+)");
+		private static readonly Regex divisionRegex = new Regex(@"^(\=+|\s+\=\=+)\s*(?=\%|$)");
 		private static readonly Regex cardConfigRegex = new Regex(@"^(\#\=\s*(?<path>.+)|\#\!.*)$");
 		private static readonly Regex titleRegex = new Regex(@"
 			^ # Must be at start of string
@@ -45,7 +45,8 @@ namespace SharpSheets.Cards.CardSubjects {
 			", RegexOptions.IgnorePatternWhitespace);
 		private static readonly Regex entryRegex = new Regex(@"
 			^ # Must be at start of string
-			(?![\#\=\+]) # First character must not be #, =, or +
+			(?![\#\=]) # First character must not be # or =
+			(?<list>\+\s+)? # Optional list specifier
 			(?<entryname>
 				([^\(\)\[\]\{:\.]|(?<=\\)\{)* # All but last character may contain a space
 				([^\(\)\[\]\{:\.\ ]|(?<=\\)\{) # Last character must not be a space
@@ -166,7 +167,7 @@ namespace SharpSheets.Cards.CardSubjects {
 			foreach (ContextValue<string> lineValue in LineSplitting.SplitLines(description)) { // (int i = 0; i < lines.Length; i++) {
 				string lineText = lineValue.Value.TrimEnd();
 				if(commentRegex.Match(lineText) is Match commentMatch && commentMatch.Success) {
-					lineText = lineText.Substring(0, commentMatch.Groups["comment"].Index);
+					lineText = lineText.Substring(0, commentMatch.Groups["comment"].Index).TrimEnd();
 				}
 				lineText = StringParsing.Unescape(lineText, '%'); // Is this working properly?
 
@@ -319,6 +320,8 @@ namespace SharpSheets.Cards.CardSubjects {
 					}
 				}
 				else if (currentSubject != null && (match = entryRegex.Match(lineText)).Success) {
+					bool isListItem = match.Groups["list"].Success;
+
 					Group entryNameGroup = match.Groups["entryname"];
 					ContextValue<string> entryNameValue = GetGroupValue(entryNameGroup, lineSpan)!.Value; // Must exist if match was success
 					bool isValidPropertyName = propertyNameRegex.IsMatch(entryNameValue.Value); // (?? "")?
@@ -332,7 +335,7 @@ namespace SharpSheets.Cards.CardSubjects {
 					Group entryTextGroup = match.Groups["entrytext"];
 					ContextValue<string>? entryTextValue = GetGroupValue(entryTextGroup, lineSpan);
 
-					if (initialSetup != null && isValidPropertyName && entryTextValue.HasValue && !entryNoteValue.HasValue && !entryDetailsValue.HasValue) {
+					if (initialSetup != null && !isListItem && isValidPropertyName && entryTextValue.HasValue && !entryNoteValue.HasValue && !entryDetailsValue.HasValue) {
 						//Console.WriteLine($"{i,3}: New setup entry. Name: \"{entryName}\", Note (invalid): \"{entryNote}\", Details (invalid): \"{entryDetails}\", Text: \"{entryText}\"");
 						//currentSubject.SetProperty(entryName, entryText);
 						if(initialSetup.TryGetValue(entryNameValue.Value, out ContextProperty<string> oldValue)) {
@@ -349,7 +352,7 @@ namespace SharpSheets.Cards.CardSubjects {
 
 						//Console.WriteLine($"{i,3}: New one-line feature. Name: \"{entryName}\", Note: \"{entryNote}\", Details: \"{entryDetails}\", Text: \"{entryText}\"");
 						CardSegmentBuilder currentSegment = currentSubject.segments.Last();
-						currentSegment.Add(entryNameValue.Location, entryNameValue, entryNoteValue, entryDetailsValue, entryTextValue, false);
+						currentSegment.Add(entryNameValue.Location, entryNameValue, entryNoteValue, entryDetailsValue, entryTextValue, isListItem);
 						useLastFeature = configStack.Peek().allowFeatureFollowOn && !lineTerminated;
 						AssignRelation(currentSegment.Location, lineSpan);
 						//parents[i] = newFeature;

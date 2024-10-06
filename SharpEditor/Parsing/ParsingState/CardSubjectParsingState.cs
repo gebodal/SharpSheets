@@ -144,7 +144,7 @@ namespace SharpEditor.Parsing.ParsingState {
 		private static readonly Regex entryRegex = new Regex(@"^(?<entryname>[^\#\=]([^\(\)\{:]|(?<=\\)\{)+)(\s*\((?<entrynote>([^\(\)\{:]|(?<=\\)\{)*)\))?:\s*(?<entrytext>.+)$");
 		*/
 
-		private IEnumerable<KeyValuePair<Definition, ContextProperty<object>>> GetAllProperties(DefinitionEnvironment environment) {
+		private static IEnumerable<KeyValuePair<Definition, ContextProperty<object>>> GetAllProperties(DefinitionEnvironment environment) {
 			foreach (KeyValuePair<Definition, ContextProperty<object>> i in environment.GetPropertyValues()) {
 				yield return i;
 			}
@@ -156,8 +156,7 @@ namespace SharpEditor.Parsing.ParsingState {
 		private void AddEnvironmentSpans(CardSubjectSpan? parentSpan, DefinitionEnvironment environment) {
 			foreach (KeyValuePair<Definition, ContextProperty<object>> definedProperty in GetAllProperties(environment)) {
 				DocumentSpan propertyNameLocation = definedProperty.Value.Location;
-				DocumentSpan propertyValueLocation = definedProperty.Value.ValueLocation;
-				//DocumentSpan propertyLocation = new DocumentSpan(propertyNameLocation.Line, propertyNameLocation.Column, propertyValueLocation.Column + propertyValueLocation.Length - propertyNameLocation.Column);
+				//DocumentSpan propertyValueLocation = definedProperty.Value.ValueLocation;
 
 				CardSubjectSpan? propertySpan = MakeSpan(propertyNameLocation);
 				if (propertySpan != null) {
@@ -173,6 +172,8 @@ namespace SharpEditor.Parsing.ParsingState {
 				}
 			}
 		}
+
+		private static readonly Regex commentRegex = new Regex(@"(?<!\\)(?:(\\\\)*)(?<comment>\%.+)$");
 
 		public override void LoadResultEntry(ResultEntry result) {
 			lock (LoadingLock) {
@@ -272,7 +273,14 @@ namespace SharpEditor.Parsing.ParsingState {
 				foreach (DocumentLine line in Document.Lines) {
 					int lineIndex = line.LineNumber - 1;
 					if (line.Length > 0 && !(result.results.usedLines?.Contains(lineIndex) ?? true)) {
-						CardSubjectSpan span = Create(line.Offset, line.Length);
+						int length;
+						if (commentRegex.Match(Document.GetText(line)) is Match match && match.Success) {
+							length = match.Groups["comment"].Index;
+						}
+						else {
+							length = line.Length;
+						}
+						CardSubjectSpan span = Create(line.Offset, length);
 						span.IsUnused = true;
 						Add(span);
 					}

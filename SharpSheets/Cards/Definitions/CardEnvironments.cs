@@ -32,7 +32,7 @@ namespace SharpSheets.Cards.Definitions {
 
 	public static class CardSubjectEnvironments {
 
-		static readonly Definition nameDefinition = new ConstantDefinition(
+		public static readonly Definition nameDefinition = new ConstantDefinition(
 			"name", Array.Empty<EvaluationName>(),
 			"The subject name text.",
 			EvaluationType.STRING,
@@ -72,12 +72,12 @@ namespace SharpSheets.Cards.Definitions {
 
 	public static class CardOutlinesEnvironments {
 
-		static readonly Definition cardnumDefinition = new ConstantDefinition(
+		public static readonly Definition cardnumDefinition = new ConstantDefinition(
 			"card", new EvaluationName[] { "cardnum" },
 			"The index of the current card being drawn in the current layout. This is zero-indexed, meaning that the first card has an index of 0.",
 			EvaluationType.INT,
 			null);
-		static readonly Definition cardcountDefinition = new ConstantDefinition(
+		public static readonly Definition cardcountDefinition = new ConstantDefinition(
 			"cardcount", new EvaluationName[] { "totalcards" },
 			"The total number of cards in the current card layout.",
 			EvaluationType.INT,
@@ -119,18 +119,18 @@ namespace SharpSheets.Cards.Definitions {
 
 	public static class CardSegmentEnvironments {
 
-		static readonly Definition headingDefinition = new ConstantDefinition(
+		public static readonly Definition headingDefinition = new ConstantDefinition(
 			"heading", Array.Empty<EvaluationName>(),
 			"The segment heading text, without note or details.",
 			EvaluationType.STRING,
 			null);
-		static readonly Definition noteDefinition = new FallbackDefinition(
+		public static readonly Definition noteDefinition = new FallbackDefinition(
 			"subheading", Array.Empty<EvaluationName>(),
 			"The segment subheading text (which may be empty).",
 			EvaluationType.STRING,
 			new ConstantNode(""));
 
-		static readonly Definition featureCountDefinition = new ConstantDefinition(
+		public static readonly Definition featureCountDefinition = new ConstantDefinition(
 			"featurecount", new EvaluationName[] { "totalfeatures" },
 			"The total number of features in the current card segment.",
 			EvaluationType.INT,
@@ -225,12 +225,12 @@ namespace SharpSheets.Cards.Definitions {
 
 	public static class CardSegmentOutlineEnvironments {
 
-		static readonly Definition partnumDefinition = new ConstantDefinition(
+		public static readonly Definition partnumDefinition = new ConstantDefinition(
 			"partnum", Array.Empty<EvaluationName>(),
 			"The index of the current segment part/segment being drawn in the current card segment. This is zero-indexed, meaning that the first part has an index of 0.",
 			EvaluationType.INT,
 			null);
-		static readonly Definition partcountDefinition = new ConstantDefinition(
+		public static readonly Definition partcountDefinition = new ConstantDefinition(
 			"partcount", new EvaluationName[] { "totalparts" },
 			"The total number of segment parts/segments in the current segment for the current card layout.",
 			EvaluationType.INT,
@@ -263,28 +263,28 @@ namespace SharpSheets.Cards.Definitions {
 
 	public static class CardFeatureEnvironments {
 
-		static readonly Definition titleDefinition = new ConstantDefinition(
+		public static readonly Definition titleDefinition = new ConstantDefinition(
 			"title", Array.Empty<EvaluationName>(),
 			"The feature title text (without note or details).",
 			EvaluationType.STRING,
 			null);
-		static readonly Definition noteDefinition = new FallbackDefinition(
+		public static readonly Definition noteDefinition = new FallbackDefinition(
 			"subtitle", Array.Empty<EvaluationName>(),
 			"The feature subtitle text (which may be empty).",
 			EvaluationType.STRING,
 			new ConstantNode(""));
-		static readonly Definition textDefinition = new ConstantDefinition(
+		public static readonly Definition textDefinition = new ConstantDefinition(
 			"text", Array.Empty<EvaluationName>(),
 			"The feature text content.",
 			EvaluationType.STRING,
 			null);
-		static readonly Definition listItemDefinition = new ConstantDefinition(
+		public static readonly Definition listItemDefinition = new ConstantDefinition(
 			"listitem", Array.Empty<EvaluationName>(),
 			"A flag indicating if the current feature is an item in a list.",
 			EvaluationType.BOOL,
 			null);
-		
-		static readonly Definition featureNumDefinition = new ConstantDefinition(
+
+		public static readonly Definition featureNumDefinition = new ConstantDefinition(
 			"featureNum", Array.Empty<EvaluationName>(),
 			"The index of the current feature being drawn in the current card segment. This is zero-indexed, meaning that the first feature has an index of 0.",
 			EvaluationType.INT,
@@ -306,7 +306,9 @@ namespace SharpSheets.Cards.Definitions {
 
 			BaseTextDefinitions = new DefinitionGroup() {
 				titleDefinition,
-				noteDefinition
+				noteDefinition,
+				listItemDefinition,
+				featureNumDefinition
 			};
 		}
 
@@ -349,8 +351,8 @@ namespace SharpSheets.Cards.Definitions {
 			return VariableBoxes.Concat(
 				BasisEnvironment.Instance,
 				CardSegmentEnvironments.GetVariables(featureConfig.cardSegmentConfig),
-				featureConfig.Variables,
-				BaseTextDefinitions // Do we actually have to append BaseDefinitions these here...?
+				featureConfig.definitions, // definitions used here otherwise we repeat non-text variables
+				BaseTextDefinitions
 				);
 		}
 
@@ -374,8 +376,9 @@ namespace SharpSheets.Cards.Definitions {
 			return DefinitionEnvironment.Create(
 					new Dictionary<Definition, ContextValue<object>> {
 						{ titleDefinition, new ContextValue<object>(feature.Title.Location, feature.Title.Value ?? "") }, // { titleDefinition, new ContextValue<object>(new DocumentSpan(-1), title ?? "") },
-						{ noteDefinition, new ContextValue<object>(feature.Note.Location, feature.Note.Value ?? "") } // { noteDefinition, new ContextValue<object>(new DocumentSpan(-1), note ?? "") }
-						// { listItemDefinition, new ContextValue<object>(new DocumentSpan(-1), isListItem) }
+						{ noteDefinition, new ContextValue<object>(feature.Note.Location, feature.Note.Value ?? "") }, // { noteDefinition, new ContextValue<object>(new DocumentSpan(-1), note ?? "") }
+						{ listItemDefinition, new ContextValue<object>(DocumentSpan.Imaginary, feature.IsListItem) },
+						{ featureNumDefinition, new ContextValue<object>(DocumentSpan.Imaginary, feature.Index) }
 					}
 				);
 		}

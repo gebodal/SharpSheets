@@ -44,7 +44,7 @@ namespace SharpSheets.Cards.CardSubjects {
 		}
 
 		public static string GetExampleText(this CardConfig config) {
-			string name = config.name ?? "Name";
+			string name = config.Name ?? "Name";
 			List<ConstantDefinition> definitions = config.definitions.OfType<ConstantDefinition>().ToList();
 
 			StringBuilder result = new StringBuilder();

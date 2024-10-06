@@ -30,7 +30,8 @@
     <None Remove="Documentation\Content\1 Tutorial\2 Graphics State.sd" />
     <None Remove="Documentation\Content\1 Tutorial\3 Handling Text.sd" />
     <None Remove="Documentation\Content\1 Tutorial\4 Form Fields.sd" />
-    <None Remove="Documentation\Content\1 Tutorial\5 Using the Editor.sd" />
+    <None Remove="Documentation\Content\1 Tutorial\5 Expressions.sd" />
+    <None Remove="Documentation\Content\1 Tutorial\6 Using the Editor.sd" />
     <None Remove="Documentation\Content\1 Tutorial\Main.sd" />
     <None Remove="Documentation\Content\3 Widgets\Main.sd" />
     <None Remove="Documentation\Content\4 Shapes\1 Boxes.sd" />
@@ -70,7 +71,8 @@
     <EmbeddedResource Include="Documentation\Content\1 Tutorial\2 Graphics State.sd" />
     <EmbeddedResource Include="Documentation\Content\1 Tutorial\3 Handling Text.sd" />
     <EmbeddedResource Include="Documentation\Content\1 Tutorial\4 Form Fields.sd" />
-    <EmbeddedResource Include="Documentation\Content\1 Tutorial\5 Using the Editor.sd" />
+    <EmbeddedResource Include="Documentation\Content\1 Tutorial\5 Expressions.sd" />
+    <EmbeddedResource Include="Documentation\Content\1 Tutorial\6 Using the Editor.sd" />
     <EmbeddedResource Include="Documentation\Content\1 Tutorial\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\3 Widgets\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\4 Shapes\1 Boxes.sd" />

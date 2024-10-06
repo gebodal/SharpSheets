@@ -18,6 +18,7 @@ using SharpEditor.Windows;
 using Avalonia.Threading;
 using SharpEditor.Completion;
 using SharpEditor.Dialogues;
+using Avalonia.Controls.Documents;
 using SharpEditor.Parsing.ParsingState;
 
 namespace SharpEditor.CodeHelpers {
@@ -40,7 +41,7 @@ namespace SharpEditor.CodeHelpers {
 
 		#region Completion Window
 		private readonly Regex archiveStartRegex = new Regex(@"^\#\>\s*");
-		private readonly Regex definitionStartRegex = new Regex(@"^\#\=\s*");
+		private readonly Regex configurationStartRegex = new Regex(@"^\#\=\s*");
 
 		private string GetCurrentLineText(bool upToCarat) {
 			ISegment currentLine = textEditor.Document.GetLineByOffset(textEditor.CaretOffset);
@@ -55,7 +56,7 @@ namespace SharpEditor.CodeHelpers {
 				return "";
 			}
 			else if (upToCarat) {
-				return lineText.Substring(0, textEditor.CaretOffset - currentLine.Offset);
+				return lineText[..(textEditor.CaretOffset - currentLine.Offset)];
 			}
 			else {
 				return lineText;
@@ -74,6 +75,9 @@ namespace SharpEditor.CodeHelpers {
 
 				return textEditor.CaretOffset - delta;
 			}
+			else if (textEditor.CaretOffset > 0 && textEditor.Document.Text[textEditor.CaretOffset - 1] == '$') {
+				return textEditor.CaretOffset - 1;
+			}
 
 			return textEditor.CaretOffset;
 		}
@@ -90,16 +94,17 @@ namespace SharpEditor.CodeHelpers {
 					}
 				}
 			}
-			else if (!string.IsNullOrEmpty(lineText) && definitionStartRegex.IsMatch(lineText)) {
-				foreach (string definitionName in SharpEditorRegistries.CardSetConfigRegistryInstance.Select(d => d.name)) {
+			else if (!string.IsNullOrEmpty(lineText) && configurationStartRegex.IsMatch(lineText)) {
+				foreach (string definitionName in SharpEditorRegistries.CardSetConfigRegistryInstance.Select(d => d.Name)) {
 					data.Add(new CompletionEntry(definitionName));
 				}
 			}
 			else if (parsingState?.GetCardEntity(textEditor.CaretOffset) is ICardDocumentEntity cardEntity) {
-				bool escaped = textEditor.CaretOffset > 0 && textEditor.Document.Text[textEditor.CaretOffset - 1] == '$';
-				foreach (Definition definition in cardEntity.Definitions) {
-					string escapedName = (escaped ? "" : "$") + definition.name.ToString();
-					data.Add(new CompletionEntry(escapedName) { DescriptionElements = TooltipBuilder.MakeDefinitionEntries(definition, cardEntity.Environment).MakeArray() });
+				//bool escaped = textEditor.CaretOffset > 0 && textEditor.Document.Text[textEditor.CaretOffset - 1] == '$';
+				foreach (Definition definition in cardEntity.AllDefinitions().OfType<ValueDefinition>()) {
+					//string escapedName = (escaped ? "" : "$") + definition.name.ToString();
+					string escapedName = "$" + definition.name.ToString();
+					data.Add(new CompletionEntry(escapedName) { DescriptionElements = TooltipBuilder.MakeDefinitionEntries(definition, cardEntity.Environment).Yield().ToArray() });
 				}
 			}
 
@@ -112,7 +117,7 @@ namespace SharpEditor.CodeHelpers {
 			}
 			else if (e.Text == " ") {
 				string lineText = GetCurrentLineText(true);
-				if (!string.IsNullOrEmpty(lineText) && (archiveStartRegex.IsMatch(lineText) || definitionStartRegex.IsMatch(lineText))) {
+				if (!string.IsNullOrEmpty(lineText) && (archiveStartRegex.IsMatch(lineText) || configurationStartRegex.IsMatch(lineText))) {
 					return true;
 				}
 			}
@@ -122,6 +127,8 @@ namespace SharpEditor.CodeHelpers {
 		#endregion
 
 		#region Tooltip
+		private static readonly Regex definitionKeyRegex = new Regex(@"[a-z][a-z0-9_]*", RegexOptions.IgnoreCase);
+
 		public IList<Control> GetToolTipContent(int offset, string word) {
 			List<Control> contents = new List<Control>();
 
@@ -139,6 +146,13 @@ namespace SharpEditor.CodeHelpers {
 				IEnvironment? environment = parsingState.GetCardEntity(property.StartOffset)?.Environment;
 				contents.Add(TooltipBuilder.MakeCardDefinitionBlocks(property.Definition, environment));
 			}
+			else if (definitionKeyRegex.Match(word) is Match defKeyMatch && defKeyMatch.Success && parsingState.GetCardEntity(offset + defKeyMatch.Index) is ICardDocumentEntity keyCardEntity) {
+				DefinitionGroup allDefs = keyCardEntity.AllDefinitions();
+				if (allDefs.TryGetDefinition(defKeyMatch.Value, out Definition? wordDef)) {
+					contents.Add(TooltipBuilder.MakeCardDefinitionBlocks(wordDef, keyCardEntity.Environment));
+				}
+			}
+
 			return contents;
 		}
 
@@ -146,31 +160,112 @@ namespace SharpEditor.CodeHelpers {
 			return Array.Empty<Control>();
 		}
 
-		public static IEnumerable<TextBlock> MakeCardEntityEntries(ICardDocumentEntity cardEntity) {
-			IEnvironment evaluationEnvironment = cardEntity.Environment;
-			DefinitionGroup? definitionList = null;
-			if (cardEntity is CardSubject subject) {
-				yield return TooltipBuilder.GetToolTipTextBlock($"Subject: {subject.Name.Value}");
+		private static readonly int MaxTooltipFeatureTextLength = 50;
 
-				definitionList = subject.SubjectDefinitions;
+		public static IEnumerable<Control> MakeCardEntityEntries(ICardDocumentEntity cardEntity) {
+			IEnvironment evaluationEnvironment = cardEntity.Environment;
+			List<Definition>? definitionGroup = null;
+			ICardConfigComponent? descComponent = null;
+			if (cardEntity is CardSubject subject) {
+				TextBlock titleBlock = TooltipBuilder.GetToolTipTextBlock();
+				titleBlock.Inlines?.Add(new Run($"# {subject.Name.Value}") { Foreground = SharpEditorPalette.CardSubjectTitleBrush });
+
+				yield return titleBlock;
+
+				definitionGroup = subject.SubjectDefinitions.Where(d => d != CardSubjectEnvironments.nameDefinition).ToList();
+				descComponent = subject.CardConfig;
+				if(string.IsNullOrWhiteSpace(descComponent.Name) && string.IsNullOrWhiteSpace(descComponent.Description) && subject.CardConfig.cardSetConfig.cardConfigs.Count == 1) {
+					descComponent = subject.CardConfig.cardSetConfig;
+				}
 			}
 			else if (cardEntity is CardSegment segment) {
-				yield return TooltipBuilder.GetToolTipTextBlock($"Segment: {segment.Heading.Value}");
+				TextBlock titleBlock = TooltipBuilder.GetToolTipTextBlock();
+				titleBlock.Inlines?.Add(new Run($"## {segment.Heading.Value}") { Foreground = SharpEditorPalette.CardSegmentTitleBrush });
 
-				definitionList = segment.SegmentDefinitions;
+				if (!string.IsNullOrWhiteSpace(segment.Note.Value)) {
+					titleBlock.Inlines?.Add(new Run($" ({segment.Note.Value})") { Foreground = SharpEditorPalette.CardSegmentTitleBrush });
+				}
+
+				yield return titleBlock;
+
+				definitionGroup = segment.SegmentDefinitions.Where(d => d != CardSegmentEnvironments.headingDefinition && d != CardSegmentEnvironments.noteDefinition).ToList();
+				descComponent = segment.SegmentConfig;
 			}
 			else if (cardEntity is CardFeature feature) {
-				string featureText = feature.Text.Value.ToString();
-				string exampleText = string.IsNullOrWhiteSpace(feature.Title.Value) ? ("(titleless) " + featureText.Substring(0, Math.Min(20, featureText.Length))) : feature.Title.Value;
+				//string featureText = feature.Text.Value.ToString();
+				//string exampleText = string.IsNullOrWhiteSpace(feature.Title.Value) ? ("(titleless) " + featureText.Substring(0, Math.Min(20, featureText.Length))) : feature.Title.Value;
 
-				yield return TooltipBuilder.GetToolTipTextBlock("Feature: " + exampleText);
+				TextBlock titleBlock = TooltipBuilder.GetToolTipTextBlock();
+				if (feature.IsListItem) {
+					titleBlock.Inlines?.Add(new Run("+ ") { Foreground = SharpEditorPalette.CardFeatureListBrush });
+				}
+				else {
+					titleBlock.Inlines?.Add(new Run("### ") { Foreground = SharpEditorPalette.CardFeatureTitleBrush });
+				}
 
-				definitionList = feature.FeatureDefinitions; // feature.TextEnvironment;
+				if (!string.IsNullOrWhiteSpace(feature.Title.Value)) {
+					titleBlock.Inlines?.Add(new Run(feature.Title.Value) { Foreground = SharpEditorPalette.CardFeatureTitleBrush });
+				}
+				else {
+					titleBlock.Inlines?.Add(new Run("(titleless)") { Foreground = SharpEditorPalette.DefaultValueBrush });
+				}
+
+				if (!string.IsNullOrWhiteSpace(feature.Note.Value)) {
+					titleBlock.Inlines?.Add(new Run($" ({feature.Note.Value})") { Foreground = SharpEditorPalette.CardFeatureTitleBrush });
+				}
+
+				yield return titleBlock;
+
+				string featureText;
+				try {
+					featureText = feature.Text.Value.Evaluate(evaluationEnvironment);
+				}
+				catch (EvaluationException) {
+					featureText = feature.Text.Value.ToString();
+				}
+				if (!string.IsNullOrWhiteSpace(featureText)) {
+					TextBlock textBlock = TooltipBuilder.MakeIndentedBlock(featureText[..Math.Min(MaxTooltipFeatureTextLength, featureText.Length)] + (featureText.Length > MaxTooltipFeatureTextLength ? "..." : ""));
+					yield return textBlock;
+				}
+
+				definitionGroup = feature.FeatureDefinitions.Where(d =>
+					d != CardFeatureEnvironments.titleDefinition &&
+					d != CardFeatureEnvironments.noteDefinition &&
+					d != CardFeatureEnvironments.listItemDefinition &&
+					d != CardFeatureEnvironments.textDefinition
+					).ToList(); // feature.TextEnvironment;
+				descComponent = feature.FeatureConfig;
 			}
 
-			if (definitionList != null && evaluationEnvironment != null) {
-				foreach (TextBlock frameworkElement in TooltipBuilder.MakeDefinitionEntries(definitionList, evaluationEnvironment)) {
-					yield return frameworkElement;
+			if (descComponent is not null && (!string.IsNullOrWhiteSpace(descComponent.Name) || !string.IsNullOrWhiteSpace(descComponent.Description))) {
+				yield return TooltipBuilder.MakeSeparator();
+
+				if (!string.IsNullOrWhiteSpace(descComponent.Name)) {
+					yield return TooltipBuilder.GetToolTipTextBlock(descComponent.Name);
+				}
+				else {
+					TextBlock titleBlock = TooltipBuilder.GetToolTipTextBlock();
+					titleBlock.Inlines?.Add(new Run("Description") { Foreground = SharpEditorPalette.DefaultValueBrush });
+					yield return titleBlock;
+				}
+
+				if (!string.IsNullOrWhiteSpace(descComponent.Description)) {
+					yield return TooltipBuilder.MakeIndentedBlock(descComponent.Description);
+				}
+			}
+
+			if (evaluationEnvironment is not null) {
+				List<ValueDefinition>? definitionList = definitionGroup?.OfType<ValueDefinition>().ToList();
+
+				if (definitionList is not null && definitionList.Count > 0) {
+					yield return TooltipBuilder.MakeSeparator();
+
+					yield return TooltipBuilder.MakeDefinitionsBlock(definitionList, evaluationEnvironment);
+					/*
+					foreach (TextBlock defBlock in TooltipBuilder.MakeDefinitionEntries(definitionList, evaluationEnvironment)) {
+						yield return defBlock;
+					}
+					*/
 				}
 			}
 		}
@@ -212,8 +307,8 @@ namespace SharpEditor.CodeHelpers {
 				List<(string? name, CardConfig config)> listedConfigs = new List<(string? name, CardConfig config)>();
 
 				if (cardConfigs.Length == 1) {
-					if (cardConfigs[0].name is not null) {
-						listedConfigs.Add((cardConfigs[0].name, cardConfigs[0]));
+					if (cardConfigs[0].Name is not null) {
+						listedConfigs.Add((cardConfigs[0].Name, cardConfigs[0]));
 					}
 					else {
 						listedConfigs.Add((null, cardConfigs[0]));
@@ -221,14 +316,14 @@ namespace SharpEditor.CodeHelpers {
 				}
 				else if (cardConfigs.Length > 1) {
 					foreach (CardConfig cardConfig in cardSetConfig.cardConfigs.Select(c => c.Value)) {
-						if (cardConfig.name is not null) {
-							listedConfigs.Add((cardConfig.name, cardConfig));
+						if (cardConfig.Name is not null) {
+							listedConfigs.Add((cardConfig.Name, cardConfig));
 						}
 					}
 				}
 
 				foreach ((string? configName, CardConfig cardConfig) in listedConfigs) {
-					string header = configName is not null ? $"Add new {configName} card" : "Add new card";
+					string header = configName is not null ? $"Add New {configName} Card" : "Add New Card";
 
 					MenuItem insertExampleTextMenuItem = new MenuItem {
 						Header = header
@@ -266,7 +361,7 @@ namespace SharpEditor.CodeHelpers {
 			yield return definitionFileMenuItem;
 
 			MenuItem documentationMenuItem = new MenuItem {
-				Header = cardSetDefinition.name + " Documentation..."
+				Header = cardSetDefinition.Name + " Documentation..."
 			};
 			documentationMenuItem.Click += delegate {
 				SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(cardSetDefinition, null); // TODO Any way to refresh here?

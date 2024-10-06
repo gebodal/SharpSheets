@@ -16,11 +16,15 @@ namespace SharpEditor.ContentBuilders {
 
 	public static class DefinitionContentBuilder {
 
-		public static IEnumerable<Inline> GetDefinitionNameInlines(Definition definition) {
-			yield return new Run(definition.name.ToString()) { Foreground = SharpEditorPalette.DefinitionNameBrush };
+		public static Inline GetDefinitionNameInline(EvaluationName name) {
+			return new Run(name.ToString()) { Foreground = SharpEditorPalette.DefinitionNameBrush };
+		}
+
+		public static IEnumerable<Inline> GetDefinitionNameInlines(Definition definition, bool noBreak = true) {
+			yield return GetDefinitionNameInline(definition.name);
 			foreach (EvaluationName alias in definition.aliases) {
-				yield return new Run(SharpValueHandler.NO_BREAK_SPACED_PIPE) { };
-				yield return new Run(alias.ToString()) { Foreground = SharpEditorPalette.DefinitionNameBrush };
+				yield return new Run(noBreak ? SharpValueHandler.NO_BREAK_SPACED_PIPE : " | ") { };
+				yield return GetDefinitionNameInline(alias);
 			}
 		}
 
@@ -135,43 +139,76 @@ namespace SharpEditor.ContentBuilders {
 			definitionBlock.Inlines?.AddRange(GetDefinitionNameInlines(definition));
 
 			if (evaluationEnvironment != null) {
-				object? result = null;
-				if (evaluationEnvironment.TryGetValue(definition.name, out object? value)) {
-					result = value;
-				}
-				else if (evaluationEnvironment.TryGetNode(definition.name, out EvaluationNode? node)) {
-					result = node.Evaluate(evaluationEnvironment); // Can this ever fail?
-				}
-
-				Inline resultText;
-				if (result is Array a) {
-					if (a.Length > 0) {
-						resultText = BaseContentBuilder.GetValueInline(definition.Type.ReturnType.DisplayType, a, false);
-					}
-					else {
-						resultText = new Run("empty") { Foreground = SharpEditorPalette.DefaultValueBrush };
-					}
-				}
-				else if (result is string textResult) {
-					if (textResult.Length > 0) {
-						resultText = new Run(textResult) { };
-					}
-					else {
-						resultText = new Run("empty") { Foreground = SharpEditorPalette.DefaultValueBrush };
-					}
-				}
-				else if (result != null) {
-					resultText = BaseContentBuilder.GetValueInline(definition.Type.ReturnType.DisplayType, result, false);
-				}
-				else {
-					resultText = new Run("null") { Foreground = SharpEditorPalette.DefaultValueBrush };
-				}
+				Inline resultText = GetResultInline(definition, evaluationEnvironment);
 
 				definitionBlock.Inlines?.Add(new Run(": ") { });
 				definitionBlock.Inlines?.Add(resultText);
 			}
 
 			return definitionBlock;
+		}
+
+		public static TextBlock MakeDefinitionsBlock(IEnumerable<Definition> definitions, IEnvironment? evaluationEnvironment, Thickness textMargin) {
+			TextBlock definitionsBlock = BaseContentBuilder.GetContentTextBlock(textMargin);
+
+			bool first = true;
+
+			foreach (Definition definition in definitions) {
+				if (first) {
+					first = false;
+				}
+				else {
+					definitionsBlock.Inlines?.Add(new Run(", ") { });
+				}
+
+				//definitionsBlock.Inlines?.Add(GetDefinitionNameInline(definition.name));
+				definitionsBlock.Inlines?.AddRange(GetDefinitionNameInlines(definition, false));
+
+				if (evaluationEnvironment != null) {
+					Inline resultText = GetResultInline(definition, evaluationEnvironment);
+
+					definitionsBlock.Inlines?.Add(new Run(": ") { });
+					definitionsBlock.Inlines?.Add(resultText);
+				}
+			}
+
+			return definitionsBlock;
+		}
+
+		private static Inline GetResultInline(Definition definition, IEnvironment evaluationEnvironment) {
+			object? result = null;
+			if (evaluationEnvironment.TryGetValue(definition.name, out object? value)) {
+				result = value;
+			}
+			else if (evaluationEnvironment.TryGetNode(definition.name, out EvaluationNode? node)) {
+				result = node.Evaluate(evaluationEnvironment); // Can this ever fail?
+			}
+
+			Inline resultText;
+			if (result is Array a) {
+				if (a.Length > 0) {
+					resultText = BaseContentBuilder.GetValueInline(definition.Type.ReturnType.DisplayType, a, false);
+				}
+				else {
+					resultText = new Run("empty") { Foreground = SharpEditorPalette.DefaultValueBrush };
+				}
+			}
+			else if (result is string textResult) {
+				if (textResult.Length > 0) {
+					resultText = new Run(textResult) { };
+				}
+				else {
+					resultText = new Run("empty") { Foreground = SharpEditorPalette.DefaultValueBrush };
+				}
+			}
+			else if (result != null) {
+				resultText = BaseContentBuilder.GetValueInline(definition.Type.ReturnType.DisplayType, result, false);
+			}
+			else {
+				resultText = new Run("null") { Foreground = SharpEditorPalette.DefaultValueBrush };
+			}
+
+			return resultText;
 		}
 
 	}

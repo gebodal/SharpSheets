@@ -101,8 +101,12 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			ConstructorDetails baseDivConstructor = WidgetFactory.DivConstructor;
 			ArgumentDetails[] configDivArgs = ConditionArgument.Yield().Concat(baseDivConstructor.Arguments).ToArray();
-			BackgroundConstructor1 = new ConstructorDetails(typeof(SharpWidget), typeof(SharpWidget), "Background", "Background", configDivArgs, new DocumentationString("Background description."), new SharpSheets.Layouts.Rectangle(0f, 0f), null);
-			OutlineConstructor1 = new ConstructorDetails(typeof(SharpWidget), typeof(SharpWidget), "Outline", "Outline", configDivArgs, new DocumentationString("Outline description."), new SharpSheets.Layouts.Rectangle(0f, 0f), null);
+			BackgroundConstructor1 = new ConstructorDetails(typeof(SharpWidget), typeof(SharpWidget), "Background", "Background", configDivArgs,
+				new DocumentationString("This element contains the content to be drawn as the card background, behind all other card content."),
+				new SharpSheets.Layouts.Rectangle(0f, 0f), null);
+			OutlineConstructor1 = new ConstructorDetails(typeof(SharpWidget), typeof(SharpWidget), "Outline", "Outline", configDivArgs,
+				new DocumentationString("This element contains the content to be drawn as an outline/background for a card element, behind that element's main content."),
+				new SharpSheets.Layouts.Rectangle(0f, 0f), null);
 
 			ConfigConstructors = new TypeDetailsCollection(
 				new ConstructorDetails[] {
