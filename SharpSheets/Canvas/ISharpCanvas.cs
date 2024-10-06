@@ -369,12 +369,10 @@ namespace SharpSheets.Canvas {
 			DrawPoint bottomRight = currentTransform.Map(rect.Right, rect.Bottom);
 			DrawPoint topRight = currentTransform.Map(rect.Right, rect.Top);
 
-			#pragma warning disable GJT0001 // Unhandled thrown exception from statement
 			float x1 = MathUtils.Min(bottomLeft.X, topLeft.X, bottomRight.X, topRight.X);
 			float y1 = MathUtils.Min(bottomLeft.Y, topLeft.Y, bottomRight.Y, topRight.Y);
 			float x2 = MathUtils.Max(bottomLeft.X, topLeft.X, bottomRight.X, topRight.X);
 			float y2 = MathUtils.Max(bottomLeft.Y, topLeft.Y, bottomRight.Y, topRight.Y);
-			#pragma warning restore GJT0001 // Unhandled thrown exception from statement
 
 			return new Rectangle(x1, y1, x2 - x1, y2 - y1);
 		}

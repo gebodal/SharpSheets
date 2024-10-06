@@ -169,9 +169,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 					float CalculateTotalHeight(List<WithHeight> entries) {
 						float entriesHeight;
 						if (original.EqualSizeFeatures) {
-							#pragma warning disable GJT0001 // entries will always have Count>0
 							entriesHeight = Divisions.CalculateTotalLength(entries.Select(w => w.MinimumHeight).Max(), entries.Count, original.Gutter);
-							#pragma warning restore GJT0001 // Unhandled thrown exception from statement
 						}
 						else {
 							entriesHeight = Divisions.CalculateTotalLength(entries.Select(w => w.MinimumHeight), original.Gutter);
@@ -180,9 +178,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 					}
 
 					while (boxEntryRects.Count > 0 && CalculateTotalHeight(boxEntryRects) > remainingRect.Height) {
-						#pragma warning disable GJT0001 // entries will always have Count>0
 						remaining.Add(boxEntryRects.Last());
-						#pragma warning restore GJT0001 // Unhandled thrown exception from statement
 						boxEntryRects.RemoveAt(boxEntryRects.Count - 1);
 					}
 

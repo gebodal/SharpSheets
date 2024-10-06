@@ -742,62 +742,6 @@ namespace SharpSheets.Cards.Layouts {
 				}
 			}
 
-			/*
-			public bool IsAvailable(int count) {
-				int? running = null;
-				for (int r = 0; r < Rows; r++) {
-					for (int c = 0; c < Columns; c++) {
-						if (!used[r, c]) {
-							if (running.HasValue) { running = running.Value + 1; }
-							else { running = 1; }
-						}
-						else {
-							running = null;
-						}
-
-						if(running.HasValue && running.Value >= count) {
-							return true;
-						}
-					}
-				}
-
-				return false;
-			}
-			*/
-
-			/*
-			private enum CardAdjacency {
-				None,
-				HorizontalAdjacent,
-				VerticalAdjacent,
-				BlockAdjacent,
-				All
-			}
-			 
-			public static IEnumerable<List<CardIndex>> GroupAdjacents(CardAdjacency adjacency, IEnumerable<CardIndex> source) {
-
-				List<List<CardIndex>> allGroups = new List<List<CardIndex>>();
-
-				foreach (IEnumerable<CardIndex> pageGroup in source.GroupBy(i => i.Page).Select(g => (IEnumerable<CardIndex>)g)) {
-
-					List<CardIndex> cardIndices = pageGroup.OrderBy(i => i.Row).ThenBy(i => i.Column).ToList();
-
-					List<List<CardIndex>> pageGroups = new List<List<CardIndex>>();
-
-					for(int i = 0; i<cardIndices.Count; i++) {
-
-						for(int g=0; g<pageGroups.Count; g++) {
-
-						}
-
-					}
-					
-
-					allGroups.AddRange(pageGroups);
-				}
-			}
-			*/
-
 		}
 
 	}

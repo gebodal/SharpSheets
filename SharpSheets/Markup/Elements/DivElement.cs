@@ -156,7 +156,6 @@ namespace SharpSheets.Markup.Elements {
 
 		public readonly DivSetup setup;
 
-		//public NSliceValuesExpression SlicingValues { get; private set; } = null;
 		private readonly List<SlicingValuesElement> slicingValueElements;
 		public IEnumerable<SlicingValuesElement> SlicingValuesElements => slicingValueElements;
 
@@ -183,17 +182,6 @@ namespace SharpSheets.Markup.Elements {
 			this.elements.Add(element);
 		}
 
-		/*
-		public bool SetSlicingValues(NSliceValuesExpression slicingValues) {
-			if (slicingValues != null && this.SlicingValues == null) {
-				this.SlicingValues = slicingValues;
-				return true;
-			}
-			else {
-				return false;
-			}
-		}
-		*/
 		public void AddSlicingValues(SlicingValuesElement slicingValuesElem) {
 			if (slicingValuesElem != null) {
 				this.slicingValueElements.Add(slicingValuesElem);
@@ -396,7 +384,7 @@ namespace SharpSheets.Markup.Elements {
 
 		public virtual void AddAreaElement(string name, AreaElement area) {
 			if (!string.IsNullOrWhiteSpace(name)) {
-				areas.Set(name, area);
+				areas[name] = area;
 			}
 		}
 
@@ -417,45 +405,6 @@ namespace SharpSheets.Markup.Elements {
 			}
 			//return rect; // TODO This is incomplete. How do we indicate when to stop?
 		}
-
-		/*
-		public Rectangle GetRemainingRect(ISharpCanvas canvas, Rectangle rect) {
-			if (children.Count > 0) {
-				Rectangle[] childRects = GridElements.GetElementRects(this, children.ToList<IGridElement>(), canvas, rect, out _, out _, out _, out Rectangle remainingRect, out _);
-				if (ProvideRemaining && remainingRect != null) {
-					return remainingRect; // TODO Is this right?
-				}
-				for (int i = 0; i < children.Count; i++) {
-					Rectangle childRemaining = children[i].GetRemainingRect(canvas, childRects[i]);
-
-					if (childRemaining != null) {
-						return childRemaining;
-					}
-				}
-			}
-			else if (ProvideRemaining) {
-				return rect;
-			}
-
-			// If we cannot find a remaining rect from the children, and this div does not provide any remaining area, return null
-			return null;
-		}
-		*/
-
-		/*
-		public bool TryGetArea(string name, out AreaElement area) {
-			if (areas.TryGetValue(name, out area)) {
-				return true;
-			}
-			foreach (DrawableDivElement child in children) {
-				if (child.TryGetArea(name, out area)) {
-					return true;
-				}
-			}
-			area = null;
-			return false;
-		}
-		*/
 
 		public virtual bool AreaExists(string name) {
 			if (areas.ContainsKey(name)) {
@@ -547,8 +496,6 @@ namespace SharpSheets.Markup.Elements {
 			Rectangle?[] childRects = GridElements.GetElementRects(this, children.ToList<IGridElement>(), canvas, rect, out Rectangle drawingRect, out _, out _, out _, out _);
 
 			if (diagnostic) {
-				//canvas.RegisterArea(pattern, fullRect);
-				//canvas.RegisterArea(pattern, drawingRect);
 				canvas.RegisterAreas(pattern, fullRect, drawingRect, Array.Empty<Rectangle>());
 			}
 

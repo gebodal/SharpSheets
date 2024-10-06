@@ -67,38 +67,8 @@ namespace SharpSheets.Canvas.Text {
 
 		#region Calculate Height
 
-		/*
-		/// <summary>Calculate the height for a given number of lines (separated by paragraph).</summary>
-		public static float CalculateHeight(int[] lineCounts, float fontSize, float lineSpacing, float paragraphSpacing) {
-			//int totalCount = splitLines.SelectMany(p => p).Count();
-			int totalCount = 0;
-			for (int i = 0; i < lineCounts.Length; i++) {
-				totalCount += lineCounts[i];
-			}
-			if (totalCount == 0) {
-				return 0f;
-			}
-			else {
-				//return (totalCount - 1) * fontSize * lineSpacing + fontSize + (splitLines.Length - 1) * paragraphSpacing;
-				return (totalCount * fontSize * lineSpacing) + ((lineCounts.Length - 1) * paragraphSpacing);
-			}
-		}
-
-		public static float CalculateHeight(int[] lineCounts, ParagraphSpecification paragraphSpec) {
-			return CalculateHeight(lineCounts, paragraphSpec.FontSize, paragraphSpec.LineSpacing, paragraphSpec.ParagraphSpacing);
-		}
-		*/
-
 		/// <summary>Calculate the height of a given set of <see cref="RichString"/> lines (paragraph grouped), assuming no further splitting required.</summary>
 		public static float CalculateHeight(ISharpGraphicsData graphicsData, RichString[][] splitLines, float fontSize, float lineSpacing, float paragraphSpacing, TextHeightStrategy heightStrategy) {
-			/*
-			int[] lineCounts = new int[splitLines.Length];
-			for (int i = 0; i < splitLines.Length; i++) {
-				lineCounts[i] = splitLines[i].Length;
-			}
-			return CalculateHeight(lineCounts, fontSize, lineSpacing, paragraphSpacing);
-			*/
-
 			return TextHeightUtils.GetHeight(graphicsData, splitLines, fontSize, fontSize * lineSpacing, paragraphSpacing, heightStrategy);
 		}
 
@@ -128,30 +98,6 @@ namespace SharpSheets.Canvas.Text {
 		#endregion
 
 		#region Start Y Position
-
-		/*
-		public static float GetStartY(Rectangle rect, float height, float fontSize, Alignment alignment) {
-			float remainingHeight = rect.Height - height;
-
-			float yPosition = rect.Top - fontSize;
-			if (alignment == Alignment.CENTRE) {
-				yPosition -= remainingHeight / 2;
-			}
-			else if (alignment == Alignment.BOTTOM) {
-				yPosition -= remainingHeight;
-			}
-
-			return yPosition;
-		}
-
-		public static float GetStartY(Rectangle rect, int[] lineCounts, ParagraphSpecification paragraphSpec, Alignment alignment) {
-			return GetStartY(rect, CalculateHeight(lineCounts, paragraphSpec), paragraphSpec.FontSize, alignment);
-		}
-
-		public static float GetStartY(ISharpGraphicsData graphicsData, Rectangle rect, RichString[][] lines, ParagraphSpecification paragraphSpec, Alignment alignment, TextHeightStrategy heightStrategy) {
-			return GetStartY(rect, CalculateHeight(graphicsData, lines, paragraphSpec, heightStrategy), paragraphSpec.FontSize, alignment);
-		}
-		*/
 
 		public static float GetStartY(ISharpGraphicsData graphicsData, Rectangle rect, RichString[][] lines, float fontSize, ParagraphSpecification paragraphSpec, Alignment alignment, TextHeightStrategy heightStrategy) {
 			float height = CalculateHeight(graphicsData, lines, fontSize, paragraphSpec, heightStrategy);

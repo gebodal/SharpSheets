@@ -207,42 +207,4 @@ namespace SharpSheets.Markup.Patterns {
 
 	}
 
-	/*
-	public interface IMarkupVariable {
-		EvaluationName Name { get; }
-		EvaluationType Type { get; }
-	}
-	*/
-
-	/*
-	public class PrefixedMarkupArgument : MarkupArgument {
-		public MarkupArgument Basis { get; }
-
-		private readonly string prefix;
-
-		public override EvaluationName Name => $"{prefix}.{Basis.Name}";
-
-		public PrefixedMarkupArgument(MarkupArgument basis, string prefix) : base(basis.Name, basis.Type, basis.Description, basis.DefaultValue, basis.IsOptional, basis.ExampleValue, basis.Validation, basis.ValidationMessage, basis.UseLocal, basis.FromEntries) {
-			this.Basis = basis;
-			this.prefix = prefix;
-		}
-	}
-	*/
-
-	/*
-	public class MarkupArgumentOption : IMarkupElement {
-		
-		public virtual EvaluationName Name { get; }
-		public object Value { get; }
-		public string Description { get; }
-
-		public MarkupArgumentOption(EvaluationName _name, object _value, string _description) {
-			Name = _name;
-			Value = _value;
-			Description = _description;
-		}
-
-	}
-	*/
-
 }

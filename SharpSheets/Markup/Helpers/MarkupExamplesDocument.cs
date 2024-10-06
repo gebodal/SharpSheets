@@ -139,22 +139,6 @@ namespace SharpSheets.Markup.Helpers {
 				List<Rectangle?> remainingRects = new List<Rectangle?>();
 				Rectangle? fullRect = null;
 
-				/*
-				public interface IFramedArea {
-					Rectangle RemainingRect(ISharpCanvas canvas, Rectangle rect);
-				}
-				public interface IFramedContainerArea : IFramedArea {
-					Rectangle FullRect(ISharpCanvas canvas, Rectangle rect);
-				}
-				public interface ILabelledArea {
-					Rectangle LabelRect(ISharpCanvas canvas, Rectangle rect);
-				}
-				public interface IEntriedArea {
-					int EntryCount { get; }
-					Rectangle EntryRect(ISharpCanvas canvas, int areaIndex, Rectangle rect);
-				}
-				*/
-
 				try {
 					if (markupObject is IFramedArea framedArea) {
 						if (framedArea.RemainingRect(canvas, exampleDrawRect) is Rectangle remainingRect) {

@@ -148,12 +148,6 @@ namespace SharpSheets.Widgets {
 			this.Repeat = repeat; // TODO Should really throw an error if zero
 		}
 
-		/*
-		public override Rectangle ApplyMargin(Rectangle rect) {
-			return base.ApplyMargin(rect.Margins(pageMargins, false));
-		}
-		*/
-
 		protected override void RegisterAreas(ISharpCanvas canvas, Rectangle fullRect, Rectangle availableRect) { }
 
 		public override void Draw(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {

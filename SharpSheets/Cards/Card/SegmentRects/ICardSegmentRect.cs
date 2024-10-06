@@ -19,9 +19,6 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 
         IFixedCardSegmentRect? Original { get; }
 
-        //int PartIndex { get; }
-        //int PartsCount { get; }
-
         bool AcceptRemaining { get; }
 
         // TODO Does ParagraphSpecification need to be an argument here? (It should be immutable now, and could be a property of the object)
@@ -79,7 +76,6 @@ namespace SharpSheets.Cards.Card.SegmentRects {
         /// <exception cref="InvalidOperationException"></exception>
         IFixedCardSegmentRect? FromAvailableHeight(ISharpGraphicsState graphicsState, float availableHeight, float width, float fontSize, ParagraphSpecification paragraphSpec, CardQueryCache cache, out float resultingHeight);
         int Boxes { get; set; }
-        //void RemoveBox();
         void Reset();
 
         bool PenaliseSplit { get; }
@@ -119,7 +115,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
             else {
                 NumCalculations++;
                 float calculatedMinimumHeight = rect.CalculateMinimumHeight(graphicsState, fontSize, paragraphSpec, width, this);
-                cache.Set(query, calculatedMinimumHeight);
+                cache[query] = calculatedMinimumHeight;
                 return calculatedMinimumHeight;
             }
         }

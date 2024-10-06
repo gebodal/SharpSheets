@@ -59,21 +59,6 @@ namespace SharpSheets.Cards.Definitions {
 			}
 			else {
 				EvaluationNode eval = Evaluation.Parse(text, variables);
-				/*
-				EvaluationType evalType = eval.ReturnType;
-				if (evalType == returnType) {
-					return eval;
-				}
-				else if(returnType == EvaluationType.INT && evalType.IsIntegral()) {
-					return IntCastFunction.MakeIntCastNode(eval);
-				}
-				else if (returnType == EvaluationType.FLOAT && evalType.IsReal()) {
-					return FloatCastFunction.MakeFloatCastNode(eval);
-				}
-				else {
-					throw new EvaluationTypeException("Invalid expression type.");
-				}
-				*/
 				return eval;
 			}
 		}
@@ -292,12 +277,6 @@ namespace SharpSheets.Cards.Definitions {
 			ExampleValue = exampleValue;
 		}
 
-		/*
-		public object ParseValue(string value) {
-			return type.Parse(value);
-		}
-		*/
-
 		public EvaluationNode MakeNode(string text, IVariableBox variables) {
 			return Type.Validation(MakeBaseNode(text, Type.ReturnType, variables));
 		}
@@ -309,12 +288,6 @@ namespace SharpSheets.Cards.Definitions {
 		public CalculatedDefinition(EvaluationName name, EvaluationName[] aliases, string? description, EvaluationNode evaluation) : base(name, aliases, DefinitionType.Simple(evaluation.ReturnType, 0), description) {
 			this.Evaluation = evaluation;
 		}
-
-		/*
-		public object Evaluate(IEnvironment environment) {
-			return Evaluation.Evaluate(environment);
-		}
-		*/
 	}
 
 	public class FallbackDefinition : ValueDefinition {
@@ -328,51 +301,9 @@ namespace SharpSheets.Cards.Definitions {
 			this.Evaluation = type.Validation(evaluation);
 		}
 
-		/*
-		public object ParseValue(string value) {
-			return type.Parse(value);
-		}
-
-		public object Evaluate(IEnvironment environment) {
-			return Evaluation.Evaluate(environment);
-		}
-		*/
-
 		public EvaluationNode MakeNode(string text, IVariableBox variables) {
 			return Type.Validation(MakeBaseNode(text, Type.ReturnType, variables));
 		}
-
-		/*
-		private class FallbackNode : EvaluationNode {
-
-			private readonly EvaluationNode evaluation;
-			private readonly EvaluationName name;
-
-			public override bool IsConstant { get; } = false;
-
-			public override EvaluationType ReturnType => throw new NotImplementedException();
-
-			public FallbackNode() {
-
-			}
-
-			public override EvaluationNode Clone() {
-				throw new NotImplementedException();
-			}
-
-			public override object Evaluate(IEnvironment environment) {
-				throw new NotImplementedException();
-			}
-
-			public override IEnumerable<EvaluationName> GetVariables() {
-				throw new NotImplementedException();
-			}
-
-			public override EvaluationNode Simplify() {
-				throw new NotImplementedException();
-			}
-		}
-		*/
 
 	}
 

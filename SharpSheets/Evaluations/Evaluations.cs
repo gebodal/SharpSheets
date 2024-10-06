@@ -14,7 +14,6 @@ namespace SharpSheets.Evaluations {
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
 		private static OperatorNode GetOperator(string operatorStr) {
-			// * / % + - <= >= < > == != & ^ |
 			if (operatorStr == "**") { return new ExponentNode(); }
 			else if (operatorStr == "*") { return new MultiplicationNode(); }
 			else if(operatorStr == "/") { return new DivisionNode(); }
@@ -44,30 +43,6 @@ namespace SharpSheets.Evaluations {
 			return node is not null;
 		}
 
-		private static readonly Regex indexerRegex = new Regex(@"^(?<start>\-?[0-9]+)?\:(?<end>\-?[0-9]+)?|(?<index>\-?[0-9]+)$");
-
-		/*
-		private static IndexerNode GetIndexer(string indexer) {
-			if(indexer == ":") {
-				return new IndexerNode(null, null, true);
-			}
-
-			Match match = indexerRegex.Match(indexer);
-			if (match.Groups["index"].Success) {
-				int index = int.Parse(match.Groups["index"].Value);
-				return new IndexerNode(index, null, false);
-			}
-			else if (match.Success) {
-				int? start = match.Groups["start"].Success ? int.Parse(match.Groups["start"].Value) : (int?)null;
-				int? end = match.Groups["end"].Success ? int.Parse(match.Groups["end"].Value) : (int?)null;
-				return new IndexerNode(start, end, true);
-			}
-			else {
-				throw new EvaluationSyntaxException("Badly formatted indexer.");
-			}
-		}
-		*/
-
 		/// <summary></summary>
 		/// <exception cref="UndefinedFunctionException"></exception>
 		private static EnvironmentFunctionNode GetFunction(EvaluationName name, IVariableBox variables) {
@@ -77,52 +52,6 @@ namespace SharpSheets.Evaluations {
 			else {
 				throw new UndefinedFunctionException(name);
 			}
-
-			/*
-			if (name == "len") { return new LengthNode(); }
-			else if (name == "exists") { return new ExistsNode(); }
-			else if (name == "try") { return new TryNode(); }
-			else if (name == "floor") { return new FloorNode(); }
-			else if (name == "ceil") { return new CeilingNode(); }
-			else if (name == "lower") { return new LowerNode(); }
-			else if (name == "upper") { return new UpperNode(); }
-			else if (name == "titlecase") { return new TitleCaseNode(); }
-			else if (name == "join") { return new StringJoinNode(); }
-			else if (name == "split") { return new StringSplitNode(); }
-			else if (name == "format") { return new StringFormatNode(); }
-			else if (name == "min") { return new MinVarNode(); }
-			else if (name == "max") { return new MaxVarNode(); }
-			else if (name == "sum") { return new SumNode(); }
-			else if (name == "int") { return new IntCastNode(); }
-			else if (name == "float") { return new FloatCastNode(); }
-			else if (name == "bool") { return new BoolCastNode(); }
-			else if (name == "str" || name == "string") { return new StringCastNode(); }
-			else if (name == "color") { return new ColorCreateNode(); }
-			else if (name == "array") { return new ArrayCreateNode(); }
-			else if (name == "range") { return new RangeNode(); }
-			else if (name == "contains") { return new ArrayContainsNode(); }
-			else if (name == "all") { return new ArrayAllNode(); }
-			else if (name == "any") { return new ArrayAnyNode(); }
-			else if (name == "sort") { return new ArraySortNode(); }
-			else if (name == "reverse") { return new ArrayReverseNode(); }
-			else if (name == "sin") { return new SinNode(); }
-			else if (name == "cos") { return new CosNode(); }
-			else if (name == "tan") { return new TanNode(); }
-			else if (name == "asin") { return new AsinNode(); }
-			else if (name == "acos") { return new AcosNode(); }
-			else if (name == "atan") { return new AtanNode(); }
-			else if (name == "atan2") { return new Atan2Node(); }
-			else if (name == "sinh") { return new SinhNode(); }
-			else if (name == "cosh") { return new CoshNode(); }
-			else if (name == "tanh") { return new TanhNode(); }
-			else if (name == "lerp") { return new LerpNode(); }
-			else if (name == "sqrt") { return new SquareRootNode(); }
-			else if (name == "random") { return new RandomNode(); }
-			else if (variables.TryGetFunctionInfo(name, out EnvironmentFunctionInfo? functionInfo)) {
-				return new EnvironmentFunctionNode(functionInfo);
-			}
-			else { throw new UndefinedFunctionException($"Unrecognized function: {name}"); }
-			*/
 		}
 
 		/// <summary></summary>
@@ -637,10 +566,8 @@ namespace SharpSheets.Evaluations {
 		}
 
 		private class VariablePlaceholderNode : ValueNode {
-			#pragma warning disable GJT0001 // Unhandled thrown exception from statement
 			public override bool IsConstant => throw new UndefinedVariableException(Key);
 			public override EvaluationType ReturnType => throw new UndefinedVariableException(Key);
-			#pragma warning restore GJT0001 // Unhandled thrown exception from statement
 
 			public EvaluationName Key { get; }
 

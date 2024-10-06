@@ -65,13 +65,11 @@ namespace SharpSheets.Utilities {
 		}
 
 		public static string ToHexString(this Color color) {
-			#pragma warning disable GJT0001 // Unhandled thrown exception from statement
 			string a = color.A.Clamp(0, 255).ToString("X2");
 			string r = color.R.Clamp(0, 255).ToString("X2");
 			string g = color.G.Clamp(0, 255).ToString("X2");
 			string b = color.B.Clamp(0, 255).ToString("X2");
 			return "#" + a + r + g + b;
-			#pragma warning restore GJT0001 // Unhandled thrown exception from statement
 		}
 
 		public static Color WithOpacity(this Color baseColor, float opacity) {

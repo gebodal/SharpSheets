@@ -32,9 +32,7 @@ namespace SharpSheets.Utilities {
 			queue.Enqueue(path);
 
 			while (queue.Count > 0) {
-				#pragma warning disable GJT0001 // Unhandled thrown exception from statement
 				path = queue.Dequeue();
-				#pragma warning restore GJT0001 // Unhandled thrown exception from statement
 
 				foreach (string subDir in Directory.GetDirectories(path)) {
 					queue.Enqueue(subDir);

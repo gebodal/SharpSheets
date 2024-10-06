@@ -34,14 +34,11 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 		public TextHeightStrategy HeightStrategy => Config.heightStrategy;
 
 		public readonly CardFeatureText[] Features;
-		//public RichParagraphs FullText { get; protected set; }
 
 		protected bool IsParagraphStart { get; set; } = true;
 
 		public CardParagraphSegmentRect(ParagraphCardSegmentConfig config, ArrangementCollection<IWidget> outlines, CardFeatureText[] features, bool splittable) : base(config, outlines, splittable) {
 			Features = features;
-
-			//FullText = new RichParagraphs(features.Select(f => f.Text).ToArray());
 		}
 
 		public ParagraphSpecification MakeSpec(ParagraphSpecification basis, bool listItem) {
@@ -190,12 +187,6 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 				boxCount = 0;
 			}
 
-			/*
-			public void RemoveBox() {
-				Boxes = Math.Max(0, Boxes - 1);
-			}
-			*/
-
 			public IFixedCardSegmentRect? FromAvailableHeight(ISharpGraphicsState graphicsState, float availableHeight, float width, float fontSize, ParagraphSpecification paragraphSpec, CardQueryCache cache, out float resultingHeight) {
 
 				boxCount++;
@@ -242,13 +233,6 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 							if (first != null) {
 								splitInParagraph = true;
 								fitFeatures.Add(new CardFeatureText(remainingFeatures[i].Feature, first));
-
-								/*
-								RichString[] lines = first.GetLines(graphicsState, remainingRect.Width, textSpec, indent);
-								float featureHeight = RichStringUtils.CalculateHeight(new RichString[][] { lines }, textSpec);
-								remainingHeight -= featureHeight + (i != remainingFeatures.Length - 1 ? textSpec.ParagraphSpacing : 0f);
-								Console.WriteLine($"Feature height (fromavail-fin): {featureHeight} ({lines.Length} lines)");
-								*/
 							}
 							overflowFeatures.Add(new CardFeatureText(remainingFeatures[i].Feature, overflowText));
 
@@ -271,15 +255,6 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 					remainingFeatures = overflowFeatures.ToArray();
 
 					boxFeatures = fitFeatures.ToArray();
-
-					/*
-					float finalHeight = remainingRect.Height - remainingHeight;
-					if (original.outline != null) {
-						finalHeight += availableHeight - remainingRect.Height;
-					}
-					Console.WriteLine($"Paragraph: {finalHeight} / {availableHeight}, length: {boxFeatures.Select(f => f.Paragraph.TokenCount).Sum()}");
-					*/
-					//Console.WriteLine(string.Join(" \n ", boxFeatures.Select(f => f.Paragraph.ToString())));
 				}
 				else { // boxCount == parts -> This is the last available box, so everything must be put in here.
 					boxFeatures = remainingFeatures;

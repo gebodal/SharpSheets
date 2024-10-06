@@ -82,7 +82,7 @@ namespace SharpSheets.Shapes {
 							ConstructorDetails constructorDetails = DocumentationGenerator.GetConstructorDetails(entry.Key, constructor.Value, constructor.Value.DeclaringType!.Name);
 							if (constructors.TryGetValue(constructor.Value.DeclaringType, out ConstructorDetails? existing)) {
 								if (existing.DisplayType == typeof(IBox) && entry.Key == typeof(ITitledBox)) {
-									constructors.Set(constructor.Value.DeclaringType, constructorDetails);
+									constructors[constructor.Value.DeclaringType] = constructorDetails;
 								}
 							}
 							else {
@@ -398,21 +398,6 @@ namespace SharpSheets.Shapes {
 			}
 		}
 
-		/*
-		private T? GetCustomStylePattern<T>(IContext context) where T : MarkupShapePattern {
-			if (customStyles == null) {
-				return null;
-			}
-			string? styleName = GetStyleNameFromContext(context, out _);
-			if (styleName != null && customStyles.GetPattern<T>(PatternName.Parse(styleName)) is T pattern) {
-				return pattern;
-			}
-			else {
-				return null;
-			}
-		}
-		*/
-
 		/// <summary></summary>
 		/// <exception cref="ArgumentNullException">Thrown if <paramref name="styleName"/> is <see langword="null"/>.</exception>
 		private T? GetCustomStylePattern<T>(string styleName) where T : MarkupShapePattern {
@@ -474,15 +459,6 @@ namespace SharpSheets.Shapes {
 		}
 
 		public bool TryGetValue(string name, [MaybeNullWhen(false)] out ConstructorDetails constructor) {
-			/*
-			if (AllStaticConstructorDetails.TryGetValue(name, out constructor)) {
-				return true;
-			}
-			else {
-				constructor = GetCustomStyleConstructor(name);
-				return constructor is ConstructorDetails;
-			}
-			*/
 			if(GetCustomStyleConstructor(name) is ConstructorDetails customConstructor) {
 				constructor = customConstructor;
 				return true;

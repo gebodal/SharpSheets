@@ -1467,61 +1467,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/*
-	public class Subtitle : SharpWidget {
-
-		protected readonly string localName;
-
-		protected readonly float fontsize;
-		protected readonly TextFormat format;
-		protected readonly Vector titleOffset;
-		protected readonly float titleSpacing;
-		protected readonly Justification titleJustification;
-
-		protected readonly Titled subtitle;
-
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="setup"></param>
-		/// <param name="_name" example="Subtitle"></param>
-		/// <param name="_fontsize"></param>
-		/// <param name="format"></param>
-		/// <param name="titleOffset"></param>
-		/// <param name="titleSpacing"></param>
-		/// <param name="titleJustification"></param>
-		public Subtitle(
-				WidgetSetup setup,
-				string? _name = null, // TODO RichString?
-				float _fontsize = 6f,
-				TextFormat format = TextFormat.REGULAR,
-				Vector? titleOffset = null,
-				float titleSpacing = 3f,
-				Justification titleJustification = Justification.CENTRE
-			) : base(setup) {
-
-			localName = _name ?? "Subtitle";
-
-			fontsize = _fontsize;
-			this.format = format;
-			this.titleOffset = titleOffset ?? new Vector(0f, 3f);
-			this.titleSpacing = titleSpacing;
-			this.titleJustification = titleJustification;
-
-			subtitle = new Titled(new NoOutline(-1, 0f), this.localName, TitlePosition.BOTTOM, Layout.ROWS, Direction.NORTH, this.format, this.fontsize, this.titleOffset, this.titleSpacing, this.titleJustification);
-		}
-
-		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
-			//Console.WriteLine("Found subtitle.");
-			subtitle.Draw(canvas, rect);
-		}
-
-		protected override Rectangle GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
-			return subtitle.RemainingRect(graphicsState, rect);
-		}
-	}
-	*/
-
 	/// <summary>
 	/// This widget creates an area with an annotated field at the top. If the
 	/// widget has no children, then the remaining area will be filled with a
@@ -1730,25 +1675,6 @@ namespace SharpSheets.Widgets {
 				justifications[j] = (justification != null && j < justification.Length) ? justification[j % justification.Length] : Justification.LEFT;
 			}
 
-			/*
-			columnNames = columns; // config.GetProperty("columns", "").SplitAndTrim(',').ToArray();
-			columnRatios = widths; // config.GetProperty("widths", "").SplitAndTrim(',').WhereNotEmpty().Select(Dimension.Parse).ToArray();
-			justifications = justification ?? new Justification[0]; ; // config.GetProperty("justification", "").SplitAndTrim(',').WhereNotEmpty().Select(int.Parse).ToArray();
-
-			// Ensure that we have equal numbers of column names and ratios, if names have been provided
-			if (columnNames != null && columnRatios.Length != columnNames.Length) {
-				columnRatios = ArrayUtils.MakeArray(columnNames.Length, Dimension.FromRelative(1f));
-			}
-
-			// Ensure that we have equal numbers of column ratios and justifications
-			if (justifications.Length == 1) {
-				justifications = columnRatios.Select(c => justifications[0]).ToArray();
-			}
-			else if (justifications.Length != columnRatios.Length) {
-				justifications = columnRatios.Select(c => Justification.LEFT).ToArray();
-			}
-			*/
-
 			this.headerFontSize = headerFontSize;
 			this.headerSpacing = headerSpacing;
 
@@ -1851,15 +1777,6 @@ namespace SharpSheets.Widgets {
 		}
 
 		protected override Rectangle? GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
-			/*
-			if (children.Count == 0) {
-				return null;
-			}
-			else {
-				GetRects(rect, out _, out _, out Rectangle remainingRect);
-				return remainingRect;
-			}
-			*/
 			GetRects(rect, out _, out _, out Rectangle? remainingRect);
 			return remainingRect;
 		}

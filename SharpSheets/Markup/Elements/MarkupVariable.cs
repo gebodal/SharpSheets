@@ -5,13 +5,6 @@ using System.Linq;
 
 namespace SharpSheets.Markup.Elements {
 
-	/*
-	public interface IMarkupVariable {
-		EvaluationName Name { get; }
-		EvaluationType Type { get; }
-	}
-	*/
-
 	/// <summary>
 	/// This element represents a Markup variable.
 	/// </summary>

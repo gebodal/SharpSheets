@@ -20,11 +20,8 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationType ReturnType {
 			get {
 				EvaluationType type = Operand.ReturnType;
-				TypeField? field = type.GetField(Field);
-				if (field == null) {
-					throw new EvaluationTypeException($"{type} does not have a field named {Field}.");
-				}
-				return field.Type;
+				TypeField typeField = type.GetField(Field) ?? throw new EvaluationTypeException($"{type} does not have a field named {Field}.");
+				return typeField.Type;
 			}
 		}
 
@@ -48,130 +45,6 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override IEnumerable<EvaluationName> GetVariables() => Operand.GetVariables();
 
 	}
-
-	/*
-	public class IndexerNode : UnaryOperatorNode {
-
-		public override EvaluationType ReturnType {
-			get {
-				EvaluationType argType = Operand.ReturnType;
-				if (argType == EvaluationType.STRING) {
-					return argType;
-				}
-				else if (argType.IsArray) {
-					return argType.ElementType;
-				}
-				else {
-					throw new EvaluationTypeException($"Cannot index into value of type {argType}.");
-				}
-			}
-		}
-
-		public sealed override int Precedence { get; } = 0;
-		public sealed override Associativity Associativity { get; } = Associativity.LEFT;
-
-		public override string Symbol {
-			get {
-				if (!range) {
-					return $"[{start.Value}]";
-				}
-				else {
-					string s = start.HasValue ? start.Value.ToString() : "0";
-					string e = end.HasValue ? end.Value.ToString() : "end";
-
-					return $"[{s}:{e}]";
-				}
-			}
-		}
-
-		// TODO These should probably be EvaluationNodes themselves?
-		private readonly int? start;
-		private readonly int? end;
-		private readonly bool range;
-
-		public IndexerNode(int? start, int? end, bool range) {
-			this.start = start;
-			this.end = end;
-			this.range = range;
-		}
-
-		public override object Evaluate(IEnvironment environment) {
-			object a = Operand.Evaluate(environment);
-
-			if (a is string aString) {
-				if (!range) {
-					return aString[start.Value].ToString();
-				}
-				else {
-					int s = start ?? 0;
-					int e = end ?? aString.Length;
-
-					// TODO This isn't working quite right yet?
-
-					if (s < 0) { s += aString.Length; }
-					if (e < 0) { e += aString.Length; }
-					if (s < 0 || e < 0 || s > aString.Length || e > aString.Length) {
-						throw new EvaluationCalculationException("Invalid index.");
-					}
-
-					if (start.HasValue && !end.HasValue) {
-						return aString.Substring(s);
-					}
-					else if (!start.HasValue && end.HasValue) {
-						return aString.Substring(0, e);
-					}
-					else {
-						return aString.Substring(s, e - s);
-					}
-				}
-			}
-			else if (a is Array aArr) {
-				if (aArr.Rank != 1) {
-					throw new EvaluationProcessingException($"Can only index into rank 1 arrays (rank {aArr.Rank} provided).");
-				}
-				int length = aArr.Length;
-				if (!range) {
-					return aArr.GetValue(start.Value);
-				}
-				else {
-					int s = start ?? 0;
-					int e = end ?? length;
-
-					// TODO This isn't working quite right yet?
-
-					if (s < 0) { s += length; }
-					if (e < 0) { e += length; }
-					if (s < 0 || e < 0 || s > length || e > length) {
-						throw new EvaluationCalculationException("Invalid index.");
-					}
-
-					if (start.HasValue && !end.HasValue) {
-						Array result = Array.CreateInstance(aArr.GetType().GetElementType(), length - s);
-						Array.Copy(aArr, s, result, 0, result.Length);
-						return result;
-					}
-					else if (!start.HasValue && end.HasValue) {
-						Array result = Array.CreateInstance(aArr.GetType().GetElementType(), e);
-						Array.Copy(aArr, result, result.Length);
-						return result;
-					}
-					else {
-						Array result = Array.CreateInstance(aArr.GetType().GetElementType(), e - s);
-						Array.Copy(aArr, s, result, 0, result.Length);
-						return result;
-					}
-				}
-			}
-			else {
-				throw new EvaluationTypeException($"Cannot index into value of type {a.GetType().Name}.");
-			}
-		}
-
-		protected override UnaryOperatorNode Empty() {
-			return new IndexerNode(start, end, range);
-		}
-	}
-	*/
 
 	public class IndexerNode : BinaryOperatorNode {
 
@@ -317,7 +190,7 @@ namespace SharpSheets.Evaluations.Nodes {
 			else if (subject is string aString) {
 				GetIndexes(index1, index2, aString.Length, out index1, out index2);
 
-				return aString.Substring(index1, index2 - index1);
+				return aString[index1..index2];
 			}
 			else if (subject is Array aArr) {
 				if (aArr.Rank != 1) {

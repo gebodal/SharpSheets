@@ -240,13 +240,6 @@ namespace SharpSheets.Documentation {
 			methodArguments = nameParts.Length > 1 ? nameParts[1].Split(',') : Array.Empty<string>();
 		}
 
-		/*
-		private static Type GetTypeByName(Assembly assembly, string name) {
-			// This doesn't correctly access nested classes if using names from XML
-			return assembly.GetType(name);
-		}
-		*/
-
 		public static DocumentationString? GetTypeDescription(Type type) {
 			if (type.FullName is not null) {
 				typeSummaries.TryGetValue(type.FullName.Replace("+", "."), out TypeDoc? doc);
@@ -256,12 +249,6 @@ namespace SharpSheets.Documentation {
 				return null;
 			}
 		}
-
-		/*
-		public static ConstructorDoc GetConstructorDoc(Type type) {
-			return typeConstructors.GetValueOrDefault(type.FullName.Replace("+", "."), null);
-		}
-		*/
 
 		public static ConstructorDoc? GetConstructorDoc(ConstructorInfo constructor) {
 			List<ConstructorDoc>? constructors = typeConstructors.GetValueOrFallback((constructor.DeclaringType?.FullName ?? "").Replace("+", "."), null);
@@ -416,19 +403,6 @@ namespace SharpSheets.Documentation {
 				}
 			}
 
-			/*
-			foreach(TypeDoc typeDoc in typeSummaries.Values) {
-				Console.WriteLine($"{typeDoc.type}: {typeDoc.description}");
-				Console.WriteLine();
-			}
-			foreach (ConstructorDoc constructorDoc in typeConstructors.Values) {
-				Console.WriteLine($"{constructorDoc.declaringType}: {constructorDoc.description}");
-				foreach(ArgumentDoc parameterDoc in constructorDoc.arguments) {
-					Console.WriteLine($"{parameterDoc.name} ({parameterDoc.defaultValue?.ToString()}): {parameterDoc.description}");
-				}
-				Console.WriteLine();
-			}
-			*/
 		}
 
 	}

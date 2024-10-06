@@ -93,30 +93,6 @@ namespace SharpSheets.Parsing {
 				}
 			}
 			else if (typeof(IShape).IsAssignableFrom(parameterType)) {
-				/*
-				IContext shapeContext;
-
-				DocumentSpan? dictLocation = null;
-				Exception dictEx = null;
-				if (context.HasProperty(parameterName, useLocal, context) &&
-					DictionaryContext.TryGetContext(
-						parameterName,
-						context.GetProperty(parameterName, useLocal, context, DictionaryContext.EmptyContextString, out dictLocation),
-						out IContext dictShapeContext, out dictEx)
-					) {
-
-					shapeContext = dictShapeContext;
-				}
-				else {
-					new NamedContext(context, parameterName, forceLocal: useLocal).HasProperty("style", useLocal, context, out DocumentSpan? styleLocation);
-					shapeContext = new NamedContext(context, parameterName, location: styleLocation, forceLocal: useLocal);
-				}
-
-				if (dictEx != null) {
-					throw new SharpParsingException(dictLocation, dictEx.Message, dictEx);
-				}
-				*/
-
 				if (shapeFactory is null) {
 					throw new ArgumentNullException(nameof(shapeFactory), "Cannot construct shape, as no ShapeFactory instance provided.");
 				}

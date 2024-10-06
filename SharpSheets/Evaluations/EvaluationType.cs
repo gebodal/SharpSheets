@@ -39,7 +39,6 @@ namespace SharpSheets.Evaluations {
 			return ElementType == null ? "" : ((ElementCount.HasValue ? $"[{ElementCount.Value}]" : "[]") + ElementType.GetArrayBrackets());
 		}
 
-		//public Type SystemType { get; }
 		public Type DataType { get; }
 		public Type DisplayType { get; }
 
@@ -222,12 +221,6 @@ namespace SharpSheets.Evaluations {
 			return FromSystemType(value.GetType(), includeProperties);
 		}
 
-		/*
-		public static EvaluationType MakeEnum(string name, IEnumerable<string> values) {
-			return new EvaluationType(name, values, null);
-		}
-		*/
-
 		public static EvaluationType CustomType(string name, IEnumerable<TypeField> fields, Type systemType) {
 			if (string.IsNullOrWhiteSpace(name)) {
 				throw new ArgumentException((name != null ? $"\"{name}\"" : "<null>") + " is not a valid type name.");
@@ -290,22 +283,7 @@ namespace SharpSheets.Evaluations {
 			if (ElementType != null) { hash.Add(ElementType); }
 			if (ElementCount != null) { hash.Add(ElementCount.Value); }
 			return hash.ToHashCode();
-
-			/*
-			int hashCode = -222562764;
-			hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(baseName);
-			hashCode = hashCode * -1521134295 + EqualityComparer<Type>.Default.GetHashCode(DataType);
-			hashCode = hashCode * -1521134295 + EqualityComparer<Type>.Default.GetHashCode(DisplayType);
-			if (ElementType != null) { hashCode = hashCode * -1521134295 + EqualityComparer<EvaluationType>.Default.GetHashCode(ElementType); }
-			if (ElementCount != null) { hashCode = hashCode * -1521134295 + EqualityComparer<int?>.Default.GetHashCode(ElementCount); }
-			return hashCode;
-			*/
 		}
-		/*
-		public override int GetHashCode() {
-			return (baseName + "." + (SystemType?.FullName ?? "CUSTOM") + (ElementType != null ? ElementType.baseName + ElementType.GetHashCode() : "SINGLE") + (ElementCount.HasValue ? ElementCount.Value.ToString() : "Any")).GetHashCode();
-		}
-		*/
 
 		public bool ValidDataType(Type dataType) {
 			// TODO Is this complete?

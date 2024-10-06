@@ -203,24 +203,6 @@ namespace SharpSheets.Canvas.Text {
 			return Substring(startIndex, Length - startIndex);
 		}
 
-		/*
-		public float GetWidth(PdfFontGrouping fonts, float fontSize) {
-			float total = 0f;
-			for (int i = 0; i < chars.Length; i++) {
-				total += fonts[formats[i]].GetWidth(chars[i], fontSize);
-			}
-			return total;
-		}
-
-		public float GetDescent(PdfFontGrouping fonts, float fontSize) {
-			return fonts.Select(f => f.GetDescent(Text, fontSize)).Min();
-		}
-
-		public float GetAscent(PdfFontGrouping fonts, float fontSize) {
-			return fonts.Select(f => f.GetAscent(Text, fontSize)).Max();
-		}
-		*/
-
 		public RichString[] Split(char separator) {
 			
 			List<int> separatorIndexes = new List<int>();

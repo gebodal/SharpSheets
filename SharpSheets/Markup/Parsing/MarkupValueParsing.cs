@@ -75,32 +75,6 @@ namespace SharpSheets.Markup.Parsing {
 			}
 		}
 
-		/*
-		public enum Axis { WIDTH, HEIGHT }
-		/// <summary></summary>
-		/// <exception cref="EvaluationException"></exception>
-		/// <exception cref="FormatException"></exception>
-		public static FloatExpression ParseLength(string text, Axis axis, IVariableBox variables) {
-			text = text.Trim();
-			Match percentMatch = percentRegex.Match(text);
-			if (percentMatch.Success) {
-				float percent = GetPercentValue(percentMatch);
-				if (axis == Axis.WIDTH && variables.IsVariable("width")) {
-					return new FloatExpression(Evaluation.Parse("width", variables) * percent);
-				}
-				else if (axis == Axis.HEIGHT && variables.IsVariable("height")) {
-					return new FloatExpression(Evaluation.Parse("height", variables) * percent);
-				}
-				else {
-					throw new FormatException($"Appropriate length variable not defined for {axis}.");
-				}
-			}
-			else {
-				return FloatExpression.Parse(text, variables);
-			}
-		}
-		*/
-
 		public static XLengthExpression ParseXLength(string text, IVariableBox variables) {
 			text = text.Trim();
 			Match percentMatch = percentRegex.Match(text);
@@ -180,27 +154,6 @@ namespace SharpSheets.Markup.Parsing {
 			}
 		}
 
-		/*
-		private static readonly Regex enumRegex = new Regex(@"
-				^(?:
-					\{(?<expression>(?:[^\{\}]|\\[\{\}])+)\}
-					|
-					(?<value>.+)
-				)$
-			", RegexOptions.IgnorePatternWhitespace);
-		public static EnumExpression<T> ParseEnum<T>(string str, IVariableBox variables) where T : Enum {
-			Match match = enumRegex.Match(str);
-			if (match.Groups["expression"].Success) {
-				return EnumExpression<T>.Parse(match.Groups["expression"].Value, variables);
-			}
-			else if (match.Groups["value"].Success) {
-				return EnumUtils.ParseEnum<T>(match.Groups["value"].Value);
-			}
-			else {
-				throw new FormatException("Invalid enum expression.");
-			}
-		}
-		*/
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public static EnumExpression<T> ParseEnum<T>(string str, IVariableBox variables) where T : Enum {

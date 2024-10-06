@@ -516,52 +516,6 @@ namespace SharpSheets.Markup.Canvas {
 		}
 	}
 
-	/*
-	public class TextExpression : IExpression<string> {
-		private readonly StringExpression[] parts;
-		private readonly string value;
-		private StringExpression[] Parts { get { return (value != null ? ((StringExpression)value).Yield() : parts).ToArray(); } }
-
-		public bool IsConstant { get { return value != null; } }
-
-		public TextExpression(StringExpression[] parts) {
-			if (parts.All(p => p.IsConstant)) {
-				this.parts = null;
-				this.value = string.Join("", parts.Select(p => p.Evaluate(Environments.Empty)));
-			}
-			else {
-				this.parts = parts;
-				this.value = null;
-			}
-		}
-		public TextExpression(string value) {
-			this.parts = null;
-			this.value = value;
-		}
-
-		public IEnumerable<string> GetVariables() {
-			return IsConstant ? Enumerable.Empty<string>() : parts.SelectMany(p => p.GetVariables()).Distinct();
-		}
-
-		public string Evaluate(IEnvironment environment) {
-			if (value != null) {
-				return value;
-			}
-			else {
-				return string.Join("", parts.Select(p => p.Evaluate(environment)));
-			}
-		}
-
-		public static TextExpression operator +(TextExpression a, TextExpression b) {
-			return new TextExpression(a.Parts.Concat(b.Parts).ToArray());
-		}
-
-		public override string ToString() {
-			return "[ " + (value != null ? ("\"" + value + "\"") : string.Join(", ", parts.Select(p => p.ToString()))) + " ]";
-		}
-	}
-	*/
-
 	public class NSliceValuesExpression : IExpression<NSliceValues> {
 
 		public bool IsConstant { get { return value != null; } }
@@ -840,85 +794,6 @@ namespace SharpSheets.Markup.Canvas {
 			}
 		}
 	}
-
-	/*
-	public class DimensionExpression : IExpression<Dimension> {
-
-		public bool IsConstant { get { return value != null; } }
-
-		private readonly FloatExpression number;
-		private readonly StringExpression unit;
-		private readonly Dimension? value;
-
-		public DimensionExpression(FloatExpression number, StringExpression unit) {
-			if (number.IsConstant && (unit == null || unit.IsConstant)) {
-				this.number = null;
-				this.unit = null;
-				float numberVal = number.Evaluate(Environments.Empty);
-				string unitVal = unit?.Evaluate(Environments.Empty);
-				this.value = EvaluateParts(numberVal, unitVal);
-			}
-			else {
-				this.number = number;
-				this.unit = unit;
-				this.value = null;
-			}
-		}
-		public DimensionExpression(Dimension value) {
-			this.number = null;
-			this.unit = null;
-			this.value = value;
-		}
-		public static implicit operator DimensionExpression(Dimension value) {
-			return new DimensionExpression(value);
-		}
-
-		public IEnumerable<string> GetVariables() {
-			return IsConstant ? Enumerable.Empty<string>() : number.GetVariables().Concat(unit.GetVariables());
-		}
-
-		public Dimension Evaluate(IEnvironment environment) {
-			if (value.HasValue) {
-				return value.Value;
-			}
-			else {
-				float number = this.number.Evaluate(environment);
-				string unit = this.unit?.Evaluate(environment);
-				return EvaluateParts(number, unit);
-			}
-		}
-
-		private Dimension EvaluateParts(float number, string unit) {
-			if (unit == null || unit == "") {
-				return Dimension.FromRelative(number);
-			}
-			else if (unit == "pc") {
-				return Dimension.FromPercent(number);
-			}
-			else if (unit == "pt") {
-				return Dimension.FromPoints(number);
-			}
-			else if (unit == "in") {
-				return Dimension.FromInches(number);
-			}
-			else if (unit == "cm") {
-				return Dimension.FromCentimetres(number);
-			}
-			else {
-				throw new EvaluationCalculationException($"\"{unit}\" is not a valid unit for Dimension. Must be empty, or one of: pc, pt, in, or cm.");
-			}
-		}
-
-		public override string ToString() {
-			if (IsConstant) {
-				return $"DimensionExpression({value})";
-			}
-			else {
-				return $"DimensionExpression({number}, \"{unit}\")";
-			}
-		}
-	}
-	*/
 
 	public class DimensionExpression : IExpression<Dimension> {
 

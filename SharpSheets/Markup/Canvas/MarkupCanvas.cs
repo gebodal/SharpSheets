@@ -278,55 +278,13 @@ namespace SharpSheets.Markup.Canvas {
 
 	public class MarkupCanvas {
 
-		/*
-		protected class MarkupCanvasState {
-
-			public DrawingCoords DrawingCoords { get; set; }
-
-			public Transform Transform { get; private set; }
-			public Transform InverseTransform { get; private set; }
-
-			public MarkupCanvasState() {
-				this.DrawingCoords = DrawingCoords.RELATIVE;
-				this.Transform = Transform.Identity();
-				this.InverseTransform = this.Transform.Invert();
-			}
-			public MarkupCanvasState(MarkupCanvasState source) {
-				this.DrawingCoords = source.DrawingCoords;
-				this.Transform = source.Transform;
-				this.InverseTransform = source.InverseTransform;
-			}
-
-			public void ApplyTransform(Transform transform) {
-				this.Transform *= transform;
-				this.InverseTransform = this.Transform.Invert();
-			}
-		}
-		*/
-
 		private readonly MarkupCanvas? parent;
 
 		public bool IsClosed { get; private set; }
 
 		protected ISharpCanvas? Canvas { get; private set; }
-		//protected readonly Rectangle pageCanvas;
-		//protected readonly Rectangle drawingRect;
-		//protected readonly Rectangle referenceRect;
 
-		//public NSliceValues SlicingValues { get; private set; }
-		//public NSliceScaling Slicing { get; private set; } = null;
-
-		//private readonly IEnvironment contextEnvironment;
-		//private readonly IEnvironment drawingEnvironment;
-		//public IEnvironment Environment { get; }
-		//public IEnvironment Environment => _geometry.Environment;
-
-		/*
-		private readonly Stack<MarkupCanvasState> stateStack;
-		private MarkupCanvasState state;
-		*/
 		private readonly Stack<MarkupGeometryState> stateStack;
-		//private MarkupGeometryState state;
 		
 		private readonly Stack<IEnvironment> envStack;
 		public IEnvironment Environment { get; private set; }
@@ -361,9 +319,7 @@ namespace SharpSheets.Markup.Canvas {
 
 			MarkupGeometry geometry = MarkupGeometry.CreateGeometry(canvas.GetSnapshot(), drawingRect, referenceRect, slicingValues, contextEnvironment, out IEnvironment finalEnvironment);
 
-			#pragma warning disable GJT0001 // Unhandled thrown exception from statement
 			canvas.ApplyTransform(geometry.CanvasOriginTranslation);
-			#pragma warning restore GJT0001 // Should never occur, as the translation Transform will always have a non-zero determinent
 			MarkupCanvas markupCanvas = new MarkupCanvas(parent, canvas, geometry, finalEnvironment, collectDiagnostics);
 
 			return markupCanvas;
@@ -413,13 +369,6 @@ namespace SharpSheets.Markup.Canvas {
 
 			errors = this.exceptions.ToArray();
 		}
-
-		/*
-		public DrawPoint GetAbsolutePoint(DrawPointExpression rectSpacePoint) {
-			DrawPoint point = rectSpacePoint.Evaluate(this);
-			return new DrawPoint(drawingRect.X + point.X, drawingRect.Y + point.Y);
-		}
-		*/
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>

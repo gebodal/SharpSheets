@@ -55,8 +55,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		public static readonly ITypeDetailsCollection ConfigConstructors;
 		public static readonly ITypeDetailsCollection SegmentConfigConstructors;
 
-		public static readonly ConstructorDetails BackgroundConstructor1;
-		public static readonly ConstructorDetails OutlineConstructor1;
+		public static readonly ConstructorDetails BackgroundConstructor;
+		public static readonly ConstructorDetails OutlineConstructor;
 
 		private static readonly Dictionary<Type, ConstructorDetails> cardConfigConstructorsByType;
 		public static readonly Dictionary<string, ConstructorDetails> cardConfigConstructorsByName;
@@ -101,10 +101,10 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			ConstructorDetails baseDivConstructor = WidgetFactory.DivConstructor;
 			ArgumentDetails[] configDivArgs = ConditionArgument.Yield().Concat(baseDivConstructor.Arguments).ToArray();
-			BackgroundConstructor1 = new ConstructorDetails(typeof(SharpWidget), typeof(SharpWidget), "Background", "Background", configDivArgs,
+			BackgroundConstructor = new ConstructorDetails(typeof(SharpWidget), typeof(SharpWidget), "Background", "Background", configDivArgs,
 				new DocumentationString("This element contains the content to be drawn as the card background, behind all other card content."),
 				new SharpSheets.Layouts.Rectangle(0f, 0f), null);
-			OutlineConstructor1 = new ConstructorDetails(typeof(SharpWidget), typeof(SharpWidget), "Outline", "Outline", configDivArgs,
+			OutlineConstructor = new ConstructorDetails(typeof(SharpWidget), typeof(SharpWidget), "Outline", "Outline", configDivArgs,
 				new DocumentationString("This element contains the content to be drawn as an outline/background for a card element, behind that element's main content."),
 				new SharpSheets.Layouts.Rectangle(0f, 0f), null);
 
@@ -117,8 +117,8 @@ namespace SharpSheets.Cards.CardConfigs {
 					ParagraphSegmentConfigConstructor,
 					TableSegmentConfigConstructor,
 					FeatureConfigConstructor,
-					BackgroundConstructor1,
-					OutlineConstructor1
+					BackgroundConstructor,
+					OutlineConstructor
 				}, SharpDocuments.StringComparer);
 
 			SegmentConfigConstructors = new TypeDetailsCollection(
@@ -141,8 +141,8 @@ namespace SharpSheets.Cards.CardConfigs {
 			cardConfigConstructorsByName = new Dictionary<string, ConstructorDetails>(
 				cardConfigConstructorsByType.ToDictionary(kv => kv.Value.Name, kv => kv.Value),
 				SharpDocuments.StringComparer) {
-				{BackgroundConstructor1.Name, BackgroundConstructor1 },
-				{OutlineConstructor1.Name, OutlineConstructor1 }
+				{BackgroundConstructor.Name, BackgroundConstructor },
+				{OutlineConstructor.Name, OutlineConstructor }
 			};
 			cardSegmentConfigConstructorsByName = new Dictionary<string, ConstructorDetails>(
 				SegmentConfigConstructors.ToDictionary(c => c.Name, c => c),
@@ -190,7 +190,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			IVariableBox outlinesVariables = CardOutlinesEnvironments.GetVariables(cardSetConfig);
 			IEnvironment outlinesDryRunEnvironment = CardOutlinesEnvironments.GetDryRun(cardSetConfig);
 
-			foreach (IContext background in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, BackgroundConstructor1.Name))) {
+			foreach (IContext background in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, BackgroundConstructor.Name))) {
 				InterpolatedContext backgroundContext = MakeInterpolatedContext(background, outlinesVariables, errors);
 				Conditional<InterpolatedContext> backgroundEntry = MakeCondition(background, backgroundContext, outlinesVariables, errors);
 				cardSetConfig.backgrounds.Add(backgroundEntry);
@@ -198,7 +198,7 @@ namespace SharpSheets.Cards.CardConfigs {
 				DryRunParse(backgroundContext, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
 			}
 
-			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor1.Name))) {
+			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor.Name))) {
 				InterpolatedContext outlineContext = MakeInterpolatedContext(outline, outlinesVariables, errors);
 				Conditional<InterpolatedContext> outlineEntry = MakeCondition(outline, outlineContext, outlinesVariables, errors);
 				cardSetConfig.outlines.Add(outlineEntry);
@@ -312,7 +312,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			IVariableBox outlinesVariables = CardOutlinesEnvironments.GetVariables(cardConfig);
 			IEnvironment outlinesDryRunEnvironment = CardOutlinesEnvironments.GetDryRun(cardConfig); // DynamicCardEnvironments.CardNumberDryRun(CardSubjectEnvironments.GetDryRun(cardConfig));
 
-			foreach (IContext background in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, BackgroundConstructor1.Name))) {
+			foreach (IContext background in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, BackgroundConstructor.Name))) {
 				InterpolatedContext backgroundContext = MakeInterpolatedContext(background, outlinesVariables, errors);
 				Conditional<InterpolatedContext> backgroundEntry = MakeCondition(background, backgroundContext, outlinesVariables, errors);
 				cardConfig.backgrounds.Add(backgroundEntry);
@@ -320,7 +320,7 @@ namespace SharpSheets.Cards.CardConfigs {
 				DryRunParse(backgroundContext, outlinesDryRunEnvironment, cardSetConfig.Source, errors);
 			}
 
-			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor1.Name))) {
+			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor.Name))) {
 				InterpolatedContext outlineContext = MakeInterpolatedContext(outline, outlinesVariables, errors);
 				Conditional<InterpolatedContext> outlineEntry = MakeCondition(outline, outlineContext, outlinesVariables, errors);
 				cardConfig.outlines.Add(outlineEntry);
@@ -397,19 +397,9 @@ namespace SharpSheets.Cards.CardConfigs {
 				}
 			}
 
-			/*
-			IEnvironment segmentEnvironment = CardSegmentEnvironments.GetDryRun(cardSegment);
-			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor.Name))) {
-				Conditional<IContext> outlineEntry = MakeCondition(outline, outline, cardSegment.Variables, errors);
-				cardSegment.outlines.Add(outlineEntry);
-				if (origins != null) { origins.Add(outline, outline); } // Yes?
-				DryRunRect(outline, segmentEnvironment, cardConfig.source, errors);
-			}
-			*/
-
 			IVariableBox outlinesVariables = CardSegmentOutlineEnvironments.GetVariables(cardSegment);
 			IEnvironment outlinesDryRunEnvironment = CardSegmentOutlineEnvironments.GetDryRun(cardSegment);
-			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor1.Name))) {
+			foreach (IContext outline in context.Children.Where(c => SharpDocuments.StringComparer.Equals(c.SimpleName, OutlineConstructor.Name))) {
 				InterpolatedContext outlineContext = MakeInterpolatedContext(outline, outlinesVariables, errors);
 				Conditional<InterpolatedContext> outlineEntry = MakeCondition(outline, outlineContext, outlinesVariables, errors);
 				cardSegment.outlines.Add(outlineEntry);
@@ -433,12 +423,6 @@ namespace SharpSheets.Cards.CardConfigs {
 					errors.Add(new SharpParsingException(context.Location, "Segment must have at least one valid feature."));
 					return null;
 				}
-
-				/*
-				if(featuredSegment.cardFeatures.Count == 1 && !featuredSegment.cardFeatures.First().Condition.IsTrue && origins.TryGetValue(featuredSegment.cardFeatures.First().Value, out IDocumentEntity featureEntity)) {
-					errors.Add(new SharpParsingException(featureEntity.Location, "Only one feature is provided, and it has a condition."));
-				}
-				*/
 			}
 
 			return cardSegment;
@@ -531,28 +515,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			}
 		}
 
-		/*
-		private static void CheckCondition(InterpolatedContext context, IVariableBox variables, List<SharpParsingException> errors) {
-			string? conditionStr = context.GetProperty(ConditionArgument.Name, true, context, null, out DocumentSpan? conditionLocation);
-			if (conditionStr != null) {
-				try {
-					BoolExpression.Parse(conditionStr, variables);
-				}
-				catch (Exception e) {
-					errors.Add(new SharpParsingException(conditionLocation, "Error parsing condition: " + e.Message, e));
-				}
-			}
-		}
-		*/
-
 		private void DryRunParse(InterpolatedContext context, IEnvironment environment, DirectoryPath source, List<SharpParsingException> errors) {
-			/*
-			CheckCondition(context, environment, errors);
-			foreach(IContext child in context.TraverseChildren(true)) {
-				CheckCondition(child, environment, errors);
-			}
-			*/
-
 			try {
 				widgetFactory.MakeWidget(typeof(Div), new LazyInterpolatedContext(context.OriginalContext, environment), source, out SharpParsingException[] rectErrors);
 				errors.AddRange(rectErrors);
@@ -585,7 +548,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			if (constructor.DeclaringType == typeof(CardSetConfig)) {
 				return constructor; // The top-level card set config has no condition
 			}
-			else if (typeof(IWidget).IsAssignableFrom(constructor.DeclaringType) && constructor != OutlineConstructor1 && constructor != BackgroundConstructor1) {
+			else if (typeof(IWidget).IsAssignableFrom(constructor.DeclaringType) && constructor != OutlineConstructor && constructor != BackgroundConstructor) {
 				if(constructor.Arguments.Length > 1 && ArgumentComparer.Instance.Equals(constructor.Arguments[0], ConditionArgument) && ArgumentComparer.Instance.Equals(constructor.Arguments[1], ForEachArgument)) {
 					return constructor;
 				}
@@ -710,26 +673,6 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		IDocumentEntity? IDocumentEntity.Parent => Parent;
 		IEnumerable<IDocumentEntity> IDocumentEntity.Children => Children;
-
-		/*
-		/// <summary></summary>
-		/// <exception cref="SharpParsingException"></exception>
-		private bool EvaluateCondition(IContext context) {
-			string? conditionStr = context.GetProperty("condition", true, context, null, out DocumentSpan? location);
-			if (conditionStr == null) {
-				return true;
-			}
-			else {
-				try {
-					BoolExpression condition = BoolExpression.Parse(conditionStr, Environment);
-					object evaluation = condition.Evaluate(Environment);
-					if (evaluation is bool result) { return result; }
-				}
-				catch (EvaluationException) { }
-				throw new SharpParsingException(location, "Invalid condition.");
-			}
-		}
-		*/
 
 		private static IEnvironment GetFullEnvironment(IContext context, IEnvironment initial) {
 			string? foreachStr = context.GetProperty("foreach", true, null, null, out _);

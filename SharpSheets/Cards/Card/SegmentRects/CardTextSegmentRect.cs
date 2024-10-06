@@ -108,12 +108,6 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 				boxCount = 0;
 			}
 
-			/*
-			public void RemoveBox() {
-				Boxes = Math.Max(0, Boxes - 1);
-			}
-			*/
-
 			public IFixedCardSegmentRect? FromAvailableHeight(ISharpGraphicsState graphicsState, float availableHeight, float width, float fontSize, ParagraphSpecification paragraphSpec, CardQueryCache cache, out float resultingHeight) {
 
 				boxCount++;

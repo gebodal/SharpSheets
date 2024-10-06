@@ -34,9 +34,7 @@ namespace SharpSheets.Markup.Parsing {
 
 		public List<MarkupPattern> ParseContent(FilePath origin, DirectoryPath source, string xml, out CompilationResult results) {
 			ParsedPatternDocument parsedDocument = ParsedPatternDocument.ParseDocument(xml, origin, source, ShapeFactory);
-			#pragma warning disable GJT0001 // Unhandled thrown exception from statement
 			results = parsedDocument.GetCompilationResult();
-			#pragma warning restore GJT0001 // Unhandled thrown exception from statement
 			return parsedDocument.patterns;
 		}
 
@@ -93,7 +91,6 @@ namespace SharpSheets.Markup.Parsing {
 				patterns.Clear();
 				errors.Clear();
 
-				//document = XDocument.Parse(xml, LoadOptions.SetLineInfo);
 				root = XMLParsing.Parse(xml, out List<SharpParsingException> xmlErrors, false); // document.Root;
 
 				if (xmlErrors != null && xmlErrors.Count > 0) {
@@ -240,11 +237,6 @@ namespace SharpSheets.Markup.Parsing {
 			private SharpParsingException LogError<T>(ContextProperty<T> contextProperty, string message, Exception? innerException = null) {
 				return LogError(contextProperty.ValueLocation, message, innerException);
 			}
-			/*
-			private void LogError(DocumentSpan location, Exception error) {
-				LogError(location, error.Message, error);
-			}
-			*/
 			private void LogError(XMLNode node, Exception error) {
 				LogError(node, error.Message, error);
 			}
@@ -1086,10 +1078,10 @@ namespace SharpSheets.Markup.Parsing {
 
 							if (referenced.Name == "symbol") {
 								if (GetAttribute(elem, "width", false) is ContextProperty<string> widthAttr) {
-									replacementAttributes.Set("width", widthAttr);
+									replacementAttributes["width"] = widthAttr;
 								}
 								if (GetAttribute(elem, "height", false) is ContextProperty<string> heightAttr) {
-									replacementAttributes.Set("height", heightAttr);
+									replacementAttributes["height"] = heightAttr;
 								}
 							}
 							foreach (ContextProperty<string> attr in elem.Attributes) {
@@ -1097,7 +1089,7 @@ namespace SharpSheets.Markup.Parsing {
 									continue;
 								}
 								else if (!referenced.HasAttribute(attr.Name, false)) { // This doesn't seem right...
-									replacementAttributes.Set(attr.Name, attr);
+									replacementAttributes[attr.Name] = attr;
 									LogVisit(elem, attr.Name);
 								}
 							}
@@ -1295,9 +1287,7 @@ namespace SharpSheets.Markup.Parsing {
 
 			private IMarkupArgument? MakeArgument(XMLElement elem, out ContextProperty<EvaluationName> nameAttribute, out ContextProperty<EvaluationName>? varNameAttribute) {
 				if(elem.Name != "arg" && elem.Name != "grouparg") {
-					#pragma warning disable GJT0001 // Unhandled thrown exception from statement
 					throw new InvalidOperationException("Invalid argument element tag."); // This should never happen
-					#pragma warning restore GJT0001 // Unhandled thrown exception from statement
 				}
 
 				if(ValidateVariableName(elem, true, out nameAttribute, out varNameAttribute)) {
@@ -1411,56 +1401,6 @@ namespace SharpSheets.Markup.Parsing {
 				}
 			}
 
-			/*
-			private MarkupSingleArgument MakeEnumArgument(XMLElement elem, ContextProperty<EvaluationName> name, bool allowEntries) {
-
-				if (RequiredAttribute(elem, "type", false, s => MakeEnumArgType(elem, s), out ContextProperty<EvaluationType> typeAttr)) {
-					EvaluationType type = typeAttr.Value;
-					string description = GetAttribute(elem, "desc", false, s => s, null);
-					object defaultValue = GetAttribute(elem, "default", false, s => EvaluateArgDefault(s, type), null);
-					bool isOptional = GetAttribute(elem, "optional", false, s => MarkupValueParsing.ParseConcreteBool(s), false);
-					object exampleValue = GetAttribute(elem, "example", false, s => EvaluateArgDefault(s, type), null);
-					BoolExpression validationExpr = GetAttribute(elem, "validate", false, v => BoolExpression.Parse(v, VariableBoxes.Simple(new Dictionary<EvaluationName, EvaluationType> { { name.Value, type } })), null);
-					string validationMessage = GetAttribute(elem, "validate-message", false, s => s, null);
-					bool useLocal = GetAttribute(elem, "local", false, s => MarkupValueParsing.ParseConcreteBool(s), false);
-					bool fromEntries = GetAttribute(elem, "entries", false, s => MarkupValueParsing.ParseConcreteBool(s), false);
-
-					if (exampleValue != null && validationExpr != null && !validationExpr.Evaluate(Environments.Simple(new Dictionary<EvaluationName, object> { { name.Value.ToString(), exampleValue } }))) {
-						exampleValue = null;
-						if (elem.GetAttribute("example", false) is ContextProperty<string> attr) {
-							LogError(attr, $"Example for {name.Value} is not a valid value.");
-						}
-					}
-
-					if (!allowEntries && fromEntries) {
-						fromEntries = false;
-						if (elem.GetAttribute("entries", false) is ContextProperty<string> attr) {
-							LogError(attr, "Entries not allowed for this argument.");
-						}
-					}
-
-					if (fromEntries && (!type.IsArray || type.IsTuple)) {
-						fromEntries = false;
-						if (elem.GetAttribute("entries", false) is ContextProperty<string> attr) {
-							LogError(attr, $"Values taken from context entries must be parsed into a variable length array, not {type.Name}.");
-						}
-					}
-
-					MarkupSingleArgument argument = new MarkupSingleArgument(name.Value, type, description, isOptional, defaultValue, exampleValue, validationExpr, validationMessage, useLocal, fromEntries);
-
-					return argument;
-				}
-
-				return null;
-			}
-
-			private EvaluationType MakeEnumArgType(XMLElement elem, string name) {
-
-
-
-			}
-			*/
-
 			private MarkupGroupArgument? MakeGroupArgument(XMLElement elem, ContextProperty<EvaluationName> groupname, ContextProperty<EvaluationName>? variableName) {
 
 				string? description = GetAttribute(elem, "desc", false, s => s, null);
@@ -1523,34 +1463,8 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				else {
 					return MarkupArgumentParsing.ParseValue(text, argType, source);
-					/*
-					object value = ValueParsing.Parse(text, argType.SystemType);
-					if (argType.IsArray) {
-						ValidateArray(value, argType);
-					}
-					return value;
-					*/
 				}
 			}
-
-			/*
-			private static void ValidateArray(object value, EvaluationType evaluationType) {
-				// It would be nice to do this during initial text parsing, but that would require rewriting the ValueParsing code
-
-				Array array = (Array)value;
-
-				if (evaluationType.IsTuple && array.Length != evaluationType.ElementCount.Value) {
-					throw new FormatException($"Invalid number of entries for tuple (should be {evaluationType.ElementCount.Value}, found {array.Length}).");
-				}
-
-				EvaluationType elementType = evaluationType.ElementType;
-				if (elementType.IsArray) {
-					foreach (object i in array) {
-						ValidateArray(i, elementType);
-					}
-				}
-			}
-			*/
 
 			private class XElementVariables : IVariableBox {
 
@@ -1916,16 +1830,6 @@ namespace SharpSheets.Markup.Parsing {
 
 				Dictionary<string, EvaluationNode> values = new Dictionary<string, EvaluationNode>();
 
-				/*
-				foreach (ContextProperty<string> attribute in elem.Attributes.Where(a => contextVariableRegex.IsMatch(a.Name))) {
-					try {
-						EvaluationNode node = Evaluation.Parse(attribute.Value, variables);
-						values.Set(attribute.Name, node);
-					}
-					catch (EvaluationException) { }
-				}
-				*/
-
 				foreach (ContextProperty<string> attribute in elem.Attributes) {
 					// Using a name.variable system
 					if (attribute.Name.StartsWith(contextName + ".")) {
@@ -1933,7 +1837,7 @@ namespace SharpSheets.Markup.Parsing {
 						if (!string.IsNullOrEmpty(valueName)) {
 							try {
 								EvaluationNode node = Evaluation.Parse(attribute.Value, variables);
-								values.Set(valueName, node);
+								values[valueName] = node;
 								LogVisit(elem, attribute.Name);
 							}
 							catch (EvaluationException e) {
@@ -1959,25 +1863,6 @@ namespace SharpSheets.Markup.Parsing {
 
 			#region Arrangement Properties
 
-			/*
-			private NSliceValuesExpression MakeSlicingValues(XMLElement slicingElem, IVariableBox variables) {
-				if (slicingElem == null) { return null; }
-
-				FloatExpression[] xs = new FloatExpression[0];
-				FloatExpression[] ys = new FloatExpression[0];
-
-				if(GetAttribute(slicingElem, "border", false, s=>FloatExpression.Parse(s,variables), null) is FloatExpression borderWidth) {
-					xs = new FloatExpression[] { borderWidth, MarkupEnvironments.WidthExpression - borderWidth };
-					ys = new FloatExpression[] { borderWidth, MarkupEnvironments.HeightExpression - borderWidth };
-				}
-
-				xs = GetAttribute(slicingElem, "xs", false, s => MarkupValueParsing.ParseSVGNumbers(s, variables), xs);
-				ys = GetAttribute(slicingElem, "ys", false, s => MarkupValueParsing.ParseSVGNumbers(s, variables), ys);
-
-				return new NSliceValuesExpression(xs, ys);
-			}
-			*/
-
 			private SlicingValuesElement? MakeSlicingValuesElement(XMLElement slicingElem, IVariableBox parentVariables, IVariableBox fullDrawingVariables) {
 				if (slicingElem == null) { return null; }
 
@@ -2000,7 +1885,6 @@ namespace SharpSheets.Markup.Parsing {
 					try {
 						string? childID = GetAttribute(areaElem, "id", false, s => s, null);
 
-						//string? areaName = GetAttribute(areaElem, "name", false, s => s, null);
 						TextExpression areaName = nameAttr.Value; // TODO Check against list of allowed area names? Will probaby need index adding to AreaElement (remaingRectElementNames)
 
 						RectangleExpression? rect = GetRectangle(areaElem, true, fullDrawingVariables);
@@ -2084,7 +1968,6 @@ namespace SharpSheets.Markup.Parsing {
 					return true;
 				}
 				catch (FormatException e) {
-					//AddError(attribute, $"Could not parse attribute \"{attributeName}\" into {TypeName(typeof(T))}.", e);
 					LogError(attribute, $"Badly formatted {TypeName(typeof(T))} for attribute \"{attributeName}\".", e);
 					LogError(attribute, e.Message);
 				}
@@ -2110,11 +1993,9 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				*/
 
-				#pragma warning disable GJT0001 // GetInterfaces should only ever be called on valid system types
 				if (type.GetInterfaces().FirstOrDefault(i => i.TryGetGenericTypeDefinition() == typeof(IExpression<>)) is Type expressionType) {
 					return TypeName(expressionType.GenericTypeArguments[0]) + " expression";
 				}
-				#pragma warning restore GJT0001 // Unhandled thrown exception from statement
 				/*
 				if (type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(IExpression<>))) {
 					return TypeName(type.GetGenericArguments()[0]) + " expression";

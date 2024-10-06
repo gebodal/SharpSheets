@@ -423,16 +423,6 @@ namespace SharpSheets.Cards.CardSubjects {
 				BuildCurrentSubject();
 			}
 
-			/*
-			Dictionary<int, IDocumentEntity> parents = new Dictionary<int, IDocumentEntity>();
-			foreach(IDocumentEntity entity in parsedSubjectDocument.TraverseChildren()) {
-				if (entity.Location.Line >= 0 && !parents.ContainsKey(entity.Location.Line)) {
-					// As we are traversing children in document order, subjects from an archive should only have the subject added
-					parents.Add(entity.Location.Line, entity);
-				}
-			}
-			*/
-
 			List<FilePath> configDependencies = parsedSubjectDocument.GetConfigurations()
 				.Select(cv => cv.Value)
 				.SelectMany(d => d.origin.Yield().Concat(d.archivePaths))
@@ -440,7 +430,6 @@ namespace SharpSheets.Cards.CardSubjects {
 
 			results = new CompilationResult(parsedSubjectDocument, null, errors, usedLines, lineOwnership, configDependencies);
 
-			//return parsedSubjects.Select(s => s.ToArray()).ToArray();
 			return parsedSubjectDocument;
 		}
 
@@ -487,62 +476,6 @@ namespace SharpSheets.Cards.CardSubjects {
 			}
 		}
 
-		/*
-		private static readonly Regex entryRegex2 = new Regex(@"
-			^ # Must be at start of string
-			(?![\#\=]) # First character must not be # or =
-			(?<entryname>
-				([^\(\)\[\]\{:\.]|(?<=\\)\{)* # All but last character may contain a space
-				([^\(\)\[\]\{:\.\ ]|(?<=\\)\{) # Last character must not be a space
-				(?=\s*[\(\[\:]) # Must be followed by '(', '[', or ':' to be an entry name
-			)
-			(
-				\s*
-				\(
-				(?<entrynote>([^\(\)\{:]|(?<=\\)\{)*)
-				\)
-			|
-				\s*
-				\[
-				(?<entrydetails>([^\[\]]|\[.+\])*) # If there are square braces, they must be complete
-				\]
-			)* # Zero or more repetitions of this pattern
-			\s*
-			(:\s*(?<entrytext>.+))?
-			$ # Must be end of string
-			", RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase);
-
-		enum EntryParseState { NAME, NOTE, DETAILS }
-
-		private static bool ParseEntryLine(string line, DocumentSpan lineSpan, out ContextValue<string> name, out ContextValue<string> note, out ContextValue<string> details, out ContextValue<string> text) {
-			DocumentSpan invalidSpan = new DocumentSpan(lineSpan.Offset, lineSpan.Line, lineSpan.Column, 0);
-
-			if (line[0] == '#' || line[0] == '=') {
-				name = new ContextValue<string>(invalidSpan, null);
-				note = new ContextValue<string>(invalidSpan, null);
-				details = new ContextValue<string>(invalidSpan, null);
-				text = new ContextValue<string>(invalidSpan, null);
-				return false;
-			}
-
-			Stack<EntryParseState> state = new Stack<EntryParseState>();
-			state.Push(EntryParseState.NAME);
-
-			bool escaped = false;
-			for (int i = 0; i < line.Length; i++) {
-
-				if (escaped) {
-					escaped = false;
-				}
-				else if(state.Count == 0) {
-					if (!char.IsWhiteSpace(line[i])) {
-						throw NotImplementedException(); // TODO MAKE BETTER
-					}
-				}
-
-			}
-		}
-		*/
 	}
 
 }

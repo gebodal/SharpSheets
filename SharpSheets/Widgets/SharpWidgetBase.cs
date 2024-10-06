@@ -50,13 +50,6 @@ namespace SharpSheets.Widgets {
 		/// <summary></summary>
 		/// <exception cref="InvalidRectangleException"></exception>
 		public Size? MinimumContentSize(ISharpGraphicsState graphicsState, Size availableSpace) {
-			/*
-			graphicsState.SaveState();
-			graphicsState.ApplySetup(setup);
-			Size minimumContentSize = GetMinimumContentSize(graphicsState, availableSpace);
-			graphicsState.RestoreState();
-			return minimumContentSize;
-			*/
 			CanvasStateImage stateImage = new CanvasStateImage(graphicsState);
 			stateImage.ApplySetup(setup);
 			Size? minimumContentSize = GetMinimumContentSize(stateImage, availableSpace);
@@ -70,13 +63,6 @@ namespace SharpSheets.Widgets {
 		}
 
 		public Rectangle? ContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
-			/*
-			graphicsState.SaveState();
-			graphicsState.ApplySetup(setup);
-			Rectangle containerArea = GetContainerArea(graphicsState, rect);
-			graphicsState.RestoreState();
-			return containerArea;
-			*/
 			CanvasStateImage stateImage = new CanvasStateImage(graphicsState);
 			stateImage.ApplySetup(setup);
 			Rectangle? containerArea = GetContainerArea(stateImage, rect);
@@ -94,13 +80,6 @@ namespace SharpSheets.Widgets {
 		}
 
 		public Rectangle?[] DiagnosticRects(ISharpGraphicsState graphicsState, Rectangle available) {
-			/*
-			graphicsState.SaveState();
-			graphicsState.ApplySetup(setup);
-			Rectangle[] diagnosticRects = GetDiagnosticRects(graphicsState, available);
-			graphicsState.RestoreState();
-			return diagnosticRects;
-			*/
 			CanvasStateImage stateImage = new CanvasStateImage(graphicsState);
 			stateImage.ApplySetup(setup);
 			Rectangle?[] diagnosticRects = GetDiagnosticRects(stateImage, available);
@@ -132,9 +111,6 @@ namespace SharpSheets.Widgets {
 		protected abstract void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken);
 
 		protected virtual void RegisterAreas(ISharpCanvas canvas, Rectangle fullRect, Rectangle availableRect) {
-			//canvas.RegisterArea(this, rect);
-			//canvas.RegisterArea(this, availableRect);
-			//canvas.RegisterAreas(this, rect, availableRect, Array.Empty<Rectangle>());
 			canvas.RegisterAreas(this, fullRect, availableRect, GetDiagnosticRects(canvas, availableRect).WhereNotNull().ToArray());
 		}
 

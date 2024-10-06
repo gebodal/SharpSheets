@@ -5,18 +5,6 @@ using System.Linq;
 namespace SharpSheets.Utilities {
 	public static class DictionaryUtils {
 
-		public static void Set<K, V>(this Dictionary<K, V> dict, K key, V value) where K : notnull {
-			#pragma warning disable GJT0001 // KeyNotFoundException should never be thrown from indexer setter
-			dict[key] = value;
-			#pragma warning restore GJT0001 // Unhandled thrown exception from statement
-		}
-
-		/*
-		public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue defaultValue) {
-			return dictionary.TryGetValue(key, out TValue value) ? value : defaultValue;
-		}
-		*/
-
 		public static V? GetValueOrFallback<K, V>(this IReadOnlyDictionary<K, V> dict, K key, V? defaultValue) where K : notnull {
 			if (dict.TryGetValue(key, out V? value)) {
 				return value;
@@ -111,16 +99,6 @@ namespace SharpSheets.Utilities {
 		public static string GetString<K, V>(this IDictionary<K, V> dict) where K : notnull {
 			return "{" + string.Join(", ", dict.Select(kv => kv.Key.ToString() + ": " + kv.Value?.ToString())) + "}";
 		}
-
-		/*
-		public static V GetValueOrDefault<K, V>(this IReadOnlyDictionary<K,V> source, K key) {
-			return source.TryGetValue(key, out V value) ? value : default;
-		}
-
-		public static V GetValueOrDefault<K, V>(this IReadOnlyDictionary<K, V> source, K key, V defaultValue) {
-			return source.TryGetValue(key, out V value) ? value : defaultValue;
-		}
-		*/
 
 		public static IEnumerable<K> GetKeys<K, V>(this IEnumerable<KeyValuePair<K, V>> source) {
 			return source.Select(kv => kv.Key);

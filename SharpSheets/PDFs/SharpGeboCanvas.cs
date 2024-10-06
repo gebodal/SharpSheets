@@ -494,26 +494,6 @@ namespace SharpSheets.PDFs {
 			return this;
 		}
 
-		/*
-		public ISharpGraphicsState SetFillLinearGradient(float x1, float y1, float x2, float y2, IList<ColorStop> stops) {
-			PdfFunction gradientFunction = ConstructGradientFunction(stops);
-			PdfShading.Axial axial = new PdfShading.Axial(new PdfDeviceCs.Rgb(), new PdfArray(new float[] { x1, y1, x2, y2 }), gradientFunction);
-			axial.SetExtend(true, true);
-			PdfPattern.Shading pattern = new PdfPattern.Shading(axial);
-			canvas.SetFillColorShading(pattern);
-			return this;
-		}
-
-		public ISharpGraphicsState SetFillRadialGradient(float x1, float y1, float r1, float x2, float y2, float r2, IList<ColorStop> stops) {
-			PdfFunction gradientFunction = ConstructGradientFunction(stops);
-			PdfShading.Radial radial = new PdfShading.Radial(new PdfDeviceCs.Rgb(), new PdfArray(new float[] { x1, y1, r1, x2, y2, r2 }), gradientFunction);
-			radial.SetExtend(true, true);
-			PdfPattern.Shading pattern = new PdfPattern.Shading(radial);
-			canvas.SetFillColorShading(pattern);
-			return this;
-		}
-		*/
-
 		public Color GetForegroundColor() => state.foreground;
 		public ISharpGraphicsState SetForegroundColor(Color color) {
 			state.foreground = color;
@@ -726,13 +706,6 @@ namespace SharpSheets.PDFs {
 			*/
 			return this;
 		}
-
-		/*
-		public ISharpCanvas AddImage(ImageData image, Rectangle rect, float? imageAspect) {
-			return AddImage(image.Path, rect, imageAspect);
-		}
-		*/
-
 
 		public string GetFieldPrefix() => state.fieldPrefix;
 		public ISharpGraphicsState SetFieldPrefix(string prefix) {

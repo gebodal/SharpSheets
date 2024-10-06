@@ -35,19 +35,8 @@ namespace SharpSheets.Cards.Card {
 
 
 		protected static IWidget GetFrom(ArrangementCollection<IWidget> collection, int card, int totalCards) {
-			//IWidget rect = collection.GetValue(DynamicCardEnvironments.CardNumberEnvironment(subject.Environment, card, totalCards));
-			/*
-			IWidget rect = collection.GetValue(subject.Environment.AppendDefinitionEnvironment(CardOutlinesEnvironments.GetEnvironment(card, totalCards)));
-			if (rect == null) {
-				rect = new Div(new WidgetSetup());
-			}
-			return rect;
-			*/
 			IWidget rect = collection.GetValue(card, totalCards);
-			if (rect == null) {
-				rect = new Div(new WidgetSetup());
-			}
-			return rect;
+			return rect ?? new Div(new WidgetSetup());
 		}
 
 		protected IWidget GetOutline(int card, int totalCards) {

@@ -111,17 +111,6 @@ namespace SharpSheets.Markup.Elements {
 				string? name = this.titleText?.Evaluate(environment);
 				return (T)shapeFactory.MakeShape(typeof(T), context, name, source, out buildErrors);
 			}
-			/*
-			else {
-				T evaluated = href.Evaluate(environment);
-				if (evaluated != null) {
-					return evaluated;
-				}
-				else {
-					throw new ArgumentNullException("Reference shape evaluation produces null result for styled div element.");
-				}
-			}
-			*/
 		}
 
 		protected override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, Layout layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool diagnostic) {
@@ -372,9 +361,6 @@ namespace SharpSheets.Markup.Elements {
 				Size[] mins = namedChildren.Values.Select(c => c.MinimumContentSize(graphicsState, availableSpace)).WhereNotNull().ToArray();
 				return mins.Length > 0 ? new Size(mins.Max(r => r.Width), mins.Max(r => r.Height)) : new Size(0f, 0f);
 			}
-
-			//throw new NotImplementedException();
-			//return base.MinimumContentRect(canvas, availableSpace);
 		}
 
 		public override bool AreaExists(string name) {
@@ -414,8 +400,6 @@ namespace SharpSheets.Markup.Elements {
 			Rectangle rect = ApplyAspect(fullRect);
 
 			if (diagnostic) {
-				//canvas.RegisterArea(pattern, fullRect);
-				//canvas.RegisterArea(pattern, rect);
 				canvas.RegisterAreas(pattern, fullRect, rect, Array.Empty<Rectangle>());
 			}
 
@@ -445,7 +429,6 @@ namespace SharpSheets.Markup.Elements {
 		public virtual bool IsConstant { get { return value != null; } }
 
 		protected readonly EvaluationNode? evaluation;
-		//protected readonly EvaluationName? argumentName;
 		private readonly T? value;
 
 		public ShapeReferenceExpression(EvaluationNode evaluation) {
@@ -465,14 +448,6 @@ namespace SharpSheets.Markup.Elements {
 			if (value != null) {
 				return value;
 			}
-			/*
-			else if (environment.IsVariable(argumentName!.Value) && environment.GetVariable(argumentName!.Value) is T envVar) {
-				return envVar;
-			}
-			else {
-				return default;
-			}
-			*/
 			else if (evaluation is not null && evaluation.Evaluate(environment) is T result) {
 				return result;
 			}

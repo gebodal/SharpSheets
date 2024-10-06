@@ -60,21 +60,6 @@ namespace SharpSheets.Evaluations {
 			return !NameComparer.Equals(a.name, b.name);
 		}
 
-		/*
-		public static bool operator ==(EvaluationName a, string b) {
-			return NameComparer.Equals(a.name, b);
-		}
-		public static bool operator !=(EvaluationName a, string b) {
-			return !NameComparer.Equals(a.name, b);
-		}
-		public static bool operator ==(string a, EvaluationName b) {
-			return NameComparer.Equals(a, b.name);
-		}
-		public static bool operator !=(string a, EvaluationName b) {
-			return !NameComparer.Equals(a, b.name);
-		}
-		*/
-
 		public override string ToString() {
 			return (name ?? "").ToLowerInvariant();
 		}

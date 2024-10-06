@@ -166,15 +166,6 @@ namespace SharpSheets.Utilities {
 				}
 
 				return tupleConstructor.Invoke(tupleValues);
-
-				//return Activator.CreateInstance(tupleType, values);
-
-				/*
-				return typeof(ValueTuple).GetMethods()
-					.FirstOrDefault(method => method.Name == "Create" && method.GetParameters().Length == tupleType.GenericTypeArguments.Length)
-					.MakeGenericMethod(tupleType.GenericTypeArguments)
-					.Invoke(null, tupleValues);
-				*/
 			}
 
 			throw new ArgumentException("Non-tuple type provided.");

@@ -16,7 +16,6 @@ namespace SharpSheets.Cards.Definitions {
 
 		public DefinitionType() { }
 
-		//public abstract object Parse(string value);
 		public abstract EvaluationNode Validation(EvaluationNode node);
 
 		public static DefinitionType Simple(EvaluationType elementType, int rank) {
@@ -74,34 +73,6 @@ namespace SharpSheets.Cards.Definitions {
 			this.ReturnType = returnType ?? throw new ArgumentNullException(nameof(returnType));
 		}
 
-		/*
-		public override object Parse(string value) {
-			try {
-				if (ReturnType == EvaluationType.INT) {
-					return int.Parse(value);
-				}
-				else if (ReturnType == EvaluationType.FLOAT) {
-					return float.Parse(value);
-				}
-				else if (ReturnType == EvaluationType.BOOL) {
-					return bool.Parse(value);
-				}
-				else if (ReturnType == EvaluationType.STRING) {
-					return value;
-				}
-				else if (ReturnType.IsArray) {
-					throw new NotImplementedException("Array types not yet implemented."); // TODO Implement array type parsing
-				}
-				else {
-					throw new ArgumentException("Invalid definition type.");
-				}
-			}
-			catch (FormatException) {
-				throw new FormatException($"Value is not a valid {ReturnType}.");
-			}
-		}
-		*/
-
 		public override EvaluationNode Validation(EvaluationNode node) {
 			return new SimpleTypeValidationNode(node, ReturnType);
 		}
@@ -155,7 +126,6 @@ namespace SharpSheets.Cards.Definitions {
 		public override EvaluationType ReturnType { get; }
 
 		public readonly Regex Pattern;
-		//private readonly int rank;
 
 		/// <summary></summary>
 		/// <exception cref="ArgumentNullException"></exception>
@@ -240,19 +210,8 @@ namespace SharpSheets.Cards.Definitions {
 		/// <exception cref="ArgumentNullException"></exception>
 		internal CategoricalType(string[] categories) {
 			if (categories == null) { throw new ArgumentNullException(nameof(categories), "Must provide a list of categories."); }
-			//this.categories = categories.ToDictionary(c => c, c => c, StringComparer.InvariantCultureIgnoreCase);
 			this.categories = categories.OrderBy(s => s).ToArray();
 		}
-
-		/*
-		public override object Parse(string value) {
-			string matching = categories.FirstOrDefault(c => c.StartsWith(value, StringComparison.InvariantCultureIgnoreCase));
-			if (matching != null) {
-				return matching;
-			}
-			throw new FormatException($"Must match one of the following: " + string.Join(", ", categories)); // Custom exception type here?
-		}
-		*/
 
 		public override EvaluationNode Validation(EvaluationNode node) {
 			return new CategoryValidationNode(node, categories);
@@ -315,7 +274,6 @@ namespace SharpSheets.Cards.Definitions {
 		/// <exception cref="ArgumentNullException"></exception>
 		internal MulticategoryType(string[] categories) {
 			if (categories == null) { throw new ArgumentNullException(nameof(categories), "Must provide a list of categories."); }
-			//this.categories = categories.ToDictionary(c => c, c => c, StringComparer.InvariantCultureIgnoreCase);
 			this.categories = categories.ToArray();
 		}
 

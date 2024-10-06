@@ -196,52 +196,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/*
-	public class Use : IDrawableElement {
-
-		public string ID { get; }
-		public StyleSheet StyleSheet { get; }
-
-		readonly IBoxElement href;
-		readonly DrawPointExpression location; // x, y
-		readonly FloatExpression width;
-		readonly FloatExpression height;
-
-		public Use(string id, StyleSheet styleSheet, IBoxElement href, DrawPointExpression location, FloatExpression width, FloatExpression height) {
-			this.ID = id;
-			this.StyleSheet = styleSheet;
-
-			this.href = href;
-			this.location = location;
-			this.width = width;
-			this.height = height;
-		}
-
-		public void Draw(SVGCanvas canvas) {
-			// Apply any transform we may have been given
-			if (StyleSheet.Transform != null) {
-				canvas.ApplyTransform(StyleSheet.Transform);
-			}
-
-			// If we have a clip path, apply it
-			if (StyleSheet.ClipPath != null) {
-				StyleSheet.ClipPath.Apply(canvas);
-			}
-
-			// TODO Needs finishing
-			DrawPoint location = canvas.TransformPoint(this.location);
-			float? width = this.width != null ? (float?)canvas.TransformLength(this.width) : null;
-			float? height = this.height != null ? (float?)canvas.TransformLength(this.height) : null;
-			if(href is Symbol symbol) {
-				symbol.Draw(canvas, location, width, height);
-			}
-			else if(href is IDrawableElement drawable) {
-				throw new NotImplementedException(); // TODO Implement
-			}
-		}
-	}
-	*/
-
 	/// <summary>
 	/// A graphical template that can be instantiated with a &lt;use&gt; element.
 	/// This allows the same graphical elements to be easily repeated in a Markup

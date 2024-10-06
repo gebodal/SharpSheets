@@ -34,8 +34,6 @@ namespace SharpSheets.Widgets {
 
 		#region Static Initialisation and Accessors
 
-		//private static readonly ConstructorInfo sharpPageConstructor;
-		//private static readonly ConstructorInfo divConstructor;
 		private static readonly Dictionary<Type, ConstructorInfo> widgetConstructorsByType;
 		private static readonly Dictionary<string, ConstructorInfo> widgetConstructorsByName;
 		private static readonly Dictionary<Type, string> widgetTypeNames;
@@ -56,17 +54,7 @@ namespace SharpSheets.Widgets {
 			widgetConstructorsByType = SharpFactory.GetConstructors(typeof(SharpWidget), typeof(WidgetSetup));
 			widgetConstructorsByName = widgetConstructorsByType.ToDictionary(kv => kv.Key.Name, kv => kv.Value, SharpDocuments.StringComparer);
 
-			/*
-			string pageClassName = typeof(Page).Name;
-			sharpPageConstructor = widgetConstructorsByName[pageClassName];
-			widgetConstructorsByName.Remove(pageClassName);
-			widgetConstructorsByName.Add("Page", sharpPageConstructor);
-			*/
-
-			//divConstructor = widgetConstructorsByType[typeof(Div)];
-
 			widgetSetupConstructor = typeof(WidgetSetup).GetConstructors().First();
-			//widgetConstructorsByType[typeof(WidgetSetup)] = widgetSetupConstructor; // Huh? Why was this here?
 			widgetSetupConstructorDoc = SharpDocumentation.GetConstructorDoc(widgetSetupConstructor) ?? throw new TypeInitializationException(nameof(WidgetFactory), null);
 
 			widgetTypeNames = widgetConstructorsByType.ToDictionary(kv => kv.Value.DeclaringType!, kv => kv.Key.Name);

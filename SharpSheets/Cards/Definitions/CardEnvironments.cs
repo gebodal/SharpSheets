@@ -11,23 +11,11 @@ using System.Diagnostics.CodeAnalysis;
 namespace SharpSheets.Cards.Definitions {
 
 	public static class CardSetConfigEnvironments {
-
-		//public static readonly DefinitionGroup BaseDefinitions;
 		public static DefinitionGroup BaseDefinitions => CardSubjectEnvironments.BaseDefinitions;
-
-		static CardSetConfigEnvironments() {
-			//BaseDefinitions = new DefinitionGroup();
-		}
 	}
 
 	public static class CardConfigEnvironments {
-
-		//public static readonly DefinitionGroup BaseDefinitions;
 		public static DefinitionGroup BaseDefinitions => CardSubjectEnvironments.BaseDefinitions;
-
-		static CardConfigEnvironments() {
-			//BaseDefinitions = new DefinitionGroup();
-		}
 	}
 
 	public static class CardSubjectEnvironments {
@@ -166,24 +154,6 @@ namespace SharpSheets.Cards.Definitions {
 		public static IEnvironment GetDryRun(AbstractCardSegmentConfig segmentConfig) {
 			return BasisEnvironment.Instance.AppendEnvironment(new DryRunEnvironment(GetVariables(segmentConfig), segmentConfig.Variables));
 		}
-
-		/*
-		public static DefinitionEnvironment MakeBaseEnvironment(ContextValue<string> heading, ContextValue<string> note, int numFeatures) {
-			return DefinitionEnvironment.Create(new Dictionary<Definition, ContextValue<object>> {
-				{ headingDefinition, new ContextValue<object>(heading.Location, heading.Value) },
-				{ noteDefinition, new ContextValue<object>(note.Location, note.Value) },
-				{ featureCountDefinition, new ContextValue<object>(DocumentSpan.Imaginary, numFeatures) }
-			});
-		}
-
-		public static DefinitionEnvironment GetBuildEnvironment(ContextValue<string> heading, ContextValue<string> note, int numFeatures) {
-			return DefinitionEnvironment.Create(new Dictionary<Definition, ContextValue<object>> {
-				{ headingDefinition, new ContextValue<object>(heading.Location, heading.Value ?? "") },
-				{ noteDefinition, new ContextValue<object>(note.Location, note.Value ?? "") },
-				{ featureCountDefinition, new ContextValue<object>(DocumentSpan.Imaginary, numFeatures) }
-			});
-		}
-		*/
 
 		public static IEnvironment MakeBaseEnvironment(CardSegment segment) {
 			return new CardSegmentEnvironment(segment);
@@ -400,13 +370,6 @@ namespace SharpSheets.Cards.Definitions {
 
 			public override object Evaluate(IEnvironment environment) {
 				if (text != null) {
-					/*
-					RichString evalText = (RichString)this.text.Evaluate(environment);
-					if (formats != null) {
-						evalText = formats.Apply(evalText);
-					}
-					return evalText.Formatted;
-					*/
 					string rawText = this.text.Evaluate(environment);
 					RichString richText = StringParsing.ParseRich(rawText);
 					if (formats != null) {

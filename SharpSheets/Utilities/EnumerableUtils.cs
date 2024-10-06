@@ -81,16 +81,6 @@ namespace SharpSheets.Utilities {
 			}
 		}
 
-		/*
-		public static IEnumerable<ValueTuple<R, S>> Zip<R, S>(this IEnumerable<R> source, IEnumerable<S> other) {
-			if (source is null || other is null) {
-				throw new ArgumentNullException();
-			}
-
-			return source.Zip(other, (r, s) => new ValueTuple<R, S>(r, s));
-		}
-		*/
-
 		/// <summary>
 		/// Remove sequential repetitions from an enumerable.
 		/// </summary>
@@ -205,21 +195,6 @@ namespace SharpSheets.Utilities {
 			}
 		}
 
-		/*
-		public static IEnumerable<T> ConcatOrNothing<T>(this IEnumerable<T> source, params IEnumerable<T>?[] additional) {
-			foreach (T orig in source) {
-				yield return orig;
-			}
-			for (int i = 0; i < additional.Length; i++) {
-				if (additional[i] is IEnumerable<T> other) {
-					foreach (T elem in other) {
-						yield return elem;
-					}
-				}
-			}
-		}
-		*/
-
 		public static IEnumerable<T> ConcatOrNothing<T>(params IEnumerable<T>?[] additional) {
 			for (int i = 0; i < additional.Length; i++) {
 				if (additional[i] is IEnumerable<T> other) {
@@ -229,74 +204,6 @@ namespace SharpSheets.Utilities {
 				}
 			}
 		}
-
-		/*
-		/// <summary></summary>
-		/// <exception cref="ArgumentNullException"></exception>
-		/// <exception cref="InvalidOperationException"></exception>
-		public static T MinBy<T, K>(this IEnumerable<T> source, Func<T, K> keySelector) where K : IComparable<K> {
-			return source.MinBy(keySelector, Comparer<K>.Default);
-		}
-
-		/// <summary></summary>
-		/// <exception cref="ArgumentNullException"></exception>
-		/// <exception cref="InvalidOperationException"></exception>
-		public static T MinBy<T, K>(this IEnumerable<T> source, Func<T, K> keySelector, IComparer<K> comparer) {
-			if (source == null) { throw new ArgumentNullException(nameof(source)); }
-			T? min = default;
-			K? minKey = default;
-			bool first = true;
-			foreach (T elem in source) {
-				if (first) {
-					min = elem;
-					minKey = keySelector(elem);
-					first = false;
-				}
-				else {
-					K elemKey = keySelector(elem);
-					if (comparer.Compare(minKey, elemKey) > 0) {
-						min = elem;
-						minKey = elemKey;
-					}
-				}
-			}
-			if (first) { throw new InvalidOperationException("IEnumerable is empty."); }
-			return min!;
-		}
-
-		/// <summary></summary>
-		/// /// <exception cref="ArgumentNullException"></exception>
-		/// <exception cref="InvalidOperationException"></exception>
-		public static T MaxBy<T, K>(this IEnumerable<T> source, Func<T, K> keySelector) where K : IComparable<K> {
-			return source.MaxBy(keySelector, Comparer<K>.Default);
-		}
-
-		/// <summary></summary>
-		/// <exception cref="ArgumentNullException"></exception>
-		/// <exception cref="InvalidOperationException"></exception>
-		public static T MaxBy<T, K>(this IEnumerable<T> source, Func<T, K> keySelector, IComparer<K> comparer) {
-			if (source == null) { throw new ArgumentNullException(nameof(source)); }
-			T? max = default;
-			K? maxKey = default;
-			bool first = true;
-			foreach (T elem in source) {
-				if (first) {
-					max = elem;
-					maxKey = keySelector(elem);
-					first = false;
-				}
-				else {
-					K elemKey = keySelector(elem);
-					if (comparer.Compare(maxKey, elemKey) < 0) {
-						max = elem;
-						maxKey = elemKey;
-					}
-				}
-			}
-			if (first) { throw new InvalidOperationException("IEnumerable is empty."); }
-			return max!;
-		}
-		*/
 
 		public static T MaxOrFallback<T>(this IEnumerable<T> source, T defaultValue) {
 			if (source.Any()) {

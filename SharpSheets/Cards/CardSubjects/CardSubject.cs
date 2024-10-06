@@ -170,34 +170,12 @@ namespace SharpSheets.Cards.CardSubjects {
 			return newSubject;
 		}
 
-		/*
-		public IEnumerable<ContextProperty<object>> GetProperties() {
-			return subjectProperties?.GetDocumentProperties() ?? Enumerable.Empty<ContextProperty<object>>();
-		}
-		*/
-
-		/*
-		public bool IsVariable(string key) => subjectEnvironment.IsVariable(key);
-		public EvaluationType GetReturnType(string key) => subjectEnvironment.GetReturnType(key);
-		public bool TryGetNode(string key, out EvaluationNode node) => subjectEnvironment.TryGetNode(key, out node);
-		public bool TryGetFunctionInfo(string name, out EnvironmentFunctionInfo functionInfo) => subjectEnvironment.TryGetFunctionInfo(name, out functionInfo);
-		public EnvironmentFunction GetFunction(string name) => subjectEnvironment.GetFunction(name);
-		public IEnumerable<string> GetVariables() => subjectEnvironment.GetVariables();
-		public object this[string key] => subjectEnvironment[key];
-		*/
-
 		public IEnumerator<CardSegment> GetEnumerator() {
 			return segments.GetEnumerator();
 		}
 		IEnumerator IEnumerable.GetEnumerator() {
 			return GetEnumerator();
 		}
-
-		/*
-		public static IEnvironment GetDryRun(CardConfig cardConfig) {
-			return new DryRunEnvironment(cardConfig.AppendVariables(new Dictionary<EvaluationName, EvaluationType> { { "name", EvaluationType.STRING } }));
-		}
-		*/
 
 	}
 
@@ -328,54 +306,6 @@ namespace SharpSheets.Cards.CardSubjects {
 			CardFeature newFeature = new CardFeature(location, FeatureConfig, newSegment, new ContextValue<string>(location, Title.Value), new ContextValue<string>(location, Note.Value), new ContextValue<TextExpression>(location, Text.Value), Details, IsMultiLine, IsListItem, Index);
 			return newFeature;
 		}
-
-		/*
-		private class FormattedFeatureTextNode : EvaluationNode {
-			public override bool IsConstant => text.IsConstant;
-			public override EvaluationType ReturnType => EvaluationType.STRING;
-
-			private readonly TextExpression text;
-			private readonly RegexFormats formats;
-
-			public FormattedFeatureTextNode(TextExpression text, RegexFormats formats) {
-				this.text = text;
-				this.formats = formats;
-			}
-
-			public override EvaluationNode Clone() => this;
-			public override EvaluationNode Simplify() => this;
-
-			public override object Evaluate(IEnvironment environment) {
-				if (text != null) {
-					RichString evalText = this.text.Evaluate(environment);
-					if (formats != null) {
-						evalText = formats.Apply(evalText);
-					}
-					return evalText.Formatted;
-				}
-				else {
-					return "";
-				}
-			}
-
-			public override IEnumerable<EvaluationName> GetVariables() {
-				return text.GetVariables();
-			}
-
-		}
-
-		public static IEnvironment GetDryRun(CardFeatureConfig featureConfig) {
-			return new DryRunEnvironment(
-				featureConfig.AppendVariables(
-					new Dictionary<EvaluationName, EvaluationType> {
-						{ "title", EvaluationType.STRING },
-						{ "note", EvaluationType.STRING },
-						{ "text", EvaluationType.STRING }
-					}
-					)
-				);
-		}
-		*/
 
 	}
 }

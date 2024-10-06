@@ -23,47 +23,6 @@ namespace SharpSheets.Layouts {
 
 		public Margins(float margin) : this(margin, margin, margin, margin) { }
 
-		/*
-		public float this[string i] {
-			readonly get {
-				i = i.ToLowerInvariant();
-				if (i == "top") {
-					return Top;
-				}
-				else if (i == "right") {
-					return Right;
-				}
-				else if (i == "bottom") {
-					return Bottom;
-				}
-				else if (i == "left") {
-					return Left;
-				}
-				else {
-					throw new FormatException("Unknown margin: \"" + i + "\"");
-				}
-			}
-			set {
-				i = i.ToLowerInvariant();
-				if (i == "top") {
-					Top = value;
-				}
-				else if (i == "right") {
-					Right = value;
-				}
-				else if (i == "bottom") {
-					Bottom = value;
-				}
-				else if (i == "left") {
-					Left = value;
-				}
-				else {
-					throw new FormatException("Unknown margin: \"" + i + "\"");
-				}
-			}
-		}
-		*/
-
 		private static readonly Regex arrayPattern = new Regex(@"^(?:[\-\+]?[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:\s*\,\s*(?:[\-\+]?[0-9]+(?:\.[0-9]*)?|\.[0-9]+))*$");
 		private static readonly Regex dictPattern = new Regex(@"^\{(?<match>[^\}]*)\}$");
 

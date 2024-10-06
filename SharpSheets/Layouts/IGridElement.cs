@@ -24,16 +24,6 @@ namespace SharpSheets.Layouts {
 
 		IReadOnlyList<IGridElement> Children { get; } // TODO If these are here, why do some of the methods below take a Children argument separately? (There may be a reason, I just can't remember)
 
-		/*
-		Dimension? GetSize(ISharpCanvas canvas);
-		Position? GetPosition(ISharpCanvas canvas);
-		Margins GetMargins(ISharpCanvas canvas);
-
-		//IList<IGridElement> GetChildElements(ISharpCanvas canvas);
-		Layout GetLayout(ISharpCanvas canvas);
-		float GetGutter(ISharpCanvas canvas);
-		*/
-
 		// The areas for both of these methods have already had their margins adjusted
 		/// <summary></summary>
 		/// <param name="graphicsState"></param>
@@ -58,7 +48,6 @@ namespace SharpSheets.Layouts {
 		}
 	}
 
-	//public enum Axis : byte { ROWS, COLUMNS };
 	/// <summary>
 	/// An enum to indicate the direction of arrangement for element contents, either vertically (rows) or horizontally (columns).
 	/// </summary>
@@ -70,18 +59,6 @@ namespace SharpSheets.Layouts {
 	}
 
 	public static class GridElementUtils {
-
-		/*
-		public static bool IsAutoSize(this IGridElement element) {
-			Dimension? elementSize = element.Size;
-			return elementSize.HasValue && elementSize.Value.Auto;
-		}
-
-		public static bool IsInset(this IGridElement element) {
-			//return !element.Size.HasValue && element.Position.HasValue;
-			return element.Position.HasValue;
-		}
-		*/
 
 		// TODO What exactly does availableSpace mean here?
 		/// <summary></summary>

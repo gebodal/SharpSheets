@@ -93,29 +93,8 @@ namespace SharpSheets.Fonts {
 
 			FontPath[] normalizedParts = fontStr.Select(p => Parse(p, sourceDir)).ToArray();
 
-			/*
-			if (normalizedParts.Where(p => p != null).Count() == 0 && parts.Length == 1) {
-				// This is just a single font family name
-				return FontPathUtils.FindFontFamily(fontStr);
-			}
-			*/
-
 			return FromArray(normalizedParts);
 		}
-
-		/*
-		/// <summary></summary>
-		/// <exception cref="FormatException"></exception>
-		public static FontPathGrouping1 MakeFrom(string[] fonts, string sourceDir) {
-			if (fonts.Length == 0) {
-				throw new FormatException("No fonts provided.");
-			}
-
-			FontPath[] normalized = fonts.Select(f => Parse(f, sourceDir)).ToArray();
-
-			return FromArray(normalized);
-		}
-		*/
 
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>

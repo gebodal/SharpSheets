@@ -40,21 +40,6 @@ namespace SharpSheets.Fonts {
 			return GetFontOutlines(font.Path);
 		}
 
-		/*
-		public static PdfGlyphFont GetPdfFont(FontPath? font, TextFormat format) {
-			if (font is null) {
-				return defaultFonts[format];
-			}
-			else {
-				if (!knownFonts.ContainsKey(font)) {
-					PdfGlyphFont pdfFont = CreateFont(font);
-					knownFonts.Add(font, pdfFont);
-				}
-				return knownFonts[font];
-			}
-		}
-		*/
-
 		public static PdfGlyphFont GetPdfFont(FontSettingGrouping fonts, TextFormat format) {
 			if (fonts is null) {
 				return defaultFonts[format];
@@ -160,11 +145,6 @@ namespace SharpSheets.Fonts {
 			Dictionary<TextFormat, TrueTypeFontFileOutlines>  defaultFontOutlinesDict = new Dictionary<TextFormat, TrueTypeFontFileOutlines>();
 			defaultFontOutlines = defaultFontOutlinesDict;
 
-			//defaultFonts.SetFont(TextFormat.REGULAR, PdfStandardFonts.Helvetica);
-			//defaultFonts.SetFont(TextFormat.BOLD, PdfStandardFonts.HelveticaBold);
-			//defaultFonts.SetFont(TextFormat.ITALIC, PdfStandardFonts.HelveticaOblique);
-			//defaultFonts.SetFont(TextFormat.BOLDITALIC, PdfStandardFonts.HelveticaBoldOblique);
-
 			foreach ((TextFormat fontFormat, string fontFileName) in defaultFontFiles) {
 
 				string resourceName = GetResourceName(assembly, fontFileName);
@@ -197,35 +177,6 @@ namespace SharpSheets.Fonts {
 		}
 
 	}
-
-	/*
-	public static class SharpGeboFonts {
-
-		private static readonly Dictionary<FontPath, PdfFont> registry = new Dictionary<FontPath, PdfFont>();
-		private static readonly Dictionary<PdfStandardFonts, PdfFont> standardRegistry = new Dictionary<PdfStandardFonts, PdfFont>();
-
-		public static PdfFont GetFont(FontPath path) {
-			if (registry.TryGetValue(path, out PdfFont? existing)) {
-				return existing;
-			}
-
-			PdfFont font = CIDFontFactory.CreateFont(path.Path);
-			registry.Add(path, font);
-			return font;
-		}
-
-		public static PdfFont GetFont(PdfStandardFonts standardFont) {
-			if (standardRegistry.TryGetValue(standardFont, out PdfFont? existing)) {
-				return existing;
-			}
-
-			PdfFont font = new PdfStandardFont(standardFont, new GeboPdf.Objects.PdfName("WinAnsiEncoding")); // TODO Encoding???
-			standardRegistry.Add(standardFont, font);
-			return font;
-		}
-
-	}
-	*/
 
 	public class PdfFontPathGrouping {
 
@@ -269,13 +220,6 @@ namespace SharpSheets.Fonts {
 			PdfGlyphFont pdfFont = FontGraphicsRegistry.GetPdfFont(origin);
 			SetFont(format, origin, pdfFont);
 		}
-
-		/*
-		public void SetFont(TextFormat format, PdfStandardFonts standardFont) {
-			PdfFont pdfFont = SharpGeboFonts.GetFont(standardFont);
-			SetFont(format, null, pdfFont);
-		}
-		*/
 
 		public void SetFont(TextFormat format, PdfGlyphFont font) {
 			SetFont(format, null, font);

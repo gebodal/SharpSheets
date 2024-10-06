@@ -55,9 +55,7 @@ namespace SharpSheets.Utilities {
 			else {
 				values = new ArrayList();
 				foreach (object nextMember in collection) {
-#pragma warning disable GJT0001 // Unhandled thrown exception from statement
 					values.Add(nextMember);
-#pragma warning restore GJT0001 // Unhandled thrown exception from statement
 				}
 			}
 

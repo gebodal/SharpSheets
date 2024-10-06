@@ -1049,7 +1049,7 @@ namespace SharpEditor.CodeHelpers {
 
 		protected override void GetAdditionalToolTipContent(CardConfigSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
 			if (constructor != null) {
-				if (constructor.FullName == CardSetConfigFactory.BackgroundConstructor1.FullName) {
+				if (constructor.FullName == CardSetConfigFactory.BackgroundConstructor.FullName) {
 					if ((constructorContext ?? Context.Empty).TraverseParents().Any(c => CardSetConfigFactory.SegmentConfigConstructors.ContainsKey(c.SimpleName))) {
 						elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSubjectEnvironments.BaseDefinitions.Concat(CardSegmentEnvironments.BaseDefinitions).Concat(CardSegmentOutlineEnvironments.BaseDefinitions), null));
 					}
@@ -1057,7 +1057,7 @@ namespace SharpEditor.CodeHelpers {
 						elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSubjectEnvironments.BaseDefinitions.Concat(CardOutlinesEnvironments.BaseDefinitions), null));
 					}
 				}
-				else if (constructor.FullName == CardSetConfigFactory.OutlineConstructor1.FullName) {
+				else if (constructor.FullName == CardSetConfigFactory.OutlineConstructor.FullName) {
 					elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSubjectEnvironments.BaseDefinitions.Concat(CardOutlinesEnvironments.BaseDefinitions), null));
 				}
 				/*

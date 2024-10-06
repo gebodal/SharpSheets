@@ -69,82 +69,6 @@ namespace SharpSheets.Canvas {
 			return canvas;
 		}
 
-		/*
-		public static T Arc<T>(this T canvas, Rectangle rect, float startAng, float extent) where T : PdfCanvas {
-			canvas.Arc(rect.Left, rect.Bottom, rect.Right, rect.Top, startAng, extent);
-			return canvas;
-		}
-		*/
-
-		/*
-		public static ISharpCanvas Arc(this ISharpCanvas canvas, float x1, float y1, float x2, float y2, float radius, bool largeArc, bool sweep, float stepSize = 0.5f) {
-			// https://math.stackexchange.com/a/1781546
-			float xa = 0.5f * (x2 - x1);
-			float ya = 0.5f * (y2 - y1);
-			float a = (float)Math.Sqrt(xa * xa + ya * ya);
-			float b = (float)Math.Sqrt(radius * radius - a * a);
-
-			float x0 = x1 + xa;
-			float y0 = y1 + ya;
-
-			float x3 = x0 + (b * ya / a);
-			float y3 = y0 - (b * xa / a);
-			float x4 = x0 - (b * ya / a);
-			float y4 = y0 + (b * xa / a);
-
-			float c1p1t = (float)Math.Atan2(y1 - y3, x1 - x3);
-			float c1p2t = (float)Math.Atan2(y2 - y3, x2 - x3);
-
-			float c2p1t = (float)Math.Atan2(y1 - y4, x1 - x4);
-			float c2p2t = (float)Math.Atan2(y2 - y4, x2 - x4);
-
-			float centreX, centreY, increment, tStart, tEnd;
-			float incrementBase = stepSize / radius; // (float)(2f * Math.PI / 500f);
-			if (largeArc && sweep) { // Red
-				centreX = x3;
-				centreY = y3;
-				increment = incrementBase;
-				tStart = c1p1t;
-				tEnd = c1p2t;
-			}
-			else if (!largeArc && !sweep) { // Orange
-				centreX = x3;
-				centreY = y3;
-				increment = -incrementBase;
-				tStart = c1p1t;
-				tEnd = c1p2t;
-			}
-			else if (!largeArc && sweep) { // Blue
-				centreX = x4;
-				centreY = y4;
-				increment = incrementBase;
-				tStart = c2p1t;
-				tEnd = c2p2t;
-			}
-			else { // largeArc && !sweep // Green
-				centreX = x4;
-				centreY = y4;
-				increment = -incrementBase;
-				tStart = c2p1t;
-				tEnd = c2p2t;
-			}
-
-			if (tStart < 0) tStart += (float)(Math.PI * 2);
-			if (tEnd < 0) tEnd += (float)(Math.PI * 2);
-
-			float t = tStart;
-			while (Math.Abs(tEnd - t) >= incrementBase) {
-				t += increment;
-				if (t < 0) t += (float)(Math.PI * 2);
-				t %= (float)(2 * Math.PI);
-				canvas.LineTo((float)(centreX + radius * Math.Cos(t)), (float)(centreY + radius * Math.Sin(t)));
-			}
-			canvas.LineTo(x2, y2);
-
-			return canvas;
-		}
-		*/
-
 		public static ISharpCanvas ArcTo(this ISharpCanvas canvas, float x2, float y2, float rx, float ry, float angle, bool largeArc, bool sweep) {
 			// https://www.w3.org/TR/SVG/implnote.html#ArcConversionEndpointToCenter
 
@@ -206,27 +130,6 @@ namespace SharpSheets.Canvas {
 			else if (sweep && dtheta < 0) {
 				dtheta += 2f * (float)Math.PI;
 			}
-
-			/*
-			float absIncrement = stepSize / ((rx + ry) / 2f);
-			float increment = Math.Sign(dtheta) * absIncrement;
-
-			float t = theta1;
-			float theta2 = theta1 + dtheta;
-			canvas.LineTo(x1, y1);
-			while (Math.Abs(theta2 - t) >= absIncrement) {
-				t += increment;
-
-				float cosT = (float)Math.Cos(t);
-				float sinT = (float)Math.Sin(t);
-
-				float x = rx * cosT * cosA - ry * sinT * sinA + cx;
-				float y = rx * cosT * sinA + ry * sinT * cosA + cy;
-
-				canvas.LineTo(x, y);
-			}
-			canvas.LineTo(x2, y2);
-			*/
 
 			List<float[]> ar = BezierArc(rx, ry, theta1, dtheta);
 			if (ar.Count == 0) {

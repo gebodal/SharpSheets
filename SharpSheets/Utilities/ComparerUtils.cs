@@ -10,7 +10,6 @@ namespace SharpSheets.Utilities {
 
 		public bool Equals(T? left, T? right) {
 			return object.ReferenceEquals(left, right); // Reference identity comparison
-			//return left == right; 
 		}
 	}
 

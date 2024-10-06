@@ -34,26 +34,10 @@ namespace SharpSheets.Cards.Card {
 		}
 
 		public void Set(T entry, int index, int count) {
-			/*
-			if (count > entries.Length) {
-				Console.WriteLine("Error");
-			}
-			else if (index >= entries[count - 1].Length) {
-				Console.WriteLine("Error");
-			}
-			*/
 			entries[count - 1][index] = entry;
 		}
 
 		public T GetValue(int index, int count) {
-			/*
-			if (count > entries.Length) {
-				Console.WriteLine("Error");
-			}
-			else if (index >= entries[count - 1].Length) {
-				Console.WriteLine("Error");
-			}
-			*/
 			T? entry = entries[count - 1][index];
 			if (entry != null) {
 				return entry;

@@ -102,27 +102,4 @@ namespace SharpSheets.Evaluations.Nodes {
 
 	public interface IEnvironmentFunction : IEnvironmentFunctionInfo, IEnvironmentFunctionEvaluator { }
 
-	/*
-	public class MyEnvironmentFunction : IEnvironmentFunction {
-
-		public EvaluationName Name { get; } = "func";
-
-		public ICollection<(EnvironmentFunctionArg[] args, bool isParams)> Args { get; } = new List<(EnvironmentFunctionArg[] args, bool isParams)> {
-			(new EnvironmentFunctionArg[] {
-				new EnvironmentFunctionArg("arg1", EvaluationType.FLOAT, "My argument description.")
-			}, false)
-		};
-
-		public string? Description { get; } = "My function description.";
-
-		public EvaluationType GetReturnType(EvaluationNode[] args) {
-			return EvaluationType.INT;
-		}
-
-		public object? Evaluate(EvaluationNode[] args) {
-			return 1;
-		}
-	}
-	*/
-
 }

@@ -11,10 +11,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace SharpSheets.Cards.CardConfigs {
 
 	public interface ICardSetConfigRegistry {
-		//string[] GetAllConfigNames();
-
 		CardSetConfig? GetSetConfig(DirectoryPath source, string path, out List<SharpParsingException> buildErrors);
-		//bool IsConfig(string path);
 	}
 
 	public static class CardSetConfigRegistry {
@@ -97,16 +94,6 @@ namespace SharpSheets.Cards.CardConfigs {
 					return null;
 				}
 			}
-
-			/*
-			public string[] GetAllNames() {
-				return values.Keys.ToArray();
-			}
-
-			public bool IsConfig(string path) {
-				return values.ContainsKey(path);
-			}
-			*/
 		}
 		#endregion
 
@@ -127,16 +114,6 @@ namespace SharpSheets.Cards.CardConfigs {
 				buildErrors = new List<SharpParsingException>();
 				return values.GetValueOrFallback(name, null);
 			}
-
-			/*
-			public string[] GetAllNames() {
-				return values.Keys.ToArray();
-			}
-			
-			public bool IsConfig(string path) {
-				return values.ContainsKey(path);
-			}
-			*/
 		}
 		#endregion
 	}

@@ -14,8 +14,6 @@ namespace SharpSheets.Widgets {
 		public static readonly float defaultLinewidth = 1f;
 		public static readonly float defaultGutter = 0f;
 		//public static readonly Dimension defaultSize = Dimension.Single;
-		//public static readonly string defaultName = "NAME";
-		//public static readonly string defaultLocalName = "NAME";
 		public static readonly Color defaultForegroundColor = Color.Black;
 		public static readonly Color defaultBackgroundColor = Color.White;
 		public static readonly Color defaultMidtoneColor = Color.Gray;
@@ -26,15 +24,11 @@ namespace SharpSheets.Widgets {
 		public readonly Color backgroundColor;
 		public readonly Color midtoneColor;
 		public readonly Color textColor;
-		//private readonly FontGrouping? fonts;
-		//private readonly FontSettingCollection fontOverrides;
 		public readonly FontSettingGrouping finalFonts;
 		public readonly float gutter;
 		public readonly IDetail? gutterStyle;
 		public readonly Dimension? size;
 		public readonly Position? position;
-		//public readonly bool isInset;
-		//public readonly bool isAutoSize;
 		public readonly Margins margins;
 		public readonly Layout layout;
 		public readonly Arrangement arrangement;
@@ -87,8 +81,6 @@ namespace SharpSheets.Widgets {
 					Color? midtone = null,
 					Color? textColor = null,
 					FontArgument? font = null,
-					//FontArguments.FontGrouping? font = null,
-					//FontArguments.FontSettingCollection? font_ = null,
 					float gutter = 0f,
 					IDetail? gutter_ = null, // gutter_
 					Dimension? _size = null,
@@ -105,7 +97,6 @@ namespace SharpSheets.Widgets {
 			this.midtoneColor = midtone ?? defaultMidtoneColor;
 			this.textColor = textColor ?? defaultTextColor;
 
-			//this.finalFonts = FontArguments.FinalFonts(font, font_);
 			this.finalFonts = font?.Fonts ?? new FontSettingGrouping();
 
 			this.gutter = gutter;
@@ -113,9 +104,6 @@ namespace SharpSheets.Widgets {
 
 			this.size = (_size == null && _position == null) ? Dimension.Single : _size;
 			this.position = _position;
-
-			//this.isInset = this.size == null && this.position != null;
-			//this.isAutoSize = this.size.HasValue && this.size?.Relative == -1f && this.size?.Absolute == 0f && this.size?.Percent == 0f;
 
 			this.margins = _margins;
 			this.layout = layout;
@@ -148,24 +136,6 @@ namespace SharpSheets.Widgets {
 			graphicsState.SetMidtoneColor(setup.midtoneColor);
 			graphicsState.SetTextColor(setup.textColor);
 
-			/*
-			if (setup.fonts != null) {
-				graphicsState.SetFonts(setup.fonts);
-			}
-			if (setup.fontOverrides?.regular != null) {
-				graphicsState.SetFont(TextFormat.REGULAR, setup.fontOverrides.regular);
-			}
-			if (setup.fontOverrides?.bold != null) {
-				graphicsState.SetFont(TextFormat.BOLD, setup.fontOverrides.bold);
-			}
-			if (setup.fontOverrides?.italic != null) {
-				graphicsState.SetFont(TextFormat.ITALIC, setup.fontOverrides.italic);
-			}
-			if (setup.fontOverrides?.bolditalic != null) {
-				graphicsState.SetFont(TextFormat.BOLDITALIC, setup.fontOverrides.bolditalic);
-			}
-			*/
-
 			if (setup.finalFonts?.Regular != null) {
 				graphicsState.SetFont(TextFormat.REGULAR, setup.finalFonts.Regular);
 			}
@@ -181,47 +151,6 @@ namespace SharpSheets.Widgets {
 
 			return graphicsState;
 		}
-
-		/*
-		private class WidgetSetupGraphicsState : ISharpGraphicsState {
-			public float DefaultLineWidth { get; }
-			public float LineWidth { get; }
-			public Color StrokeColor { get; }
-			public Color FillColor { get; }
-			public Color ForegroundColor { get; }
-			public Color BackgroundColor { get; }
-			public Color MidtoneColor { get; }
-			public Color TextColor { get; }
-			//public float TextSize { get; }
-			//public TextFormat TextFormat { get; }
-
-			public FontPathGrouping Fonts { get; }
-
-			public WidgetSetupGraphicsState(WidgetSetup setup) {
-				DefaultLineWidth = setup.linewidth;
-				LineWidth = setup.linewidth;
-				StrokeColor = setup.foregroundColor;
-				FillColor = setup.backgroundColor;
-				ForegroundColor = setup.foregroundColor;
-				BackgroundColor = setup.backgroundColor;
-				MidtoneColor = setup.midtoneColor;
-				//TextSize = setup.;
-				//TextFormat = setup.;
-
-				Fonts = setup.finalFonts;
-			}
-
-			public float GetAscent(string text, TextFormat format, float fontsize) {
-				return FontInformation.GetAscent(text, Fonts, format, fontsize);
-			}
-			public float GetDescent(string text, TextFormat format, float fontsize) {
-				return FontInformation.GetDescent(text, Fonts, format, fontsize);
-			}
-			public float GetWidth(string text, TextFormat format, float fontsize) {
-				return FontInformation.GetWidth(text, Fonts, format, fontsize);
-			}
-		}
-		*/
 
 	}
 
