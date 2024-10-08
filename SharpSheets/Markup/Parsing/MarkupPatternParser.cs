@@ -565,6 +565,8 @@ namespace SharpSheets.Markup.Parsing {
 				// Create full VariableBox, including all information from this div and canvas drawing variables
 				IVariableBox fullDrawingVariables = MarkupEnvironments.DrawingStateVariables.AppendVariables(divElement.Variables);
 
+				IVariableBox parentParseVariables = BasisEnvironment.Instance.AppendVariables(divElement.Variables);
+
 				// Begin constructing child nodes
 				foreach (XMLElement childElem in divElem.Elements) {
 					try {
@@ -600,7 +602,7 @@ namespace SharpSheets.Markup.Parsing {
 						}
 						else if (childElem.Name == "slicing") {
 							if (setup.canvasArea != null) {
-								SlicingValuesElement? slicingValuesElem = MakeSlicingValuesElement(childElem, divElement.Variables, fullDrawingVariables);
+								SlicingValuesElement? slicingValuesElem = MakeSlicingValuesElement(childElem, parentParseVariables, fullDrawingVariables);
 								if (slicingValuesElem != null) {
 									divElement.AddSlicingValues(slicingValuesElem);
 								}
@@ -611,7 +613,7 @@ namespace SharpSheets.Markup.Parsing {
 							LogVisit(childElem);
 						}
 						else if (childElem.Name == "area") {
-							AreaElement? areaElement = MakeAreaElement(childElem, divElement.Variables, fullDrawingVariables);
+							AreaElement? areaElement = MakeAreaElement(childElem, parentParseVariables, fullDrawingVariables);
 							if (areaElement != null) {
 								divElement.AddElement(areaElement);
 								LogOrigin(childElem, areaElement);
@@ -619,7 +621,7 @@ namespace SharpSheets.Markup.Parsing {
 							LogVisit(childElem);
 						}
 						else if (childElem.Name == "diagnostic") {
-							DiagnosticElement? diagnosticElement = MakeDiagnosticElement(childElem, divElement.Variables, fullDrawingVariables);
+							DiagnosticElement? diagnosticElement = MakeDiagnosticElement(childElem, parentParseVariables, fullDrawingVariables);
 							if (diagnosticElement != null) {
 								divElement.AddElement(diagnosticElement);
 								LogOrigin(childElem, diagnosticElement);
