@@ -200,6 +200,8 @@ namespace SharpSheets.Evaluations.Nodes {
 		private object? currentValue = null;
 		private bool initialized;
 
+		public bool IsEmpty { get; } = false;
+
 		public ComprehensionEnvironment(EvaluationName loopIdentifier, EvaluationType loopVariableType, IEnvironment environment) {
 			this.loopIdentifier = loopIdentifier;
 			this.loopVariableInfo = new EnvironmentVariableInfo(loopIdentifier, loopVariableType, null);

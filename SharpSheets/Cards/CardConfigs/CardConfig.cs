@@ -725,6 +725,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		public readonly DefinitionGroup definitions;
 		public readonly IVariableDefinitionBox? fallback;
 
+		public bool IsEmpty => baseDefinitions.Count == 0 && definitions.Count == 0 && (fallback is null || fallback.IsEmpty);
+
 		public VariableDefinitionBox(DefinitionGroup baseDefinitions, DefinitionGroup definitions, IVariableDefinitionBox? fallback) {
 			this.baseDefinitions = baseDefinitions;
 			this.definitions = definitions;

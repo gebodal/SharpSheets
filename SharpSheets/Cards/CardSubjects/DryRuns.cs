@@ -46,6 +46,8 @@ namespace SharpSheets.Cards.CardSubjects {
 		private readonly IVariableBox variables;
 		private readonly IVariableDefinitionBox definitions;
 
+		public bool IsEmpty => variables.IsEmpty && definitions.IsEmpty;
+
 		public DryRunEnvironment(IVariableBox variables, IVariableDefinitionBox definitions) {
 			this.variables = variables;
 			this.definitions = definitions;

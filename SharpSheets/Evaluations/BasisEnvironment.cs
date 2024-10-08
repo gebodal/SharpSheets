@@ -11,6 +11,9 @@ namespace SharpSheets.Evaluations {
 	public sealed class BasisEnvironment : IEnvironment {
 
 		public static readonly BasisEnvironment Instance = new BasisEnvironment();
+
+		public bool IsEmpty { get; } = false;
+
 		private BasisEnvironment() { }
 
 		private static readonly Dictionary<EvaluationName, (object value, EnvironmentVariableInfo info)> variables = new List<(object val, EnvironmentVariableInfo info)> {

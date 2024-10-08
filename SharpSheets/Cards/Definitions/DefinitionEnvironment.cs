@@ -22,6 +22,8 @@ namespace SharpSheets.Cards.Definitions {
 		public IReadOnlyDictionary<Definition, ContextValue<object>> ContextValues => contextValues;
 		public IReadOnlyDictionary<Definition, ContextProperty<object>> ContextProperties => propertyValues;
 
+		public bool IsEmpty => definitions.Count == 0 && contextValues.Count == 0 && contextNodes.Count == 0 && propertyValues.Count == 0 && propertyNodes.Count == 0;
+
 		private DefinitionEnvironment(
 			DefinitionGroup definitions,
 			Dictionary<Definition, ContextValue<object>>? contextValues,

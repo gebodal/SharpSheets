@@ -12,6 +12,8 @@ namespace SharpSheets.Evaluations {
 	/// But all variables and functions must have return types and function information available.
 	/// </summary>
 	public interface IVariableBox {
+		bool IsEmpty { get; }
+
 		bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo);
 		bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo);
 		bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node);
@@ -81,8 +83,10 @@ namespace SharpSheets.Evaluations {
 		private class ConcatenatedVariableBox : IVariableBox {
 			public readonly IVariableBox[] variableBoxes;
 
+			public bool IsEmpty => variableBoxes.All(b => b.IsEmpty);
+
 			public ConcatenatedVariableBox(IEnumerable<IVariableBox> variableBoxes) {
-				this.variableBoxes = variableBoxes.ToArray();
+				this.variableBoxes = variableBoxes.Where(b => !b.IsEmpty).ToArray();
 			}
 
 			public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
@@ -207,6 +211,8 @@ namespace SharpSheets.Evaluations {
 			private readonly Dictionary<EvaluationName, EnvironmentVariableInfo> variables;
 			private readonly Dictionary<EvaluationName, EvaluationNode> nodes;
 			private readonly Dictionary<EvaluationName, IEnvironmentFunctionInfo> functions;
+
+			public bool IsEmpty => variables.Count == 0 && nodes.Count == 0 && functions.Count == 0;
 
 			public SimpleVariableBox(IEnumerable<EnvironmentVariableInfo>? variables, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes, IEnumerable<IEnvironmentFunctionInfo>? functions) {
 				this.variables = variables?.ToDictionaryAllowRepeats(i => i.Name, true) ?? new Dictionary<EvaluationName, EnvironmentVariableInfo>();

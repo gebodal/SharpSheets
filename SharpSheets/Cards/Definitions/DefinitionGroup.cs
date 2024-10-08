@@ -23,6 +23,8 @@ namespace SharpSheets.Cards.Definitions {
 
 		public int Count { get { return valueDefinitions.Count + functionDefinitions.Count + (fallback?.Count ?? 0); } }
 
+		public bool IsEmpty => valueDefinitions.Count == 0 && functionDefinitions.Count == 0 && (fallback is null || fallback.IsEmpty);
+
 		public DefinitionGroup(DefinitionGroup? fallback) {
 			this.fallback = fallback;
 			valueDefinitions = new List<ValueDefinition>();

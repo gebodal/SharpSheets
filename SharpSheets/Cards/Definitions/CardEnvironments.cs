@@ -162,6 +162,8 @@ namespace SharpSheets.Cards.Definitions {
 		private class CardSegmentEnvironment : AbstractDataEnvironment {
 			private readonly CardSegment segment;
 
+			public override bool IsEmpty { get; } = false;
+
 			public CardSegmentEnvironment(CardSegment segment) {
 				this.segment = segment;
 			}

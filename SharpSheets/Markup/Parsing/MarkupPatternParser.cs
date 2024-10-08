@@ -1507,6 +1507,8 @@ namespace SharpSheets.Markup.Parsing {
 				private readonly HashSet<EvaluationName> checking;
 				private readonly Dictionary<EvaluationName, MarkupVariable> alreadyChecked;
 
+				public bool IsEmpty => variableElements.Count == 0 && existing.IsEmpty;
+
 				private XElementVariables(ParsedPatternDocument document, Dictionary<EvaluationName, XMLElement> variableElements, IVariableBox existing) {
 					this.document = document;
 					this.existing = existing.AppendVariables(MarkupEnvironments.DrawingStateVariables);

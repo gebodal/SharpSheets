@@ -105,8 +105,10 @@ namespace SharpSheets.Evaluations {
 		private class ConcatenatedEnvironment : IEnvironment {
 			public readonly IEnvironment[] environments;
 
+			public bool IsEmpty => environments.All(e => e.IsEmpty);
+
 			public ConcatenatedEnvironment(IEnumerable<IEnvironment> environments) {
-				this.environments = environments.ToArray();
+				this.environments = environments.Where(e => !e.IsEmpty).ToArray();
 			}
 
 			public bool TryGetValue(EvaluationName key, out object? value) {
@@ -275,13 +277,15 @@ namespace SharpSheets.Evaluations {
 			private readonly IReadOnlyDictionary<EvaluationName, (object? value, EnvironmentVariableInfo info)> values;
 			private readonly IReadOnlyDictionary<EvaluationName, IEnvironmentFunction> functions;
 			private readonly IReadOnlyDictionary<EvaluationName, EvaluationNode> nodes;
-			private readonly IVariableBox variables1;
+			private readonly IVariableBox variables;
+
+			public bool IsEmpty => values.Count == 0 && functions.Count == 0 && nodes.Count == 0 && variables.IsEmpty;
 
 			public SimpleEnvironment(IEnumerable<(object? value, EnvironmentVariableInfo info)>? values, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes, IEnumerable<IEnvironmentFunction>? functions, IVariableBox? variables) {
 				this.values = values?.ToDictionaryAllowRepeats(valInfo => valInfo.info.Name, true) ?? new Dictionary<EvaluationName, (object?, EnvironmentVariableInfo)>();
 				this.functions = functions?.ToDictionaryAllowRepeats(d => d.Name, true) ?? new Dictionary<EvaluationName, IEnvironmentFunction>();
 				this.nodes = nodes?.ToDictionaryAllowRepeats(true) ?? new Dictionary<EvaluationName, EvaluationNode>();
-				this.variables1 = variables ?? VariableBoxes.Empty;
+				this.variables = variables ?? VariableBoxes.Empty;
 			}
 
 			public static IEnumerable<(object? value, EnvironmentVariableInfo type)>? MakeValuesDictionary(IEnumerable<KeyValuePair<EvaluationName, object>>? values) {
@@ -310,7 +314,7 @@ namespace SharpSheets.Evaluations {
 					return true;
 				}
 				else {
-					return variables1.TryGetVariableInfo(key, out variableInfo);
+					return variables.TryGetVariableInfo(key, out variableInfo);
 				}
 			}
 
@@ -319,7 +323,7 @@ namespace SharpSheets.Evaluations {
 					return true;
 				}
 				if (!values.ContainsKey(key)) {
-					return variables1.TryGetNode(key, out node);
+					return variables.TryGetNode(key, out node);
 				}
 				else {
 					node = null;
@@ -332,7 +336,7 @@ namespace SharpSheets.Evaluations {
 					functionEvaluator = func;
 					return true;
 				}
-				else if (variables1.TryGetFunctionInfo(name, out IEnvironmentFunctionInfo? varablesFunctionInfo) && varablesFunctionInfo is IEnvironmentFunctionEvaluator variablesFunctionEvaluator) {
+				else if (variables.TryGetFunctionInfo(name, out IEnvironmentFunctionInfo? varablesFunctionInfo) && varablesFunctionInfo is IEnvironmentFunctionEvaluator variablesFunctionEvaluator) {
 					functionEvaluator = variablesFunctionEvaluator;
 					return true;
 				}
@@ -347,7 +351,7 @@ namespace SharpSheets.Evaluations {
 					functionInfo = func;
 					return true;
 				}
-				else if(variables1.TryGetFunctionInfo(name, out IEnvironmentFunctionInfo? varablesFunctionInfo)) {
+				else if(variables.TryGetFunctionInfo(name, out IEnvironmentFunctionInfo? varablesFunctionInfo)) {
 					functionInfo = varablesFunctionInfo;
 					return true;
 				}
@@ -358,11 +362,11 @@ namespace SharpSheets.Evaluations {
 			}
 
 			public IEnumerable<EnvironmentVariableInfo> GetVariables() {
-				return values.Values.Select(e => e.info).Concat(variables1.GetVariables()).Distinct();
+				return values.Values.Select(e => e.info).Concat(variables.GetVariables()).Distinct();
 			}
 
 			public IEnumerable<IEnvironmentFunctionInfo> GetFunctionInfos() {
-				return functions.Values.Concat(variables1.GetFunctionInfos()).DistinctBy(f => f.Name);
+				return functions.Values.Concat(variables.GetFunctionInfos()).DistinctBy(f => f.Name);
 			}
 
 		}
@@ -373,6 +377,7 @@ namespace SharpSheets.Evaluations {
 
 		public AbstractDataEnvironment() { }
 
+		public abstract bool IsEmpty { get; }
 		public abstract bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo);
 		public abstract bool TryGetValue(EvaluationName key, out object? value);
 		public abstract IEnumerable<EnvironmentVariableInfo> GetVariables();
