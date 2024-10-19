@@ -151,6 +151,12 @@ def name|alias1: int /// A description of "name"
 
 This description will be displayed in the documentation, and when the user is writing in the card subject file.
 
+Finally, for definitions which __must__ have a user-provided value, you may specify an "example" value, which will not be used as a default, but will be used to auto-fill the value when creating a blank card subject template. This is included by adding an at-sign, `@`, followed by the example value, after the definition type but before any description. For example:
+
+```CardConfig
+def name|alias: int @ 10 /// Description.
+```
+
 
 #### Definition Types
 

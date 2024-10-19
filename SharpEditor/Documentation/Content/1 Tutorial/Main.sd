@@ -280,7 +280,7 @@ A few other widgets it's helpful to know about are: [text](widget::Text), [repea
 
 It is also worth noting that some widgets, such as [repeat](widget::Repeat), can have __named children__. This means that a child "widget" of that parent will have a specific name, and will be utilised in a special way when that parent is drawn.
 
-These child "widgets" will always be interpreted as [div](widget::Div) widgets, and can have children as normal. Usually their `size` property is ignored, but this need not be the case.
+You can specify a named child by using its name like a widget name in the configuration, prefixed with an ampersand, `&`.
 
 For example, there is no widget type called "content", but [repeat](widget::Repeat) uses the following syntax:
 
@@ -288,10 +288,12 @@ For example, there is no widget type called "content", but [repeat](widget::Repe
 repeat:
 	rows: 3
 	columns: 2
-	content:
+	&content:
 		field:
 			fontsize: 6
 ```
+
+These child "widgets" will always be interpreted as [div](widget::Div) widgets, and can have children as normal. Usually their `size` property is ignored, but this need not be the case.
 
 
 ## Shapes
@@ -385,6 +387,14 @@ The default style is [Named](Shape::Named), which draws the title inside the sha
 In some circumstances, a box, titled box, or box and title style may be specified. Each of these arrangements allows for a remaining area, and the possibility of calculating the full area based on content for auto-sizing. In such cases, the shape will be requested as a "Container".
 
 If a titled box is provided as the main shape, then any title style will be ignored. However, if a box is specified, the title style will be applied to it if a name property has been specified (this property can be inherited). If no title is desired, then the [Untitled](Shape::Untitled) title style should be used.
+
+### Entried Shapes
+
+[Entried Shapes](Shapes/Entried Shapes) allow for a variable number of areas within their outline, which can be variably sized and positioned, depending on the design. The areas are referred to as "entry1", "entry2", and so on -- an entried shape can have any number of entry areas, depending on design and user specifications. Note that a given entried shape may have a fixed number of entry areas.
+
+Entried shapes cannot infer their full area from their contents.
+
+The default style is the [SimpleEntried](Shape::SimpleEntried) shape, which draws a simple rectangular outline around the shape area, and separates the entry areas with horizontal lines.
 
 ### Bars
 

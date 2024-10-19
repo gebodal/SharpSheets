@@ -18,6 +18,16 @@ text: This text is in _italics_.
 text: And this text is in _*bold italics*_.
 ```
 
+## Text Parsing
+
+You can include more than just standard English letters in SharpSheets files and text properties and entries -- the files themselves are encoded using UTF-8 by default (if you're not familiar with this, don't worry, it's not generally important). However, for ease of writing and use, you can include any character using its Unicode codepoint.
+
+You can include any 4-byte Unicode codepoint (one which can be represented in 4 hexadecimal digits) by prepending the 4-digit hex code with `\\u` (with leading zeros if necessary). So, for example, if you wanted the Greek letter Omega, you can include it using it's codepoint 0x03A9 by writing `\\u03A9`. If the code point is in the Unicode supplementary planes (i.e. has a value larger than 0xFFFF), then you can use its 8-digit hex code prepended with `\\U`, e.g. to use 0x1D161 for the semiquaver (sixteenth note), you would write `\\U0001D161` (the leading zeros are required, to make up to the full 8 hexadecimal digits). Note that characters will only be displayed properly if the current font includes glyphs for them.
+
+Sequences of multiple unescaped hyphen characters (`-`, 0x2D) will be converted to en-dash and em-dash characters. Two hyphens, `--`, will be replaced with an en-dash, and three hyphens, `---`, will be replaced with an em-dash.
+
+Additionally, the escape sequences `\\n` and `\\t` are available for the line feed (newline) and tab characters, respectively. Newline characters will be interpeted as expected in many situations within SharpSheets, however SharpSheets will not utilise tab characters in most instances.
+
 ## Fonts
 
 Each text format will have a particular font assigned to it at each point in the configuration or card configuration file (fonts cannot be specified in markup or card subject files). These assigned fonts can be changed for each widget using the `font` property. You can either assign a font family to be used for all formats using `font` directly, assign a list of fonts to `font`, or assign each format individually using `font.regular`, `font.bold`, `font.italic`, and `font.bolditalic`.
@@ -31,9 +41,71 @@ font: Times New Roman, Courier Bold
 
 When mixing font family and individual format assignment, the family will be used as a fallback, and any specific formats will overwrite the family fonts. It is possible that a font family does not have a font for each possible format, in which case SharpSheets will fall back on the Regular font, if available.
 
+### Font Tags
+
+You can specify language, script, and feature tags for OpenType fonts to control their behaviour more precisely. This is done by specifying a secondary `tags` feature for a given specified font. This can be specified at the family or individual font level, like so:
+
+```
+# For Latin script with English language features,
+# with the kerning feature enabled and default ligatures
+# disabled, set for all fonts.
+font.tags: {script: latn, langsys: ENG, kern, !liga}
+
+# For Latin script with Welsh language features,
+# with the kerning, standard ligature, and discretionary
+# ligatures features enabled, set for the bold font.
+font.bold.tags: {script: latn, langsys: WEL, kern, liga, dlig}
+```
+
+The syntax for font tags is as follows: The entire set of tags must be inside curly braces, `{}`, with comma-separated elements inside. The script (`script`) and language system (`langsys`) tags use a `key: value` syntax, where the value is a valid tag of the appropriate kind. The feature tags are specified in the manner of boolean flags, with `tag` indicating the feature is enabled, and `!tag` indicating a disabled feature.
+
+Note that all OpenType tags are 4 characters in length, but this sometimes includes trailing whitespace. If a tag shorted than 4 characters is provided, it will be automatically padded to 4 characters using spaces (and so you do not have to worry about including trailing spaces).
+
+A script must be specified for OpenType features, and the default is "Latin" (`latn`) if no script tag is provided. Language system tags are not required, but can be specified if desired, and supported by the font.
+
+The following OpenType features are enabled by default, but may be disabled is desired (note that this may produce undesireable behaviour if a standard feature is disabled for a font, but we're not going to stop you -- you can generally disable `liga` and `kern` without issue, however):
+
+```unknown
+ccmp
+curs
+locl
+mark
+mkmk
+calt
+clig
+cpsp
+liga
+opbd
+rand
+kern
+```
+
+You can find a list of the script, language system, and feature tags support by each font on the font documentation page.
+
 ### Font Files
 
-SharpSheets will attempt to read font files from your system, and populate a list of available fonts. The format of each of these fonts will be inferred, and they will be grouped into font families. However, as this process relies on the data provided by the font files themselves, this information cannot always be determined.
+SharpSheets will attempt to read font files from your system, and populate a list of available fonts. The format (regular, bold, italic, or bold-italic) of each of these fonts will be inferred, and they will be grouped into font families. However, as this process relies on the data provided by the font files themselves, this information cannot always be determined accurately.
+
+SharpSheets will search the following locations for font files:
+
+```unknown
+Windows:
+	Windows\\Fonts
+	(LocalAppData)\\Microsoft\\Windows\\Fonts
+
+Mac:
+	/System/Library/Fonts
+	/Library/Fonts
+	$HOME/Library/Fonts
+
+Linux:
+	/usr/share/fonts
+	/usr/local/share/fonts
+	$HOME/.local/share/fonts
+	$HOME/.fonts
+```
+
+In addition, SharpSheets will also examine the templates directory for any font files, and include these in the list of available fonts. In all directories searched, font files will be identified using their extension. The following extensions are considered: `.ttf`, `.ttc`, `.otf`, `.otc`, case insensitive.
 
 Each font file will be read, and each font saved as an individual font (with its family and face name, e.g. as "Times New Roman Regular"), and an attempt will be made to assign the font to a family, which will be saved under the family name (e.g. "Times New Roman"). If you assign a font family to an individual format, the Regular font will be used, if available (otherwise this will produce an error). When in doubt, use the more specific version of a font name. Assigning a single font face as a font family will simply assign the font as the Regular format.
 

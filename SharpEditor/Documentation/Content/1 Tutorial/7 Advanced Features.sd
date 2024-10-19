@@ -1,0 +1,66 @@
+﻿# Advanced Features
+
+## Expressions
+
+You can write mathematical expressions in your configuration files that will be evaluated when the file is parsed. These are most useful when combined with variable data, such as from `foreach` properties (see below), but can also be used to compute values rather than specify them manually, if preferable.
+
+You can read more about expressions [here](Tutorial/Expressions).
+
+You can include these expressions in the values of properties and entries for widget elements. To do so, either prefix a variable name with a dollar-sign, `$`, to include it directly, or use dollar-sign-prefixed curly braces, `${}`, to include the result of a full expression.
+
+Note: Values will be converted into a string representation, and than re-parsed as input data when the document content is constructed. Mostly this should not affect the use of expressions in your configurations, but it can cause the occasional edge-case.
+
+For example, if you have a string variable called `myvar` available, then you could include it as follows:
+
+```
+property: $myvar
+otherproperty: The variable contains ${len(myvar)} characters.
+```
+
+## Document Structure Controls
+
+### For Each
+
+SharpSheets configuration files also allow for repeating widgets within the document structure, in a more sophisticated way than simply using the [repeat](widget::Repeat) widget. You can do this by specifying a `foreach` property on any widget (not named widgets, but it works on [pages](widget::Page)!).
+
+The `foreach` property must be structured as follows:
+
+```
+section:
+	foreach: loopVar in collection
+```
+
+where `loopVar` is the name for the loop variable, and `collection` is an expression which evaluates to an array or tuple. You can read more about expressions [here](Tutorial/Expressions).
+
+The widget will then be repeated once for each element in the `collection` expression, as if it had been copy-pasted into the configuration file that many times. The widget along with all its children will be repeated in this way -- i.e. this is a "deep copy".
+
+The loop variable will be available for any property of the widget and its children. This allows you to modify the repeated elements. For example, if you want three sections titled "One", "Two", and "Three", that otherwise share all the same look, then you could do that like so:
+
+```
+section:
+	foreach: sectionTitle in array("One", "Two", "Three")
+	name: $sectionTitle
+	# ... other contents here
+```
+
+In this way, you can reuse parts of the configuration for multiple elements, without having to specify the whole thing repeatedly.
+
+
+### Condition
+
+You can also use variables from `foreach` properties to conditionally exclude certain elements of the configuration. For example, if you want to repeat __almost__ all of an element multiple times, you can simply turn off the parts you don't want for some of the repeats.
+
+This is done using a `condition` property, whose value will be an expression which evaluated to a boolean (i.e. true of false). This can make use of any variable or function currently defined.
+
+For example, if you wish to include a text note in the first of a sequence of sections, you could exclude it from the rest using something like this:
+
+```
+section:
+	foreach: sectionTitle in array("One", "Two", "Three")
+	name: $sectionTitle
+	# ... other contents here
+	text:
+		condition: $sectionTitle == "One"
+		fontsize: 10
+		- This is the first element.
+```

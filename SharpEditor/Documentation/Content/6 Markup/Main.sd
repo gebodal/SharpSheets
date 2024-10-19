@@ -460,6 +460,12 @@ Titled Box patterns (`titledbox`) must contain a `<area name="remaining">` eleme
 
 Titled Box patterns also make available the following variables: `aspect`, which obeys the same rules as for the box pattern; `name`, which contains a string with the name specified for this shape in the configuration file (note that this string may contain newline characters); `parts`, which contains a string array, which corresponds to the value stored in `name` split on newline characters, such that each element of this array is an individual line of the full name specified in the configuration file; `format`, which contains a [TextFormat](enum::TextFormat) enum value for the shape, as specified in the configuration file (this is intended to be used as the text format for the shape title); and `fontsize`, which contains a floating point number, expressed in points, for the font size of this shape as specified in the configuration file (this is intended to be used as the font size for the shape title).
 
+### Entried Shape
+
+Entried Shape patterns (`entriedshape`) must contain at least one numbered "entry" area element, starting with an `<area name="entry1">`. The pattern can contain as many entry areas as desired, including a variable number, but these should be sequentially numbered, as in: "entry1", "entry2", "entry3", etc.
+
+Entried Shape patterns also make available an `aspect` variable, which obeys the same rules as for the box patterns.
+
 ### Bar
 
 Bar patterns (`bar`) must contain a `<area name="remaining">` element and a `<area name="label">` element. The remaining area of a bar is not expected to be reversible, and hence this is not considered for bar patterns.
