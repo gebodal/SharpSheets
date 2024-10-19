@@ -28,6 +28,8 @@ Sequences of multiple unescaped hyphen characters (`-`, 0x2D) will be converted 
 
 Additionally, the escape sequences `\\n` and `\\t` are available for the line feed (newline) and tab characters, respectively. Newline characters will be interpeted as expected in many situations within SharpSheets, however SharpSheets will not utilise tab characters in most instances.
 
+You can also use the escape sequence `\\0` to indicate "nothing". This escape sequence will add no characters to the string value, but will be recognised as a valid value when parsing SharpSheets configuration files, which is sometimes useful. __Note for programmers:__ This does not insert a null character (ASCII 0x0), and will not terminate the string.
+
 ## Fonts
 
 Each text format will have a particular font assigned to it at each point in the configuration or card configuration file (fonts cannot be specified in markup or card subject files). These assigned fonts can be changed for each widget using the `font` property. You can either assign a font family to be used for all formats using `font` directly, assign a list of fonts to `font`, or assign each format individually using `font.regular`, `font.bold`, `font.italic`, and `font.bolditalic`.

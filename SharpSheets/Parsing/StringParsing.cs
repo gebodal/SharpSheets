@@ -25,11 +25,11 @@ namespace SharpSheets.Parsing {
 					if (raw[i] == 'n') {
 						output.Append('\n');
 					}
-					else if(raw[i] == 't') {
+					else if (raw[i] == 't') {
 						output.Append('\t');
 					}
 					else if (raw[i] == 'u') {
-						if(i+4 >= raw.Length) {
+						if (i + 4 >= raw.Length) {
 							throw new FormatException("Incomplete Unicode code point value.");
 						}
 
@@ -39,7 +39,7 @@ namespace SharpSheets.Parsing {
 
 						i += 4;
 					}
-					else if(raw[i] == 'U') {
+					else if (raw[i] == 'U') {
 						if (i + 8 >= raw.Length) {
 							throw new FormatException("Incomplete Unicode code point value.");
 						}
@@ -50,7 +50,7 @@ namespace SharpSheets.Parsing {
 
 						i += 8;
 					}
-					else {
+					else if (raw[i] != '0') { // Use "\0" as a "nothing" escape sequence
 						output.Append(raw[i]);
 					}
 					escaped = false;
@@ -277,7 +277,7 @@ namespace SharpSheets.Parsing {
 
 						i += 8;
 					}
-					else {
+					else if (raw[i] != '0') { // Use "\0" as a "nothing" escape sequence
 						AddChar(raw[i]);
 					}
 
