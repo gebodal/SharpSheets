@@ -92,6 +92,9 @@ namespace SharpEditor.CodeHelpers {
 
 		public static Inline GetArgumentNameInline(ArgumentDetails argument) {
 			string name = argument.Name;
+			if (SharpValueHandler.IsNamedChild(argument.Type)) {
+				name = "&" + name;
+			}
 			if(argument.Implied is not null) {
 				name += "." + argument.Implied;
 			}

@@ -72,7 +72,7 @@ namespace SharpEditor.DataManagers {
 				return ("(child) " + GetTypeName(childType)).Replace(' ', NO_BREAK_SPACE);
 			}
 			*/
-			else if (type == typeof(ChildHolder)) {
+			else if (IsNamedChild(type)) {
 				return "(child) Div".Replace(' ', NO_BREAK_SPACE); // TODO Need better name
 			}
 			else if (type == typeof(IContainerShape)) {
@@ -166,6 +166,13 @@ namespace SharpEditor.DataManagers {
 
 		public static string GetTypeName(EvaluationType type) {
 			return GetTypeName(type.DisplayType); // TODO Is this sufficient?
+		}
+
+		public static bool IsNamedChild(Type type) {
+			return type == typeof(ChildHolder);
+		}
+		public static bool IsNamedChild(ArgumentType type) {
+			return IsNamedChild(type.DisplayType);
 		}
 
 		private static string GetArrayTypeName(Type type, Func<Type, string> typeNameGetter) {
