@@ -129,21 +129,21 @@ namespace SharpSheets.Utilities {
 				throw new ArgumentException("Provided type must be a raw generic type.");
 			}
 
-			Console.WriteLine($"TryGetGenericArguments({type}, {genericType})");
+			//Console.WriteLine($"TryGetGenericArguments({type}, {genericType})");
 
 			Type? genericTypeDefinition = null;
 
 			if (genericType.IsInterface) {
 				try {
-					Console.WriteLine("Try get interface type");
+					//Console.WriteLine("Try get interface type");
 					genericTypeDefinition = type.GetInterfacesOrSelf().FirstOrDefault(i => i.TryGetGenericTypeDefinition() == genericType);
-					Console.WriteLine($"Got interface type: {genericTypeDefinition}");
+					//Console.WriteLine($"Got interface type: {genericTypeDefinition}");
 				}
 				catch (TargetInvocationException) { }
 			}
 			else if (type.TryGetGenericTypeDefinition() is Type genericTypeDef) {
 				genericTypeDefinition = genericTypeDef;
-				Console.WriteLine($"Got generic type: {genericTypeDefinition}");
+				//Console.WriteLine($"Got generic type: {genericTypeDefinition}");
 			}
 
 			if (genericTypeDefinition != null) {
