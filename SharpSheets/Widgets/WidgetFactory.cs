@@ -25,7 +25,7 @@ namespace SharpSheets.Widgets {
 		private readonly IMarkupRegistry customWidgets;
 		private readonly ShapeFactory? shapeFactory;
 
-		private Dictionary<object, IDocumentEntity>? origins = null;
+		private ParseOrigins<IDocumentEntity>? origins = null;
 
 		public WidgetFactory(IMarkupRegistry customWidgets, ShapeFactory? shapeFactory) {
 			this.customWidgets = customWidgets;
@@ -197,7 +197,7 @@ namespace SharpSheets.Widgets {
 			}
 
 			// origins will be null in the base class, but can be made not-null in child classes
-			if (this.origins != null) { this.origins.Add(widget, context); }
+			if (this.origins is not null) { this.origins.Add(widget, context); }
 
 			foreach (IContext child in context.Children) {
 				widget.AddChild(MakeWidget(child.SimpleName, child, source, out SharpParsingException[] childErrors, null));
@@ -429,12 +429,12 @@ namespace SharpSheets.Widgets {
 		#region Origin-Tracking
 
 		private class OriginTrackingFactory : WidgetFactory {
-			public OriginTrackingFactory(WidgetFactory factory, Dictionary<object, IDocumentEntity> origins) : base(factory.customWidgets, factory.shapeFactory) {
+			public OriginTrackingFactory(WidgetFactory factory, ParseOrigins<IDocumentEntity> origins) : base(factory.customWidgets, factory.shapeFactory) {
 				this.origins = origins;
 			}
 		}
 
-		public WidgetFactory TrackOrigins(Dictionary<object, IDocumentEntity> origins) {
+		public WidgetFactory TrackOrigins(ParseOrigins<IDocumentEntity> origins) {
 			return new OriginTrackingFactory(this, origins);
 		}
 

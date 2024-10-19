@@ -394,11 +394,11 @@ namespace SharpEditor.Parsing.ParsingState {
 		private readonly CardSubjectParsingState parsingState;
 
 		private readonly Dictionary<IDocumentEntity, object> resulting; // Map context to drawn objects
-		private readonly IReadOnlyDictionary<object, IDocumentEntity> entities; // Map drawn objects to contexts
+		private readonly IReadOnlyParseOrigins<IDocumentEntity> entities; // Map drawn objects to contexts
 		private readonly Dictionary<string, IDocumentEntity> names;
 
 		public object this[IDocumentEntity entity] { get { return resulting[entity]; } }
-		public IDocumentEntity this[object result] { get { return entities[result]; } }
+		public IDocumentEntity this[object result] { get { return entities.GetOrigin(result); } }
 
 		private static readonly Dictionary<Type, int> precedence = new Dictionary<Type, int> {
 			{ typeof(CardSubject), 3 },
@@ -406,14 +406,14 @@ namespace SharpEditor.Parsing.ParsingState {
 			{ typeof(CardFeature), 1 }
 		};
 
-		public SubjectOrigins(CardSubjectParsingState parsingState, IReadOnlyDictionary<object, IDocumentEntity>? origins) {
+		public SubjectOrigins(CardSubjectParsingState parsingState, IReadOnlyParseOrigins<IDocumentEntity>? origins) {
 			this.parsingState = parsingState;
-			this.entities = origins ?? new Dictionary<object, IDocumentEntity>();
+			this.entities = origins ?? new ParseOrigins<IDocumentEntity>();
 			//this.resulting = origins.ToDictionary(kv => kv.Value, kv => kv.Key, new IdentityEqualityComparer<IDocumentEntity>());
 
 			this.resulting = new Dictionary<IDocumentEntity, object>(new IdentityEqualityComparer<IDocumentEntity>());
 			this.names = new Dictionary<string, IDocumentEntity>();
-			foreach (KeyValuePair<object, IDocumentEntity> entry in this.entities) {
+			foreach (KeyValuePair<object, IDocumentEntity> entry in this.entities.GetData()) {
 				if(!(resulting.TryGetValue(entry.Value, out object? existing) && existing.GetType() == typeof(DynamicCard))) {
 					this.resulting[entry.Value] = entry.Key;
 				}
@@ -431,7 +431,7 @@ namespace SharpEditor.Parsing.ParsingState {
 
 		public bool ContainsResulting(object result) {
 			if (result == null) { return false; }
-			return entities.ContainsKey(result);
+			return entities.ContainsProduct(result);
 		}
 
 		public bool ContainsEntity(IDocumentEntity entity) {
@@ -457,7 +457,7 @@ namespace SharpEditor.Parsing.ParsingState {
 		}
 
 		public IDocumentEntity? GetEntity(object result) {
-			return entities.GetValueOrFallback(result, null);
+			return entities.TryGetOrigin(result, out IDocumentEntity? origin) ? origin : null;
 		}
 
 		public IEnumerable<object> GetDrawnObjects(int offset) {

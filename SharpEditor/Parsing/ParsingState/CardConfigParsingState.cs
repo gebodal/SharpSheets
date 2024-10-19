@@ -11,6 +11,7 @@ using SharpEditor.DataManagers;
 using SharpSheets.Cards.Card;
 using SharpSheets.Cards.CardSubjects;
 using SharpSheets.Widgets;
+using System;
 
 namespace SharpEditor.Parsing.ParsingState {
 
@@ -53,7 +54,7 @@ namespace SharpEditor.Parsing.ParsingState {
 			CardConfigEditorResult? content = result.content as CardConfigEditorResult;
 			CardSetConfig = content?.Config;
 			examplesDocument = content?.Cards;
-			Origins = new ContextOrigins<CardConfigSpan>(this, result.results.rootEntity as IContext, result.results.origins?.ToDictionary(kv => kv.Key, kv => (IContext)kv.Value));
+			Origins = new ContextOrigins<CardConfigSpan>(this, result.results.rootEntity as IContext, result.results.origins?.GetData().ToDictionary(kv => kv.Key, kv => (IContext)kv.Value));
 		}
 
 		static readonly Regex expressionRegex = new Regex(@"((?<!\\)\$\{|(?<!\\|\$)\{)[^\}\:]+(:[^\}\:]+)?(?<!\\)\}");
@@ -82,12 +83,16 @@ namespace SharpEditor.Parsing.ParsingState {
 		public IVariableDefinitionBox? GetVariableDefinitionBox(IContext? context) {
 			if (context != null) {
 				foreach(IContext parentContext in context.Yield().Concat(context.TraverseParents())) {
-					object? resulting = Origins?.GetResulting(parentContext);
-					if (resulting is IHasVariableDefinitionBox hasVariableBox) {
-						return hasVariableBox.Variables;
-					}
-					if (resulting is IVariableDefinitionBox variableBox) {
-						return variableBox;
+					List<object>? resulting = Origins?.GetResulting(parentContext);
+					if (resulting is not null) {
+						foreach (object resultingObj in resulting.WhereNotNull()) {
+							if (resultingObj is IHasVariableDefinitionBox hasVariableBox) {
+								return hasVariableBox.Variables;
+							}
+							if (resultingObj is IVariableDefinitionBox variableBox) {
+								return variableBox;
+							}
+						}
 					}
 				}
 			}
@@ -153,28 +158,32 @@ namespace SharpEditor.Parsing.ParsingState {
 			this.parser = parser;
 		}
 
-		public object Parse(FilePath origin, DirectoryPath source, string config, out CompilationResult results) {
-			return ParseContent(origin, source, config, out results);
-		}
-
 		public CardConfigEditorResult ParseContent(FilePath origin, DirectoryPath source, string config, out CompilationResult results) {
 			CardSetConfig? cardSetConfig = parser.ParseContent(origin, source, config, out CompilationResult configCompResults);
 			CardCollection? examplesDocument;
 
+			// Default values in case parse did not work or did not give proper results
+			examplesDocument = null;
+			results = configCompResults;
+
 			if (cardSetConfig != null && cardSetConfig.Examples.Count > 0) {
 
-				Dictionary<object, IDocumentEntity> origins = new Dictionary<object, IDocumentEntity>(new IdentityEqualityComparer<object>());
-				Dictionary<object, ICardConfigComponent> configOrigins = new Dictionary<object, ICardConfigComponent>(new IdentityEqualityComparer<object>());
+				ParseOrigins<IDocumentEntity> origins = new ParseOrigins<IDocumentEntity>();
+				ParseOrigins<ICardConfigComponent> configOrigins = new ParseOrigins<ICardConfigComponent>();
 				WidgetFactory trackedFactory = SharpEditorRegistries.WidgetFactoryInstance.TrackOrigins(origins);
 				examplesDocument = CardCollectionParser.MakeCollection(cardSetConfig.Examples, trackedFactory, origins, configOrigins, out _);
 
 				//Console.WriteLine($"Start number: {origins.Count}, reduced: {new HashSet<object>(origins.Values).Count}");
 
 				if (configCompResults.origins is not null) {
-					Dictionary<object, IDocumentEntity> procOrigins = new Dictionary<object, IDocumentEntity>(new IdentityEqualityComparer<object>()); // cardDrawing -> configEntry
+					/* TODO This whole thing is a mess now. Some of it isn't necessary, as far as I can tell
+					 * and the rest is too complicated and confusing. Needs refactoring/just deleting.
+					 */
+
+					ParseOrigins<IDocumentEntity> procOrigins = new ParseOrigins<IDocumentEntity>(); // cardDrawing -> configEntry
 
 					// How much of this first loop is still necessary now? (With the ICardConfigComponent tracking, that is)
-					foreach ((object drawnObj, IDocumentEntity docEntity)  in origins) { // cardRect -> cardSubject / cardWidget -> configEntry
+					foreach ((object drawnObj, IDocumentEntity docEntity) in origins.GetData()) { // cardRect -> cardSubject / cardWidget -> configEntry
 						if (docEntity is IContext context) {
 							procOrigins.Add(drawnObj, context);
 						}
@@ -190,28 +199,24 @@ namespace SharpEditor.Parsing.ParsingState {
 								configObject = feature.FeatureConfig;
 							}
 
-							if (configObject is not null && configCompResults.origins.TryGetValue(configObject, out IDocumentEntity? entity) && entity is IContext entryContext) {
+							if (configObject is not null && configCompResults.origins.TryGetOrigin(configObject, out IDocumentEntity? entity) && entity is IContext entryContext) {
 								procOrigins.Add(drawnObj, entryContext);
 							}
 						}
 					}
 
-					foreach((object drawnObj, ICardConfigComponent configComp) in configOrigins) {
-						if (configCompResults.origins.TryGetValue(configComp, out IDocumentEntity? configEntity) && configEntity is IContext configContext) {
-							procOrigins[drawnObj] = configContext;
+					foreach((object drawnObj, ICardConfigComponent configComp) in configOrigins.GetData()) {
+						if (configCompResults.origins.TryGetOrigin(configComp, out IDocumentEntity? configEntity) && configEntity is IContext configContext) {
+							procOrigins.Set(drawnObj, configContext);
 						}
+					}
+
+					foreach((object cardCompObj, IDocumentEntity cardConfigEntity) in configCompResults.origins.GetData()) {
+						procOrigins.Set(cardCompObj, cardConfigEntity);
 					}
 
 					results = configCompResults.WithOrigins(procOrigins);
 				}
-				else {
-					// Default origins			
-					results = configCompResults;
-				}
-			}
-			else {
-				examplesDocument = null;
-				results = configCompResults;
 			}
 
 			return new CardConfigEditorResult(cardSetConfig, examplesDocument);

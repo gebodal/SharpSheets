@@ -153,10 +153,10 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
-		public CardSetConfig? MakeSetConfig(string configName, IContext context, IEnumerable<ContextValue<string>> archives, FilePath origin, DirectoryPath source, out Dictionary<object, IDocumentEntity> origins, out List<SharpParsingException> errors) {
+		public CardSetConfig? MakeSetConfig(string configName, IContext context, IEnumerable<ContextValue<string>> archives, FilePath origin, DirectoryPath source, out ParseOrigins<IDocumentEntity> origins, out List<SharpParsingException> errors) {
 
 			CardSetConfig? cardSetConfig;
-			origins = new Dictionary<object, IDocumentEntity>(new IdentityEqualityComparer<object>());
+			origins = new ParseOrigins<IDocumentEntity>();
 			errors = new List<SharpParsingException>();
 
 			try {
@@ -227,8 +227,9 @@ namespace SharpSheets.Cards.CardConfigs {
 			if(cardSetConfig.cardConfigs.Count == 0) {
 				// Create an empty card config to use as fallback
 				IContext emptyCardContext = new EmptyChildContext(context, CardConfigConstructor.Name);
-				CardConfig emptyCardConfig = MakeConfig(emptyCardContext, cardSetConfig, origins, errors) ?? throw new InvalidOperationException("Failed to make backup empty card configuration.");
+				CardConfig emptyCardConfig = MakeConfig(emptyCardContext, cardSetConfig, null, errors) ?? throw new InvalidOperationException("Failed to make backup empty card configuration.");
 				cardSetConfig.cardConfigs.Add(new Conditional<CardConfig>(true, emptyCardConfig));
+				if (origins != null) { origins.Add(emptyCardConfig, context); }
 			}
 
 			// Load archives (do this at the end so CardConfig is fully initialised)
@@ -277,7 +278,7 @@ namespace SharpSheets.Cards.CardConfigs {
 		// IContext context, CardConfig cardConfig, DirectoryPath source, Dictionary<object, IDocumentEntity> origins, List<SharpParsingException> errors
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
-		private CardConfig? MakeConfig(IContext context, CardSetConfig cardSetConfig, Dictionary<object, IDocumentEntity>? origins, List<SharpParsingException> errors) {
+		private CardConfig? MakeConfig(IContext context, CardSetConfig cardSetConfig, ParseOrigins<IDocumentEntity>? origins, List<SharpParsingException> errors) {
 
 			CardConfig? cardConfig;
 
@@ -342,7 +343,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
-		private AbstractCardSegmentConfig? MakeSegment(IContext context, ICardSegmentParent parent, Dictionary<object, IDocumentEntity>? origins, List<SharpParsingException> errors) {
+		private AbstractCardSegmentConfig? MakeSegment(IContext context, ICardSegmentParent parent, ParseOrigins<IDocumentEntity>? origins, List<SharpParsingException> errors) {
 			//ConstructorInfo constructorInfo = segmentConstructorsByType[typeof(T)];
 			ConstructorInfo constructorInfo = segmentConstructorsByName.GetValueOrFallback(context.SimpleName, null) ?? throw new InvalidOperationException($"Could not find segment constructor for \"{context.SimpleName}\"");
 			Type segmentType = constructorInfo.DeclaringType ?? throw new InvalidOperationException("Could not resolve corresponding card segment constructor.");
@@ -428,7 +429,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			return cardSegment;
 		}
 
-		private CardFeatureConfig? MakeFeature(IContext context, DynamicCardSegmentConfig segmentConfig, DirectoryPath source, Dictionary<object, IDocumentEntity>? origins, List<SharpParsingException> errors) {
+		private CardFeatureConfig? MakeFeature(IContext context, DynamicCardSegmentConfig segmentConfig, DirectoryPath source, ParseOrigins<IDocumentEntity>? origins, List<SharpParsingException> errors) {
 			CardFeatureConfig? cardFeature;
 			
 			try {

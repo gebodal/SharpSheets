@@ -22,9 +22,9 @@ namespace SharpSheets.Cards.Card {
 			this.widgetFactory = widgetFactory;
 		}
 
-		public CardCollection Parse(CardSubjectDocument subjectsDocument, out SharpParsingException[] dynamicCardErrors, out Dictionary<object, IDocumentEntity> origins) {
+		public CardCollection Parse(CardSubjectDocument subjectsDocument, out SharpParsingException[] dynamicCardErrors, out ParseOrigins<IDocumentEntity> origins) {
 			List<SharpParsingException> errors = new List<SharpParsingException>();
-			origins = new Dictionary<object, IDocumentEntity>();
+			origins = new ParseOrigins<IDocumentEntity>();
 
 			List<List<DynamicCard>> cards = new List<List<DynamicCard>>();
 			foreach (CardSubjectSet subjectSet in subjectsDocument) {
@@ -45,7 +45,7 @@ namespace SharpSheets.Cards.Card {
 		public CardCollection Parse(DirectoryPath source, string description, out CompilationResult results) {
 			CardSubjectDocument subjectsDocument = subjectParser.Parse(source, description, out CompilationResult subjectResults);
 
-			CardCollection result = Parse(subjectsDocument, out SharpParsingException[] errors, out Dictionary<object, IDocumentEntity> origins);
+			CardCollection result = Parse(subjectsDocument, out SharpParsingException[] errors, out ParseOrigins<IDocumentEntity> origins);
 
 			results = new CompilationResult(
 				subjectResults.rootEntity,
@@ -60,7 +60,7 @@ namespace SharpSheets.Cards.Card {
 			return result;
 		}
 
-		public static CardCollection MakeCollection(IEnumerable<CardSubject> subjects, WidgetFactory widgetFactory, Dictionary<object, IDocumentEntity>? origins, Dictionary<object, ICardConfigComponent>? configOrigins, out SharpParsingException[] errors) {
+		public static CardCollection MakeCollection(IEnumerable<CardSubject> subjects, WidgetFactory widgetFactory, ParseOrigins<IDocumentEntity>? origins, ParseOrigins<ICardConfigComponent>? configOrigins, out SharpParsingException[] errors) {
 			List<SharpParsingException> dynamicCardErrors = new List<SharpParsingException>();
 			List<DynamicCard> cardSet = new List<DynamicCard>();
 			foreach (CardSubject subject in subjects) {

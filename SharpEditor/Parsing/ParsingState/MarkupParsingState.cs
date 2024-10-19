@@ -310,17 +310,17 @@ namespace SharpEditor.Parsing.ParsingState {
 
 		private readonly MarkupParsingState parsingState;
 
-		private readonly Dictionary<object, IDocumentEntity> entities; // Map drawn objects to document entities
+		private readonly IReadOnlyParseOrigins<IDocumentEntity> entities; // Map drawn objects to document entities
 		private readonly Dictionary<IDocumentEntity, List<object>> resulting; // Map document entities to drawn objects
 
-		public IDocumentEntity this[object result] { get { return entities[result]; } }
+		public IDocumentEntity this[object result] { get { return entities.GetOrigin(result); } }
 
-		public MarkupOrigins(MarkupParsingState parsingState, IReadOnlyDictionary<object, IDocumentEntity>? origins) {
+		public MarkupOrigins(MarkupParsingState parsingState, IReadOnlyParseOrigins<IDocumentEntity>? origins) {
 			this.parsingState = parsingState;
-			this.entities = new Dictionary<object, IDocumentEntity>(origins ?? new Dictionary<object, IDocumentEntity>(), new IdentityEqualityComparer<object>());
+			this.entities = origins ?? new ParseOrigins<IDocumentEntity>(); // new Dictionary<object, IDocumentEntity>(origins?.GetData() ?? new Dictionary<object, IDocumentEntity>(), new IdentityEqualityComparer<object>());
 
 			this.resulting = new Dictionary<IDocumentEntity, List<object>>(new IdentityEqualityComparer<IDocumentEntity>());
-			foreach (KeyValuePair<object, IDocumentEntity> entry in this.entities) {
+			foreach (KeyValuePair<object, IDocumentEntity> entry in this.entities.GetData()) {
 				if (!resulting.ContainsKey(entry.Value)) {
 					resulting[entry.Value] = new List<object>();
 				}
@@ -330,11 +330,11 @@ namespace SharpEditor.Parsing.ParsingState {
 
 		public bool ContainsResulting(object result) {
 			if (result == null) { return false; }
-			return entities.ContainsKey(result);
+			return entities.ContainsProduct(result);
 		}
 
 		public IDocumentEntity? GetEntity(object drawnObject) {
-			if (entities.TryGetValue(drawnObject, out IDocumentEntity? entity)) {
+			if (entities.TryGetOrigin(drawnObject, out IDocumentEntity? entity)) {
 				return entity;
 			}
 			else {

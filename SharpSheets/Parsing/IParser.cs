@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SharpSheets.Exceptions;
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 
 namespace SharpSheets.Parsing {
 
@@ -56,7 +57,8 @@ namespace SharpSheets.Parsing {
 
 	public class CompilationResult {
 		public readonly IDocumentEntity rootEntity;
-		public readonly IReadOnlyDictionary<object, IDocumentEntity>? origins;
+		//public readonly IReadOnlyDictionary<object, IDocumentEntity>? origins;
+		public readonly ParseOrigins<IDocumentEntity>? origins;
 		public readonly IReadOnlyList<SharpParsingException> errors;
 		//public readonly IReadOnlySet<int>? unusedLines;
 		public readonly IReadOnlySet<int>? usedLines;
@@ -66,7 +68,7 @@ namespace SharpSheets.Parsing {
 
 		public CompilationResult(
 				IDocumentEntity rootEntity,
-				IReadOnlyDictionary<object, IDocumentEntity>? origins,
+				ParseOrigins<IDocumentEntity>? origins,
 				IReadOnlyList<SharpParsingException> errors,
 				//IReadOnlySet<int>? unusedLines,
 				IReadOnlySet<int>? usedLines,
@@ -84,7 +86,7 @@ namespace SharpSheets.Parsing {
 			this.dependencies = dependencies;
 		}
 
-		public static CompilationResult CompileResult(VisitTrackingContext rootEntry, Dictionary<object, IDocumentEntity>? origins, List<SharpParsingException> parsingErrors, List<SharpParsingException> buildErrors, List<FilePath> dependencies, IEnumerable<int> knownUsedLines, IReadOnlyLineOwnership knownLineOwners) {
+		public static CompilationResult CompileResult(VisitTrackingContext rootEntry, ParseOrigins<IDocumentEntity>? origins, List<SharpParsingException> parsingErrors, List<SharpParsingException> buildErrors, List<FilePath> dependencies, IEnumerable<int> knownUsedLines, IReadOnlyLineOwnership knownLineOwners) {
 			HashSet<int> usedLines = rootEntry.GetUsedLines();
 			if (knownUsedLines != null) {
 				usedLines.UnionWith(knownUsedLines);
@@ -103,7 +105,7 @@ namespace SharpSheets.Parsing {
 			}
 
 			if(origins is not null) {
-				usedLines.UnionWith(origins.Values.Select(o => o.Location.Line));
+				usedLines.UnionWith(origins.Origins.Select(o => o.Location.Line));
 			}
 
 			//Dictionary<int, IDocumentEntity> parents = rootEntry.TraverseChildren(true).Cast<IDocumentEntity>().ToDictionary(c => c.Location.Line);
@@ -115,8 +117,49 @@ namespace SharpSheets.Parsing {
 			return new CompilationResult(rootEntry, origins, allErrors, usedLines, lineOwners, dependencies);
 		}
 
-		public CompilationResult WithOrigins(Dictionary<object, IDocumentEntity> newOrigins) {
+		public CompilationResult WithOrigins(ParseOrigins<IDocumentEntity> newOrigins) {
 			return new CompilationResult(rootEntity, newOrigins, errors, usedLines, lineOwners, dependencies);
+		}
+	}
+
+	public interface IReadOnlyParseOrigins<TOrigin> {
+		TOrigin GetOrigin(object produced);
+		bool TryGetOrigin(object produced, [MaybeNullWhen(false)] out TOrigin origin);
+		IReadOnlyDictionary<object, TOrigin> GetData();
+
+		bool ContainsProduct(object produced);
+	}
+
+	public class ParseOrigins<TOrigin> : IReadOnlyParseOrigins<TOrigin> {
+
+		private readonly Dictionary<object, TOrigin> origins;
+
+		public ParseOrigins(IEqualityComparer<object>? comparer = null) {
+			origins = new Dictionary<object, TOrigin>(comparer ?? new IdentityEqualityComparer<object>());
+		}
+
+		public void Add(object produced, TOrigin origin) {
+			origins.Add(produced, origin);
+		}
+
+		public void Set(object produced, TOrigin origin) {
+			origins[produced] = origin;
+		}
+
+		public IEnumerable<TOrigin> Origins => origins.Values;
+
+		public bool TryGetOrigin(object produced, [MaybeNullWhen(false)] out TOrigin origin) {
+			return origins.TryGetValue(produced, out origin);
+		}
+
+		public IReadOnlyDictionary<object, TOrigin> GetData() => origins;
+
+		public TOrigin GetOrigin(object produced) {
+			return origins[produced];
+		}
+
+		public bool ContainsProduct(object produced) {
+			return origins.ContainsKey(produced);
 		}
 	}
 

@@ -47,14 +47,14 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			/// <summary></summary>
 			/// <exception cref="InvalidOperationException"></exception>
-			public (CardSetConfig?, VisitTrackingContext) GenerateConfig(VisitTrackingContext trackingContext, out Dictionary<object, IDocumentEntity> origins, out List<SharpParsingException> errors) {
+			public (CardSetConfig?, VisitTrackingContext) GenerateConfig(VisitTrackingContext trackingContext, out ParseOrigins<IDocumentEntity> origins, out List<SharpParsingException> errors) {
 				
 				CardSetConfig? cardSetConfig = cardSetConfigFactory.MakeSetConfig(configName, trackingContext, archives, origin, source, out origins, out errors);
 				return (cardSetConfig, trackingContext);
 			}
 
 			public void CollectConfigurationResults(out CardSetConfig? cardSetConfig, out CompilationResult results) {
-				Dictionary<object, IDocumentEntity>? origins;
+				ParseOrigins<IDocumentEntity>? origins;
 				List<SharpParsingException> buildErrors;
 				VisitTrackingContext trackingContext = new VisitTrackingContext(rootEntry);
 				//trackingContext.RefreshVisited(); // Should be unnecessary

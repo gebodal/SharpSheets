@@ -51,7 +51,7 @@ namespace SharpSheets.Markup.Parsing {
 			private readonly HashSet<XMLNode> visitedNodes;
 			private readonly Dictionary<XMLNode, HashSet<string>> visitedAttributes;
 
-			private readonly Dictionary<object, IDocumentEntity> origins;
+			private readonly ParseOrigins<IDocumentEntity> origins;
 
 			private ParsedPatternDocument(FilePath origin, DirectoryPath source, ShapeFactory shapeFactory) {
 				this.shapeFactory = shapeFactory;
@@ -63,7 +63,7 @@ namespace SharpSheets.Markup.Parsing {
 				this.visitedNodes = new HashSet<XMLNode>();
 				this.visitedAttributes = new Dictionary<XMLNode, HashSet<string>>();
 
-				this.origins = new Dictionary<object, IDocumentEntity>(new IdentityEqualityComparer<object>());
+				this.origins = new ParseOrigins<IDocumentEntity>();
 			}
 
 			public static ParsedPatternDocument ParseDocument(string xml, FilePath origin, DirectoryPath source, ShapeFactory shapeFactory) {

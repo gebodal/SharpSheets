@@ -25,7 +25,7 @@ namespace SharpEditor.Parsing.ParsingState {
 		public override IDocumentContent? DrawableContent { get { return sheets; } }
 
 		protected override void LoadContent(ResultEntry result) {
-			Origins = new ContextOrigins<SharpConfigSpan>(this, result.results.rootEntity as IContext, result.results.origins?.ToDictionary(kv => kv.Key, kv => (IContext)kv.Value));
+			Origins = new ContextOrigins<SharpConfigSpan>(this, result.results.rootEntity as IContext, result.results.origins?.GetData().ToDictionary(kv => kv.Key, kv => (IContext)kv.Value));
 			sheets = result.content as SharpPageList;
 		}
 

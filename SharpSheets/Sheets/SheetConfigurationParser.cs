@@ -53,10 +53,10 @@ namespace SharpSheets.Sheets {
 				rootEntry.AddChild(page);
 			}
 
-			private (SharpPageList, VisitTrackingContext, IReadOnlyLineOwnership) GenerateSheets(out Dictionary<object, IDocumentEntity> origins, out List<SharpParsingException> errors) {
+			private (SharpPageList, VisitTrackingContext, IReadOnlyLineOwnership) GenerateSheets(out ParseOrigins<IDocumentEntity> origins, out List<SharpParsingException> errors) {
 				SharpPageList sharpPages = new SharpPageList();
 
-				origins = new Dictionary<object, IDocumentEntity>(new IdentityEqualityComparer<object>());
+				origins = new ParseOrigins<IDocumentEntity>();
 				errors = new List<SharpParsingException>();
 
 				WidgetFactory originTrackingFactory = widgetFactory.TrackOrigins(origins);
@@ -79,7 +79,7 @@ namespace SharpSheets.Sheets {
 			}
 
 			public void CollectConfigurationResults(out SharpPageList sheets, out CompilationResult results) {
-				(sheets, VisitTrackingContext trackingContext, IReadOnlyLineOwnership knownLineOwners) = GenerateSheets(out Dictionary<object, IDocumentEntity> origins, out List<SharpParsingException> buildErrors);
+				(sheets, VisitTrackingContext trackingContext, IReadOnlyLineOwnership knownLineOwners) = GenerateSheets(out ParseOrigins<IDocumentEntity> origins, out List<SharpParsingException> buildErrors);
 				results = CompilationResult.CompileResult(trackingContext, origins, parsingExceptions, buildErrors, new List<FilePath>(), Enumerable.Empty<int>(), knownLineOwners);
 			}
 		}
