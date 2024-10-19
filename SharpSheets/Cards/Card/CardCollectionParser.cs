@@ -75,10 +75,6 @@ namespace SharpSheets.Cards.Card {
 		public CardCollection ParseContent(FilePath origin, DirectoryPath source, string description, out CompilationResult results) {
 			return Parse(source, description, out results);
 		}
-
-		public object Parse(FilePath origin, DirectoryPath source, string description, out CompilationResult results) {
-			return Parse(source, description, out results);
-		}
 	}
 
 }

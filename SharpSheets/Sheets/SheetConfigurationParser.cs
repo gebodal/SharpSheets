@@ -166,9 +166,5 @@ namespace SharpSheets.Sheets {
 			parsed.CollectConfigurationResults(out SharpPageList sheets, out results);
 			return sheets;
 		}
-
-		object IParser.Parse(FilePath origin, DirectoryPath source, string config, out CompilationResult results) {
-			return ParseContent(origin, source, config, out results);
-		}
 	}
 }

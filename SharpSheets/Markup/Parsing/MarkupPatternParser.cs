@@ -38,10 +38,6 @@ namespace SharpSheets.Markup.Parsing {
 			return parsedDocument.patterns;
 		}
 
-		public object Parse(FilePath origin, DirectoryPath source, string xml, out CompilationResult results) {
-			return ParseContent(origin, source, xml, out results);
-		}
-
 		private class ParsedPatternDocument {
 
 			public readonly ShapeFactory shapeFactory;

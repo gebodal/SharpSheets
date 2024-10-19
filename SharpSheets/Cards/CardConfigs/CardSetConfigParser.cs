@@ -144,10 +144,6 @@ namespace SharpSheets.Cards.CardConfigs {
 			parsed.CollectConfigurationResults(out CardSetConfig? cardSetConfig, out results);
 			return cardSetConfig;
 		}
-
-		object? IParser.Parse(FilePath origin, DirectoryPath source, string config, out CompilationResult results) {
-			return ParseContent(origin, source, config, out results);
-		}
 	}
 
 }

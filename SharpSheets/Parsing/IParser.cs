@@ -30,6 +30,10 @@ namespace SharpSheets.Parsing {
 		/// <exception cref="FileNotFoundException"></exception>
 		/// <exception cref="DirectoryNotFoundException"></exception>
 		T? ParseContent(FilePath origin, DirectoryPath source, string config, out CompilationResult results);
+
+		object? IParser.Parse(FilePath origin, DirectoryPath source, string config, out CompilationResult results) {
+			return ParseContent(origin, source, config, out results);
+		}
 	}
 
 	public static class ConfigurationParserUtils {
