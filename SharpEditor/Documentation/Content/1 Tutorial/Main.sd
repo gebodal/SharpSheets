@@ -1,10 +1,10 @@
 # Tutorial
 
-Welcome to the SharpSheets tutorial! Below you will find a Quick Start guide to get you used to the basic SharpSheets configuration file. 
+Welcome to the SharpSheets tutorial! Below you will find a guide to get you used to the basic SharpSheets configuration file. The structure of this file, and the concepts discussed, carry over to the other SharpSheets configuration files, and so this is a great place to start to understand how things work.
 
-# Quick Start
+# Sharp Configuration Files
 
-Here we will run through the basic usage of the SharpSheets configuration files. These files will allow you to create form-fillable PDF documents in your desired layout, which can be styled in a wide variety of ways.
+Here we will run through the usage of the SharpSheets configuration files. These files will allow you to create form-fillable PDF documents in your desired layout, which can be styled in a wide variety of ways.
 
 In this tutorial we will cover basic syntax, document structure, and the concepts of Widgets and Shapes.
 

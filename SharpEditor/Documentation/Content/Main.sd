@@ -4,6 +4,6 @@ Welcome to SharpSheets, a program for creating PDF documents for all your gaming
 
 ## Getting Started
 
-If you are new to SharpSheets, take a look at the [tutorial](Tutorial) to get started! This will guide you through the basic aspects of SharpSheets configuration files, and how to get creating your own documents.
+If you are new to SharpSheets, take a look at the [Sharp config tutorial](Tutorial) to get started! This will guide you through the basic aspects of SharpSheets configuration files, and how to get creating your own documents. After that, you can take a look at the tutorials on working with [cards](Cards) in SharpSheets, and the tutorial on making your own widget and shape patterns with [SharpSheets Markup](Markup).
 
-Some helpful comments on using the editor can be found [here](Tutorial/Using the Editor).
+Some helpful comments on using the editor can be found [here](Using the Editor).

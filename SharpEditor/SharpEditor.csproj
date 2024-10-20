@@ -31,7 +31,7 @@
     <None Remove="Documentation\Content\1 Tutorial\3 Handling Text.sd" />
     <None Remove="Documentation\Content\1 Tutorial\4 Form Fields.sd" />
     <None Remove="Documentation\Content\1 Tutorial\5 Expressions.sd" />
-    <None Remove="Documentation\Content\1 Tutorial\6 Using the Editor.sd" />
+    <None Remove="Documentation\Content\1 Tutorial\6 Advanced Features.sd" />
     <None Remove="Documentation\Content\1 Tutorial\Main.sd" />
     <None Remove="Documentation\Content\3 Widgets\Main.sd" />
     <None Remove="Documentation\Content\4 Shapes\1 Boxes.sd" />
@@ -57,6 +57,7 @@
     <None Remove="Documentation\Content\7 Fonts\1 Font List.sd" />
     <None Remove="Documentation\Content\7 Fonts\2 Font Families.sd" />
     <None Remove="Documentation\Content\7 Fonts\Main.sd" />
+    <None Remove="Documentation\Content\8 Using the Editor.sd" />
     <None Remove="Documentation\Content\Main.sd" />
     <None Remove="Documentation\DocumentationBuilders\resources\Unicode\UnicodeData15-1-0.txt" />
     <None Remove="Highlighting\CardSubjectHighlighting.xshd" />
@@ -72,7 +73,7 @@
     <EmbeddedResource Include="Documentation\Content\1 Tutorial\3 Handling Text.sd" />
     <EmbeddedResource Include="Documentation\Content\1 Tutorial\4 Form Fields.sd" />
     <EmbeddedResource Include="Documentation\Content\1 Tutorial\5 Expressions.sd" />
-    <EmbeddedResource Include="Documentation\Content\1 Tutorial\6 Using the Editor.sd" />
+    <EmbeddedResource Include="Documentation\Content\1 Tutorial\6 Advanced Features.sd" />
     <EmbeddedResource Include="Documentation\Content\1 Tutorial\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\3 Widgets\Main.sd" />
     <EmbeddedResource Include="Documentation\Content\4 Shapes\1 Boxes.sd" />
@@ -95,6 +96,7 @@
     <EmbeddedResource Include="Documentation\Content\6 Markup\8 Cookbook.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\9 Markup Elements.sd" />
     <EmbeddedResource Include="Documentation\Content\6 Markup\Main.sd" />
+    <EmbeddedResource Include="Documentation\Content\8 Using the Editor.sd" />
     <EmbeddedResource Include="Documentation\Content\7 Fonts\1 Font List.sd" />
     <EmbeddedResource Include="Documentation\Content\7 Fonts\2 Font Families.sd" />
     <EmbeddedResource Include="Documentation\Content\7 Fonts\Main.sd" />

@@ -1,27 +1,41 @@
 # Card Environments
 
+Below is a list of the environments used by different elements of card configuration and card subject files.
+
 ### Card Subject Variables
+
+These variables are available at the card subject level.
 
 [[CardSubjectEnvironmentVariables]]
 
 ### Card Outline Variables
 
+These variables are available for card `outline` and `background` elements (note, this is outlines of the whole card area). Note that `background` elements will have default values if cards are drawn with joined backgrounds.
+
 [[CardOutlineEnvironmentVariables]]
 
 ### Card Segment Variables
+
+These variables are available at the card segment level (for all segment types).
 
 [[CardSegmentEnvironmentVariables]]
 
 ### Card Segment Outline Variables
 
+These variables are available for outlines of segments.
+
 [[CardSegmentOutlineEnvironmentVariables]]
 
 ### Card Feature Variables
+
+These variables are available at the card feature level.
 
 [[CardFeatureEnvironmentVariables]]
 
 
 ## Basic Environment
+
+The following environment variables and functions are available in expressions at all points in a configuration or subject file.
 
 ### Variables
 

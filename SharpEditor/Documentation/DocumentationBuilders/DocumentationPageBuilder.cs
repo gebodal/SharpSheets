@@ -73,13 +73,6 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		private static Control? GetContents(DocumentationNode documentationNode, DocumentationWindow window) {
 			StackPanel stack = new StackPanel() { Margin = ContentsBlockMargin };
 
-			foreach (DocumentationFile file in documentationNode.files.Values.OrderBy(f => f.index)) {
-				ClickableRun fileClickable = new ClickableRun(file.title);
-				fileClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(file);
-				TextBlock fileBlock = MakeContentsTextBlock(fileClickable);
-				stack.Children.Add(fileBlock);
-			}
-
 			foreach (DocumentationNode node in documentationNode.nodes.Values.OrderBy(n => n.index)) {
 				ClickableRun nodeClickable = new ClickableRun(node.name);
 				nodeClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(node);
@@ -89,6 +82,13 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				if (GetContents(node, window) is Control uiElement) {
 					stack.Children.Add(uiElement);
 				}
+			}
+
+			foreach (DocumentationFile file in documentationNode.files.Values.OrderBy(f => f.index)) {
+				ClickableRun fileClickable = new ClickableRun(file.title);
+				fileClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(file);
+				TextBlock fileBlock = MakeContentsTextBlock(fileClickable);
+				stack.Children.Add(fileBlock);
 			}
 
 			return stack.Children.Count > 0 ? stack : null;

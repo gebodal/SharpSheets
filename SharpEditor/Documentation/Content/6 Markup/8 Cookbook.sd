@@ -63,7 +63,7 @@ This box simply draws a rectangular outline and allows the user to specify a bor
 
 ### Labelled Box
 
-This labelled box simply created a label area at the bottom of the box, whose height is a fraction of the overall box height.
+This labelled box simply creates a label area at the bottom of the box, whose height is a fraction of the overall box height.
 
 ``` Markup
 <pattern type="labelledbox" name="ExampleLabelledBox">
@@ -107,7 +107,7 @@ This titled box places the title text in a filled box at the bottom of the box a
 		
 	<args>
 		<arg name="spacing" type="float" default="2.0"
-		desc="Spacing around title in header bar."/>
+			desc="Spacing around title in header bar."/>
 				
 		<var name="titleHeight" value="len(parts) * fontsize + 2*spacing"/>
 	</args>
@@ -126,6 +126,36 @@ This titled box places the title text in a filled box at the bottom of the box a
 		alignment='centre' justification="centre"
 		>{name}</textRect>
 		
+</pattern>
+```
+
+### Entried Shape
+
+This entried shape simply creates a rectangle outline with a set of vertically arranged entry areas, each separated by a horizontal line.
+
+``` Markup
+<pattern type="entriedshape" name="ExampleEntriedArea">
+		
+	<desc> A very simple example entried shape. </desc>
+	
+	<args>
+		<arg name="sizes" type="dimension[]" default="1" example="1,2,3"
+			desc="The sizes for each of the vertically arranged entry areas."
+			validate="len(sizes) > 0"
+			validate-message="Must provide at least one size value."/>
+	</args>
+	
+	<rect fill="background" stroke="foreground" stroke-width="linewidth"
+		x="0%" y="0%" width="100%" height="100%"/>
+		
+	<div for-each="s in range(len(sizes))" size="sizes[s]">
+		<line enabled="s>0"
+			stroke="foreground" stroke-width="linewidth"
+			x1="0%" x2="100%" y1="100%" y2="100%"/>
+	
+		<area name='{"entry" + str(s)}' margin="linewidth/2"/>
+	</div>
+	
 </pattern>
 ```
 
