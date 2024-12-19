@@ -46,7 +46,7 @@ namespace SharpSheets.Shapes {
 
 	public interface IBox : IContainerShape { }
 
-	public interface ILabelledBox : IContainerShape, ILabelledArea { }
+	public interface ILabelledBox : IAreaShape, IFramedContainerArea, ILabelledArea { }
 
 	public interface IAbstractTitledFrame : IContainerShape { } // TODO This needs a better name
 	public interface ITitledBox : IAbstractTitledFrame, IBox { }
