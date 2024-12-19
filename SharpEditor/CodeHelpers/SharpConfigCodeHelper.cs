@@ -483,6 +483,8 @@ namespace SharpEditor.CodeHelpers {
 				return data;
 			}
 
+			List<ICompletionData> appendData = new List<ICompletionData>();
+
 			if (string.IsNullOrWhiteSpace(currentLine.text)) {
 				// Blank line (suggest arguments and new rect types)
 				if (currentLine.applicableConstructors.Length > 0) {
@@ -499,6 +501,12 @@ namespace SharpEditor.CodeHelpers {
 							DescriptionElements = GetConstructorDescription(divConstructor),
 							Append = Environment.NewLine
 						});
+						if (divConstructor.FullName != divConstructor.Name) {
+							appendData.Add(new CompletionEntry($"{divConstructor.FullName}:") {
+								DescriptionElements = GetConstructorDescription(divConstructor),
+								Append = Environment.NewLine
+							});
+						}
 					}
 				}
 			}
@@ -551,10 +559,15 @@ namespace SharpEditor.CodeHelpers {
 				}
 				else {
 					// If the argument is an implied constructor (i.e. a Shape which can then refer to other arguments), give that constructor's name
-					foreach (KeyValuePair<string, ConstructorDetails> impliedConstructorName in impliedConstructors.GetConstructorNames(argType).OrderBy(kv => kv.Value.Name)) {
-						data.Add(new CompletionEntry(impliedConstructorName.Key) {
-							DescriptionElements = GetConstructorDescription(impliedConstructorName.Value),
+					foreach ((string impliedConstructorName, ConstructorDetails impliedConstructor) in impliedConstructors.GetConstructorNames(argType).OrderBy(kv => kv.Value.Name)) {
+						data.Add(new CompletionEntry(impliedConstructorName) {
+							DescriptionElements = GetConstructorDescription(impliedConstructor),
 						});
+						if(impliedConstructorName != impliedConstructor.FullName) {
+							appendData.Add(new CompletionEntry(impliedConstructor.FullName) {
+								DescriptionElements = GetConstructorDescription(impliedConstructor),
+							});
+						}
 					}
 				}
 			}
@@ -563,6 +576,8 @@ namespace SharpEditor.CodeHelpers {
 				string withoutDot = currentLine.text.Substring(0, currentLine.text.Length - 1);
 				data.AddRange(GetArgumentNameCompletionEntries(currentLine.GetApplicableConstructorArgs(withoutDot), currentLine.context, existingText: currentLine.text));
 			}
+
+			data.AddRange(appendData.OrderBy(d => d.Text));
 
 			return data;
 		}
