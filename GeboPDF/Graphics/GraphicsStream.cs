@@ -273,6 +273,8 @@ namespace GeboPdf.Graphics {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.PageDescription | GraphicsStreamState.Text);
 			}
 
+			mitreLimit = Math.Max(1f, mitreLimit); // Minimum value of 1
+
 			if (state.Miterlimit != mitreLimit) {
 				state.Miterlimit = mitreLimit;
 
