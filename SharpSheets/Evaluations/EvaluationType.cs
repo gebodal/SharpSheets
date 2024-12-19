@@ -79,7 +79,7 @@ namespace SharpSheets.Evaluations {
 			COLOR = new EvaluationType("color", Array.Empty<TypeField>(), typeof(Color));
 			STRING = new EvaluationType("string", new TypeField[] { new TypeField("length", INT, obj => ((string)obj).Length) }, typeof(string));
 
-			systemTypeRegistry = new Dictionary<Type, EvaluationType>() {
+			systemTypeRegistry = new Dictionary<Type, EvaluationType>(SystemTypeEqualityComparer.Instance) {
 				{ typeof(int), INT },
 				{ typeof(uint), UINT },
 				{ typeof(float), FLOAT },
@@ -295,6 +295,20 @@ namespace SharpSheets.Evaluations {
 			}
 			else {
 				return false;
+			}
+		}
+
+		private class SystemTypeEqualityComparer : IEqualityComparer<Type> {
+			public static readonly SystemTypeEqualityComparer Instance = new SystemTypeEqualityComparer();
+
+			private SystemTypeEqualityComparer() { }
+
+			public bool Equals(Type? x, Type? y) {
+				return x == y;
+			}
+
+			public int GetHashCode([DisallowNull] Type obj) {
+				return HashCode.Combine(obj.GetHashCode(), obj.Name); // TODO Is this sufficient?
 			}
 		}
 	}
