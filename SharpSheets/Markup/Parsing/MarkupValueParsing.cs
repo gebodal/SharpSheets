@@ -292,8 +292,8 @@ namespace SharpSheets.Markup.Parsing {
 		}
 
 		private static readonly RegexChunker transformRegex = new RegexChunker(@"
-			(?<type>matrix|translate|scale|rotate|skewX|skewY)
-			\(
+			(?<type>matrix|translate|scale|rotate|skewX|skewY) \s*
+			\( \s*
 				(?<values>
 					(?:(?:\{(?:[^\{\}]|\\[\{\}])+\} | \-?[0-9]+(?:\.[0-9]*)? | \.[0-9]+) (\,|\s)*)+
 				)
