@@ -99,6 +99,9 @@ namespace SharpEditor.Designer.DrawingCanvas {
 		public void SetNull(TextFormat format) {
 			if (format == TextFormat.REGULAR) {
 				//regular = null; // Throw error?
+				TrueTypeFontFileOutlines outlines = FontGraphicsRegistry.GetRegularDefaultOutlines();
+				PdfGlyphFont pdfFont = FontGraphicsRegistry.GetRegularDefault();
+				SetFont(format, outlines, pdfFont, null);
 			}
 			else if (format == TextFormat.BOLD) {
 				bold = null;
