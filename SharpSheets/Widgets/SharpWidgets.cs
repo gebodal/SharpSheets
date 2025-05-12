@@ -703,6 +703,10 @@ namespace SharpSheets.Widgets {
 			return null;
 		}
 
+		protected override Rectangle?[] GetDiagnosticRects(ISharpGraphicsState graphicsState, Rectangle available) {
+			return GetChildRects(graphicsState, available, out _, out _, out _);
+	}
+
 	}
 
 	// Unified bars should have a FieldDetails argument, so that the fields can be adjusted
