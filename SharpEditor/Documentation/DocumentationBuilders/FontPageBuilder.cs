@@ -76,6 +76,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			TrueTypePostTable? postTable;
 			OpenTypeGlyphSubstitutionTable? gsubTable;
 			OpenTypeLayoutTagSet layoutTags;
+			List<(string tag, OpenTypeFeatureTable table)> features = new List<(string tag, OpenTypeFeatureTable table)>();
 			IReadOnlyDictionary<uint, ushort> cidMap;
 
 			try {
@@ -85,22 +86,24 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 				if (path.FontIndex >= 0) {
 					fontFile = TrueTypeCollection.Open(path.Path, path.FontIndex);
-
-					postTable = TrueTypeCollection.OpenPost(path.Path, path.FontIndex);
-					gsubTable = TrueTypeCollection.OpenGSUB(path.Path, path.FontIndex);
 					layoutTags = TrueTypeCollection.ReadOpenTypeTags(path.Path, path.FontIndex);
-
-					cmap = TrueTypeCollection.OpenCmap(path.Path, path.FontIndex);
 				}
 				else {
 					fontFile = TrueTypeFontFile.Open(path.Path);
-
-					postTable = TrueTypeFontFile.OpenPost(path.Path);
-					gsubTable = TrueTypeFontFile.OpenGSUB(path.Path);
 					layoutTags = TrueTypeFontFile.ReadOpenTypeTags(path.Path);
-
-					cmap = TrueTypeFontFile.OpenCmap(path.Path);
 				}
+
+				postTable = fontFile.post;
+				gsubTable = fontFile.gsub;
+				cmap = fontFile.cmap;
+
+				if(fontFile.gsub is not null) {
+					features.AddRange(fontFile.gsub.FeatureListTable.FeatureRecords);
+				}
+				if(fontFile.gpos is not null) {
+					features.AddRange(fontFile.gpos.FeatureListTable.FeatureRecords);
+				}
+				features = features.OrderBy(f => f.tag).DistinctBy(f => f.tag).ToList();
 
 				cidMap = cmap is null ? new Dictionary<uint, ushort>() : CIDFontFactory.GetCmapDict(cmap);
 
@@ -121,7 +124,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			ToolTip.SetTip(nameTitleBlock, path.Path);
 			stack.Children.Add(nameTitleBlock);
 
-			if (GetFontText(fontFile, NameID.SampleText, NameID.FontFamily) is string sampleText) {
+			if (GetFontText(fontFile.name, NameID.SampleText, NameID.FontFamily) is string sampleText) {
 				Control sampleElem = MakeGlyphsBox(collectedFontData, Array.Empty<ushort>(), sampleText.Select(c => cidMap.GetValueOrDefault(c, (ushort)0)).ToArray(), Array.Empty<ushort>());
 				sampleElem.HorizontalAlignment = HorizontalAlignment.Left;
 				sampleElem.Margin = IndentedMargin;
@@ -133,25 +136,25 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			if (aliases.Length > 0) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Aliases", string.Join(", ", aliases)));
 			}
-			if (GetFontText(fontFile, NameID.PreferredFamily, NameID.FontFamily) is string family) {
+			if (GetFontText(fontFile.name, NameID.PreferredFamily, NameID.FontFamily) is string family) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Font Family", family));
 			}
-			if (GetFontText(fontFile, NameID.PreferredSubfamily, NameID.FontSubfamily) is string subfamily) {
+			if (GetFontText(fontFile.name, NameID.PreferredSubfamily, NameID.FontSubfamily) is string subfamily) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Font Subfamily", subfamily));
 			}
-			if (GetFontText(fontFile, NameID.Designer) is string designer) {
+			if (GetFontText(fontFile.name, NameID.Designer) is string designer) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Designer", designer));
 			}
-			if (GetFontText(fontFile, NameID.ManufacturerName) is string manufacturer) {
+			if (GetFontText(fontFile.name, NameID.ManufacturerName) is string manufacturer) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Manufacturer", manufacturer));
 			}
-			if (GetFontText(fontFile, NameID.NameTableVersion) is string version) {
+			if (GetFontText(fontFile.name, NameID.NameTableVersion) is string version) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Version", GetVersionNumber(version)));
 			}
-			if (GetFontText(fontFile, NameID.CopyrightNotice) is string copyright) {
+			if (GetFontText(fontFile.name, NameID.CopyrightNotice) is string copyright) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Copyright Notice", copyright));
 			}
-			if (GetFontText(fontFile, NameID.TrademarkNotice) is string trademark) {
+			if (GetFontText(fontFile.name, NameID.TrademarkNotice) is string trademark) {
 				fontProperties.Children.Add(GetFontPropertyBlock("Trademark Notice", trademark));
 			}
 			fontProperties.Children.Add(GetFontPropertyBlock("Glyph Layout", fontFile.OutlineLayout.ToString()));
@@ -164,13 +167,13 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				stack.Children.Add(fontProperties.AddMargin(ParagraphSpacingMargin));
 			}
 
-			if (GetFontText(fontFile, NameID.Description) is string description) {
+			if (GetFontText(fontFile.name, NameID.Description) is string description) {
 				stack.Children.Add(GetContentTextBlock("Description", TextBlockMargin, TextBlockClass.H4));
 				stack.Children.Add(GetContentTextBlock(description, ParagraphMargin).AddMargin(ParagraphSpacingMargin));
 			}
 
-			string? license = GetFontText(fontFile, NameID.LicenseDescription);
-			string? licenseURL = GetFontText(fontFile, NameID.LicenseInformationURL);
+			string? license = GetFontText(fontFile.name, NameID.LicenseDescription);
+			string? licenseURL = GetFontText(fontFile.name, NameID.LicenseInformationURL);
 			if(license is not null || licenseURL is not null) {
 				stack.Children.Add(GetContentTextBlock("License", TextBlockMargin, TextBlockClass.H4));
 			}
@@ -187,17 +190,17 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			PopulateGlyphPanel(panel, collectedFontData, cidMap, glyphNames);
 			stack.Children.Add(panel);
 
-			if (layoutTags.ScriptTags.Count > 0 || layoutTags.FeatureTags.Count > 0) {
+			if (layoutTags.ScriptTags.Count > 0 || features.Count > 0) {
 				stack.Children.Add(MakeSeparator());
 
 				if (layoutTags.ScriptTags.Count > 0) {
 					stack.Children.Add(GetContentTextBlock("OpenType Scripts", TextBlockMargin, TextBlockClass.H4));
 					stack.Children.Add(MakeScriptsTable(fontName.Name, layoutTags, window));
 				}
-				if (layoutTags.FeatureTags.Count > 0) {
+				if (features.Count > 0) {
 					stack.Children.Add(GetContentTextBlock("OpenType Features", TextBlockMargin, TextBlockClass.H4));
 
-					stack.Children.Add(MakeFeaturesTable(layoutTags.FeatureTags));
+					stack.Children.Add(MakeFeaturesTable(features, fontFile.name));
 				}
 			}
 
@@ -248,16 +251,28 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return clickable;
 		}
 
-		private static Control MakeFeaturesTable(IEnumerable<string> featureTags) {
+		private static Control MakeFeaturesTable(IEnumerable<(string tag, OpenTypeFeatureTable table)> features, TrueTypeNameTable name) {
 			return CreateTable(
 				new TextBlock[] { MakeTableHeaderBlock("Tag"), MakeTableHeaderBlock("Feature") },
-				ToRank2Array(featureTags
-					.OrderBy(t => t)
-					.Select(t => new TextBlock[] {
-						GetContentTextBlock(t, TextBlockMargin),
-						GetContentTextBlock(OpenTypeLayoutTags.FeatureTagsRegistry.GetValueOrDefault(t, "Unknown Feature"), TextBlockMargin)
+				ToRank2Array(features
+					.OrderBy(f => f.tag)
+					.Select(f => new TextBlock[] {
+						GetContentTextBlock(f.tag, TextBlockMargin),
+						GetContentTextBlock(GetFeatureName(f.tag, f.table, name), TextBlockMargin)
 					}).ToArray())
 				);
+		}
+
+		private static string GetFeatureName(string tag, OpenTypeFeatureTable table, TrueTypeNameTable name) {
+
+			string baseName = OpenTypeLayoutTags.FeatureTagsRegistry.GetValueOrDefault(tag, "Unknown Feature");
+
+			if (table.NameID.HasValue && GetFontText(name, table.NameID.Value) is string namedFeature) {
+				return $"{baseName} ({namedFeature})";
+			}
+			else {
+				return baseName;
+			}
 		}
 
 		#endregion Font Page
@@ -390,7 +405,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			CollectedFontData collectedFontData;
 			TrueTypePostTable? postTable;
 			OpenTypeGlyphSubstitutionTable? gsubTable;
-			IReadOnlySet<string>? features;
+			IReadOnlyList<(string tag, OpenTypeFeatureTable table)>? features;
 			IReadOnlyDictionary<uint, ushort> cidMap;
 
 			try {
@@ -415,7 +430,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				}
 
 				if (gsubTable is not null) {
-					features = OpenTypeLayoutHelpers.GetFeatures(fontSetting.ScriptTag, fontSetting.LangSysTag, gsubTable.ScriptListTable, gsubTable.FeatureListTable);
+					features = OpenTypeLayoutHelpers.GetFeatures(fontSetting.ScriptTag, fontSetting.LangSysTag, gsubTable.ScriptListTable, gsubTable.FeatureListTable)?.ToList();
 				}
 				else {
 					features = null;
@@ -451,7 +466,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			stack.Children.Add(fontProperties.AddMargin(ParagraphSpacingMargin));
 
 			if (gsubTable is not null && features is not null && features.Count > 0) {
-				stack.Children.Add(MakeFeaturesTable(features.Where(DisplayedFeature)));
+				stack.Children.Add(MakeFeaturesTable(features.Where(f => DisplayedFeature(f.tag)), collectedFontData.fontFile.name));
 
 				PopulateSubstitutions(stack, collectedFontData, fontSetting.ScriptTag, fontSetting.LangSysTag, features, gsubTable, cidMap, glyphNames);
 			}
@@ -463,8 +478,8 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 		#region Utilities
 
-		private static string? GetFontText(TrueTypeFontFile fontFile, NameID nameID) {
-			if (fontFile.name.nameRecords.TryGetValue(nameID, out TrueTypeName[]? nameRecords)) {
+		private static string? GetFontText(TrueTypeNameTable nameTable, NameID nameID) {
+			if (nameTable.nameRecords.TryGetValue(nameID, out TrueTypeName[]? nameRecords)) {
 				return GetFontName(nameRecords);
 			}
 			else {
@@ -472,9 +487,9 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 		}
 
-		private static string? GetFontText(TrueTypeFontFile fontFile, params NameID[] nameIDwithFallbacks) {
+		private static string? GetFontText(TrueTypeNameTable nameTable, params NameID[] nameIDwithFallbacks) {
 			for (int i = 0; i < nameIDwithFallbacks.Length; i++) {
-				if (GetFontText(fontFile, nameIDwithFallbacks[i]) is string name) {
+				if (GetFontText(nameTable, nameIDwithFallbacks[i]) is string name) {
 					return name;
 				}
 			}
@@ -724,7 +739,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				|| (featureTag.StartsWith("cv") && char.IsDigit(featureTag[2]) && char.IsDigit(featureTag[3])));
 		}
 
-		private async static void PopulateSubstitutions(StackPanel stack, CollectedFontData fontData, string scriptTag, string? langSysTag, IReadOnlySet<string> features, OpenTypeGlyphSubstitutionTable gsubTable, IReadOnlyDictionary<uint, ushort> cidMap, IReadOnlyDictionary<ushort, string> glyphNames) {
+		private async static void PopulateSubstitutions(StackPanel stack, CollectedFontData fontData, string scriptTag, string? langSysTag, IEnumerable<(string tag, OpenTypeFeatureTable table)> features, OpenTypeGlyphSubstitutionTable gsubTable, IReadOnlyDictionary<uint, ushort> cidMap, IReadOnlyDictionary<ushort, string> glyphNames) {
 			SortedDictionary<ushort, uint> gidToUnicode = CMapWriter.GetGIDToUnicodeMap(cidMap);
 
 			Control GetGlyphsBox(ushort[] before, ushort[] gids, ushort[] after) {
@@ -801,9 +816,9 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 			stack.Children.Add(GetContentTextBlock("Substitutions", TextBlockMargin, TextBlockClass.H4));
 
-			foreach ((string feature, GlyphSubstitutionLookupSet lookups) in GetFeatures(scriptTag, langSysTag, features, gsubTable)) {
+			foreach ((string feature, OpenTypeFeatureTable table, GlyphSubstitutionLookupSet lookups) in GetFeatures(scriptTag, langSysTag, features, gsubTable)) {
 
-				stack.Children.Add(GetContentTextBlock($"{feature.TrimEnd()}\u2002\u2013\u2002{OpenTypeLayoutTags.FeatureTagsRegistry.GetValueOrDefault(feature, "Unknown Feature")}", TextBlockMargin, TextBlockClass.H4));
+				stack.Children.Add(GetContentTextBlock($"{feature.TrimEnd()}\u2002\u2013\u2002{GetFeatureName(feature, table, fontData.fontFile.name)}", TextBlockMargin, TextBlockClass.H4));
 
 				WrapPanel subsPanel = new WrapPanel() { Orientation = Orientation.Horizontal, Margin = ParagraphMargin };
 				stack.Children.Add(subsPanel);
@@ -880,10 +895,10 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 		}
 
-		private static IEnumerable<KeyValuePair<string, GlyphSubstitutionLookupSet>> GetFeatures(string scriptTag, string? langSysTag, IReadOnlySet<string> features, OpenTypeGlyphSubstitutionTable gsubTable) {
-			foreach (string feature in features.Where(DisplayedFeature).OrderBy(t => t)) {
-				if (gsubTable.GetLookups(new OpenTypeLayoutTags(scriptTag, langSysTag, new string[] { feature })) is GlyphSubstitutionLookupSet lookups) {
-					yield return new KeyValuePair<string, GlyphSubstitutionLookupSet>(feature, lookups);
+		private static IEnumerable<(string tag, OpenTypeFeatureTable table, GlyphSubstitutionLookupSet lookups)> GetFeatures(string scriptTag, string? langSysTag, IEnumerable<(string tag, OpenTypeFeatureTable table)> features, OpenTypeGlyphSubstitutionTable gsubTable) {
+			foreach ((string tag, OpenTypeFeatureTable table) in features.Where(f => DisplayedFeature(f.tag)).OrderBy(f => f.tag)) {
+				if (gsubTable.GetLookups(new OpenTypeLayoutTags(scriptTag, langSysTag, new string[] { tag })) is GlyphSubstitutionLookupSet lookups) {
+					yield return (tag, table, lookups);
 				}
 			}
 		}

@@ -59,29 +59,32 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 		}
 
-		public static IReadOnlySet<string>? GetFeatures(string scriptTag, string? langSysTag, OpenTypeScriptListTable scriptListTable, OpenTypeFeatureListTable featureListTable) {
+		public static IEnumerable<(string tag, OpenTypeFeatureTable table)>? GetFeatures(string scriptTag, string? langSysTag, OpenTypeScriptListTable scriptListTable, OpenTypeFeatureListTable featureListTable) {
 
 			if (scriptListTable.ScriptRecords.TryGetValue(scriptTag, out OpenTypeScriptTable? scriptTable)) {
 				OpenTypeLanguageSystemTable? langSysTable = scriptTable.GetLangSysTable(langSysTag);
 
 				if (langSysTable is not null) {
-					HashSet<string> featureTags = new HashSet<string>();
+					List<(string, OpenTypeFeatureTable)> features = new List<(string, OpenTypeFeatureTable)>();
 
 					if (langSysTable.RequiredFeatureIndex.HasValue) {
-						featureTags.Add(featureListTable.FeatureRecords[langSysTable.RequiredFeatureIndex.Value].tag);
+						features.Add(featureListTable.FeatureRecords[langSysTable.RequiredFeatureIndex.Value]);
 					}
 
 					for (int i = 0; i < langSysTable.FeatureIndices.Length; i++) {
-						(string featureTag, _) = featureListTable.FeatureRecords[langSysTable.FeatureIndices[i]];
-						featureTags.Add(featureTag);
+						features.Add(featureListTable.FeatureRecords[langSysTable.FeatureIndices[i]]);
 					}
 
-					return featureTags;
+					return features;
 				}
 			}
 
 			return null;
 
+		}
+
+		public static IReadOnlySet<string>? GetFeatureTags(string scriptTag, string? langSysTag, OpenTypeScriptListTable scriptListTable, OpenTypeFeatureListTable featureListTable) {
+			return GetFeatures(scriptTag, langSysTag, scriptListTable, featureListTable)?.Select(i => i.tag).ToHashSet();
 		}
 
 	}
@@ -339,7 +342,7 @@ namespace GeboPdf.Fonts.TrueType {
 				string featureTag = reader.ReadASCIIString(4);
 				ushort featureOffset = reader.ReadUInt16(); // From beginning of feature list (i.e. offset)
 
-				OpenTypeFeatureTable featureTable = reader.ReadFrom(offset + featureOffset, OpenTypeFeatureTable.Read);
+				OpenTypeFeatureTable featureTable = reader.ReadFrom(offset + featureOffset, (r, o) => OpenTypeFeatureTable.Read(r, o, featureTag));
 
 				featureRecords[i] = (featureTag, featureTable);
 			}
@@ -375,12 +378,15 @@ namespace GeboPdf.Fonts.TrueType {
 		public readonly long? FeatureParamsOffset;
 		public readonly ushort[] LookupListIndices;
 
-		internal OpenTypeFeatureTable(long? featureParamsOffset, ushort[] lookupListIndices) {
+		public readonly NameID? NameID;
+
+		internal OpenTypeFeatureTable(long? featureParamsOffset, NameID? nameID, ushort[] lookupListIndices) {
 			FeatureParamsOffset = featureParamsOffset;
+			NameID = nameID;
 			LookupListIndices = lookupListIndices;
 		}
 
-		internal static OpenTypeFeatureTable Read(FontFileReader reader, long offset) {
+		internal static OpenTypeFeatureTable Read(FontFileReader reader, long offset, string tag) {
 
 			reader.Position = offset;
 
@@ -391,7 +397,37 @@ namespace GeboPdf.Fonts.TrueType {
 
 			long? fullFeatureParamsOffset = offset + featureParamsOffset;
 
-			return new OpenTypeFeatureTable(fullFeatureParamsOffset, lookupListIndices);
+			ushort? nameID = GetNameID(tag, reader, fullFeatureParamsOffset);
+
+			return new OpenTypeFeatureTable(fullFeatureParamsOffset, (NameID?)nameID, lookupListIndices);
+		}
+
+		internal static ushort? GetNameID(string tag, FontFileReader reader, long? fullFeatureParamsOffset) {
+			if(fullFeatureParamsOffset is null) { return null; }
+
+			// Read feature parameters table (currently only reading the feature name, if provided)
+
+			if (tag.Length == 4 && tag.StartsWith("ss") && char.IsDigit(tag[2]) && char.IsDigit(tag[3])) {
+				// Style Set ('ss##') feature tables
+				reader.Position = fullFeatureParamsOffset.Value;
+
+				reader.SkipUInt16(1); // Version number
+				ushort nameID = reader.ReadUInt16();
+
+				return nameID;
+			}
+			else if (tag.Length == 4 && tag.StartsWith("cv") && char.IsDigit(tag[2]) && char.IsDigit(tag[3])) {
+				// Character Variation ('cv##') feature tables
+				reader.Position = fullFeatureParamsOffset.Value;
+
+				reader.SkipUInt16(1); // Version number
+				ushort nameID = reader.ReadUInt16();
+				// This table contains more information that we're not currently reading
+
+				return nameID > 0 ? nameID : null; // This id can be null
+			}
+
+			return null;
 		}
 
 	}
