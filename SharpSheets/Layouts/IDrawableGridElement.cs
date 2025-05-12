@@ -2,6 +2,7 @@
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Colors;
+using SharpSheets.Fonts;
 
 namespace SharpSheets.Layouts {
 
@@ -57,9 +58,15 @@ namespace SharpSheets.Layouts {
 				mySize = Dimension.FromPoints(drawable.Layout == Layout.COLUMNS ? minRect.Width : minRect.Height);
 			}
 
+			float maxFontsize = Math.Min(marginRect.Height / 20f, 6f);
+			float minFontsize = Math.Min(maxFontsize / 50f, 0.1f);
+			float fontSearchEps = (maxFontsize - minFontsize) / 50f;
+			FontSizeSearchParams fontParams = new FontSizeSearchParams(minFontsize, maxFontsize, fontSearchEps);
+
 			canvas.SetTextColor(Color.Blue);
+			canvas.SetFonts(null); // Set fonts back to defaults
 			//canvas.FitRichText(marginRect, $"{GetType().Name} ({localName}): {marginRect}, size = {mySize}", new FontSpecification(6f, 1.35f, 0f), 0.1f, 6f, 0.1f, 0, 0);
-			canvas.FitRichText(marginRect, (RichString)$"{name}: {marginRect}, size = {mySize}", new ParagraphSpecification(1.35f, 0f, 0f, 0f), new FontSizeSearchParams(0.1f, 6f, 0.1f), Justification.LEFT, Alignment.BOTTOM, TextHeightStrategy.LineHeightDescent, true);
+			canvas.FitRichText(marginRect, (RichString)$"{name}: {marginRect}, size = {mySize}", new ParagraphSpecification(1.35f, 0f, 0f, 0f), fontParams, Justification.LEFT, Alignment.BOTTOM, TextHeightStrategy.LineHeightDescent, false);
 			canvas.RestoreState();
 		}
 
