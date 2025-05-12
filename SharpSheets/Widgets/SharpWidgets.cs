@@ -320,6 +320,7 @@ namespace SharpSheets.Widgets {
 
 		public class LabelParams : ISharpArgsGrouping {
 			public readonly float fontSize;
+			public readonly ParagraphSpecification paragraphSpec;
 			public readonly TextFormat format;
 			public readonly Justification justification;
 			public readonly Alignment alignment;
@@ -329,6 +330,7 @@ namespace SharpSheets.Widgets {
 			/// Constructor for label parameters.
 			/// </summary>
 			/// <param name="fontSize">Font size to use for the label text.</param>
+			/// <param name="lineSpacing">Line spacing to use for multiline label text, as a factor of <paramref name="fontSize"/>.</param>
 			/// <param name="format">Font format to use for the label text. This will use the appropriate font
 			/// format from the current font selection.</param>
 			/// <param name="justification">The horizontal justification to use for the label text, relative to the label area.</param>
@@ -338,8 +340,9 @@ namespace SharpSheets.Widgets {
 			/// <paramref name="alignment"/> This is provided as an x,y pair of numbers, measured in points. The positive
 			/// directions are rightwards and upwards. This can be used to make specific adjustments, to accomodate quirks of
 			/// specific fonts.</param>
-			public LabelParams(float fontSize = 6f, TextFormat format = TextFormat.REGULAR, Justification justification = Justification.CENTRE, Alignment alignment = Alignment.CENTRE, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline, (float x, float y) offset = default) {
+			public LabelParams(float fontSize = 6f, float lineSpacing = 1f, TextFormat format = TextFormat.REGULAR, Justification justification = Justification.CENTRE, Alignment alignment = Alignment.CENTRE, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline, (float x, float y) offset = default) {
 				this.fontSize = fontSize;
+				this.paragraphSpec = new ParagraphSpecification(lineSpacing, 0f, 0f, 0f);
 				this.format = format;
 				this.justification = justification;
 				this.alignment = alignment;
@@ -447,7 +450,8 @@ namespace SharpSheets.Widgets {
 			else {
 				canvas.SaveState();
 				canvas.SetTextFormatAndSize(labelParams.format, labelParams.fontSize).SetFillColor(canvas.GetForegroundColor());
-				canvas.DrawText(labelRect, label ?? "LABEL", labelParams.justification, labelParams.alignment, labelParams.heightStrategy, (labelParams.offset.x, labelParams.offset.y));
+				//canvas.DrawText(labelRect, label ?? "LABEL", labelParams.justification, labelParams.alignment, labelParams.heightStrategy, (labelParams.offset.x, labelParams.offset.y));
+				canvas.DrawRichText(labelRect, RichString.Create(label ?? "LABEL", labelParams.format).Split('\n'), labelParams.fontSize, labelParams.paragraphSpec, labelParams.justification, labelParams.alignment, labelParams.heightStrategy, false, labelParams.offset);
 				canvas.RestoreState();
 			}
 
@@ -470,6 +474,13 @@ namespace SharpSheets.Widgets {
 			Size framedSize = (contentSize ?? new Size(0f, 0f)).Margins(frame, true);
 			return outline.FullSize(graphicsState, framedSize);
 		}
+
+		protected override Rectangle?[] GetDiagnosticRects(ISharpGraphicsState graphicsState, Rectangle available) {
+			Rectangle remainingRect = outline.RemainingRect(graphicsState, available);
+			Rectangle frameRect = remainingRect.Margins(frame, false);
+			Rectangle labelRect = outline.LabelRect(graphicsState, available);
+			return new Rectangle?[] { remainingRect, (frameRect != remainingRect ? frameRect : null), labelRect };
+	}
 	}
 
 	/// <summary>
