@@ -480,7 +480,7 @@ namespace SharpSheets.Widgets {
 			Rectangle frameRect = remainingRect.Margins(frame, false);
 			Rectangle labelRect = outline.LabelRect(graphicsState, available);
 			return new Rectangle?[] { remainingRect, (frameRect != remainingRect ? frameRect : null), labelRect };
-	}
+		}
 	}
 
 	/// <summary>
@@ -705,7 +705,7 @@ namespace SharpSheets.Widgets {
 
 		protected override Rectangle?[] GetDiagnosticRects(ISharpGraphicsState graphicsState, Rectangle available) {
 			return GetChildRects(graphicsState, available, out _, out _, out _);
-	}
+		}
 
 	}
 
@@ -754,7 +754,9 @@ namespace SharpSheets.Widgets {
 	/// labels and notes, whose parameters may be specified. By default, if no named children
 	/// are provided, the bar name is written as text in the bar label area, and a field (either
 	/// a text field or check field, depending on whether the check mark parameters have been
-	/// specified) is placed in the bar remaining area.
+	/// specified) is placed in the bar remaining area. The drawing order of the label and entry
+	/// contents can be controlled using the "order" property (in FORWARD order, the label is
+	/// drawn first).
 	/// </summary>
 	public class Bars : SharpWidget {
 
@@ -880,6 +882,40 @@ namespace SharpSheets.Widgets {
 			this.entry = entry?.Child;
 		}
 
+		protected void DrawContent(ISharpCanvas canvas, int barIdx, Rectangle labelRect, CancellationToken cancellationToken) {
+			if (content != null) {
+				content.Draw(canvas, labelRect, cancellationToken);
+			}
+			else {
+				canvas.SaveState();
+
+				canvas.SetTextFormatAndSize(nameDetails.format, nameDetails.fontSize);
+				if (nameDetails.color.HasValue) {
+					canvas.SetTextColor(nameDetails.color.Value);
+				}
+				canvas.SetFillColor(canvas.GetTextColor());
+
+				canvas.DrawText(labelRect, barNames[barIdx], nameDetails.justification, nameDetails.alignment, nameDetails.heightStrategy, nameDetails.offset);
+
+				canvas.RestoreState();
+			}
+		}
+
+		protected void DrawEntry(ISharpCanvas canvas, int barIdx, Rectangle entryRect, CancellationToken cancellationToken) {
+			if (entry != null) {
+				entry.Draw(canvas, entryRect, cancellationToken);
+			}
+			else {
+				string? fieldTooltip = (barTooltips != null && barIdx < barTooltips.Length && !string.IsNullOrWhiteSpace(barTooltips[barIdx])) ? barTooltips[barIdx] : null;
+				if (checkMarks) {
+					canvas.CheckField(entryRect, barNames[barIdx], fieldTooltip, checkTypes[barIdx]);
+				}
+				else {
+					canvas.TextField(entryRect, barNames[barIdx], fieldTooltip, TextFieldType.STRING, "", TextFormat.REGULAR, 0f, false, rich, Justification.CENTRE);
+				}
+			}
+		}
+
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 			
 			Rectangle?[] barRects = Divisions.Rows(rect, barHeights, Gutter, false, Arrangement, LayoutOrder.FORWARD, DivisionStrategy.RELATIVE_RECTANGLES);
@@ -888,34 +924,13 @@ namespace SharpSheets.Widgets {
 				if (barRects[i] is Rectangle barRect) {
 					bars[i].Draw(canvas, barRect, out Rectangle labelRect, out Rectangle entryRect);
 
-					if (content != null) {
-						content.Draw(canvas, labelRect, cancellationToken);
+					if(setup.order == LayoutOrder.FORWARD) {
+						DrawContent(canvas, i, labelRect, cancellationToken);
+						DrawEntry(canvas, i, entryRect, cancellationToken);
 					}
 					else {
-						canvas.SaveState();
-
-						canvas.SetTextFormatAndSize(nameDetails.format, nameDetails.fontSize);
-						if (nameDetails.color.HasValue) {
-							canvas.SetTextColor(nameDetails.color.Value);
-						}
-						canvas.SetFillColor(canvas.GetTextColor());
-
-						canvas.DrawText(labelRect, barNames[i], nameDetails.justification, nameDetails.alignment, nameDetails.heightStrategy, nameDetails.offset);
-
-						canvas.RestoreState();
-					}
-
-					if (entry != null) {
-						entry.Draw(canvas, entryRect, cancellationToken);
-					}
-					else {
-						string? fieldTooltip = (barTooltips != null && i < barTooltips.Length && !string.IsNullOrWhiteSpace(barTooltips[i])) ? barTooltips[i] : null;
-						if (checkMarks) {
-							canvas.CheckField(entryRect, barNames[i], fieldTooltip, checkTypes[i]);
-						}
-						else {
-							canvas.TextField(entryRect, barNames[i], fieldTooltip, TextFieldType.STRING, "", TextFormat.REGULAR, 0f, false, rich, Justification.CENTRE);
-						}
+						DrawEntry(canvas, i, entryRect, cancellationToken);
+						DrawContent(canvas, i, labelRect, cancellationToken);
 					}
 				}
 				else {
@@ -1595,6 +1610,7 @@ namespace SharpSheets.Widgets {
 
 		// TODO This should follow similar conventions to the LinedWidgets, with row spacing and the like
 		// TODO This should probably have a FieldDetails argument, to allow for better customization
+		// TODO There should also be a "header" grouped argument, which should include color
 
 		protected readonly string? name;
 
