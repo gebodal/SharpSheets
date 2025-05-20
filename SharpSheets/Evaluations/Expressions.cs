@@ -381,6 +381,7 @@ namespace SharpSheets.Evaluations {
 		}
 	}
 
+	/*
 	public class ColorExpression : IExpression<Color> {
 		public EvaluationNode Evaluation { get { return value ?? evaluation!; } }
 		private readonly EvaluationNode? evaluation;
@@ -491,6 +492,7 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 	}
+	*/
 
 	public class EnumExpression<T> : IExpression<T> where T : Enum {
 

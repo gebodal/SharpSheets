@@ -7,45 +7,30 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override int[] CalculationOrder { get; } = new int[] { 1, 0 };
 
-		public override EvaluationType ReturnType {
-			get {
-				EvaluationType firstType = First.ReturnType;
-				EvaluationType secondType = Second.ReturnType;
-				if (firstType.IsReal() && secondType.IsReal()) {
-					return (firstType.IsIntegral() && secondType.IsIntegral()) ? EvaluationType.INT : EvaluationType.FLOAT;
-				}
-				else if (AcceptString && firstType == EvaluationType.STRING && secondType == EvaluationType.STRING) {
-					return EvaluationType.STRING;
-				}
-				else {
-					throw new EvaluationTypeException($"Cannot perform arithmetic operation on operands of type {firstType} and {secondType}.");
-				}
-			}
+		public sealed override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
+			EvaluationType firstType = First.GetReturnType(typeSystem);
+			EvaluationType secondType = Second.GetReturnType(typeSystem);
+
+			return ResultType(firstType, secondType, typeSystem) ?? throw MakeTypeError(firstType, secondType);
 		}
 
-		protected abstract int Calculate(int a, int b);
-		protected abstract float Calculate(float a, float b);
-		/// <summary></summary>
-		/// <exception cref="EvaluationCalculationException"></exception>
-		protected virtual string Calculate(string a, string b) { throw new EvaluationCalculationException($"Binary {Symbol} not implemented for string operands."); }
-		protected virtual bool AcceptString { get; } = false;
+		protected abstract EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem);
 
-		public sealed override object Evaluate(IEnvironment environment) {
-			object? a = First.Evaluate(environment);
-			object? b = Second.Evaluate(environment);
+		public sealed override EvaluationValue Evaluate(IEnvironment environment) {
+			EvaluationValue a = First.Evaluate(environment);
+			EvaluationValue b = Second.Evaluate(environment);
 
-			if(EvaluationTypes.TryGetIntegral(a, out int aint1) && EvaluationTypes.TryGetIntegral(b, out int bint1)) {
-				return Calculate(aint1, bint1);
-			}
-			else if(EvaluationTypes.TryGetReal(a, out float afloat1) && EvaluationTypes.TryGetReal(b, out float bfloat1)) {
-				return Calculate(afloat1, bfloat1);
-			}
-			else if (AcceptString && a is string aString && b is string bString) {
-				return Calculate(aString, bString);
-			}
-			else {
-				throw new EvaluationTypeException($"Cannot perform binary {Symbol} for operands of type {EvaluationUtils.GetDataTypeName(a)} and {EvaluationUtils.GetDataTypeName(b)}.");
-			}
+			return Evaluate(a, b, environment.TypeSystem) ?? throw MakeCalculationError(a, b);
+		}
+
+		protected abstract EvaluationValue? Evaluate(EvaluationValue first, EvaluationValue second, EvaluationTypeSystem typeSystem);
+
+		protected EvaluationTypeException MakeTypeError(EvaluationType firstType, EvaluationType secondType) {
+			return new EvaluationTypeException($"Cannot perform {Symbol} operation on operands of type {firstType} and {secondType}.");
+		}
+
+		protected EvaluationTypeException MakeCalculationError(EvaluationValue a, EvaluationValue b) {
+			return new EvaluationTypeException($"Cannot perform binary {Symbol} for operands of type {a.Type} and {b.Type}.");
 		}
 	}
 
@@ -53,12 +38,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 2;
 		public override string Symbol { get; } = "**";
 
-		protected override float Calculate(float a, float b) {
-			return (float)Math.Pow(a, b);
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.PowResult(first, second, typeSystem);
 		}
 
-		protected override int Calculate(int a, int b) {
-			return (int)Math.Pow(a, b);
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.Pow(a, b, typeSystem);
 		}
 
 		protected override BinaryOperatorNode Empty() {
@@ -70,12 +55,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 3;
 		public override string Symbol { get; } = "/";
 
-		protected override float Calculate(float a, float b) {
-			return a / b;
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.DivResult(first, second, typeSystem);
 		}
 
-		protected override int Calculate(int a, int b) {
-			return a / b;
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.PerformDiv(a, b, typeSystem);
 		}
 
 		protected override BinaryOperatorNode Empty() {
@@ -87,12 +72,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 3;
 		public override string Symbol { get; } = "*";
 
-		protected override float Calculate(float a, float b) {
-			return a * b;
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.MulResult(first, second, typeSystem);
 		}
 
-		protected override int Calculate(int a, int b) {
-			return a * b;
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.Mul(a, b, typeSystem);
 		}
 
 		protected override BinaryOperatorNode Empty() {
@@ -104,12 +89,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 3;
 		public override string Symbol { get; } = "%";
 
-		protected override float Calculate(float a, float b) {
-			return a % b;
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.ModResult(first, second, typeSystem);
 		}
 
-		protected override int Calculate(int a, int b) {
-			return a % b;
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.Mod(a, b, typeSystem);
 		}
 
 		protected override BinaryOperatorNode Empty() {
@@ -121,17 +106,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 4;
 		public override string Symbol { get; } = "+";
 
-		protected override float Calculate(float a, float b) {
-			return a + b;
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.AddResult(first, second, typeSystem);
 		}
 
-		protected override int Calculate(int a, int b) {
-			return a + b;
-		}
-
-		protected override bool AcceptString { get; } = true;
-		protected override string Calculate(string a, string b) {
-			return a + b;
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.Add(a, b, typeSystem);
 		}
 
 		protected override BinaryOperatorNode Empty() {
@@ -143,12 +123,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 4;
 		public override string Symbol { get; } = "-";
 
-		protected override float Calculate(float a, float b) {
-			return a - b;
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.SubResult(first, second, typeSystem);
 		}
 
-		protected override int Calculate(int a, int b) {
-			return a - b;
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.Sub(a, b, typeSystem);
 		}
 
 		protected override BinaryOperatorNode Empty() {

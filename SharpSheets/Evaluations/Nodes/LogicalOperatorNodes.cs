@@ -5,31 +5,26 @@
 		protected abstract string OperatorName { get; }
 		public override int[] CalculationOrder { get; } = new int[] { 1, 0 };
 
-		public sealed override EvaluationType ReturnType {
-			get {
-				EvaluationType firstType = First.ReturnType;
-				EvaluationType secondType = Second.ReturnType;
-				if (firstType == EvaluationType.BOOL && secondType == EvaluationType.BOOL) {
-					return EvaluationType.BOOL;
-				}
-				else {
-					throw new EvaluationTypeException($"Cannot evaluate logical {OperatorName} for operands of type {firstType} and {secondType}.");
-				}
+		public sealed override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
+			EvaluationType firstType = First.GetReturnType(typeSystem);
+			EvaluationType secondType = Second.GetReturnType(typeSystem);
+			if (BoolEvaluationType.IsBool(firstType) && BoolEvaluationType.IsBool(secondType)) {
+				return EvaluationTypes.BOOL;
+			}
+			else {
+				throw new EvaluationTypeException($"Cannot evaluate logical {OperatorName} for operands of type {firstType} and {secondType}.");
 			}
 		}
 
-		protected abstract bool Compare(bool a, bool b);
+		protected static EvaluationValue MakeResult(bool result) {
+			return new EvaluationValue(result, EvaluationTypes.BOOL);
+		}
 
-		public sealed override object Evaluate(IEnvironment environment) {
-			object? a = First.Evaluate(environment);
-			object? b = Second.Evaluate(environment);
-
-			if (a is bool aBool && b is bool bBool) {
-				return Compare(aBool, bBool);
-			}
-			else {
-				throw new EvaluationTypeException($"Cannot evaluate logical {OperatorName} for operands of type {EvaluationUtils.GetDataTypeName(a)} and {EvaluationUtils.GetDataTypeName(b)}.");
-			}
+		protected EvaluationTypeException MakeCalculationError(EvaluationValue a) {
+			return new EvaluationTypeException($"Invalid operand for logical {OperatorName} of type {a.Type}.");
+		}
+		protected EvaluationTypeException MakeCalculationError(EvaluationValue a, EvaluationValue b) {
+			return new EvaluationTypeException($"Cannot evaluate logical {OperatorName} for operands of type {a.Type} and {b.Type}.");
 		}
 	}
 
@@ -38,8 +33,26 @@
 		public override string Symbol { get; } = "&";
 		protected override string OperatorName { get; } = "AND";
 
-		protected override bool Compare(bool a, bool b) {
-			return a && b;
+		public override EvaluationValue Evaluate(IEnvironment environment) {
+			EvaluationValue a = First.Evaluate(environment);
+
+			if (BoolEvaluationType.TryGetBool(a, out bool aBool)) {
+				if (aBool) {
+					EvaluationValue b = Second.Evaluate(environment);
+					if (BoolEvaluationType.TryGetBool(b, out bool bBool)) {
+						return MakeResult(aBool && bBool);
+					}
+					else {
+						throw MakeCalculationError(a, b);
+					}
+				}
+				else {
+					return MakeResult(false);
+				}
+			}
+			else {
+				throw MakeCalculationError(a);
+			}
 		}
 
 		protected override BinaryOperatorNode Empty() {
@@ -52,8 +65,16 @@
 		public override string Symbol { get; } = "^";
 		protected override string OperatorName { get; } = "XOR";
 
-		protected override bool Compare(bool a, bool b) {
-			return a ^ b;
+		public override EvaluationValue Evaluate(IEnvironment environment) {
+			EvaluationValue a = First.Evaluate(environment);
+			EvaluationValue b = Second.Evaluate(environment);
+
+			if (BoolEvaluationType.TryGetBool(a, out bool aBool) && BoolEvaluationType.TryGetBool(b, out bool bBool)) {
+				return new EvaluationValue(aBool ^ bBool, EvaluationTypes.BOOL);
+			}
+			else {
+				throw MakeCalculationError(a, b);
+			}
 		}
 
 		protected override BinaryOperatorNode Empty() {
@@ -66,8 +87,27 @@
 		public override string Symbol { get; } = "|";
 		protected override string OperatorName { get; } = "OR";
 
-		protected override bool Compare(bool a, bool b) {
-			return a || b;
+		public override EvaluationValue Evaluate(IEnvironment environment) {
+			EvaluationValue a = First.Evaluate(environment);
+
+			if (BoolEvaluationType.TryGetBool(a, out bool aBool)) {
+				if (aBool) {
+					return MakeResult(true);
+					
+				}
+				else {
+					EvaluationValue b = Second.Evaluate(environment);
+					if (BoolEvaluationType.TryGetBool(b, out bool bBool)) {
+						return MakeResult(bBool);
+					}
+					else {
+						throw MakeCalculationError(a, b);
+					}
+				}
+			}
+			else {
+				throw MakeCalculationError(a);
+			}
 		}
 
 		protected override BinaryOperatorNode Empty() {

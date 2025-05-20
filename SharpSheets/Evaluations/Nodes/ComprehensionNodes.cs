@@ -10,7 +10,7 @@ namespace SharpSheets.Evaluations.Nodes {
 	internal interface IVariableProvider {
 		/// <summary></summary>
 		/// <exception cref="EvaluationProcessingException"></exception>
-		IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables();
+		IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables(EvaluationTypeSystem typeSystem);
 	}
 
 	public class ComprehensionNode : BinaryOperatorNode, IVariableProvider {
@@ -20,19 +20,13 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override int[] CalculationOrder { get; } = new int[] { 1, 0 };
 
-		public override EvaluationType ReturnType {
-			get {
-				if (Second.ReturnType.IsArray || Second.ReturnType.IsTuple) {
-					EvaluationType arrayElementType = First.ReturnType;
-					if (arrayElementType.DataType == null) {
-						// Shouldn't this just be handled downstream?
-						throw new EvaluationTypeException($"Cannot construct array of dynamic type {arrayElementType}.");
-					}
-					return First.ReturnType.MakeArray(); // EvaluationType.Array(First.ReturnType);
-				}
-				else {
-					throw new EvaluationTypeException("Comprehension requires an array from which to draw values.");
-				}
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
+			EvaluationType secondType = Second.GetReturnType(typeSystem);
+			if (secondType.IterationResult() is not null) {
+				return First.GetReturnType(typeSystem).MakeArray();
+			}
+			else {
+				throw new EvaluationTypeException($"Comprehension requires an array from which to draw values (got {secondType}).");
 			}
 		}
 
@@ -42,38 +36,28 @@ namespace SharpSheets.Evaluations.Nodes {
 			this.LoopVariable = loopVariable;
 		}
 
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables() {
-			try {
-				return new KeyValuePair<EvaluationName, EvaluationType>(LoopVariable, Second.ReturnType.ElementType!).Yield();
-			}
-			catch (UndefinedVariableException) {
-				return Enumerable.Empty<KeyValuePair<EvaluationName, EvaluationType>>();
-			}
+		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables(EvaluationTypeSystem typeSystem) {
+			EvaluationType loopVarType = Second.GetReturnType(typeSystem).IterationResult() ?? throw new EvaluationTypeException("Comprehension requires an iterable source from which to draw values.");
+			return new KeyValuePair<EvaluationName, EvaluationType>(LoopVariable, loopVarType).Yield();
 		}
 
-		public override object Evaluate(IEnvironment environment) {
-			ComprehensionEnvironment loopEnv = new ComprehensionEnvironment(LoopVariable, Second.ReturnType.ElementType!, environment);
+		public override EvaluationValue Evaluate(IEnvironment environment) {
+			EvaluationType secondIterationType = Second.GetReturnType(environment).IterationResult() ?? throw new EvaluationTypeException("Comprehension requires an iterable source from which to draw values.");
 
-			Type resultType = First.ReturnType.DataType;
-			if (resultType == null) {
-				throw new EvaluationCalculationException($"Cannot construct array of dynamic type {resultType}.");
+			ComprehensionEnvironment loopEnv = new ComprehensionEnvironment(LoopVariable, secondIterationType, environment);
+
+			EvaluationType resultElementType = First.GetReturnType(environment);
+
+			EvaluationValue secondResult = Second.Evaluate(environment);
+
+			List<EvaluationValue> result = new List<EvaluationValue>();
+			foreach (EvaluationValue loopVal in (secondResult.Type.Iteration(secondResult) ?? throw new EvaluationTypeException($"Comprehension cannot iterate over source of type {secondResult.Type}."))) {
+				loopEnv.SetLoopVariable(loopVal.Value);
+				EvaluationValue loopResult = First.Evaluate(loopEnv);
+				result.Add(loopResult);
 			}
 
-			object? arg2 = Second.Evaluate(environment);
-			if (arg2 is not null && EvaluationTypes.TryGetArray(arg2, out Array? array)) {
-				List<object?> result = new List<object?>();
-
-				foreach (object loopValue in array) {
-					loopEnv.SetLoopVariable(loopValue);
-					object? loopResult = First.Evaluate(loopEnv);
-					result.Add(loopResult);
-				}
-
-				return EvaluationTypes.MakeArray(resultType, result);
-			}
-			else {
-				throw new EvaluationTypeException($"Comprehensions not defined for sources of type {EvaluationUtils.GetDataTypeName(arg2)}.");
-			}
+			return ArrayEvaluationType.MakeArray(resultElementType, result);
 		}
 
 		public override IEnumerable<EvaluationName> GetVariables() {
@@ -95,22 +79,15 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override int[] CalculationOrder { get; } = new int[] { 1, 2, 0 };
 
-		public override EvaluationType ReturnType {
-			get {
-				if (Third.ReturnType != EvaluationType.BOOL) {
-					throw new EvaluationTypeException("Comprehension condition must be a boolean expression.");
-				}
-				else if (Second.ReturnType.IsArray || Second.ReturnType.IsTuple) {
-					EvaluationType arrayElementType = First.ReturnType;
-					if (arrayElementType.DataType == null) {
-						// I don't think this makes sense anymore...
-						throw new EvaluationTypeException($"Cannot construct array of dynamic type {arrayElementType}.");
-					}
-					return First.ReturnType.MakeArray(); // EvaluationType.Array(First.ReturnType);
-				}
-				else {
-					throw new EvaluationTypeException("Comprehension requires an array from which to draw values.");
-				}
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
+			if (!BoolEvaluationType.IsBool(Third.GetReturnType(typeSystem))) {
+				throw new EvaluationTypeException("Comprehension condition must be a boolean expression.");
+			}
+			else if (Second.GetReturnType(typeSystem).IterationResult() is not null) {
+				return First.GetReturnType(typeSystem).MakeArray();
+			}
+			else {
+				throw new EvaluationTypeException("Comprehension requires an array from which to draw values.");
 			}
 		}
 
@@ -118,16 +95,12 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public EvaluationName? LoopVariable { get; set; } = null;
 
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables() {
+		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables(EvaluationTypeSystem typeSystem) {
 			if (LoopVariable == null) {
 				throw new EvaluationProcessingException("Loop variable not yet assigned.");
 			}
-			try {
-				return new KeyValuePair<EvaluationName, EvaluationType>(LoopVariable.Value, Second.ReturnType.ElementType!).Yield();
-			}
-			catch (UndefinedVariableException) {
-				return Enumerable.Empty<KeyValuePair<EvaluationName, EvaluationType>>();
-			}
+			EvaluationType loopVarType = Second.GetReturnType(typeSystem).IterationResult() ?? throw new EvaluationTypeException("Comprehension-if requires an iterable source from which to draw values.");
+			return new KeyValuePair<EvaluationName, EvaluationType>(LoopVariable.Value, loopVarType).Yield();
 		}
 
 		internal override void AssignOpening(OperatorNode openingNode) {
@@ -139,41 +112,39 @@ namespace SharpSheets.Evaluations.Nodes {
 			}
 		}
 
-		public override object Evaluate(IEnvironment environment) {
-
+		public override EvaluationValue Evaluate(IEnvironment environment) {
 			if (LoopVariable == null) {
 				throw new EvaluationProcessingException("Loop variable not yet assigned.");
 			}
 
-			ComprehensionEnvironment loopEnv = new ComprehensionEnvironment(LoopVariable.Value, Second.ReturnType.ElementType!, environment);
+			EvaluationType secondIterationType = Second.GetReturnType(environment).IterationResult() ?? throw new EvaluationTypeException("Comprehension-if requires an iterable source from which to draw values.");
 
-			Type resultType = First.ReturnType.DataType;
-			if (resultType == null) {
-				throw new EvaluationCalculationException($"Cannot construct array of dynamic type {resultType}.");
-			}
+			ComprehensionEnvironment loopEnv = new ComprehensionEnvironment(LoopVariable.Value, secondIterationType, environment);
 
-			object? arg2 = Second.Evaluate(environment);
-			if (arg2 is not null && EvaluationTypes.TryGetArray(arg2, out Array? array)) {
-				List<object?> result = new List<object?>();
+			EvaluationType resultElementType = First.GetReturnType(environment);
 
-				foreach (object loopValue in array) {
-					loopEnv.SetLoopVariable(loopValue);
-					bool condition = (bool)(Third.Evaluate(loopEnv) ?? throw new EvaluationCalculationException("Cannot evaluate loop conditional."));
-					if (condition) {
-						object? loopResult = First.Evaluate(loopEnv);
-						result.Add(loopResult);
-					}
+			EvaluationValue secondResult = Second.Evaluate(environment);
+
+			List<EvaluationValue> result = new List<EvaluationValue>();
+			foreach (EvaluationValue loopVal in (secondResult.Type.Iteration(secondResult) ?? throw new EvaluationTypeException($"Comprehension cannot iterate over source of type {secondResult.Type}."))) {
+				loopEnv.SetLoopVariable(loopVal.Value);
+
+				EvaluationValue conditionResult = Third.Evaluate(loopEnv);
+
+				if (BoolEvaluationType.TryGetBool(conditionResult, out bool condition)) {
+					EvaluationValue loopResult = First.Evaluate(loopEnv);
+					result.Add(loopResult);
 				}
+				else {
+					throw new EvaluationCalculationException("Cannot evaluate loop conditional.");
+				}
+			}
 
-				return EvaluationTypes.MakeArray(resultType, result);
-			}
-			else {
-				throw new EvaluationTypeException($"Comprehensions not defined for sources of type {EvaluationUtils.GetDataTypeName(arg2)}.");
-			}
+			return ArrayEvaluationType.MakeArray(resultElementType, result);
 		}
 
 		protected override TernaryOperatorNode Empty() {
-			ComprehensionIfNode empty = new ComprehensionIfNode {
+			ComprehensionIfNode empty = new ComprehensionIfNode() {
 				LoopVariable = LoopVariable
 			};
 			return empty;
@@ -201,6 +172,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private bool initialized;
 
 		public bool IsEmpty { get; } = false;
+		public EvaluationTypeSystem TypeSystem => environment.TypeSystem;
 
 		public ComprehensionEnvironment(EvaluationName loopIdentifier, EvaluationType loopVariableType, IEnvironment environment) {
 			this.loopIdentifier = loopIdentifier;
@@ -214,10 +186,10 @@ namespace SharpSheets.Evaluations.Nodes {
 			initialized = true;
 		}
 
-		public bool TryGetValue(EvaluationName key, out object? value) {
+		public bool TryGetValue(EvaluationName key, [NotNullWhen(true)] out EvaluationValue? value) {
 			if (!initialized) { throw new EvaluationProcessingException("Loop value not set."); }
 			if (loopIdentifier == key) {
-				value = currentValue;
+				value = new EvaluationValue(currentValue, loopVariableInfo.EvaluationType);
 				return true;
 			}
 			else {

@@ -18,8 +18,6 @@ namespace SharpSheets.Markup.Parsing {
 		public static readonly EvaluationType DIMENSION = EvaluationType.FromSystemType(typeof(Dimension));
 		public static readonly EvaluationType MARGINS = EvaluationType.FromSystemType(typeof(Margins));
 
-		// public static readonly EvaluationType UFLOAT = new EvaluationType() // TODO Can this be done neatly?
-
 		public static readonly EvaluationType FILE_PATH = EvaluationType.FromSystemType(typeof(SharpSheets.Utilities.FilePath));
 
 		// Enum types
@@ -112,6 +110,35 @@ namespace SharpSheets.Markup.Parsing {
 			}).WhereNotNull().ToArray();
 
 			return new MarkupEnumType(text, description, enumVals);
+		}
+	}
+
+
+	public sealed class ColorEvaluationType : EvaluationType {
+
+		public static readonly EvaluationType Instance = new ColorEvaluationType();
+
+		public override string Name { get; } = "color";
+
+		public override Type DataType { get; } = typeof(SharpSheets.Colors.Color);
+		public override Type DisplayType => DataType;
+
+		private ColorEvaluationType() : base(Enumerable.Empty<TypeField>(), MakeNamedColorFields()) { }
+
+		private static IEnumerable<TypeField> MakeNamedColorFields() {
+			return SharpSheets.Colors.Color.NamedColors.Select(kv => new TypeField(kv.Key, Instance, t => new EvaluationValue(kv.Value, Instance)));
+		}
+
+		public override bool CanImplicitCastFrom(EvaluationType other) => false;
+		public override EvaluationValue? Cast(EvaluationValue other) => null;
+
+		protected override bool EqualTypeData(EvaluationType other) {
+			return Name == other.Name
+				&& DataType == other.DataType;
+		}
+
+		protected override int GetTypeHashCode() {
+			return HashCode.Combine(Name, DataType);
 		}
 	}
 

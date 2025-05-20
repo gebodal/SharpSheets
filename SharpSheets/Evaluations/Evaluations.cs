@@ -56,11 +56,11 @@ namespace SharpSheets.Evaluations {
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
-		private static object ParseFloat(string token) {
+		private static EvaluationValue ParseFloat(string token) {
 			try {
 				float value = float.Parse(token);
-				if (value >= 0f) { return new UFloat(value); }
-				else { return value; }
+				if (value >= 0f) { return new EvaluationValue(new UFloat(value), EvaluationTypes.UFLOAT); }
+				else { return new EvaluationValue(value, EvaluationTypes.FLOAT); }
 			}
 			catch(FormatException e) {
 				throw new EvaluationSyntaxException($"\"{token}\" is not a valid float value.", e);
@@ -68,11 +68,11 @@ namespace SharpSheets.Evaluations {
 		}
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
-		private static object ParseInt(string token) {
+		private static EvaluationValue ParseInt(string token) {
 			try {
 				int value = int.Parse(token);
-				if (value >= 0) { return (uint)value; }
-				else { return value; }
+				if (value >= 0) { return new EvaluationValue((uint)value, EvaluationTypes.UINT); }
+				else { return new EvaluationValue(value, EvaluationTypes.INT); }
 			}
 			catch (FormatException e) {
 				throw new EvaluationSyntaxException($"\"{token}\" is not a valid int value.", e);
@@ -80,9 +80,9 @@ namespace SharpSheets.Evaluations {
 		}
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
-		private static bool ParseBool(string token) {
+		private static EvaluationValue ParseBool(string token) {
 			try {
-				return bool.Parse(token);
+				return new EvaluationValue(bool.Parse(token), EvaluationTypes.BOOL);
 			}
 			catch (FormatException e) {
 				throw new EvaluationSyntaxException($"\"{token}\" is not a valid bool value.", e);
@@ -90,9 +90,9 @@ namespace SharpSheets.Evaluations {
 		}
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
-		private static string ParseString(string token) {
+		private static EvaluationValue ParseString(string token) {
 			try {
-				return StringParsing.Parse(token);
+				return new EvaluationValue(StringParsing.Parse(token), EvaluationTypes.STRING);
 			}
 			catch (FormatException e) {
 				throw new EvaluationSyntaxException($"\"{token}\" is not a valid string value.", e);
@@ -469,7 +469,7 @@ namespace SharpSheets.Evaluations {
 				}
 
 				if (node is VariablePlaceholderNode placeholderNode) {
-					Dictionary<EvaluationName, EvaluationType> definedVariables = providers.SelectMany(p => p.ProvidedVariables()).ToDictionary();
+					Dictionary<EvaluationName, EvaluationType> definedVariables = providers.SelectMany(p => p.ProvidedVariables(variables.TypeSystem)).ToDictionary();
 					
 					if(definedVariables.TryGetValue(placeholderNode.Key, out EvaluationType? returnType)) {
 						return new VariableNode(placeholderNode.Key, returnType);
@@ -509,10 +509,10 @@ namespace SharpSheets.Evaluations {
 
 			resultNode = ReplaceVariableNodes(resultNode, new List<IVariableProvider>());
 
-			_ = resultNode.ReturnType; // Run this to ensure that no errors are thrown from badly formed expressions later
+			_ = resultNode.GetReturnType(variables); // Run this to ensure that no errors are thrown from badly formed expressions later
 
 			try {
-				resultNode = resultNode.Simplify();
+				resultNode = resultNode.Simplify(variables.TypeSystem);
 			}
 			catch(EvaluationCalculationException e) {
 				throw new EvaluationProcessingException("Invalid expression.", e); // Better error message?
@@ -525,12 +525,12 @@ namespace SharpSheets.Evaluations {
 
 		private class OpenBraceNode : OperatorNode {
 			public override bool IsConstant => true;
-			public override EvaluationType ReturnType => throw new NotImplementedException();
+			public override EvaluationType GetReturnType(EvaluationTypeSystem _) => throw new NotImplementedException();
 			public sealed override int Operands { get { return 0; } }
 			public sealed override int Precedence => -2;
 			public sealed override Associativity Associativity => throw new NotImplementedException();
-			public override object Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
-			public override EvaluationNode Simplify() { throw new NotImplementedException(); }
+			public override EvaluationValue Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
+			public override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) { throw new NotImplementedException(); }
 			public override EvaluationNode Clone() { return new OpenBraceNode(); }
 			public override IEnumerable<EvaluationName> GetVariables() { throw new NotImplementedException(); }
 			//public override void Print(int indent, IEnvironment environment) { throw new NotImplementedException(); }
@@ -539,12 +539,12 @@ namespace SharpSheets.Evaluations {
 
 		private class OpenIndexerNode : OperatorNode {
 			public override bool IsConstant => true;
-			public override EvaluationType ReturnType => throw new NotImplementedException();
+			public override EvaluationType GetReturnType(EvaluationTypeSystem _) => throw new NotImplementedException();
 			public sealed override int Operands { get { return 0; } }
 			public sealed override int Precedence => -2;
 			public sealed override Associativity Associativity => throw new NotImplementedException();
-			public override object Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
-			public override EvaluationNode Simplify() { throw new NotImplementedException(); }
+			public override EvaluationValue Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
+			public override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) { throw new NotImplementedException(); }
 			public override EvaluationNode Clone() { return new OpenIndexerNode(); }
 			public override IEnumerable<EvaluationName> GetVariables() { throw new NotImplementedException(); }
 			//public override void Print(int indent, IEnvironment environment) { throw new NotImplementedException(); }
@@ -553,12 +553,12 @@ namespace SharpSheets.Evaluations {
 
 		private class IndexerSlicePlaceholder : OperatorNode {
 			public override bool IsConstant => true;
-			public override EvaluationType ReturnType => throw new NotImplementedException();
+			public override EvaluationType GetReturnType(EvaluationTypeSystem _) => throw new NotImplementedException();
 			public sealed override int Operands { get { return 2; } }
 			public sealed override int Precedence => 13;
 			public sealed override Associativity Associativity => throw new NotImplementedException();
-			public override object Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
-			public override EvaluationNode Simplify() { throw new NotImplementedException(); }
+			public override EvaluationValue Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
+			public override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) { throw new NotImplementedException(); }
 			public override EvaluationNode Clone() { return new IndexerSlicePlaceholder(); }
 			public override IEnumerable<EvaluationName> GetVariables() { throw new NotImplementedException(); }
 			//public override void Print(int indent, IEnvironment environment) { throw new NotImplementedException(); }
@@ -567,7 +567,7 @@ namespace SharpSheets.Evaluations {
 
 		private class VariablePlaceholderNode : ValueNode {
 			public override bool IsConstant => throw new UndefinedVariableException(Key);
-			public override EvaluationType ReturnType => throw new UndefinedVariableException(Key);
+			public override EvaluationType GetReturnType(EvaluationTypeSystem _) => throw new UndefinedVariableException(Key);
 
 			public EvaluationName Key { get; }
 
@@ -577,7 +577,7 @@ namespace SharpSheets.Evaluations {
 
 			public override EvaluationNode Clone() { return new VariablePlaceholderNode(Key); }
 
-			public override object Evaluate(IEnvironment environment) => throw new NotImplementedException();
+			public override EvaluationValue Evaluate(IEnvironment environment) => throw new NotImplementedException();
 			public override IEnumerable<EvaluationName> GetVariables() => throw new NotImplementedException();
 
 			protected override string GetRepresentation() {

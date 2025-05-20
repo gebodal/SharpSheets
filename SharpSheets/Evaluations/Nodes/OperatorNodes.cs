@@ -49,13 +49,13 @@ namespace SharpSheets.Evaluations.Nodes {
 			return empty;
 		}
 
-		public override EvaluationNode Simplify() {
+		public override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) {
 			if (IsConstant) {
-				return new ConstantNode(Evaluate(Environments.Empty), ReturnType);
+				return new ConstantNode(Evaluate(Environments.Create(typeSystem)));
 			}
 			else {
 				UnaryOperatorNode empty = Empty();
-				empty.Operand = Operand.Simplify();
+				empty.Operand = Operand.Simplify(typeSystem);
 				return empty;
 			}
 		}
@@ -126,14 +126,14 @@ namespace SharpSheets.Evaluations.Nodes {
 			return empty;
 		}
 
-		public sealed override EvaluationNode Simplify() {
+		public sealed override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) {
 			if (IsConstant) {
-				return new ConstantNode(Evaluate(Environments.Empty), ReturnType);
+				return new ConstantNode(Evaluate(Environments.Create(typeSystem)));
 			}
 			else {
 				BinaryOperatorNode empty = Empty();
-				empty.First = First.Simplify();
-				empty.Second = Second.Simplify();
+				empty.First = First.Simplify(typeSystem);
+				empty.Second = Second.Simplify(typeSystem);
 				return empty;
 			}
 		}
@@ -213,15 +213,15 @@ namespace SharpSheets.Evaluations.Nodes {
 			return empty;
 		}
 
-		public override EvaluationNode Simplify() {
+		public override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) {
 			if (IsConstant) {
-				return new ConstantNode(Evaluate(Environments.Empty), ReturnType);
+				return new ConstantNode(Evaluate(Environments.Create(typeSystem)));
 			}
 			else {
 				TernaryOperatorNode empty = Empty();
-				empty.First = First.Simplify();
-				empty.Second = Second.Simplify();
-				empty.Third = Third.Simplify();
+				empty.First = First.Simplify(typeSystem);
+				empty.Second = Second.Simplify(typeSystem);
+				empty.Third = Third.Simplify(typeSystem);
 				return empty;
 			}
 		}

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace SharpSheets.Evaluations.Nodes {
 
 	public abstract class ValueNode : EvaluationNode {
-		public override EvaluationNode Simplify() {
+		public override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) {
 			return Clone();
 		}
 	}
@@ -12,8 +12,8 @@ namespace SharpSheets.Evaluations.Nodes {
 	public class ConstantNode : ValueNode {
 
 		public override bool IsConstant { get; } = true;
-		public override EvaluationType ReturnType { get; }
-		public object? Value { get; }
+		public override EvaluationType GetReturnType(EvaluationTypeSystem _) => Value.Type;
+		public EvaluationValue Value { get; }
 
 		/*
 		public ConstantNode(float value) {
@@ -34,27 +34,26 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 		*/
 
+		/*
 		public ConstantNode(object value) {
 			this.Value = value;
 			this.ReturnType = EvaluationType.FromSystemType(value.GetType());
 		}
+		*/
 
-		public ConstantNode(object? value, EvaluationType returnType) {
+		public ConstantNode(EvaluationValue value) {
 			this.Value = value;
-			this.ReturnType = returnType;
 		}
 
-		public override object? Evaluate(IEnvironment environment) {
+		public override EvaluationValue Evaluate(IEnvironment environment) {
 			return Value;
 		}
 
 		public override EvaluationNode Clone() {
-			return new ConstantNode(Value, ReturnType);
+			return new ConstantNode(Value);
 		}
 
-		public override IEnumerable<EvaluationName> GetVariables() {
-			yield break;
-		}
+		public override IEnumerable<EvaluationName> GetVariables() => Enumerable.Empty<EvaluationName>();
 
 		/*
 		public override void Print(int indent, IEnvironment environment) {
@@ -63,6 +62,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		*/
 
 		private static string ValueString(object? value) {
+			// TODO This logic shouldn't be here
 			if (value is string s) {
 				return "\"" + s + "\"";
 			}
@@ -81,27 +81,28 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		protected override string GetRepresentation() {
-			return ValueString(Value);
+			return ValueString(Value); // TODO This probably should change
 		}
 	}
 
 	public class VariableNode : ValueNode {
 
 		public override bool IsConstant { get; } = false;
-		public override EvaluationType ReturnType { get; }
+		private readonly EvaluationType returnType;
+		public override EvaluationType GetReturnType(EvaluationTypeSystem _) => returnType;
 		public EvaluationName key;
 
 		public VariableNode(EvaluationName key, EvaluationType type) {
 			this.key = key;
-			this.ReturnType = type;
+			this.returnType = type;
 		}
 
-		public override object? Evaluate(IEnvironment environment) {
+		public override EvaluationValue Evaluate(IEnvironment environment) {
 			return environment.GetValue(key);
 		}
 
 		public override EvaluationNode Clone() {
-			return new VariableNode(key, ReturnType);
+			return new VariableNode(key, returnType);
 		}
 
 		public override IEnumerable<EvaluationName> GetVariables() {
@@ -115,6 +116,33 @@ namespace SharpSheets.Evaluations.Nodes {
 		*/
 
 		protected override string GetRepresentation() { return key.ToString(); }
+	}
+
+	public class TypeLiteralNode : ValueNode {
+
+		public override bool IsConstant { get; } = true;
+		private readonly EvaluationType returnType = EvaluationTypes.META;
+		public override EvaluationType GetReturnType(EvaluationTypeSystem _) => returnType;
+
+		public EvaluationType TypeValue { get; }
+
+		public TypeLiteralNode(EvaluationType typeValue) {
+			this.TypeValue = typeValue;
+		}
+
+		public override EvaluationNode Clone() {
+			return new TypeLiteralNode(TypeValue);
+		}
+
+		public override EvaluationValue Evaluate(IEnvironment environment) {
+			return new EvaluationValue(TypeValue, returnType);
+		}
+
+		public override IEnumerable<EvaluationName> GetVariables() => Enumerable.Empty<EvaluationName>();
+
+		protected override string GetRepresentation() {
+			return TypeValue.ToString(); // TODO This should be the type environment name. Is this the same?
+		}
 	}
 
 }

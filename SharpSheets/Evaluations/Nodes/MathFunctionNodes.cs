@@ -1,5 +1,6 @@
 ﻿using SharpSheets.Utilities;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace SharpSheets.Evaluations.Nodes {
@@ -10,104 +11,94 @@ namespace SharpSheets.Evaluations.Nodes {
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null), true)
 		);
 
-		protected abstract double BaseValue { get; }
-		protected abstract bool IsPreferred(double val, double runningBest);
+		protected abstract EvaluationType? IsPreferredResult(EvaluationType type);
+		protected abstract EvaluationValue? IsPreferred(EvaluationValue val, EvaluationValue runningBest, EvaluationType resultType);
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+		protected bool IsComparable(EvaluationType type) {
+			EvaluationType? comparisonType = IsPreferredResult(type);
+			if (comparisonType is not null && BoolEvaluationType.IsBool(comparisonType)) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
 			if (args.Length == 0) {
 				throw new EvaluationTypeException($"{Name} must take a non-zero number of arguments.");
 			}
 
-			EvaluationType[] returnTypes = args.Select(a => a.ReturnType).Distinct().ToArray();
+			EvaluationType[] returnTypes = args.Select(a => a.GetReturnType(typeSystem)).Distinct().ToArray();
 
-			if (returnTypes.Length == 1 && (returnTypes[0].IsArray || returnTypes[0].IsTuple)) {
-				if (returnTypes[0].ElementType!.IsReal()) {
-					return returnTypes[0].ElementType!;
+			if (args.Length == 1 && returnTypes[0].IterationResult() is EvaluationType iterationType) {
+				if (IsComparable(iterationType)) {
+					return iterationType;
 				}
 				else {
-					throw new EvaluationTypeException($"Cannot take {Name} of array with type: {returnTypes[0]}");
+					throw new EvaluationTypeException($"{iterationType} does not support the necessary comparison operations for {Name} function.");
 				}
 			}
-
-			try {
-				return EvaluationTypes.FindCommonNumericType(returnTypes) ?? throw new EvaluationTypeException($"{Name} must take a non-zero number of arguments.");
+			else if (typeSystem.TryGetLeastUpperBoundType(returnTypes, out EvaluationType? compatible)) {
+				if (IsComparable(compatible)) {
+					return compatible;
+				}
+				else {
+					throw new EvaluationTypeException($"{compatible} does not support the necessary comparison operations for {Name} function.");
+				}
 			}
-			catch (EvaluationTypeException) {
+			else {
 				throw new EvaluationTypeException($"Cannot take {Name} of operands with type{(returnTypes.Length > 1 ? "s" : "")}: " + string.Join(", ", returnTypes.Select(t => t.ToString())));
 			}
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object[] argVals = EvaluationTypes.VerifyArray(args.Select(a => a.Evaluate(environment)).ToArray());
-
-			bool fromArray = false;
-			if (argVals.Length == 1 && EvaluationTypes.TryGetArray(argVals[0], out Array? array)) {
-				argVals = array.Cast<object>().ToArray();
-				fromArray = true;
-			}
-
-			if (argVals.Length == 0) {
-				if (fromArray) {
-					throw new EvaluationCalculationException($"Cannot take {Name} of array with zero elements.");
-				}
-				else {
-					throw new EvaluationCalculationException($"Cannot take {Name} of zero arguments.");
-				}
-			}
-
-			bool badTypes = false;
-
-			object result = argVals[0];
-			double runningBest = BaseValue;
-			for (int i = 0; i < argVals.Length; i++) {
-				bool preferred = false;
-				double val;
-				if (argVals[i] is int aInt) { val = aInt; }
-				else if (argVals[i] is uint aUInt) { val = aUInt; }
-				else if (argVals[i] is float aFloat) { val = aFloat; }
-				else if (argVals[i] is UFloat aUFloat) { val = aUFloat; }
-				else {
-					badTypes = true;
-					break;
-				}
-
-				preferred = IsPreferred(val, runningBest);
-
-
-				if (preferred) {
-					runningBest = val;
-					result = argVals[i];
-				}
-			}
-
-			if (badTypes) {
-				Type[] types = argVals.Select(a => a.GetType()).Distinct().ToArray();
-				string s = (types.Length > 1) ? "s" : "";
-				if (fromArray) {
-					throw new EvaluationTypeException($"Cannot take {Name} of array with type{s}: " + string.Join(", ", types.Select(t => t.Name)));
-				}
-				else {
-					throw new EvaluationTypeException($"Cannot take {Name} of arguments with type{s}: " + string.Join(", ", types.Select(t => t.Name)));
-				}
-			}
-
-			EvaluationType returnType = GetReturnType(args);
-
-			if(returnType.DataType == typeof(int)) {
-				if(EvaluationTypes.TryGetIntegral(result, out int intResult)) {
-					return intResult;
-				}
-			}
-			else if (returnType.DataType == typeof(float)) {
-				if (EvaluationTypes.TryGetReal(result, out float floatResult)) {
-					return floatResult;
-				}
+		private bool IsPreferredCalculation(EvaluationValue val, EvaluationValue runningBest, EvaluationType resultType) {
+			if (IsPreferred(val, runningBest, resultType) is EvaluationValue preferredValue && BoolEvaluationType.TryGetBool(preferredValue, out bool preferred)) {
+				return preferred;
 			}
 			else {
-				return result;
+				throw new EvaluationTypeException($"Cannot compare values of types {val.Type} and {runningBest.Type} for {Name} function.");
+			}
+		}
+
+		protected EvaluationValue GetPreferred(EvaluationValue[] values, EvaluationType resultType) {
+			EvaluationValue result = values[0];
+
+			for (int i = 1; i < values.Length; i++) {
+				if (IsPreferredCalculation(values[i], result, resultType)) {
+					result = values[i];
+				}
 			}
 
-			throw new EvaluationCalculationException($"Could not calculate {Name} for provided values.");
+			return result;
+		}
+
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationValue[] argVals = args.Select(a => a.Evaluate(environment)).ToArray();
+
+			if (argVals.Length == 0) {
+				throw new EvaluationCalculationException($"Cannot take {Name} of zero arguments.");
+			}
+
+			if (argVals.Length == 1 && argVals[0].Type.IterationResult() is EvaluationType resultType && argVals[0].Type.Iteration(argVals[0])?.ToArray() is EvaluationValue[] iterables) {
+				if (iterables.Length == 0) {
+					throw new EvaluationCalculationException($"Cannot take {Name} of array with zero elements.");
+				}
+
+				EvaluationValue result1 = GetPreferred(iterables, resultType);
+
+				return result1;
+			}
+			else if (environment.TypeSystem.TryGetLeastUpperBoundType(argVals.Select(v => v.Type), out EvaluationType? compatible)) {
+				EvaluationValue result2 = GetPreferred(argVals, compatible);
+
+				return result2;
+			}
+			else {
+				EvaluationType[] types = argVals.Select(a => a.Type).Distinct().ToArray();
+				string s = (types.Length > 1) ? "s" : "";
+				throw new EvaluationTypeException($"Cannot take {Name} of arguments with type{s}: " + string.Join(", ", types.Select(t => t.Name)));
+			}
 		}
 
 	}
@@ -117,11 +108,14 @@ namespace SharpSheets.Evaluations.Nodes {
 		private MinVarFunction() { }
 
 		public sealed override EvaluationName Name { get; } = "min";
-		public override string? Description { get; } = "Returns the minimum of the arguments, which must all be numeric values. The return type will be the common type between the arguments.";
+		public override string? Description { get; } = "Returns the minimum of the arguments, which must be of a type which support less than comparison. The return type will be the common type between the arguments.";
 
-		protected override double BaseValue { get { return double.MaxValue; } }
-		protected override bool IsPreferred(double val, double runningBest) {
-			return val < runningBest;
+		protected override EvaluationType? IsPreferredResult(EvaluationType type) {
+			return type.LessThanResult(type);
+		}
+
+		protected override EvaluationValue? IsPreferred(EvaluationValue val, EvaluationValue runningBest, EvaluationType resultType) {
+			return resultType.LessThan(val, runningBest);
 		}
 	}
 
@@ -130,11 +124,14 @@ namespace SharpSheets.Evaluations.Nodes {
 		private MaxVarFunction() { }
 
 		public sealed override EvaluationName Name { get; } = "max";
-		public override string? Description { get; } = "Returns the maximum of the arguments, which must all be numeric values. The return type will be the common type between the arguments.";
+		public override string? Description { get; } = "Returns the maximum of the arguments, which must be of a type which support greater than comparison. The return type will be the common type between the arguments.";
 
-		protected override double BaseValue { get { return double.MinValue; } }
-		protected override bool IsPreferred(double val, double runningBest) {
-			return val > runningBest;
+		protected override EvaluationType? IsPreferredResult(EvaluationType type) {
+			return type.GreaterThanResult(type);
+		}
+
+		protected override EvaluationValue? IsPreferred(EvaluationValue val, EvaluationValue runningBest, EvaluationType resultType) {
+			return resultType.GreaterThan(val, runningBest);
 		}
 	}
 
@@ -144,99 +141,92 @@ namespace SharpSheets.Evaluations.Nodes {
 		private SumFunction() { }
 
 		public override EvaluationName Name { get; } = "sum";
-		public override string? Description { get; } = "Returns the sum of the arguments, which must all be numeric values. The return type will be the common type between the arguments.";
+		public override string? Description { get; } = "Returns the sum of the arguments, which must be of a type which supports addition. The return type will be the common type between the arguments.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null), true)
 		);
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
+		protected static bool TryIsSummable(EvaluationTypeSystem typeSystem, EvaluationType type, [NotNullWhen(true)] out EvaluationType? sumType) {
+			EvaluationType? addType = type.AddResult(type);
+			if (addType is not null && typeSystem.TryGetLeastUpperBoundType(type, addType, out EvaluationType? finalSumType)) {
+				sumType = finalSumType;
+				return true;
+			}
+			else {
+				sumType = null;
+				return false;
+			}
+		}
+
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
 			if (args.Length == 0) {
 				throw new EvaluationTypeException($"{Name} must take a non-zero number of arguments.");
 			}
 
-			EvaluationType[] returnTypes = args.Select(a => a.ReturnType).Distinct().ToArray();
+			EvaluationType[] returnTypes = args.Select(a => a.GetReturnType(typeSystem)).Distinct().ToArray();
 
-			if (returnTypes.Length == 1 && (returnTypes[0].IsArray || returnTypes[0].IsTuple)) {
-				if (returnTypes[0].ElementType!.IsReal()) {
-					return returnTypes[0].ElementType!;
+			if (args.Length == 1 && returnTypes[0].IterationResult() is EvaluationType iterationType) {
+				if (TryIsSummable(typeSystem, iterationType, out EvaluationType? resultType)) {
+					return resultType;
 				}
 				else {
-					throw new EvaluationTypeException($"Cannot take {Name} of array with type: {returnTypes[0]}");
+					throw new EvaluationTypeException($"{iterationType} does not support the necessary addition operations for {Name} function.");
 				}
 			}
-
-			try {
-				return EvaluationTypes.FindCommonNumericType(returnTypes) ?? throw new EvaluationTypeException($"{Name} must take a non-zero number of arguments.");
+			else if (typeSystem.TryGetLeastUpperBoundType(returnTypes, out EvaluationType? compatible)) {
+				if (TryIsSummable(typeSystem, compatible, out EvaluationType? resultType)) {
+					return resultType;
+				}
+				else {
+					throw new EvaluationTypeException($"{compatible} does not support the necessary addition operations for {Name} function.");
+				}
 			}
-			catch (EvaluationTypeException) {
+			else {
 				throw new EvaluationTypeException($"Cannot take {Name} of operands with type{(returnTypes.Length > 1 ? "s" : "")}: " + string.Join(", ", returnTypes.Select(t => t.ToString())));
 			}
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object[] argVals = EvaluationTypes.VerifyArray(args.Select(a => a.Evaluate(environment)).ToArray());
+		protected EvaluationValue PerformSum(EvaluationValue[] values, EvaluationType resultType) {
+			EvaluationValue sum = values[0];
 
-			bool fromArray = false;
-			if (argVals.Length == 1 && EvaluationTypes.TryGetArray(argVals[0], out Array? array)) {
-				argVals = array.Cast<object>().ToArray();
-				fromArray = true;
+			for (int i = 1; i < values.Length; i++) {
+				sum = resultType.Add(sum, values[i]) ?? throw new EvaluationTypeException($"Cannot add values of types {sum.Type} and {values[i].Type} in {Name} function.");
 			}
+
+			return resultType.Cast(sum) ?? throw new EvaluationTypeException($"Cannot convert sum value of type {sum.Type} into compatible type {resultType}.");
+		}
+
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationValue[] argVals = args.Select(a => a.Evaluate(environment)).ToArray();
 
 			if (argVals.Length == 0) {
-				if (fromArray) {
+				throw new EvaluationCalculationException($"Cannot take {Name} of zero arguments.");
+			}
+
+			if (argVals.Length == 1 && argVals[0].Type.IterationResult() is EvaluationType resultType && argVals[0].Type.Iteration(argVals[0])?.ToArray() is EvaluationValue[] iterables) {
+				if (iterables.Length == 0) {
 					throw new EvaluationCalculationException($"Cannot take {Name} of array with zero elements.");
 				}
-				else {
-					throw new EvaluationCalculationException($"Cannot take {Name} of zero arguments.");
-				}
-			}
 
-			bool badTypes = false;
-			double total = 0.0;
-			foreach (object a in argVals) {
-				if (EvaluationTypes.TryGetIntegral(a, out int aInt)) {
-					total += aInt;
-				}
-				else if (EvaluationTypes.TryGetReal(a, out float aFloat)) {
-					total += aFloat;
-				}
-				else {
-					badTypes = true;
-					break;
-				}
-			}
+				EvaluationValue result1 = PerformSum(iterables, resultType);
 
-			if (badTypes) {
-				Type[] types = argVals.Select(a => a.GetType()).Distinct().ToArray();
-				string s = (types.Length > 1) ? "s" : "";
-				if (fromArray) {
-					throw new EvaluationTypeException($"Cannot take {Name} of array with type{s}: " + string.Join(", ", types.Select(t => t.Name)));
-				}
-				else {
-					throw new EvaluationTypeException($"Cannot take {Name} of arguments with type{s}: " + string.Join(", ", types.Select(t => t.Name)));
-				}
+				return result1;
 			}
+			else if (environment.TypeSystem.TryGetLeastUpperBoundType(argVals.Select(v => v.Type), out EvaluationType? compatible)) { // TODO Not sure if this is right... don't we need to check Add result type?
+				EvaluationValue result2 = PerformSum(argVals, compatible);
 
-			EvaluationType returnType = GetReturnType(args);
-
-			if (returnType.DataType == typeof(uint)) {
-				return (uint)total;
-			}
-			else if (returnType.DataType == typeof(UFloat)) {
-				return new UFloat((float)total);
-			}
-			else if (returnType.DataType == typeof(int)) {
-				return (int)total;
-
+				return result2;
 			}
 			else {
-				return (float)total;
+				EvaluationType[] types = argVals.Select(a => a.Type).Distinct().ToArray();
+				string s = (types.Length > 1) ? "s" : "";
+				throw new EvaluationTypeException($"Cannot take {Name} of arguments with type{s}: " + string.Join(", ", types.Select(t => t.Name)));
 			}
 		}
 	}
 
-	public class FloorFunction : AbstractFunction {
+	public class FloorFunction : AbstractSingleArgFunction {
 
 		public static readonly FloorFunction Instance = new FloorFunction();
 		private FloorFunction() { }
@@ -244,31 +234,30 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "floor";
 		public override string? Description { get; } = "Returns the integer floor of the argument.";
 
-		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.FLOAT, null))
-		);
+		protected override EnvironmentFunctionArg Argument { get; } = new EnvironmentFunctionArg("value", EvaluationTypes.FLOAT, null);
+		protected override string? Warning => null;
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType argType = args[0].ReturnType;
-			return argType.IsReal() ? EvaluationType.INT : throw new EvaluationTypeException($"{Name} not defined for value of type {argType}.");
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode arg) {
+			EvaluationType argType = arg.GetReturnType(typeSystem);
+			return FloatEvaluationType.IsReal(argType) ? EvaluationTypes.INT : throw new EvaluationTypeException($"{Name} not defined for value of type {argType}.");
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
+			EvaluationValue a = arg.Evaluate(environment);
 
-			if (EvaluationTypes.TryGetIntegral(a, out int aInt)) {
-				return aInt;
+			if (IntEvaluationType.TryGetInt(a, out int aInt)) {
+				return new EvaluationValue(aInt, EvaluationTypes.INT);
 			}
-			else if (EvaluationTypes.TryGetReal(a, out float aFloat)) {
-				return (int)Math.Floor(aFloat);
+			else if (FloatEvaluationType.TryGetFloat(a, out float aFloat)) {
+				return new EvaluationValue((int)Math.Floor(aFloat), EvaluationTypes.INT);
 			}
 			else {
-				throw new EvaluationTypeException($"{Name} not defined for value of type {EvaluationUtils.GetDataTypeName(a)}.");
+				throw new EvaluationTypeException($"{Name} not defined for value of type {a.Type}.");
 			}
 		}
 	}
 
-	public class CeilingFunction : AbstractFunction {
+	public class CeilingFunction : AbstractSingleArgFunction {
 
 		public static readonly CeilingFunction Instance = new CeilingFunction();
 		private CeilingFunction() { }
@@ -276,26 +265,25 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "ceil";
 		public override string? Description { get; } = "Returns the integer ceiling of the argument.";
 
-		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.FLOAT, null))
-		);
+		protected override EnvironmentFunctionArg Argument { get; } = new EnvironmentFunctionArg("value", EvaluationTypes.FLOAT, null);
+		protected override string? Warning => null;
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType argType = args[0].ReturnType;
-			return argType.IsReal() ? EvaluationType.INT : throw new EvaluationTypeException($"{Name} not defined for value of type {argType}.");
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode arg) {
+			EvaluationType argType = arg.GetReturnType(typeSystem);
+			return FloatEvaluationType.IsReal(argType) ? EvaluationTypes.INT : throw new EvaluationTypeException($"{Name} not defined for value of type {argType}.");
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
+			EvaluationValue a = arg.Evaluate(environment);
 
-			if (EvaluationTypes.TryGetIntegral(a, out int aInt)) {
-				return aInt;
+			if (IntEvaluationType.TryGetInt(a, out int aInt)) {
+				return new EvaluationValue(aInt, EvaluationTypes.INT);
 			}
-			else if (EvaluationTypes.TryGetReal(a, out float aFloat)) {
-				return (int)Math.Ceiling(aFloat);
+			else if (FloatEvaluationType.TryGetFloat(a, out float aFloat)) {
+				return new EvaluationValue((int)Math.Ceiling(aFloat), EvaluationTypes.INT);
 			}
 			else {
-				throw new EvaluationTypeException($"{Name} not defined for value of type {EvaluationUtils.GetDataTypeName(a)}.");
+				throw new EvaluationTypeException($"{Name} not defined for value of type {a.Type}.");
 			}
 		}
 	}
@@ -309,59 +297,58 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override string? Description { get; } = "Returns the absolute value of the argument.";
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.FLOAT, null)),
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationType.INT, null))
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.FLOAT, null)),
+			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.INT, null))
 		);
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType argType = args[0].ReturnType;
-			if (argType.IsIntegral()) {
-				return EvaluationType.UINT;
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
+			EvaluationType argType = args[0].GetReturnType(typeSystem);
+			if (IntEvaluationType.IsIntegral(argType)) {
+				return EvaluationTypes.UINT;
 			}
-			else if (argType.IsReal()) {
-				return EvaluationType.UFLOAT;
+			else if (FloatEvaluationType.IsReal(argType)) {
+				return EvaluationTypes.UFLOAT;
 			}
 			else {
 				throw new EvaluationTypeException($"{Name} not defined for value of type {argType}.");
 			}
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationValue a = args[0].Evaluate(environment);
 
-			if (EvaluationTypes.TryGetIntegral(a, out int aInt)) {
-				return (uint)Math.Abs(aInt);
+			if (IntEvaluationType.TryGetInt(a, out int aInt)) {
+				return new EvaluationValue((uint)Math.Abs(aInt), EvaluationTypes.UINT);
 			}
-			else if (EvaluationTypes.TryGetReal(a, out float aFloat)) {
-				return new UFloat(Math.Abs(aFloat));
+			else if (FloatEvaluationType.TryGetFloat(a, out float aFloat)) {
+				return new EvaluationValue(new UFloat(Math.Abs(aFloat)), EvaluationTypes.UFLOAT);
 			}
 			else {
-				throw new EvaluationTypeException($"{Name} not defined for value of type {EvaluationUtils.GetDataTypeName(a)}.");
+				throw new EvaluationTypeException($"{Name} not defined for value of type {a.Type}.");
 			}
 		}
 	}
 
-	public abstract class MathematicalFunction : AbstractFunction {
+	public abstract class MathematicalFunction : AbstractSingleArgFunction {
 
-		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("x", EvaluationType.FLOAT, null))
-		);
+		protected override EnvironmentFunctionArg Argument { get; } = new EnvironmentFunctionArg("x", EvaluationTypes.FLOAT, null);
+		protected override string? Warning => null;
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType argType = args[0].ReturnType;
-			return argType.IsReal() ? EvaluationType.FLOAT : throw new EvaluationTypeException($"{Name} is not defined for value of type {argType}.");
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode arg) {
+			EvaluationType argType = arg.GetReturnType(typeSystem);
+			return FloatEvaluationType.IsReal(argType) ? EvaluationTypes.FLOAT : throw new EvaluationTypeException($"{Name} is not defined for value of type {argType}.");
 		}
 
 		protected abstract double Calculate(float argument);
 
-		public sealed override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
+		public sealed override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
+			EvaluationValue a = arg.Evaluate(environment);
 
-			if (EvaluationTypes.TryGetReal(a, out float aFloat)) {
-				return (float)Calculate(aFloat);
+			if (FloatEvaluationType.TryGetFloat(a, out float aFloat)) {
+				return new EvaluationValue((float)Calculate(aFloat), EvaluationTypes.FLOAT);
 			}
 			else {
-				throw new EvaluationTypeException($"Mathematical functions are not defined for value of type {EvaluationUtils.GetDataTypeName(a)}.");
+				throw new EvaluationTypeException($"Mathematical functions are not defined for value of type {a.Type}.");
 			}
 		}
 	}
@@ -442,26 +429,26 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(
-				new EnvironmentFunctionArg("y", EvaluationType.FLOAT, null),
-				new EnvironmentFunctionArg("x", EvaluationType.FLOAT, null)
+				new EnvironmentFunctionArg("y", EvaluationTypes.FLOAT, null),
+				new EnvironmentFunctionArg("x", EvaluationTypes.FLOAT, null)
 				)
 		);
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType arg1Type = args[0].ReturnType;
-			EvaluationType arg2Type = args[1].ReturnType;
-			return (arg1Type.IsReal() && arg2Type.IsReal()) ? EvaluationType.FLOAT : throw new EvaluationTypeException($"Atan2 not defined for operands of type {arg1Type} and {arg2Type}.");
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
+			EvaluationType arg1Type = args[0].GetReturnType(typeSystem);
+			EvaluationType arg2Type = args[1].GetReturnType(typeSystem);
+			return (FloatEvaluationType.IsReal(arg1Type) && FloatEvaluationType.IsReal(arg2Type)) ? EvaluationTypes.FLOAT : throw new EvaluationTypeException($"Atan2 not defined for operands of type {arg1Type} and {arg2Type}.");
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
-			object? b = args[1].Evaluate(environment);
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationValue a = args[0].Evaluate(environment);
+			EvaluationValue b = args[1].Evaluate(environment);
 
-			if (EvaluationTypes.TryGetReal(a, out float afloat) && EvaluationTypes.TryGetReal(b, out float bfloat)) {
-				return (float)Math.Atan2(afloat, bfloat);
+			if (FloatEvaluationType.TryGetFloat(a, out float afloat) && FloatEvaluationType.TryGetFloat(b, out float bfloat)) {
+				return new EvaluationValue((float)Math.Atan2(afloat, bfloat), EvaluationTypes.FLOAT);
 			}
 			else {
-				throw new EvaluationTypeException($"Atan2 not defined for operands of type {EvaluationUtils.GetDataTypeName(a)} and {EvaluationUtils.GetDataTypeName(b)}.");
+				throw new EvaluationTypeException($"Atan2 not defined for operands of type {a.Type} and {b.Type}.");
 			}
 		}
 	}
@@ -504,29 +491,29 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(
-				new EnvironmentFunctionArg("a", EvaluationType.FLOAT, null),
-				new EnvironmentFunctionArg("b", EvaluationType.FLOAT, null),
-				new EnvironmentFunctionArg("t", EvaluationType.FLOAT, null)
+				new EnvironmentFunctionArg("a", EvaluationTypes.FLOAT, null),
+				new EnvironmentFunctionArg("b", EvaluationTypes.FLOAT, null),
+				new EnvironmentFunctionArg("t", EvaluationTypes.FLOAT, null)
 				)
 		);
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType arg1Type = args[0].ReturnType;
-			EvaluationType arg2Type = args[1].ReturnType;
-			EvaluationType arg3Type = args[2].ReturnType;
-			return (arg1Type.IsReal() && arg2Type.IsReal() && arg3Type.IsReal()) ? EvaluationType.FLOAT : throw new EvaluationTypeException($"lerp not defined for operands of type {arg1Type}, {arg2Type}, and {arg3Type}.");
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
+			EvaluationType arg1Type = args[0].GetReturnType(typeSystem);
+			EvaluationType arg2Type = args[1].GetReturnType(typeSystem);
+			EvaluationType arg3Type = args[2].GetReturnType(typeSystem);
+			return FloatEvaluationType.AllReal(arg1Type, arg2Type, arg3Type) ? EvaluationTypes.FLOAT : throw new EvaluationTypeException($"lerp not defined for operands of type {arg1Type}, {arg2Type}, and {arg3Type}.");
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? aObj = args[0].Evaluate(environment);
-			object? bObj = args[1].Evaluate(environment);
-			object? tObj = args[2].Evaluate(environment);
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationValue aVal = args[0].Evaluate(environment);
+			EvaluationValue bVal = args[1].Evaluate(environment);
+			EvaluationValue tVal = args[2].Evaluate(environment);
 
-			if (EvaluationTypes.TryGetReal(aObj, out float a) && EvaluationTypes.TryGetReal(bObj, out float b) && EvaluationTypes.TryGetReal(tObj, out float t)) {
-				return MathUtils.Lerp(a, b, t);
+			if (FloatEvaluationType.TryGetFloat(aVal, out float a) && FloatEvaluationType.TryGetFloat(bVal, out float b) && FloatEvaluationType.TryGetFloat(tVal, out float t)) {
+				return new EvaluationValue(MathUtils.Lerp(a, b, t), EvaluationTypes.FLOAT);
 			}
 			else {
-				throw new EvaluationTypeException($"lerp not defined for operands of type {EvaluationUtils.GetDataTypeName(aObj)}, {EvaluationUtils.GetDataTypeName(bObj)}, and {EvaluationUtils.GetDataTypeName(tObj)}.");
+				throw new EvaluationTypeException($"lerp not defined for operands of type {aVal.Type}, {bVal.Type}, and {tVal.Type}.");
 			}
 		}
 	}

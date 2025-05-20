@@ -8,9 +8,11 @@ namespace SharpSheets.Evaluations {
 
 	public static class EvaluationUtils {
 
+		/*
 		public static string GetDataTypeName(object? data) {
 			return data?.GetType().Name ?? "null";
 		}
+		*/
 
 	}
 

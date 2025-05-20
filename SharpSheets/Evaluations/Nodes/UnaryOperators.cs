@@ -9,31 +9,14 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationTypeException"></exception>
-		public override EvaluationType ReturnType {
-			get {
-				EvaluationType operandType = Operand.ReturnType;
-				return operandType.IsReal() ? operandType : throw new EvaluationTypeException($"Cannot take positive value of type {operandType}.");
-			}
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
+			EvaluationType operandType = Operand.GetReturnType(typeSystem);
+			return operandType.PosResult() ?? throw new EvaluationTypeException($"Cannot take positive value of type {operandType}.");
 		}
 
-		public override object Evaluate(IEnvironment environment) {
-			object? a = Operand.Evaluate(environment);
-
-			if (a is int aint) {
-				return +aint;
-			}
-			else if (a is float afloat) {
-				return +afloat;
-			}
-			else if (a is uint auint) {
-				return +auint;
-			}
-			else if (a is UFloat aufloat) {
-				return aufloat;
-			}
-			else {
-				throw new EvaluationTypeException($"Cannot take positive value of type {EvaluationUtils.GetDataTypeName(a)}.");
-			}
+		public override EvaluationValue Evaluate(IEnvironment environment) {
+			EvaluationValue a = Operand.Evaluate(environment);
+			return a.Type.Pos(a) ?? throw new EvaluationTypeException($"Cannot take positive value of type {a.Type}.");
 		}
 
 		protected override UnaryOperatorNode Empty() {
@@ -46,30 +29,14 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override Associativity Associativity { get; } = Associativity.RIGHT;
 		public override string Symbol { get; } = "-";
 
-		public override EvaluationType ReturnType {
-			get {
-				EvaluationType operandType = Operand.ReturnType;
-				if (operandType.IsReal()) {
-					return operandType.IsIntegral() ? EvaluationType.INT : EvaluationType.FLOAT;
-				}
-				else {
-					throw new EvaluationTypeException($"Cannot take negative value of type {operandType}.");
-				}
-			}
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
+			EvaluationType operandType = Operand.GetReturnType(typeSystem);
+			return operandType.NegResult() ?? throw new EvaluationTypeException($"Cannot take negative value of type {operandType}.");
 		}
 
-		public override object Evaluate(IEnvironment environment) {
-			object? a = Operand.Evaluate(environment);
-
-			if (EvaluationTypes.TryGetIntegral(a, out int aint)) {
-				return -aint;
-			}
-			else if (EvaluationTypes.TryGetReal(a, out float afloat)) {
-				return -afloat;
-			}
-			else {
-				throw new EvaluationTypeException($"Cannot take negative value of type {EvaluationUtils.GetDataTypeName(a)}.");
-			}
+		public override EvaluationValue Evaluate(IEnvironment environment) {
+			EvaluationValue a = Operand.Evaluate(environment);
+			return a.Type.Neg(a) ?? throw new EvaluationTypeException($"Cannot take negative value of type {a.Type}.");
 		}
 
 		protected override UnaryOperatorNode Empty() {
@@ -82,27 +49,14 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override Associativity Associativity { get; } = Associativity.RIGHT;
 		public override string Symbol { get; } = "!";
 
-		public override EvaluationType ReturnType {
-			get {
-				EvaluationType operandType = Operand.ReturnType;
-				if (operandType == EvaluationType.BOOL) {
-					return operandType;
-				}
-				else {
-					throw new EvaluationTypeException($"Cannot negate value of type {operandType}.");
-				}
-			}
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
+			EvaluationType operandType = Operand.GetReturnType(typeSystem);
+			return operandType.InvertResult() ?? throw new EvaluationTypeException($"Cannot negate value of type {operandType}.");
 		}
 
-		public override object Evaluate(IEnvironment environment) {
-			object? a = Operand.Evaluate(environment);
-
-			if (a is bool aBool) {
-				return !aBool;
-			}
-			else {
-				throw new EvaluationTypeException($"Cannot negate value of type {EvaluationUtils.GetDataTypeName(a)}.");
-			}
+		public override EvaluationValue Evaluate(IEnvironment environment) {
+			EvaluationValue a = Operand.Evaluate(environment);
+			return a.Type.Invert(a) ?? throw new EvaluationTypeException($"Cannot negate value of type {a.Type}.");
 		}
 
 		protected override UnaryOperatorNode Empty() {

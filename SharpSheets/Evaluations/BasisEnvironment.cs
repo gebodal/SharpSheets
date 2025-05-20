@@ -13,11 +13,12 @@ namespace SharpSheets.Evaluations {
 		public static readonly BasisEnvironment Instance = new BasisEnvironment();
 
 		public bool IsEmpty { get; } = false;
+		public EvaluationTypeSystem TypeSystem => EvaluationTypes.BaseTypeSystem;
 
 		private BasisEnvironment() { }
 
-		private static readonly Dictionary<EvaluationName, (object value, EnvironmentVariableInfo info)> variables = new List<(object val, EnvironmentVariableInfo info)> {
-			((float)Math.PI, new EnvironmentVariableInfo("pi", EvaluationType.FLOAT, "The ratio of the circumference of a circle to its diameter."))
+		private static readonly Dictionary<EvaluationName, (EvaluationValue value, EnvironmentVariableInfo info)> variables = new List<(EvaluationValue val, EnvironmentVariableInfo info)> {
+			(new EvaluationValue((float)Math.PI, EvaluationTypes.FLOAT), new EnvironmentVariableInfo("pi", EvaluationTypes.FLOAT, "The ratio of the circumference of a circle to its diameter."))
 		}.ToDictionary(i => i.info.Name);
 
 		private static readonly Dictionary<EvaluationName, IEnvironmentFunction> functions = new List<IEnvironmentFunction> {
@@ -27,7 +28,7 @@ namespace SharpSheets.Evaluations {
 			ArraySortFunction.Instance,
 			ArrayReverseFunction.Instance,
 			IntCastFunction.Instance, FloatCastFunction.Instance, BoolCastFunction.Instance, StringCastFunction.Instance,
-			ColorCreateFunction.Instance,
+			//ColorCreateFunction.Instance,
 			LengthFunction.Instance,
 			ExistsFunction.Instance, TryFunction.Instance,
 			RangeFunction.Instance,
@@ -48,7 +49,7 @@ namespace SharpSheets.Evaluations {
 		}.ToDictionary(f => f.Name);
 
 		public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
-			if (variables.TryGetValue(key, out (object _, EnvironmentVariableInfo info) entry)) {
+			if (variables.TryGetValue(key, out (EvaluationValue _, EnvironmentVariableInfo info) entry)) {
 				variableInfo = entry.info;
 				return true;
 			}
@@ -58,8 +59,8 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
-		public bool TryGetValue(EvaluationName key, out object? value) {
-			if (variables.TryGetValue(key, out (object val, EnvironmentVariableInfo _) entry)) {
+		public bool TryGetValue(EvaluationName key, [NotNullWhen(true)] out EvaluationValue? value) {
+			if (variables.TryGetValue(key, out (EvaluationValue val, EnvironmentVariableInfo _) entry)) {
 				value = entry.val;
 				return true;
 			}

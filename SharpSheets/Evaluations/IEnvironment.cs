@@ -31,7 +31,7 @@ namespace SharpSheets.Evaluations {
 	/// This object promises that all keys in GetVariables() are available as nodes or values.
 	/// </summary>
 	public interface IEnvironment : IVariableBox {
-		bool TryGetValue(EvaluationName key, out object? value);
+		bool TryGetValue(EvaluationName key, [NotNullWhen(true)] out EvaluationValue? value);
 		bool TryGetFunction(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionEvaluator functionEvaluator);
 	}
 
@@ -43,10 +43,10 @@ namespace SharpSheets.Evaluations {
 		/// <param name="environment"></param>
 		/// <returns></returns>
 		/// <exception cref="UndefinedVariableException"></exception>
-		public static IEnumerable<KeyValuePair<EvaluationName, object?>> GetValues(this IEnvironment environment) {
+		public static IEnumerable<KeyValuePair<EvaluationName, EvaluationValue>> GetValues(this IEnvironment environment) {
 			foreach (EvaluationName key in environment.GetVariables().Select(i => i.Name)) {
-				if (environment.TryGetValue(key, out object? value)) {
-					yield return new KeyValuePair<EvaluationName, object?>(key, value);
+				if (environment.TryGetValue(key, out EvaluationValue? value)) {
+					yield return new KeyValuePair<EvaluationName, EvaluationValue>(key, value.Value);
 				}
 				else {
 					throw new UndefinedVariableException(key);
@@ -75,9 +75,9 @@ namespace SharpSheets.Evaluations {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
 		/// <exception cref="UndefinedVariableException"></exception>
-		public static object? GetValue(this IEnvironment environment, EvaluationName key) {
-			if (environment.TryGetValue(key, out object? value)) {
-				return value;
+		public static EvaluationValue GetValue(this IEnvironment environment, EvaluationName key) {
+			if (environment.TryGetValue(key, out EvaluationValue? value)) {
+				return value.Value;
 			}
 			else if (environment.TryGetNode(key, out EvaluationNode? node)) {
 				return node.Evaluate(environment);
@@ -100,21 +100,24 @@ namespace SharpSheets.Evaluations {
 
 	public static class Environments {
 
+		// TODO This should probably utilise some default type system, with just Array and Tuple?
 		public static readonly IEnvironment Empty = new ConcatenatedEnvironment(Array.Empty<IEnvironment>());
 
 		private class ConcatenatedEnvironment : IEnvironment {
 			public readonly IEnvironment[] environments;
 
 			public bool IsEmpty => environments.All(e => e.IsEmpty);
+			public EvaluationTypeSystem TypeSystem { get; }
 
 			public ConcatenatedEnvironment(IEnumerable<IEnvironment> environments) {
 				this.environments = environments.Where(e => !e.IsEmpty).ToArray();
+				TypeSystem = EvaluationTypeSystem.Create(environments.SelectMany(e => e.TypeSystem.Types).Concat(EvaluationTypes.BaseTypeSystem.Types));
 			}
 
-			public bool TryGetValue(EvaluationName key, out object? value) {
+			public bool TryGetValue(EvaluationName key, [NotNullWhen(true)] out EvaluationValue? value) {
 				for (int i = 0; i < environments.Length; i++) {
-					if (environments[i].TryGetValue(key, out object? result)) {
-						value = result;
+					if (environments[i].TryGetValue(key, out EvaluationValue? result)) {
+						value = result.Value;
 						return true;
 					}
 				}
@@ -217,12 +220,13 @@ namespace SharpSheets.Evaluations {
 
 		#endregion
 
-	}
-
-	public static class SimpleEnvironments {
-
 		#region SimpleEnvironment creation methods
 
+		public static IEnvironment Create(EvaluationTypeSystem typeSystem) {
+			return new SimpleEnvironment(null, null, null, VariableBoxes.Create(typeSystem));
+		}
+
+		/*
 		public static IEnvironment CreateAndInferType(
 			IEnumerable<KeyValuePair<EvaluationName, object>>? values,
 			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes,
@@ -230,28 +234,31 @@ namespace SharpSheets.Evaluations {
 			IVariableBox? variables) {
 			return new SimpleEnvironment(SimpleEnvironment.MakeValuesDictionary(values), nodes, functions, variables);
 		}
+		*/
 
 		public static IEnvironment Create(
-			IEnumerable<(object?, EnvironmentVariableInfo)>? values,
+			IEnumerable<(EvaluationValue, EnvironmentVariableInfo)>? values,
 			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes,
 			IEnumerable<IEnvironmentFunction>? functions,
 			IVariableBox? variables) {
 			return new SimpleEnvironment(values, nodes, functions, variables);
 		}
 
+		/*
 		public static IEnvironment CreateAndInferType(IEnumerable<KeyValuePair<EvaluationName, object>> values) {
 			return new SimpleEnvironment(SimpleEnvironment.MakeValuesDictionary(values), null, null, null);
 		}
+		*/
 
-		public static IEnvironment Create(IEnumerable<(object?, EnvironmentVariableInfo)> values) {
+		public static IEnvironment Create(IEnumerable<(EvaluationValue, EnvironmentVariableInfo)> values) {
 			return new SimpleEnvironment(values, null, null, null);
 		}
 
-		public static IEnvironment Create(IEnumerable<(object?, EnvironmentVariableInfo)> values, IEnumerable<IEnvironmentFunction> functions) {
+		public static IEnvironment Create(IEnumerable<(EvaluationValue, EnvironmentVariableInfo)> values, IEnumerable<IEnvironmentFunction> functions) {
 			return new SimpleEnvironment(values, null, functions, null);
 		}
 
-		public static IEnvironment Create(IEnumerable<(object?, EnvironmentVariableInfo)> values, IVariableBox variables) {
+		public static IEnvironment Create(IEnumerable<(EvaluationValue, EnvironmentVariableInfo)> values, IVariableBox variables) {
 			return new SimpleEnvironment(values, null, null, variables);
 		}
 
@@ -267,34 +274,38 @@ namespace SharpSheets.Evaluations {
 			return new SimpleEnvironment(null, null, null, variables);
 		}
 
-		public static IEnvironment Single(EnvironmentVariableInfo info, object? value) {
+		public static IEnvironment Single(EnvironmentVariableInfo info, EvaluationValue value) {
 			return new SimpleEnvironment((value, info).Yield(), null, null, null);
 		}
 
 		#endregion
 
 		private class SimpleEnvironment : IEnvironment {
-			private readonly IReadOnlyDictionary<EvaluationName, (object? value, EnvironmentVariableInfo info)> values;
+			private readonly IReadOnlyDictionary<EvaluationName, (EvaluationValue value, EnvironmentVariableInfo info)> values;
 			private readonly IReadOnlyDictionary<EvaluationName, IEnvironmentFunction> functions;
 			private readonly IReadOnlyDictionary<EvaluationName, EvaluationNode> nodes;
 			private readonly IVariableBox variables;
 
 			public bool IsEmpty => values.Count == 0 && functions.Count == 0 && nodes.Count == 0 && variables.IsEmpty;
 
-			public SimpleEnvironment(IEnumerable<(object? value, EnvironmentVariableInfo info)>? values, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes, IEnumerable<IEnvironmentFunction>? functions, IVariableBox? variables) {
-				this.values = values?.ToDictionaryAllowRepeats(valInfo => valInfo.info.Name, true) ?? new Dictionary<EvaluationName, (object?, EnvironmentVariableInfo)>();
+			public EvaluationTypeSystem TypeSystem => variables.TypeSystem;
+
+			public SimpleEnvironment(IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)>? values, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes, IEnumerable<IEnvironmentFunction>? functions, IVariableBox? variables) {
+				this.values = values?.ToDictionaryAllowRepeats(valInfo => valInfo.info.Name, true) ?? new Dictionary<EvaluationName, (EvaluationValue, EnvironmentVariableInfo)>();
 				this.functions = functions?.ToDictionaryAllowRepeats(d => d.Name, true) ?? new Dictionary<EvaluationName, IEnvironmentFunction>();
 				this.nodes = nodes?.ToDictionaryAllowRepeats(true) ?? new Dictionary<EvaluationName, EvaluationNode>();
 				this.variables = variables ?? VariableBoxes.Empty;
 			}
 
+			/*
 			public static IEnumerable<(object? value, EnvironmentVariableInfo type)>? MakeValuesDictionary(IEnumerable<KeyValuePair<EvaluationName, object>>? values) {
 				if (values is null) { return null; }
 				return values.Select(kv => ((object?)kv.Value, new EnvironmentVariableInfo(kv.Key, EvaluationType.FromData(kv.Value), null)));
 			}
+			*/
 
-			public bool TryGetValue(EvaluationName key, out object? value) {
-				if (values.TryGetValue(key, out (object? value, EnvironmentVariableInfo _) entry)) {
+			public bool TryGetValue(EvaluationName key, [NotNullWhen(true)] out EvaluationValue? value) {
+				if (values.TryGetValue(key, out (EvaluationValue value, EnvironmentVariableInfo _) entry)) {
 					value = entry.value;
 					return true;
 				}
@@ -305,12 +316,12 @@ namespace SharpSheets.Evaluations {
 			}
 
 			public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
-				if (values.TryGetValue(key, out (object? value, EnvironmentVariableInfo info) entry)) {
+				if (values.TryGetValue(key, out (EvaluationValue value, EnvironmentVariableInfo info) entry)) {
 					variableInfo = entry.info;
 					return true;
 				}
 				else if(nodes.TryGetValue(key, out EvaluationNode? node)) {
-					variableInfo = new EnvironmentVariableInfo(key, node.ReturnType, null);
+					variableInfo = new EnvironmentVariableInfo(key, node.GetReturnType(TypeSystem), null);
 					return true;
 				}
 				else {
@@ -375,11 +386,15 @@ namespace SharpSheets.Evaluations {
 
 	public abstract class AbstractDataEnvironment : IEnvironment {
 
-		public AbstractDataEnvironment() { }
+		public EvaluationTypeSystem TypeSystem { get; }
+
+		public AbstractDataEnvironment(EvaluationTypeSystem typeSystem) {
+			this.TypeSystem = typeSystem;
+		}
 
 		public abstract bool IsEmpty { get; }
 		public abstract bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo);
-		public abstract bool TryGetValue(EvaluationName key, out object? value);
+		public abstract bool TryGetValue(EvaluationName key, [NotNullWhen(true)] out EvaluationValue? value);
 		public abstract IEnumerable<EnvironmentVariableInfo> GetVariables();
 
 		public bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node) {

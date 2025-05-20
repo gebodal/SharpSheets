@@ -9,16 +9,14 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override string Symbol { get; } = "??";
 		public override int[] CalculationOrder { get; } = new int[] { 1, 0 };
 
-		public override EvaluationType ReturnType {
-			get {
-				EvaluationType firstType = First.ReturnType;
-				EvaluationType secondType = Second.ReturnType;
-				if (EvaluationTypes.TryGetCompatibleType(firstType, secondType, out EvaluationType? compatible)) {
-					return compatible;
-				}
-				else {
-					throw new EvaluationTypeException($"Operands must have the same return type ({firstType} != {secondType}).");
-				}
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
+			EvaluationType firstType = First.GetReturnType(typeSystem);
+			EvaluationType secondType = Second.GetReturnType(typeSystem);
+			if (typeSystem.TryGetLeastUpperBoundType(firstType, secondType, out EvaluationType? compatible)) {
+				return compatible;
+			}
+			else {
+				throw new EvaluationTypeException($"Operands must have compatible return types ({firstType} != {secondType}).");
 			}
 		}
 
@@ -26,26 +24,24 @@ namespace SharpSheets.Evaluations.Nodes {
 			return new NullCoalescingNode();
 		}
 
-		public override object? Evaluate(IEnvironment environment) {
-
-			EvaluationType firstType = First.ReturnType;
-			EvaluationType secondType = Second.ReturnType;
-			if (!EvaluationTypes.TryGetCompatibleType(firstType, secondType, out EvaluationType? compatible)) {
-				throw new EvaluationTypeException($"Operands must have the same return type ({firstType} != {secondType}).");
+		public override EvaluationValue Evaluate(IEnvironment environment) {
+			EvaluationType firstType = First.GetReturnType(environment);
+			EvaluationType secondType = Second.GetReturnType(environment);
+			if (!environment.TryGetLeastUpperBoundType(firstType, secondType, out EvaluationType? compatible)) {
+				throw new EvaluationTypeException($"Operands must have compatible return types ({firstType} != {secondType}).");
 			}
 
-			object? a = null;
+			EvaluationValue? result = null;
 			try {
-				a = EvaluationTypes.GetCompatibleValue(compatible, First.Evaluate(environment));
+				result = First.Evaluate(environment);
 			}
 			catch (EvaluationException) { }
 
-			if (a != null) {
-				return a;
+			if (!result.HasValue) {
+				result = Second.Evaluate(environment);
 			}
-			else {
-				return EvaluationTypes.GetCompatibleValue(compatible, Second.Evaluate(environment));
-			}
+
+			return compatible.Cast(result.Value) ?? throw new EvaluationCalculationException($"Cannot convert from {result.Value.Type} to {compatible}.");
 		}
 	}
 
@@ -55,20 +51,18 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override Type OpeningType { get; } = typeof(ConditionalOpenNode);
 		public override int[] CalculationOrder { get; } = new int[] { 2, 1, 0 };
 
-		public override EvaluationType ReturnType {
-			get {
-				EvaluationType conditionType = First.ReturnType;
-				if (conditionType != EvaluationType.BOOL) {
-					throw new EvaluationTypeException($"Condition for conditional operator must evaluate to a boolean.");
-				}
-				EvaluationType consequentType = Second.ReturnType;
-				EvaluationType alternativeType = Third.ReturnType;
-				if (EvaluationTypes.TryGetCompatibleType(consequentType, alternativeType, out EvaluationType? compatibleType)) {
-					return compatibleType;
-				}
-				else {
-					throw new EvaluationTypeException($"Expressions must have the same return type ({consequentType} != {alternativeType}).");
-				}
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
+			EvaluationType conditionType = First.GetReturnType(typeSystem);
+			if (!BoolEvaluationType.IsBool(conditionType)) { // Could we be more lenient here? (And therefore below when evaluating?)
+				throw new EvaluationTypeException($"Condition for conditional operator must evaluate to a boolean.");
+			}
+			EvaluationType consequentType = Second.GetReturnType(typeSystem);
+			EvaluationType alternativeType = Third.GetReturnType(typeSystem);
+			if (typeSystem.TryGetLeastUpperBoundType(consequentType, alternativeType, out EvaluationType? compatibleType)) {
+				return compatibleType;
+			}
+			else {
+				throw new EvaluationTypeException($"Expressions must have compatible return types ({consequentType} != {alternativeType}).");
 			}
 		}
 
@@ -78,19 +72,24 @@ namespace SharpSheets.Evaluations.Nodes {
 			return new ConditionalOperatorNode();
 		}
 
-		public override object? Evaluate(IEnvironment environment) {
-			bool condition = (bool)(First.Evaluate(environment) ?? throw new EvaluationCalculationException("Cannot evaluate condition."));
+		public override EvaluationValue Evaluate(IEnvironment environment) {
+			if(!BoolEvaluationType.TryGetBool(First.Evaluate(environment), out bool condition)) {
+				throw new EvaluationCalculationException("Cannot evaluate condition.");
+			}
 
-			if (EvaluationTypes.TryGetCompatibleType(Second.ReturnType, Third.ReturnType, out EvaluationType? compatibleType)) {
+			EvaluationValue consequent = Second.Evaluate(environment);
+			EvaluationValue alternative = Third.Evaluate(environment);
+
+			if (environment.TryGetLeastUpperBoundType(consequent.Type, alternative.Type, out EvaluationType? compatibleType)) {
 				if (condition) {
-					return EvaluationTypes.GetCompatibleValue(compatibleType, Second.Evaluate(environment));
+					return compatibleType.Cast(consequent) ?? throw new EvaluationCalculationException($"Could not convert {consequent.Type} to {compatibleType}.");
 				}
 				else {
-					return EvaluationTypes.GetCompatibleValue(compatibleType, Third.Evaluate(environment));
+					return compatibleType.Cast(alternative) ?? throw new EvaluationCalculationException($"Could not convert {alternative.Type} to {compatibleType}.");
 				}
 			}
 			else {
-				throw new EvaluationTypeException($"Expressions must have the same return type ({Second.ReturnType} != {Third.ReturnType}).");
+				throw new EvaluationTypeException($"Expressions must have compatible return types ({consequent.Type} != {alternative.Type}).");
 			}
 		}
 
@@ -112,12 +111,12 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		internal class ConditionalOpenNode : OperatorNode {
 			public override bool IsConstant => throw new NotImplementedException();
-			public override EvaluationType ReturnType => throw new NotImplementedException();
+			public override EvaluationType GetReturnType(EvaluationTypeSystem _) => throw new NotImplementedException();
 			public sealed override int Operands { get { return 0; } }
 			public sealed override int Precedence { get; } = 11;
 			public sealed override Associativity Associativity { get; } = Associativity.RIGHT;
-			public override object Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
-			public override EvaluationNode Simplify() { throw new NotImplementedException(); }
+			public override EvaluationValue Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
+			public override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) { throw new NotImplementedException(); }
 			public override EvaluationNode Clone() { return new ConditionalOpenNode(); }
 			public override IEnumerable<EvaluationName> GetVariables() { throw new NotImplementedException(); }
 			//public override void Print(int indent, IEnvironment environment) { throw new NotImplementedException(); }

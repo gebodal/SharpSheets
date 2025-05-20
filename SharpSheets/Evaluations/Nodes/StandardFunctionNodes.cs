@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace SharpSheets.Evaluations.Nodes {
 
-	public class LengthFunction : AbstractFunction {
+	public class LengthFunction : AbstractSingleArgFunction {
 
 		public static readonly LengthFunction Instance = new LengthFunction();
 		private LengthFunction() { }
@@ -11,42 +11,55 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "len";
 		public override string? Description { get; } = "Returns the integer length of the argument. For arrays this is the number of entries, for strings the number of characters, real values return the floor, and bools return 1 for true and 0 for false.";
 
-		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
-		);
+		protected override EnvironmentFunctionArg Argument { get; } = new EnvironmentFunctionArg("value", null, null);
+		protected override string? Warning => null;
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			return EvaluationType.INT;
-		}
-
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
-
-			if(a is null) {
-				throw new EvaluationCalculationException("Cannot take length of null value.");
-			}
-			else if (EvaluationTypes.TryGetIntegral(a, out int aInt)) {
-				return aInt;
-			}
-			else if (EvaluationTypes.TryGetReal(a, out float aFloat)) {
-				return (int)aFloat;
-			}
-			else if (a is bool aBool) {
-				return aBool ? 1 : 0;
-			}
-			else if (a is string aStr) {
-				return aStr.Length;
-			}
-			else if (a.GetType().IsArray && a is Array aArr && aArr.Rank == 1) {
-				return aArr.Length;
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode arg) {
+			EvaluationType argType = arg.GetReturnType(typeSystem);
+			if (IntEvaluationType.IsIntegral(argType)
+				|| FloatEvaluationType.IsReal(argType)
+				|| StringEvaluationType.IsString(argType)
+				|| BoolEvaluationType.IsBool(argType)
+				|| argType is CollectionEvaluationType) {
+				return EvaluationTypes.INT;
 			}
 			else {
-				throw new EvaluationTypeException($"Length not defined for value of type {a.GetType().Name}.");
+				throw new EvaluationTypeException($"Cannot take length of {argType} value.");
+			}
+		}
+
+		private static EvaluationValue MakeResult(int result) {
+			return new EvaluationValue(result, IntEvaluationType.Instance);
+		}
+
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
+			EvaluationValue a = arg.Evaluate(environment);
+
+			if(a.Value is null) {
+				throw new EvaluationCalculationException("Cannot take length of null value.");
+			}
+			else if (IntEvaluationType.TryGetInt(a, out int aInt)) {
+				return MakeResult(aInt);
+			}
+			else if (FloatEvaluationType.TryGetFloat(a, out float aFloat)) {
+				return MakeResult((int)aFloat);
+			}
+			else if (BoolEvaluationType.TryGetBool(a, out bool aBool)) {
+				return MakeResult(aBool ? 1 : 0);
+			}
+			else if (StringEvaluationType.TryGetString(a, out string? aStr)) {
+				return MakeResult(aStr.Length);
+			}
+			else if (a.Type.Iteration(a) is IEnumerable<EvaluationType> iterable) {
+				return MakeResult(iterable.Count());
+			}
+			else {
+				throw new EvaluationTypeException($"Length not defined for value of type {a.Type}.");
 			}
 		}
 	}
 
-	public class ExistsFunction : AbstractFunction {
+	public class ExistsFunction : AbstractSingleArgFunction {
 
 		public static readonly ExistsFunction Instance = new ExistsFunction();
 		private ExistsFunction() { }
@@ -54,31 +67,34 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "exists";
 		public override string? Description { get; } = "Returns true if the argument evaluates to a non-null value (i.e. the variables are defined, and have valid values), otherwise false.";
 
-		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
-		);
+		protected override EnvironmentFunctionArg Argument { get; } = new EnvironmentFunctionArg("value", null, null);
+		protected override string? Warning => null;
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			return EvaluationType.BOOL;
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode arg) {
+			return EvaluationTypes.BOOL;
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+		private static EvaluationValue MakeResult(bool result) {
+			return new EvaluationValue(result, BoolEvaluationType.Instance);
+		}
+
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
 			try {
-				object? a = args[0].Evaluate(environment);
-				if (a is string aString) {
-					return aString.Length > 0;
+				EvaluationValue a = arg.Evaluate(environment);
+				if (StringEvaluationType.TryGetString(a, out string? aString)) {
+					return MakeResult(aString.Length > 0);
 				}
 				else {
-					return a != null;
+					return MakeResult(a.Value != null);
 				}
 			}
 			catch (UndefinedVariableException) {
-				return false;
+				return MakeResult(false);
 			}
 		}
 	}
 
-	public class TryFunction : AbstractFunction {
+	public class TryFunction : AbstractSingleArgFunction {
 
 		public static readonly TryFunction Instance = new TryFunction();
 		private TryFunction() { }
@@ -86,26 +102,29 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "try";
 		public override string? Description { get; } = "Returns true if the argument evaluates and produces a non-null value (i.e. all variables exist and the result is a valid value), otherwise false.";
 
-		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", null, null))
-		);
+		protected override EnvironmentFunctionArg Argument { get; } = new EnvironmentFunctionArg("value", null, null);
+		protected override string? Warning => null;
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			return EvaluationType.BOOL;
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode arg) {
+			return EvaluationTypes.BOOL;
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
+		private static EvaluationValue MakeResult(bool result) {
+			return new EvaluationValue(result, BoolEvaluationType.Instance);
+		}
+
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
 			try {
-				object? a = args[0].Evaluate(environment);
-				if (a is string aString) {
-					return aString.Length > 0;
+				EvaluationValue a = arg.Evaluate(environment);
+				if (StringEvaluationType.TryGetString(a, out string? aString)) {
+					return MakeResult(aString.Length > 0);
 				}
 				else {
-					return a != null;
+					return MakeResult(a.Value != null);
 				}
 			}
-			catch (EvaluationException) {
-				return false;
+			catch (UndefinedVariableException) {
+				return MakeResult(false);
 			}
 		}
 	}
@@ -120,39 +139,39 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null, // "Invalid number of arguments provided to range function. May accept 1 or 2 arguments, {count} provided."
 			new EnvironmentFunctionArgList(
-				new EnvironmentFunctionArg("start", EvaluationType.INT, null),
-				new EnvironmentFunctionArg("end", EvaluationType.INT, null)
+				new EnvironmentFunctionArg("start", EvaluationTypes.INT, null),
+				new EnvironmentFunctionArg("end", EvaluationTypes.INT, null)
 				),
 			new EnvironmentFunctionArgList(
-				new EnvironmentFunctionArg("end", EvaluationType.INT, null)
+				new EnvironmentFunctionArg("end", EvaluationTypes.INT, null)
 				)
 		);
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			return EvaluationType.INT.MakeArray();
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
+			return EvaluationTypes.INT.MakeArray();
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object[] argVals = EvaluationTypes.VerifyArray(args.Select(a => a.Evaluate(environment)).ToArray());
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationValue[] argVals = args.Select(a => a.Evaluate(environment)).ToArray();
 
 			if (argVals.Length == 2) {
-				if (EvaluationTypes.TryGetIntegral(argVals[0], out int start) && EvaluationTypes.TryGetIntegral(argVals[1], out int end)) {
-					int[] values = new int[Math.Max(0, end - start)];
+				if (IntEvaluationType.TryGetInt(argVals[0], out int start) && IntEvaluationType.TryGetInt(argVals[1], out int end)) {
+					EvaluationValue[] values = new EvaluationValue[Math.Max(0, end - start)];
 					int counter = start;
 					for (int i = 0; i < values.Length; i++) {
-						values[i] = counter;
+						values[i] = new EvaluationValue(counter, EvaluationTypes.INT);
 						counter++;
 					}
-					return values;
+					return ArrayEvaluationType.MakeArray(EvaluationTypes.INT, values);
 				}
 			}
 			else if (argVals.Length == 1) {
-				if (EvaluationTypes.TryGetIntegral(argVals[0], out int end)) {
-					int[] values = new int[Math.Max(0, end)];
+				if (IntEvaluationType.TryGetInt(argVals[0], out int end)) {
+					EvaluationValue[] values = new EvaluationValue[Math.Max(0, end)];
 					for (int i = 0; i < end; i++) {
-						values[i] = i;
+						values[i] = new EvaluationValue(i, EvaluationTypes.INT);
 					}
-					return values;
+					return ArrayEvaluationType.MakeArray(EvaluationTypes.INT, values);
 				}
 			}
 

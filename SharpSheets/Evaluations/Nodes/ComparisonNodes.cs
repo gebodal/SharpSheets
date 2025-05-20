@@ -7,31 +7,30 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override int[] CalculationOrder { get; } = new int[] { 1, 0 };
 
-		public sealed override EvaluationType ReturnType {
-			get {
-				EvaluationType firstType = First.ReturnType;
-				EvaluationType secondType = Second.ReturnType;
-				if (firstType.IsReal() && secondType.IsReal()) {
-					return EvaluationType.BOOL;
-				}
-				else {
-					throw new EvaluationTypeException($"Cannot evaluate {Symbol} operator for operands of type {firstType} and {secondType}.");
-				}
-			}
+		public sealed override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
+			EvaluationType firstType = First.GetReturnType(typeSystem);
+			EvaluationType secondType = Second.GetReturnType(typeSystem);
+
+			return ResultType(firstType, secondType, typeSystem) ?? throw MakeTypeError(firstType, secondType);
 		}
 
-		protected abstract bool Compare(float a, float b);
+		protected abstract EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem);
 
-		public sealed override object Evaluate(IEnvironment environment) {
-			object? a = First.Evaluate(environment);
-			object? b = Second.Evaluate(environment);
+		public sealed override EvaluationValue Evaluate(IEnvironment environment) {
+			EvaluationValue a = First.Evaluate(environment);
+			EvaluationValue b = Second.Evaluate(environment);
 
-			if (EvaluationTypes.TryGetReal(a, out float afloat1) && EvaluationTypes.TryGetReal(b, out float bfloat1)) {
-				return Compare(afloat1, bfloat1);
-			}
-			else {
-				throw new EvaluationCalculationException($"Cannot evaluate {Symbol} operator for operands of type {EvaluationUtils.GetDataTypeName(a)} and {EvaluationUtils.GetDataTypeName(b)}.");
-			}
+			return Evaluate(a, b, environment.TypeSystem) ?? throw MakeCalculationError(a, b);
+		}
+
+		protected abstract EvaluationValue? Evaluate(EvaluationValue first, EvaluationValue second, EvaluationTypeSystem typeSystem);
+
+		protected EvaluationTypeException MakeTypeError(EvaluationType firstType, EvaluationType secondType) {
+			return new EvaluationTypeException($"Cannot perform {Symbol} comparison on operands of type {firstType} and {secondType}.");
+		}
+
+		protected EvaluationTypeException MakeCalculationError(EvaluationValue a, EvaluationValue b) {
+			return new EvaluationTypeException($"Cannot perform binary {Symbol} for operands of type {a.Type} and {b.Type}.");
 		}
 	}
 
@@ -39,8 +38,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 5;
 		public override string Symbol { get; } = "<";
 
-		protected override bool Compare(float a, float b) {
-			return a < b;
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.LessThanResult(first, second, typeSystem);
+		}
+
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.LessThan(a, b, typeSystem);
 		}
 
 		protected override BinaryOperatorNode Empty() {
@@ -52,8 +55,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 5;
 		public override string Symbol { get; } = ">";
 
-		protected override bool Compare(float a, float b) {
-			return a > b;
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.GreaterThanResult(first, second, typeSystem);
+		}
+
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.GreaterThan(a, b, typeSystem);
 		}
 
 		protected override BinaryOperatorNode Empty() {
@@ -65,8 +72,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 5;
 		public override string Symbol { get; } = "<=";
 
-		protected override bool Compare(float a, float b) {
-			return a <= b;
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.LessThanEqualResult(first, second, typeSystem);
+		}
+
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.LessThanEqual(a, b, typeSystem);
 		}
 
 		protected override BinaryOperatorNode Empty() {
@@ -78,8 +89,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 5;
 		public override string Symbol { get; } = ">=";
 
-		protected override bool Compare(float a, float b) {
-			return a >= b;
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.GreaterThanEqualResult(first, second, typeSystem);
+		}
+
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.GreaterThanEqual(a, b, typeSystem);
 		}
 
 		protected override BinaryOperatorNode Empty() {
@@ -88,60 +103,46 @@ namespace SharpSheets.Evaluations.Nodes {
 	}
 
 	public abstract class AbstractEqualityNode : BinaryOperatorNode {
-		public sealed override EvaluationType ReturnType { get; } = EvaluationType.BOOL;
 		public sealed override int Precedence { get; } = 6;
 		public sealed override Associativity Associativity { get; } = Associativity.LEFT;
 		public sealed override int[] CalculationOrder { get; } = new int[] { 1, 0 };
 
-		/// <summary></summary>
-		/// <exception cref="EvaluationCalculationException"></exception>
-		protected bool ArgumentsEqual(IEnvironment environment) {
-			try {
-				object? a = First.Evaluate(environment);
-				object? b = Second.Evaluate(environment);
+		public sealed override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
+			EvaluationType firstType = First.GetReturnType(typeSystem);
+			EvaluationType secondType = Second.GetReturnType(typeSystem);
 
-				// TODO Should this be using TryGetIntegral/TryGetReal?
-				if (EvaluationTypes.TryGetIntegral(a, out int aIntVal) && EvaluationTypes.TryGetIntegral(b, out int bIntVal)) {
-					return aIntVal == bIntVal;
-				}
-				else if (EvaluationTypes.TryGetReal(a, out float aFloatVal) && EvaluationTypes.TryGetReal(b, out float bFloatVal)) {
-					return aFloatVal == bFloatVal;
-				}
-				else if (First.ReturnType.IsEnum || Second.ReturnType.IsEnum) {
-					if (a is Enum aEnumVal && b is Enum bEnumVal) {
-						return aEnumVal == bEnumVal;
-					}
-					else if (a is string aStringVal && b is string bStringVal) {
-						return StringComparer.InvariantCultureIgnoreCase.Equals(aStringVal, bStringVal);
-					}
-					if (a is Enum aEnum && b is string bString) {
-						return StringComparer.InvariantCultureIgnoreCase.Equals(aEnum.ToString(), bString);
-					}
-					else if (a is string aString && b is Enum bEnum) {
-						return StringComparer.InvariantCultureIgnoreCase.Equals(aString, bEnum.ToString());
-					}
-					else {
-						throw new EvaluationCalculationException($"Invalid types {EvaluationUtils.GetDataTypeName(a)} and {EvaluationUtils.GetDataTypeName(b)} for equality evaluation.");
-					}
-				}
-				else if (a is not null && b is not null) {
-					return a.Equals(b);
-				}
-				else {
-					return a is null && b is null;
-				}
-			}
-			catch(EvaluationTypeException e) {
-				throw new EvaluationCalculationException("Could not evaluate equality.", e); // This should really never occur.
-			}
+			return ResultType(firstType, secondType, typeSystem) ?? throw MakeTypeError(firstType, secondType);
+		}
+
+		protected abstract EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem);
+
+		public sealed override EvaluationValue Evaluate(IEnvironment environment) {
+			EvaluationValue a = First.Evaluate(environment);
+			EvaluationValue b = Second.Evaluate(environment);
+
+			return Evaluate(a, b, environment.TypeSystem) ?? throw MakeCalculationError(a, b);
+		}
+
+		protected abstract EvaluationValue? Evaluate(EvaluationValue first, EvaluationValue second, EvaluationTypeSystem typeSystem);
+
+		protected EvaluationTypeException MakeTypeError(EvaluationType firstType, EvaluationType secondType) {
+			return new EvaluationTypeException($"Cannot perform {Symbol} comparison on operands of type {firstType} and {secondType}.");
+		}
+
+		protected EvaluationTypeException MakeCalculationError(EvaluationValue a, EvaluationValue b) {
+			return new EvaluationTypeException($"Cannot perform binary {Symbol} for operands of type {a.Type} and {b.Type}.");
 		}
 	}
 
 	public class EqualityNode : AbstractEqualityNode {
 		public override string Symbol { get; } = "==";
 
-		public override object Evaluate(IEnvironment environment) {
-			return ArgumentsEqual(environment);
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.EqualResult(first, second, typeSystem);
+		}
+
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.Equal(a, b, typeSystem);
 		}
 
 		protected override BinaryOperatorNode Empty() {
@@ -152,8 +153,12 @@ namespace SharpSheets.Evaluations.Nodes {
 	public class InequalityNode : AbstractEqualityNode {
 		public override string Symbol { get; } = "!=";
 
-		public override object Evaluate(IEnvironment environment) {
-			return !ArgumentsEqual(environment);
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.NotEqualResult(first, second, typeSystem);
+		}
+
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
+			return EvaluationOps.NotEqual(a, b, typeSystem);
 		}
 
 		protected override BinaryOperatorNode Empty() {

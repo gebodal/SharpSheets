@@ -5,7 +5,28 @@ using System.Linq;
 
 namespace SharpSheets.Evaluations.Nodes {
 
-	public class LowerFunction : AbstractFunction {
+	public abstract class StringConvertFunction : AbstractSingleArgFunction {
+
+		public sealed override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode arg) {
+			EvaluationType argType = arg.GetReturnType(typeSystem);
+			return StringEvaluationType.IsString(argType) ? EvaluationTypes.STRING : throw new EvaluationTypeException($"{Name} not defined for value of type {argType}.");
+		}
+
+		public sealed override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
+			EvaluationValue a = arg.Evaluate(environment);
+
+			if (StringEvaluationType.TryGetString(a, out string? aString)) {
+				return new EvaluationValue(ConvertString(aString), EvaluationTypes.STRING);
+			}
+			else {
+				throw new EvaluationTypeException($"{Name} not defined for value of type {a.Type}.");
+			}
+		}
+
+		protected abstract string ConvertString(string str);
+	}
+
+	public class LowerFunction : StringConvertFunction {
 
 		public static readonly LowerFunction Instance = new LowerFunction();
 		private LowerFunction() { }
@@ -13,28 +34,15 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "lower";
 		public override string? Description { get; } = "Convert the string argument to all lowercase.";
 
-		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("text", EvaluationType.STRING, null))
-		);
+		protected override EnvironmentFunctionArg Argument { get; } = new EnvironmentFunctionArg("text", EvaluationTypes.STRING, null);
+		protected override string? Warning => null;
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType argType = args[0].ReturnType;
-			return argType == EvaluationType.STRING ? EvaluationType.STRING : throw new EvaluationTypeException($"{Name} not defined for value of type {argType}.");
-		}
-		
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
-
-			if (a is string aString) {
-				return aString.ToLowerInvariant();
-			}
-			else {
-				throw new EvaluationTypeException($"{Name} not defined for value of type {EvaluationUtils.GetDataTypeName(a)}.");
-			}
+		protected override string ConvertString(string str) {
+			return str.ToLowerInvariant();
 		}
 	}
 
-	public class UpperFunction : AbstractFunction {
+	public class UpperFunction : StringConvertFunction {
 
 		public static readonly UpperFunction Instance = new UpperFunction();
 		private UpperFunction() { }
@@ -42,28 +50,15 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "upper";
 		public override string? Description { get; } = "Convert the string argument to all uppercase.";
 
-		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("text", EvaluationType.STRING, null))
-		);
+		protected override EnvironmentFunctionArg Argument { get; } = new EnvironmentFunctionArg("text", EvaluationTypes.STRING, null);
+		protected override string? Warning => null;
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType argType = args[0].ReturnType;
-			return argType == EvaluationType.STRING ? EvaluationType.STRING : throw new EvaluationTypeException($"{Name} not defined for value of type {argType}.");
-		}
-
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
-
-			if (a is string aString) {
-				return aString.ToUpper();
-			}
-			else {
-				throw new EvaluationTypeException($"{Name} not defined for value of type {EvaluationUtils.GetDataTypeName(a)}.");
-			}
+		protected override string ConvertString(string str) {
+			return str.ToUpperInvariant();
 		}
 	}
 
-	public class TitleCaseFunction : AbstractFunction {
+	public class TitleCaseFunction : StringConvertFunction {
 
 		public static readonly TitleCaseFunction Instance = new TitleCaseFunction();
 		private TitleCaseFunction() { }
@@ -71,24 +66,11 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "titlecase";
 		public override string? Description { get; } = "Convert the string argument to titlecase (lowercase except for first letter of each whitespace-separated word, which are uppercase).";
 
-		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("text", EvaluationType.STRING, null))
-		);
+		protected override EnvironmentFunctionArg Argument { get; } = new EnvironmentFunctionArg("text", EvaluationTypes.STRING, null);
+		protected override string? Warning => null;
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType argType = args[0].ReturnType;
-			return argType == EvaluationType.STRING ? EvaluationType.STRING : throw new EvaluationTypeException($"{Name} not defined for value of type {argType}.");
-		}
-
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
-
-			if (a is string aString) {
-				return aString.ToTitleCase();
-			}
-			else {
-				throw new EvaluationTypeException($"{Name} not defined for value of type {EvaluationUtils.GetDataTypeName(a)}.");
-			}
+		protected override string ConvertString(string str) {
+			return str.ToTitleCase();
 		}
 	}
 
@@ -102,36 +84,42 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(
-				new EnvironmentFunctionArg("separator", EvaluationType.STRING, null),
+				new EnvironmentFunctionArg("separator", EvaluationTypes.STRING, null),
 				new EnvironmentFunctionArg("arrayOrTuple", null, null)
 				)
 		);
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType arg1Type = args[0].ReturnType;
-			EvaluationType arg2Type = args[1].ReturnType;
-			if (arg1Type == EvaluationType.STRING && (arg2Type.IsArray || arg2Type.IsTuple) && (arg2Type.ElementType.IsReal() || arg2Type.ElementType == EvaluationType.BOOL || arg2Type.ElementType == EvaluationType.STRING)) { // TODO We sure about those ElementType constraints...?
-				return EvaluationType.STRING;
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
+			EvaluationType arg1Type = args[0].GetReturnType(typeSystem);
+			EvaluationType arg2Type = args[1].GetReturnType(typeSystem);
+			if (StringEvaluationType.IsString(arg1Type) && arg2Type.IterationResult() is EvaluationType arg2ElemType && StringEvaluationType.IsString(arg2ElemType)) {
+				return EvaluationTypes.STRING;
 			}
 			else {
 				throw new EvaluationTypeException($"Join not defined for operands of type {arg1Type} and {arg2Type}.");
 			}
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
-			object? b = args[1].Evaluate(environment);
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationValue a = args[0].Evaluate(environment);
+			EvaluationValue b = args[1].Evaluate(environment);
 
-			if (a is string separator && b is not null && EvaluationTypes.TryGetArray(b, out Array? values)) {
-				try {
-					return string.Join(separator, values.Cast<object>().Select(v => v.ToString()));
+			if (StringEvaluationType.TryGetString(a, out string? separator)) {
+				List<string> items = new List<string>();
+
+				foreach(EvaluationValue item in b.Type.Iteration(b) ?? throw new EvaluationTypeException($"Cannot iterate through value of type {b.Type}.")) {
+					if(StringEvaluationType.TryGetString(item, out string? itemStr)) {
+						items.Add(itemStr);
+					}
+					else {
+						throw new EvaluationTypeException($"Cannot convert item of type {item.Type} to {EvaluationTypes.STRING}.");
+					}
 				}
-				catch(InvalidCastException e) {
-					throw new EvaluationCalculationException("Error collecting string values for array argument.", e); // This should never happen...
-				}
+
+				return new EvaluationValue(string.Join(separator, items), EvaluationTypes.STRING);
 			}
 			else {
-				throw new EvaluationTypeException($"Join not defined for operands of type {EvaluationUtils.GetDataTypeName(a)} and {EvaluationUtils.GetDataTypeName(b)}.");
+				throw new EvaluationTypeException($"Join not defined for operands of type {a.Type} and {b.Type}.");
 			}
 		}
 	}
@@ -146,31 +134,31 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(
-				new EnvironmentFunctionArg("text", EvaluationType.STRING, null),
-				new EnvironmentFunctionArg("separator", EvaluationType.STRING, null)
+				new EnvironmentFunctionArg("text", EvaluationTypes.STRING, null),
+				new EnvironmentFunctionArg("separator", EvaluationTypes.STRING, null)
 				)
 		);
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType arg1Type = args[0].ReturnType;
-			EvaluationType arg2Type = args[1].ReturnType;
-			if (arg1Type == EvaluationType.STRING && arg2Type == EvaluationType.STRING) {
-				return EvaluationType.STRING.MakeArray();
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
+			EvaluationType arg1Type = args[0].GetReturnType(typeSystem);
+			EvaluationType arg2Type = args[1].GetReturnType(typeSystem);
+			if (StringEvaluationType.IsString(arg1Type) && StringEvaluationType.IsString(arg2Type)) {
+				return EvaluationTypes.STRING.MakeArray();
 			}
 			else {
 				throw new EvaluationTypeException($"Split not defined for operands of type {arg1Type} and {arg2Type}.");
 			}
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
-			object? b = args[1].Evaluate(environment);
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationValue a = args[0].Evaluate(environment);
+			EvaluationValue b = args[1].Evaluate(environment);
 
-			if (a is string text && b is string delimiter) {
-				return text.Split(delimiter);
+			if (StringEvaluationType.TryGetString(a, out string? text) && StringEvaluationType.TryGetString(b, out string? delimiter)) {
+				return new EvaluationValue(text.Split(delimiter), EvaluationTypes.STRING);
 			}
 			else {
-				throw new EvaluationTypeException($"String not defined for operands of type {EvaluationUtils.GetDataTypeName(a)} and {EvaluationUtils.GetDataTypeName(b)}.");
+				throw new EvaluationTypeException($"String not defined for operands of type {a.Type} and {b.Type}.");
 			}
 		}
 	}
@@ -186,22 +174,22 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(
 			"Format must have a string format argument and at least one content argument.",
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg[] {
-					new EnvironmentFunctionArg("format", EvaluationType.STRING, null),
+					new EnvironmentFunctionArg("format", EvaluationTypes.STRING, null),
 					new EnvironmentFunctionArg("content", null, null)
 				}, true)
 		);
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType[] returnTypes = args.Select(a => a.ReturnType).ToArray();
-			if (returnTypes.Length > 0 && returnTypes[0] == EvaluationType.STRING) {
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
+			EvaluationType[] returnTypes = args.Select(a => a.GetReturnType(typeSystem)).ToArray();
+			if (returnTypes.Length >= 1 && StringEvaluationType.IsString(returnTypes[0])) {
 				List<EvaluationType> badTypes = new List<EvaluationType>();
 				for (int i = 1; i < returnTypes.Length; i++) {
-					if (!(returnTypes[i].IsReal() || returnTypes[i] == EvaluationType.STRING)) {
+					if (!(FloatEvaluationType.IsReal(returnTypes[i]) || StringEvaluationType.IsString(returnTypes[i]))) {
 						badTypes.Add(returnTypes[i]);
 					}
 				}
 				if (badTypes.Count == 0) {
-					return EvaluationType.STRING;
+					return EvaluationTypes.STRING;
 				}
 				else {
 					throw new EvaluationTypeException($"Format can only accept content of types int, float, or string, not: " + string.Join(", ", badTypes.Select(t => t.ToString())));
@@ -262,26 +250,27 @@ namespace SharpSheets.Evaluations.Nodes {
 			return sb.ToString();
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
-			object?[] contents = new object[args.Length - 1];
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationValue a = args[0].Evaluate(environment);
+			object?[] contents = new object?[args.Length - 1];
 			for (int i = 0; i < contents.Length; i++) {
-				contents[i] = args[i + 1].Evaluate(environment);
-				if (contents[i] is uint auint) { contents[i] = (int)auint; }
-				else if (contents[i] is UFloat aufloat) { contents[i] = aufloat.Value; }
+				EvaluationValue arg = args[i + 1].Evaluate(environment);
+				if (IntEvaluationType.TryGetInt(arg, out int argInt)) { contents[i] = argInt; }
+				else if (FloatEvaluationType.TryGetFloat(arg, out float argFloat)) { contents[i] = argFloat; }
+				else { contents[i] = arg.Value; }
 			}
 
-			if (a is string format) {
+			if (StringEvaluationType.TryGetString(a, out string? format)) {
 				try {
 					format = ReplaceFormatChars(format);
-					return string.Format(format, contents);
+					return new EvaluationValue(string.Format(format, contents), EvaluationTypes.STRING);
 				}
 				catch (FormatException e) {
 					throw new EvaluationCalculationException("Invalid format string.", e);
 				}
 			}
 			else {
-				throw new EvaluationTypeException($"Format must be a string, not {EvaluationUtils.GetDataTypeName(a)}.");
+				throw new EvaluationTypeException($"Format must be a string, not {a.Type}.");
 			}
 		}
 	}
@@ -296,34 +285,34 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(
-				new EnvironmentFunctionArg("input", EvaluationType.STRING, null),
-				new EnvironmentFunctionArg("oldValue", EvaluationType.STRING, null),
-				new EnvironmentFunctionArg("newValue", EvaluationType.STRING, null)
+				new EnvironmentFunctionArg("input", EvaluationTypes.STRING, null),
+				new EnvironmentFunctionArg("oldValue", EvaluationTypes.STRING, null),
+				new EnvironmentFunctionArg("newValue", EvaluationTypes.STRING, null)
 				)
 		);
 
-		public override EvaluationType GetReturnType(EvaluationNode[] args) {
-			EvaluationType arg1Type = args[0].ReturnType;
-			EvaluationType arg2Type = args[1].ReturnType;
-			EvaluationType arg3Type = args[2].ReturnType;
-			if (arg1Type == EvaluationType.STRING && arg2Type == EvaluationType.STRING && arg3Type == EvaluationType.STRING) {
-				return EvaluationType.STRING;
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
+			EvaluationType arg1Type = args[0].GetReturnType(typeSystem);
+			EvaluationType arg2Type = args[1].GetReturnType(typeSystem);
+			EvaluationType arg3Type = args[2].GetReturnType(typeSystem);
+			if (StringEvaluationType.IsString(arg1Type) && StringEvaluationType.IsString(arg2Type) && StringEvaluationType.IsString(arg3Type)) {
+				return EvaluationTypes.STRING;
 			}
 			else {
 				throw new EvaluationTypeException($"Replace not defined for operands of type {arg1Type}, {arg2Type}, and {arg3Type}.");
 			}
 		}
 
-		public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			object? a = args[0].Evaluate(environment);
-			object? b = args[1].Evaluate(environment);
-			object? c = args[2].Evaluate(environment);
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+			EvaluationValue a = args[0].Evaluate(environment);
+			EvaluationValue b = args[1].Evaluate(environment);
+			EvaluationValue c = args[2].Evaluate(environment);
 
-			if (a is string input && b is string oldValue && c is string newValue) {
-				return input.Replace(oldValue, newValue);
+			if (StringEvaluationType.TryGetString(a, out string? input) && StringEvaluationType.TryGetString(b, out string? oldValue) && StringEvaluationType.TryGetString(c, out string? newValue)) {
+				return new EvaluationValue(input.Replace(oldValue, newValue), EvaluationTypes.STRING);
 			}
 			else {
-				throw new EvaluationTypeException($"Replace not defined for operands of type {EvaluationUtils.GetDataTypeName(a)}, {EvaluationUtils.GetDataTypeName(b)}, and {EvaluationUtils.GetDataTypeName(c)}.");
+				throw new EvaluationTypeException($"Replace not defined for operands of type {a.Type}, {b.Type}, and {c.Type}.");
 			}
 		}
 	}

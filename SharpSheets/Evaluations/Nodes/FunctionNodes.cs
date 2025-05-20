@@ -19,7 +19,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		public EvaluationNode[] Arguments { get { return arguments ?? throw new EvaluationProcessingException("Function arguments not initialized."); ; } }
 		private EvaluationNode[]? arguments;
 
-		public override EvaluationType ReturnType => functionInfo.GetReturnType(Arguments);
+		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) => functionInfo.GetReturnType(typeSystem, Arguments);
 
 		private readonly IEnvironmentFunctionInfo functionInfo;
 
@@ -62,12 +62,19 @@ namespace SharpSheets.Evaluations.Nodes {
 			throw new EvaluationProcessingException($"Invalid number of arguments for function {Name}: {count} {GetExpectedString()}");
 		}
 
-		public override object? Evaluate(IEnvironment environment) {
+		public void SetArguments(params EvaluationNode[] arguments) {
+			SetArgumentCount(arguments.Length);
+			for (int i = 0; i < arguments.Length; i++) {
+				Arguments[i] = arguments[i];
+			}
+		}
+
+		public override EvaluationValue Evaluate(IEnvironment environment) {
 			if(functionInfo is not IEnvironmentFunctionEvaluator func) {
 				func = environment.GetFunction(functionInfo.Name);
 			}
 
-			object? result = func.Evaluate(environment, Arguments);
+			EvaluationValue result = func.Evaluate(environment, Arguments);
 
 			return result;
 		}
@@ -76,14 +83,14 @@ namespace SharpSheets.Evaluations.Nodes {
 			return Name + "(" + string.Join(", ", Arguments.Select(a => a.ToString())) + ")";
 		}
 
-		public sealed override EvaluationNode Simplify() {
+		public sealed override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) {
 			if (IsConstant && functionInfo is IEnvironmentFunctionEvaluator func) {
-				return new ConstantNode(func.Evaluate(Environments.Empty, Arguments), ReturnType);
+				return new ConstantNode(func.Evaluate(Environments.Create(typeSystem), Arguments));
 			}
 			else {
 				EnvironmentFunctionNode empty = Empty();
 				for (int i = 0; i < Arguments.Length; i++) {
-					empty.Arguments[i] = Arguments[i].Simplify();
+					empty.Arguments[i] = Arguments[i].Simplify(typeSystem);
 				}
 				return empty;
 			}
@@ -115,25 +122,25 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public abstract EnvironmentFunctionArguments Args { get; }
 
-		public abstract EvaluationType GetReturnType(EvaluationNode[] args);
-		public abstract object? Evaluate(IEnvironment environment, EvaluationNode[] args);
+		public abstract EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args);
+		public abstract EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args);
 	}
 
 	public abstract class AbstractSingleArgFunction : AbstractFunction {
-		public abstract EnvironmentFunctionArg Argument { get; }
-		public abstract string? Warning { get; }
+		protected abstract EnvironmentFunctionArg Argument { get; }
+		protected abstract string? Warning { get; }
 
 		public override sealed EnvironmentFunctionArguments Args => new EnvironmentFunctionArguments(Warning,
 			new EnvironmentFunctionArgList(Argument)
 		);
 
-		public abstract EvaluationType GetReturnType(EvaluationNode arg);
-		public sealed override EvaluationType GetReturnType(EvaluationNode[] args) {
-			return GetReturnType(args[0]);
+		public abstract EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode arg);
+		public sealed override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
+			return GetReturnType(typeSystem, args[0]);
 		}
 
-		public abstract object? Evaluate(IEnvironment environment, EvaluationNode arg);
-		public override sealed object? Evaluate(IEnvironment environment, EvaluationNode[] args) {
+		public abstract EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg);
+		public override sealed EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
 			return Evaluate(environment, args[0]);
 		}
 	}
@@ -144,13 +151,10 @@ namespace SharpSheets.Evaluations.Nodes {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
-		public static EvaluationNode MakeNode(this IEnvironmentFunctionInfo functionInfo, params EvaluationNode[] arguments) {
+		public static EvaluationNode MakeNode(this IEnvironmentFunctionInfo functionInfo, EvaluationTypeSystem typeSystem, params EvaluationNode[] arguments) {
 			EnvironmentFunctionNode node = new EnvironmentFunctionNode(functionInfo);
-			node.SetArgumentCount(arguments.Length);
-			for (int i = 0; i < arguments.Length; i++) {
-				node.Arguments[i] = arguments[i];
-			}
-			return node.Simplify();
+			node.SetArguments(arguments);
+			return node.Simplify(typeSystem);
 		}
 	}
 
