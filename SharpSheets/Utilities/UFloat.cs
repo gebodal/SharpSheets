@@ -4,6 +4,9 @@ namespace SharpSheets.Utilities {
 	
 	public readonly struct UFloat : IFormattable, IEquatable<UFloat> {
 
+		public static readonly UFloat Zero = new UFloat(0f);
+		public static readonly UFloat MaxValue = new UFloat(float.MaxValue);
+
 		public float Value { get; }
 
 		/// <summary></summary>
