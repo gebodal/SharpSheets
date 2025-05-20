@@ -103,7 +103,7 @@ namespace SharpSheets.Evaluations {
 		private EvaluationType(EvaluationType elementType, IEnumerable<TypeField>? fields) {
 			this.baseName = elementType.baseName;
 			this.fields = (fields ?? Enumerable.Empty<TypeField>())
-				.Append(new TypeField("length", this, obj => ((Array)obj).Length))
+				.Append(new TypeField("length", INT, obj => ((Array)obj).Length))
 				.ToDictionary(f => f.Name);
 			this.DataType = elementType.DataType.MakeArrayType(1);
 			this.DisplayType = elementType.DisplayType.MakeArrayType(1);
@@ -115,7 +115,7 @@ namespace SharpSheets.Evaluations {
 		private EvaluationType(EvaluationType elementType, int elementCount, IEnumerable<TypeField>? fields) {
 			this.baseName = elementType.baseName;
 			this.fields = (fields ?? Enumerable.Empty<TypeField>())
-				.Append(new TypeField("length", this, obj => elementCount))
+				.Append(new TypeField("length", INT, obj => elementCount))
 				.ToDictionary(f => f.Name);
 			this.DataType = TupleUtils.MakeGenericTupleType(elementType.DataType, elementCount);
 			this.DisplayType = TupleUtils.MakeGenericTupleType(elementType.DisplayType, elementCount);
