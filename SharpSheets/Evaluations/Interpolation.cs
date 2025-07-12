@@ -42,7 +42,7 @@ namespace SharpSheets.Evaluations {
 						else if (c == '$' || (c == '{' && !requireEscape)) {
 							if (i - start > 0) {
 								string textPart = text.Substring(start, i - start);
-								parts.Add(ProcessText(textPart));
+								parts.Add(ProcessText(textPart, variables.Context));
 							}
 							lastEnd = i;
 
@@ -113,11 +113,11 @@ namespace SharpSheets.Evaluations {
 					}
 					else {
 						string textPart = text.Substring(start, text.Length - lastEnd);
-						parts.Add(ProcessText(textPart));
+						parts.Add(ProcessText(textPart, variables.Context));
 					}
 				}
 
-				return new TextExpression(parts.ToArray());
+				return new TextExpression(parts.ToArray(), variables.Context);
 			}
 			catch(InvalidOperationException e) {
 				throw new EvaluationSyntaxException("Invalid interpolated text expression.", e);
@@ -151,9 +151,9 @@ namespace SharpSheets.Evaluations {
 			return new InterpolatedStringExpression(Evaluation.Parse(keyText, variables), null);
 		}
 
-		private static InterpolatedStringExpression ProcessText(string str) {
+		private static InterpolatedStringExpression ProcessText(string str, EvaluationContext context) {
 			// TODO What to do about escaped character, etc., for TextExpressions?
-			return str;
+			return new InterpolatedStringExpression(new ConstantNode(new EvaluationValue(str, context.GetType<StringEvaluationType>())), null);
 		}
 
 		public static string Format(string format, object? content) {
@@ -193,6 +193,8 @@ namespace SharpSheets.Evaluations {
 		private readonly EvaluationNode content;
 		private readonly string? format;
 
+		public EvaluationContext Context => content.Context;
+
 		public bool IsConstant => content.IsConstant;
 
 		public InterpolatedStringExpression(EvaluationNode content, string? format) {
@@ -200,13 +202,20 @@ namespace SharpSheets.Evaluations {
 			this.format = format;
 		}
 
+		public InterpolatedStringExpression(string content, EvaluationContext context, string? format) {
+			this.content = new EvaluationValue(content, context.GetType<StringEvaluationType>());
+			this.format = format;
+		}
+
+		/*
 		public static implicit operator InterpolatedStringExpression(string value) {
 			return new InterpolatedStringExpression(new ConstantNode(value), null);
 		}
+		*/
 
 		public override string ToString() {
 			if (content.IsConstant && string.IsNullOrEmpty(format)) {
-				return content.Evaluate(Environments.Empty)?.ToString() ?? "";
+				return content.Evaluate(Environments.Empty(content.Context)).Value?.ToString() ?? "";
 			}
 			else {
 				return "{" + content.ToString() + (format != null ? (":" + format) : "") + "}";
@@ -214,16 +223,16 @@ namespace SharpSheets.Evaluations {
 		}
 
 		private static string EvaluateInterpolated(IEnvironment environment, EvaluationNode content, string? format) {
-			object? contentEval = content.Evaluate(environment);
+			EvaluationValue contentEval = content.Evaluate(environment);
 
 			if (format != null && environment is IInterpolationFormatter formatter) {
-				return formatter.Format(format, contentEval);
+				return formatter.Format(format, contentEval.Value);
 			}
 			else if (format != null) {
-				return Interpolation.Format(format, contentEval);
+				return Interpolation.Format(format, contentEval.Value);
 			}
 			else {
-				return contentEval?.ToString() ?? ""; // Good fallback?
+				return contentEval.Value?.ToString() ?? ""; // Good fallback?
 			}
 		}
 
@@ -240,9 +249,12 @@ namespace SharpSheets.Evaluations {
 			private readonly string format;
 
 			public override bool IsConstant => content.IsConstant;
-			public override EvaluationType ReturnType => EvaluationType.STRING;
 
-			public FormattedStringNode(EvaluationNode content, string format) {
+			public override EvaluationType GetReturnType() {
+				return Context.GetType<StringEvaluationType>();
+			}
+
+			public FormattedStringNode(EvaluationNode content, string format) : base(content.Context) {
 				this.content = content;
 				this.format = format;
 			}
@@ -256,15 +268,15 @@ namespace SharpSheets.Evaluations {
 					return content.Simplify();
 				}
 				else if (IsConstant) {
-					return new ConstantNode(Evaluate(Environments.Empty));
+					return new ConstantNode(Evaluate(Environments.Empty(content.Context)));
 				}
 				else {
 					return new FormattedStringNode(content.Simplify(), format);
 				}
 			}
 
-			public override object Evaluate(IEnvironment environment) {
-				return EvaluateInterpolated(environment, content, format);
+			public override EvaluationValue Evaluate(IEnvironment environment) {
+				return new EvaluationValue(EvaluateInterpolated(environment, content, format), environment.Context.GetType<StringEvaluationType>());
 			}
 
 			public override IEnumerable<EvaluationName> GetVariables() => content.GetVariables();
@@ -278,6 +290,7 @@ namespace SharpSheets.Evaluations {
 	}
 
 	public class TextExpression : IExpression<string> { // TODO Should this be IExpression<RichString>?
+		/*
 		public EvaluationNode Evaluation {
 			get {
 				if(value != null) {
@@ -295,30 +308,55 @@ namespace SharpSheets.Evaluations {
 				}
 			}
 		}
+		*/
+
+		public EvaluationNode Evaluation { get; }
+
+		public EvaluationContext Context => Evaluation.Context;
 
 		private readonly InterpolatedStringExpression[]? parts;
 		private readonly string? value; // TODO RichString?
-		private InterpolatedStringExpression[] Parts { get { return (value != null ? ((InterpolatedStringExpression)value).Yield() : parts!).ToArray(); } }
+		private InterpolatedStringExpression[] Parts { get { return (value != null ? new InterpolatedStringExpression(value, Evaluation.Context, null).Yield() : parts!).ToArray(); } }
 
 		public bool IsConstant { get { return value != null; } }
 
-		public TextExpression(InterpolatedStringExpression[] parts) {
+		public TextExpression(InterpolatedStringExpression[] parts, EvaluationContext context) {
 			if(parts.Length == 0) {
 				this.parts = null;
 				this.value = "";
 			}
 			else if (parts.All(p => p.IsConstant)) {
 				this.parts = null;
-				this.value = string.Join("", parts.Select(p => p.Evaluate(Environments.Empty)));
+				this.value = string.Join("", parts.Select(p => p.Evaluate(Environments.Empty(p.Context))));
 			}
 			else {
 				this.parts = parts;
 				this.value = null;
 			}
+
+			this.Evaluation = MakeEvaluation(this.value, this.parts, context);
 		}
-		public TextExpression(string value) {
+		public TextExpression(string value, EvaluationContext context) {
 			this.parts = null;
 			this.value = value;
+
+			this.Evaluation = MakeEvaluation(this.value, this.parts, context);
+		}
+
+		private static EvaluationNode MakeEvaluation(string? value, InterpolatedStringExpression[]? parts, EvaluationContext context) {
+			if (value != null) {
+				return new ConstantNode(new EvaluationValue(value, context.GetType<StringEvaluationType>()));
+			}
+			else if (parts!.Length == 0) {
+				return new ConstantNode(new EvaluationValue("", context.GetType<StringEvaluationType>()));
+			}
+			else {
+				EvaluationNode node = parts[0].Evaluation;
+				for (int i = 1; i < parts.Length; i++) {
+					node += parts[i].Evaluation;
+				}
+				return node;
+			}
 		}
 
 		public IEnumerable<EvaluationName> GetVariables() {
@@ -335,7 +373,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public static TextExpression operator +(TextExpression a, TextExpression b) {
-			return new TextExpression(a.Parts.Concat(b.Parts).ToArray());
+			return new TextExpression(a.Parts.Concat(b.Parts).ToArray(), a.Context);
 		}
 
 		public override string ToString() {

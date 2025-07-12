@@ -10,16 +10,25 @@ namespace SharpSheets.Evaluations {
 
 	public sealed class BasisEnvironment : IEnvironment {
 
-		public static readonly BasisEnvironment Instance = new BasisEnvironment();
+		//public static readonly BasisEnvironment Instance = new BasisEnvironment();
+
+		public static BasisEnvironment MakeInstance(EvaluationContext context) {
+			return new BasisEnvironment(context);
+		}
 
 		public bool IsEmpty { get; } = false;
-		public EvaluationTypeSystem TypeSystem => EvaluationTypes.BaseTypeSystem;
+		public EvaluationContext Context { get; }
 
-		private BasisEnvironment() { }
+		private readonly Dictionary<EvaluationName, (EvaluationValue value, EnvironmentVariableInfo info)> variables;
 
-		private static readonly Dictionary<EvaluationName, (EvaluationValue value, EnvironmentVariableInfo info)> variables = new List<(EvaluationValue val, EnvironmentVariableInfo info)> {
-			(new EvaluationValue((float)Math.PI, EvaluationTypes.FLOAT), new EnvironmentVariableInfo("pi", EvaluationTypes.FLOAT, "The ratio of the circumference of a circle to its diameter."))
-		}.ToDictionary(i => i.info.Name);
+		private BasisEnvironment(EvaluationContext context) {
+			Context = context;
+
+			EvaluationType floatType = Context.GetType<FloatEvaluationType>();
+			this.variables = new List<(EvaluationValue val, EnvironmentVariableInfo info)> {
+				(new EvaluationValue((float)Math.PI, floatType), new EnvironmentVariableInfo("pi", floatType, "The ratio of the circumference of a circle to its diameter."))
+			}.ToDictionary(i => i.info.Name);
+		}
 
 		private static readonly Dictionary<EvaluationName, IEnvironmentFunction> functions = new List<IEnvironmentFunction> {
 			ArrayCreateFunction.Instance, ArrayConcatenateFunction.Instance,

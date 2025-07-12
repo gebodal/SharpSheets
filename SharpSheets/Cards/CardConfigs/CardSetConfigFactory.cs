@@ -175,7 +175,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			if (cardSetConfig == null) { return null; }
 			if (origins != null) { origins.Add(cardSetConfig, context); }
 
-			IVariableBox definitionVariables = BasisEnvironment.Instance.AppendVariables(cardSetConfig.Variables);
+			IVariableBox definitionVariables = CardEnvironments.Basis.AppendVariables(cardSetConfig.Variables);
 
 			foreach (ContextValue<string> definitionValue in context.GetDefinitions(context)) {
 				try {
@@ -228,7 +228,7 @@ namespace SharpSheets.Cards.CardConfigs {
 				// Create an empty card config to use as fallback
 				IContext emptyCardContext = new EmptyChildContext(context, CardConfigConstructor.Name);
 				CardConfig emptyCardConfig = MakeConfig(emptyCardContext, cardSetConfig, null, errors) ?? throw new InvalidOperationException("Failed to make backup empty card configuration.");
-				cardSetConfig.cardConfigs.Add(new Conditional<CardConfig>(true, emptyCardConfig));
+				cardSetConfig.cardConfigs.Add(new Conditional<CardConfig>(new BoolExpression(true, CardEnvironments.Context), emptyCardConfig));
 				if (origins != null) { origins.Add(emptyCardConfig, context); }
 			}
 
@@ -298,7 +298,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			if (cardConfig == null) { return null; }
 			if (origins != null) { origins.Add(cardConfig, context); }
 
-			IVariableBox definitionVariables = BasisEnvironment.Instance.AppendVariables(cardConfig.Variables);
+			IVariableBox definitionVariables = CardEnvironments.Basis.AppendVariables(cardConfig.Variables);
 
 			foreach (ContextValue<string> definitionValue in context.GetDefinitions(context)) {
 				try {
@@ -355,16 +355,16 @@ namespace SharpSheets.Cards.CardConfigs {
 				if (segmentType == typeof(TextCardSegmentConfig) || segmentType == typeof(ParagraphCardSegmentConfig)) {
 					IVariableBox featureVariables = CardFeatureEnvironments.GetVariables(parent); // BasisEnvironment.Instance.AppendVariables(CardFeatureEnvironments.BaseDefinitions); // TODO CardFeatureEnvironments.GetTextVariables(parent);?
 					TextExpression? content = MakeTextProperty("content", context, featureVariables, errors);
-					requiredArgs.Add(content ?? new TextExpression(""));
+					requiredArgs.Add(content ?? new TextExpression("", CardEnvironments.Context));
 				}
 				if(segmentType == typeof(TextCardSegmentConfig)) {
 					IVariableBox segmentVariables = CardSegmentEnvironments.GetVariables(parent); // BasisEnvironment.Instance.AppendVariables(CardSegmentEnvironments.BaseDefinitions);
 					TextExpression? delimiter = MakeTextProperty("delimiter", context, segmentVariables, errors);
-					requiredArgs.Add(delimiter ?? new TextExpression(""));
+					requiredArgs.Add(delimiter ?? new TextExpression("", CardEnvironments.Context));
 					TextExpression? prefix = MakeTextProperty("prefix", context, segmentVariables, errors);
-					requiredArgs.Add(prefix ?? new TextExpression(""));
+					requiredArgs.Add(prefix ?? new TextExpression("", CardEnvironments.Context));
 					TextExpression? tail = MakeTextProperty("tail", context, segmentVariables, errors);
-					requiredArgs.Add(tail ?? new TextExpression(""));
+					requiredArgs.Add(tail ?? new TextExpression("", CardEnvironments.Context));
 				}
 				cardSegment = (AbstractCardSegmentConfig)SharpFactory.Construct(constructorInfo, context, parent.Source, widgetFactory, shapeFactory, requiredArgs.ToArray(), out SharpParsingException[] cardSegmentBuildErrors);
 				errors.AddRange(cardSegmentBuildErrors);
@@ -382,7 +382,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			if (origins != null) { origins.Add(cardSegment, context); }
 
-			IVariableBox definitionVariables = BasisEnvironment.Instance.AppendVariables(cardSegment.Variables);
+			IVariableBox definitionVariables = CardEnvironments.Basis.AppendVariables(cardSegment.Variables);
 
 			// If not dynamic, or is dynamic and not always included
 			// AlwaysInclude segments cannot have their own Definitions specified
@@ -448,7 +448,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			if (cardFeature == null) { return null; }
 			if (origins != null) { origins.Add(cardFeature, context); }
 
-			IVariableBox featureVariables = BasisEnvironment.Instance.AppendVariables(cardFeature.Variables);
+			IVariableBox featureVariables = CardEnvironments.Basis.AppendVariables(cardFeature.Variables);
 
 			foreach (ContextValue<string> definitionValue in context.GetDefinitions(context)) {
 				try {
@@ -469,15 +469,15 @@ namespace SharpSheets.Cards.CardConfigs {
 		private static Conditional<T> MakeCondition<T>(IContext context, T value, IVariableBox variables, List<SharpParsingException> errors) {
 			if (variables == null) {
 				// TODO Error here?
-				return new Conditional<T>(false, value);
+				return new Conditional<T>(new BoolExpression(false, CardEnvironments.Context), value);
 			}
 
-			variables = BasisEnvironment.Instance.AppendVariables(variables);
+			variables = CardEnvironments.Basis.AppendVariables(variables);
 
 			string? conditionStr = context.GetProperty(ConditionArgument.Name, true, context, null, out DocumentSpan? location);
 
 			if(conditionStr == null) {
-				return new Conditional<T>(true, value);
+				return new Conditional<T>(new BoolExpression(true, CardEnvironments.Context), value);
 			}
 
 			try {
@@ -486,7 +486,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			}
 			catch(Exception e) {
 				errors.Add(new SharpParsingException(location, e.Message, e));
-				return new Conditional<T>(false, value);
+				return new Conditional<T>(new BoolExpression(false, CardEnvironments.Context), value);
 			}
 		}
 
@@ -535,7 +535,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			"condition",
 			new DocumentationString("A boolean expression used to determine if this part of the configuration " +
 				"should be used, based on the card subject data. If no expression is provided, it is assumed to be true."),
-			ArgumentType.Simple(typeof(BoolExpression)), true, true, "True", new BoolExpression(true), null);
+			ArgumentType.Simple(typeof(BoolExpression)), true, true, "True", new BoolExpression(true, CardEnvironments.Context), null);
 
 		public static readonly ArgumentDetails ForEachArgument = new ArgumentDetails(
 			"foreach",
@@ -680,7 +680,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			if (foreachStr is not null) {
 				try {
 					ContextForEach forEach = ContextForEach.Parse(foreachStr, initial);
-					return initial.AppendEnvironment(new DryRunEnvironment(SimpleVariableBoxes.Single(forEach.LoopVariable), VariableDefinitionBox.Empty));
+					return initial.AppendEnvironment(new DryRunEnvironment(VariableBoxes.Single(forEach.LoopVariable, CardEnvironments.Context), VariableDefinitionBox.Empty));
 				}
 				catch (EvaluationException) { }
 				catch (FormatException) { }

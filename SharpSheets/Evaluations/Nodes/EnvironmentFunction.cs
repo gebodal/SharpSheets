@@ -77,17 +77,19 @@ namespace SharpSheets.Evaluations.Nodes {
 
 	public interface IEnvironmentFunctionInfo {
 		EvaluationName Name { get; }
-		EnvironmentFunctionArguments Args { get; }
+		//EnvironmentFunctionArguments Args { get; }
 		string? Description { get; }
+
+		EnvironmentFunctionArguments GetArguments(EvaluationContext context);
 
 		/// <summary>
 		/// 
 		/// </summary>
-		/// <param name="typeSystem"></param>
+		/// <param name="context"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
 		/// <exception cref="EvaluationTypeException"></exception>
-		EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args);
+		EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args);
 	}
 	public interface IEnvironmentFunctionEvaluator {
 		/// <summary>
@@ -106,7 +108,7 @@ namespace SharpSheets.Evaluations.Nodes {
 	public static class EnvironmentFunctionInfoUtils {
 
 		public static EvaluationType GetReturnType(this IEnvironmentFunctionInfo funcInfo, IVariableBox variables, EvaluationNode[] args) {
-			return funcInfo.GetReturnType(variables.TypeSystem, args);
+			return funcInfo.GetReturnType(variables.Context, args);
 		}
 
 	}

@@ -14,7 +14,7 @@ namespace SharpSheets.Evaluations {
 	public interface IVariableBox {
 		bool IsEmpty { get; }
 
-		EvaluationTypeSystem TypeSystem { get; }
+		EvaluationContext Context { get; }
 
 		bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo);
 		bool TryGetFunctionInfo(EvaluationName name, [MaybeNullWhen(false)] out IEnvironmentFunctionInfo functionInfo);
@@ -76,25 +76,33 @@ namespace SharpSheets.Evaluations {
 			return variables.TryGetFunctionInfo(name, out _);
 		}
 
+		public static T GetType<T>(this IVariableBox variables) where T : EvaluationType {
+			return variables.Context.GetType<T>();
+		}
+
 		public static bool TryGetLeastUpperBoundType(this IVariableBox variables, EvaluationType a, EvaluationType b, [NotNullWhen(true)] out EvaluationType? lubType) {
-			return variables.TypeSystem.TryGetLeastUpperBoundType(a, b, out lubType);
+			return variables.Context.TryGetLeastUpperBoundType(a, b, out lubType);
 		}
 
 	}
 
 	public static class VariableBoxes {
 
-		public static readonly IVariableBox Empty = new ConcatenatedVariableBox(Array.Empty<IVariableBox>());
+		//public static readonly IVariableBox Empty = new ConcatenatedVariableBox(Array.Empty<IVariableBox>());
+
+		public static IVariableBox Empty(EvaluationContext context) {
+			return new ConcatenatedVariableBox(context, Array.Empty<IVariableBox>());
+		}
 
 		private class ConcatenatedVariableBox : IVariableBox {
 			public readonly IVariableBox[] variableBoxes;
 
 			public bool IsEmpty => variableBoxes.All(b => b.IsEmpty);
-			public EvaluationTypeSystem TypeSystem { get; }
+			public EvaluationContext Context { get; }
 
-			public ConcatenatedVariableBox(IEnumerable<IVariableBox> variableBoxes) {
+			public ConcatenatedVariableBox(EvaluationContext context, IEnumerable<IVariableBox> variableBoxes) {
 				this.variableBoxes = variableBoxes.Where(b => !b.IsEmpty).ToArray();
-				TypeSystem = EvaluationTypeSystem.Create(variableBoxes.SelectMany(b => b.TypeSystem.Types).Concat(EvaluationTypes.BaseTypeSystem.Types));
+				this.Context = context; // variableBoxes.Select(b => b.Context).Single();
 			}
 
 			public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
@@ -147,70 +155,136 @@ namespace SharpSheets.Evaluations {
 
 		public static IVariableBox AppendVariables(this IVariableBox source, IVariableBox other) {
 			if (source is ConcatenatedVariableBox concatFirst && other is ConcatenatedVariableBox concatSecond) {
-				return new ConcatenatedVariableBox(concatFirst.variableBoxes.Concat(concatSecond.variableBoxes));
+				return new ConcatenatedVariableBox(source.Context, concatFirst.variableBoxes.Concat(concatSecond.variableBoxes));
 			}
 			else if (source is ConcatenatedVariableBox concatSource) {
-				return new ConcatenatedVariableBox(concatSource.variableBoxes.Append(other));
+				return new ConcatenatedVariableBox(source.Context, concatSource.variableBoxes.Append(other));
 			}
 			else if (other is ConcatenatedVariableBox concatOther) {
-				return new ConcatenatedVariableBox(source.Yield().Concat(concatOther.variableBoxes));
+				return new ConcatenatedVariableBox(source.Context, source.Yield().Concat(concatOther.variableBoxes));
 			}
 			else {
-				return new ConcatenatedVariableBox(new IVariableBox[] { source, other });
+				return new ConcatenatedVariableBox(source.Context, new IVariableBox[] { source, other });
 			}
 		}
 
-		public static IVariableBox Concat(params IVariableBox[] variableBoxes) {
-			return new ConcatenatedVariableBox(variableBoxes);
+		public static IVariableBox AppendVariables(this IVariableBox source,
+			IEnumerable<EnvironmentVariableInfo> variables,
+			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes,
+			IEnumerable<IEnvironmentFunctionInfo> functions) {
+			return source.AppendVariables(Create(variables, nodes, functions, source.Context));
+		}
+
+		public static IVariableBox AppendVariables(this IVariableBox source,
+			IEnumerable<EnvironmentVariableInfo> variables,
+			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes) {
+			return source.AppendVariables(Create(variables, nodes, source.Context));
+		}
+
+		public static IVariableBox AppendVariables(this IVariableBox source,
+			IEnumerable<EnvironmentVariableInfo> variables,
+			IEnumerable<IEnvironmentFunctionInfo> functions) {
+			return source.AppendVariables(Create(variables, functions, source.Context));
+		}
+
+		public static IVariableBox AppendVariables(this IVariableBox source,
+			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes,
+			IEnumerable<IEnvironmentFunctionInfo> functions) {
+			return source.AppendVariables(Create(nodes, functions, source.Context));
+		}
+
+		public static IVariableBox AppendVariables(this IVariableBox source, IEnumerable<EnvironmentVariableInfo> variables) {
+			return source.AppendVariables(Create(variables, source.Context));
+		}
+
+		public static IVariableBox AppendVariables(this IVariableBox source, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes) {
+			return source.AppendVariables(Create(nodes, source.Context));
+		}
+
+		public static IVariableBox AppendVariables(this IVariableBox source, IEnumerable<IEnvironmentFunctionInfo> functions) {
+			return source.AppendVariables(Create(functions, source.Context));
+		}
+
+		public static IVariableBox AppendVariables(this IVariableBox source, EnvironmentVariableInfo info) {
+			return source.AppendVariables(Create(info.Yield(), source.Context));
+		}
+
+		#endregion
+
+		#region Concatenate Variable Boxes
+
+		private static IEnumerable<IVariableBox> UnpackVariableBoxes(IEnumerable<IVariableBox> variableBoxes) {
+			foreach (IVariableBox box in variableBoxes) {
+				if (box is ConcatenatedVariableBox concatenated) {
+					foreach (IVariableBox nestedBox in UnpackVariableBoxes(concatenated.variableBoxes)) {
+						yield return nestedBox;
+					}
+				}
+				else {
+					yield return box;
+				}
+			}
+		}
+
+		public static IVariableBox Concat(EvaluationContext context, params IVariableBox[] variables) {
+			return new ConcatenatedVariableBox(context, UnpackVariableBoxes(variables));
+		}
+
+		public static IVariableBox Concat(IVariableBox first, params IVariableBox[] toConcat) {
+			return new ConcatenatedVariableBox(first.Context, UnpackVariableBoxes(first.Yield().Concat(toConcat)));
 		}
 
 		#endregion
 
 		#region SimpleVariableBox creation methods
 
-		public static IVariableBox Create(EvaluationTypeSystem typeSystem) {
-			return new SimpleVariableBox(null, null, null, typeSystem);
+		public static IVariableBox Create(EvaluationContext context) {
+			return new SimpleVariableBox(null, null, null, context);
 		}
 
 		public static IVariableBox Create(
 			IEnumerable<EnvironmentVariableInfo> variables,
 			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes,
-			IEnumerable<IEnvironmentFunctionInfo> functions) {
-			return new SimpleVariableBox(variables, nodes, functions, null);
+			IEnumerable<IEnvironmentFunctionInfo> functions,
+			EvaluationContext context) {
+			return new SimpleVariableBox(variables, nodes, functions, context);
 		}
 
 		public static IVariableBox Create(
 			IEnumerable<EnvironmentVariableInfo> variables,
-			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes) {
-			return new SimpleVariableBox(variables, nodes, null, null);
+			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes,
+			EvaluationContext context) {
+			return new SimpleVariableBox(variables, nodes, null, context);
 		}
 
 		public static IVariableBox Create(
 			IEnumerable<EnvironmentVariableInfo> variables,
-			IEnumerable<IEnvironmentFunctionInfo> functions) {
-			return new SimpleVariableBox(variables, null, functions, null);
+			IEnumerable<IEnvironmentFunctionInfo> functions,
+			EvaluationContext context) {
+			return new SimpleVariableBox(variables, null, functions, context);
 		}
 
 		public static IVariableBox Create(
 			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes,
-			IEnumerable<IEnvironmentFunctionInfo> functions) {
-			return new SimpleVariableBox(null, nodes, functions, null);
+			IEnumerable<IEnvironmentFunctionInfo> functions,
+			EvaluationContext context) {
+			return new SimpleVariableBox(null, nodes, functions, context);
 		}
 
-		public static IVariableBox Create(IEnumerable<EnvironmentVariableInfo> variables) {
-			return new SimpleVariableBox(variables, null, null, null);
+		public static IVariableBox Create(IEnumerable<EnvironmentVariableInfo> variables, EvaluationContext context) {
+			return new SimpleVariableBox(variables, null, null, context);
 		}
 
-		public static IVariableBox Create(IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes) {
-			return new SimpleVariableBox(null, nodes, null, null);
+		public static IVariableBox Create(IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes, EvaluationContext context) {
+			return new SimpleVariableBox(null, nodes, null, context);
 		}
 
-		public static IVariableBox Create(IEnumerable<IEnvironmentFunctionInfo> functions) {
-			return new SimpleVariableBox(null, null, functions, null);
+		public static IVariableBox Create(IEnumerable<IEnvironmentFunctionInfo> functions, EvaluationContext context) {
+			return new SimpleVariableBox(null, null, functions, context);
 		}
 
-		public static IVariableBox Single(EnvironmentVariableInfo info) {
-			return new SimpleVariableBox(info.Yield(), null, null, null);
+		public static IVariableBox Single(EnvironmentVariableInfo info, EvaluationContext context) {
+			return new SimpleVariableBox(info.Yield(), null, null, context);
 		}
 
 		#endregion
@@ -221,13 +295,13 @@ namespace SharpSheets.Evaluations {
 			private readonly Dictionary<EvaluationName, IEnvironmentFunctionInfo> functions;
 
 			public bool IsEmpty => variables.Count == 0 && nodes.Count == 0 && functions.Count == 0;
-			public EvaluationTypeSystem TypeSystem { get; }
+			public EvaluationContext Context { get; }
 
-			public SimpleVariableBox(IEnumerable<EnvironmentVariableInfo>? variables, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes, IEnumerable<IEnvironmentFunctionInfo>? functions, EvaluationTypeSystem? typeSystem) {
+			public SimpleVariableBox(IEnumerable<EnvironmentVariableInfo>? variables, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes, IEnumerable<IEnvironmentFunctionInfo>? functions, EvaluationContext context) {
 				this.variables = variables?.ToDictionaryAllowRepeats(i => i.Name, true) ?? new Dictionary<EvaluationName, EnvironmentVariableInfo>();
 				this.nodes = nodes?.ToDictionaryAllowRepeats(true) ?? new Dictionary<EvaluationName, EvaluationNode>();
 				this.functions = functions?.ToDictionaryAllowRepeats(i => i.Name, true) ?? new Dictionary<EvaluationName, IEnvironmentFunctionInfo>();
-				TypeSystem = typeSystem ?? EvaluationTypes.BaseTypeSystem;
+				Context = context;
 			}
 
 			public bool TryGetVariableInfo(EvaluationName key, [MaybeNullWhen(false)] out EnvironmentVariableInfo variableInfo) {
@@ -237,7 +311,7 @@ namespace SharpSheets.Evaluations {
 				}
 				else if (nodes.TryGetValue(key, out EvaluationNode? node)) {
 					try {
-						variableInfo = new EnvironmentVariableInfo(key, node.GetReturnType(TypeSystem), null);
+						variableInfo = new EnvironmentVariableInfo(key, node.GetReturnType(), null);
 						return true;
 					}
 					catch (EvaluationTypeException) { } // Should we throw something here? throw new UndefinedVariableException(key);

@@ -48,7 +48,7 @@ namespace SharpSheets.Cards.Definitions {
 			return Simple(type, 0);
 		}
 
-		public static string ValueToString(object value) {
+		public static string ValueToString(object? value) {
 			// TODO This method needs updating!
 
 			if(value == null) {
@@ -82,39 +82,39 @@ namespace SharpSheets.Cards.Definitions {
 			public EvaluationNode Subject { get; }
 
 			private readonly EvaluationType castType;
-			public override EvaluationType ReturnType {
-				get {
-					if (EvaluationTypes.IsCompatibleType(castType, Subject.ReturnType)) {
-						return castType;
-					}
-					else {
-						throw new EvaluationTypeException($"Cannot cast {Subject.ReturnType} to {castType}.");
-					}
-				}
-			}
 
 			public override bool IsConstant => Subject.IsConstant;
 
-			public SimpleTypeValidationNode(EvaluationNode subject, EvaluationType returnType) {
+			public SimpleTypeValidationNode(EvaluationNode subject, EvaluationType returnType) : base(subject.Context) {
 				Subject = subject;
 				this.castType = returnType;
 			}
 
-			public override object Evaluate(IEnvironment environment) {
-				object? arg = Subject.Evaluate(environment);
-
-				return EvaluationTypes.GetCompatibleValue(castType, arg);
+			public override EvaluationType GetReturnType() {
+				EvaluationType subjectType = Subject.GetReturnType();
+				if (castType.CanImplicitCastFrom(subjectType)) {
+					return castType;
+				}
+				else {
+					throw new EvaluationTypeException($"Cannot cast {subjectType} to {castType}.");
+				}
 			}
 
-			public override EvaluationNode Clone() => new SimpleTypeValidationNode(Subject.Clone(), ReturnType);
+			public override EvaluationValue Evaluate(IEnvironment environment) {
+				EvaluationValue arg = Subject.Evaluate(environment);
+
+				return castType.Cast(arg) ?? throw new EvaluationTypeException($"Cannot convert {arg.Type} value to {castType} value.");
+			}
+
+			public override EvaluationNode Clone() => new SimpleTypeValidationNode(Subject.Clone(), castType);
 			public override IEnumerable<EvaluationName> GetVariables() => Subject.GetVariables();
 
 			public override EvaluationNode Simplify() {
 				if (IsConstant) {
-					return new ConstantNode(Evaluate(Environments.Empty));
+					return new ConstantNode(Evaluate(CardEnvironments.Basis));
 				}
 				else {
-					return new SimpleTypeValidationNode(Subject.Simplify(), ReturnType);
+					return new SimpleTypeValidationNode(Subject.Simplify(), castType);
 				}
 			}
 
@@ -132,7 +132,7 @@ namespace SharpSheets.Cards.Definitions {
 		internal RegexType(Regex pattern, int rank) {
 			this.Pattern = pattern ?? throw new ArgumentNullException(nameof(pattern), "Must provide a regex.");
 			//this.rank = rank;
-			this.ReturnType = rank > 0 ? EvaluationType.STRING.MakeArray(rank) : EvaluationType.STRING;
+			this.ReturnType = rank > 0 ? CardEnvironments.STRING.MakeArray(rank) : CardEnvironments.STRING;
 		}
 
 		public override EvaluationNode Validation(EvaluationNode node) {
@@ -145,54 +145,51 @@ namespace SharpSheets.Cards.Definitions {
 			private readonly Regex pattern;
 
 			public override bool IsConstant => Subject.IsConstant;
-			public override EvaluationType ReturnType { get; }
+			private readonly EvaluationType returnType;
+			public override EvaluationType GetReturnType() { return returnType; }
 
-			public RegexValidationNode(EvaluationNode subject, Regex pattern, EvaluationType returnType) {
+			public RegexValidationNode(EvaluationNode subject, Regex pattern, EvaluationType returnType) : base(subject.Context) {
 				Subject = subject;
 				this.pattern = pattern;
-				this.ReturnType = returnType;
+				this.returnType = returnType;
 			}
 
-			private void ValidateValue(object value) {
-				if (value is string rawText) {
+			private void ValidateValue(EvaluationValue value) {
+				if (StringEvaluationType.TryGetString(value, out string? rawText)) {
 					string text = StringParsing.Parse(rawText);
 					Match match = pattern.Match(text);
 					if (!(match.Success && match.Length == text.Length && match.Index == 0)) {
 						throw new EvaluationCalculationException("Value does not match expected pattern: " + pattern.ToString());
 					}
 				}
-				else if (value is Array array) {
-					foreach (object nestedValue in array) {
+				else if (value.Type.Iteration(value) is IEnumerable<EvaluationValue> iterations) {
+					foreach (EvaluationValue nestedValue in iterations) {
 						ValidateValue(nestedValue);
 					}
 				}
 				else {
-					throw new EvaluationTypeException("Subject of regex match must be a string, or array of strings.");
+					//throw new EvaluationTypeException("Subject of regex match must be a string, or array of strings.");
+					throw new EvaluationTypeException($"Value must be a string, or array of strings, not {value.Type}.");
 				}
 			}
 
-			public override object Evaluate(IEnvironment environment) {
-				object? result = Subject.Evaluate(environment);
+			public override EvaluationValue Evaluate(IEnvironment environment) {
+				EvaluationValue result = Subject.Evaluate(environment);
 
-				if (result is not null && ReturnType.ValidDataType(result.GetType())) { // result.GetType() == ReturnType.SystemType
-					ValidateValue(result);
+				ValidateValue(result);
 
-					return result;
-				}
-				else {
-					throw new EvaluationTypeException($"Value must be a string, or array of strings, not {EvaluationUtils.GetDataTypeName(result)}.");
-				}
+				return result;
 			}
 
-			public override EvaluationNode Clone() => new RegexValidationNode(Subject.Clone(), pattern, ReturnType);
+			public override EvaluationNode Clone() => new RegexValidationNode(Subject.Clone(), pattern, returnType);
 			public override IEnumerable<EvaluationName> GetVariables() => Subject.GetVariables();
 
 			public override EvaluationNode Simplify() {
 				if (IsConstant) {
-					return new ConstantNode(Evaluate(Environments.Empty));
+					return new ConstantNode(Evaluate(CardEnvironments.Basis));
 				}
 				else {
-					return new RegexValidationNode(Subject.Simplify(), pattern, ReturnType);
+					return new RegexValidationNode(Subject.Simplify(), pattern, returnType);
 				}
 			}
 
@@ -201,7 +198,7 @@ namespace SharpSheets.Cards.Definitions {
 	}
 
 	public class CategoricalType : DefinitionType {
-		public override EvaluationType ReturnType => EvaluationType.STRING;
+		public override EvaluationType ReturnType => CardEnvironments.STRING;
 
 		public IReadOnlyList<string> Categories => categories;
 		private readonly string[] categories;
@@ -223,21 +220,22 @@ namespace SharpSheets.Cards.Definitions {
 			private readonly string[] categories;
 
 			public override bool IsConstant => Subject.IsConstant;
-			public override EvaluationType ReturnType { get; } = EvaluationType.STRING;
+			private readonly EvaluationType returnType = CardEnvironments.STRING;
+			public override EvaluationType GetReturnType() => returnType;
 
-			public CategoryValidationNode(EvaluationNode subject, string[] categories) {
+			public CategoryValidationNode(EvaluationNode subject, string[] categories) : base(subject.Context) {
 				Subject = subject;
 				this.categories = categories;
 			}
 
-			public override object Evaluate(IEnvironment environment) {
-				object? result = Subject.Evaluate(environment);
+			public override EvaluationValue Evaluate(IEnvironment environment) {
+				EvaluationValue result = Subject.Evaluate(environment);
 
-				if (result is string text) {
+				if (StringEvaluationType.TryGetString(result, out string? text)) {
 					string simpleText = text.Replace(" ", "");
 					string? matching = categories.FirstOrDefault(c => c.Replace(" ", "").StartsWith(simpleText, StringComparison.InvariantCultureIgnoreCase));
 					if (matching != null) {
-						return matching;
+						return new EvaluationValue(matching, returnType);
 					}
 					else {
 						throw new EvaluationCalculationException($"Value must match one of the following: " + string.Join(", ", categories));
@@ -253,7 +251,7 @@ namespace SharpSheets.Cards.Definitions {
 
 			public override EvaluationNode Simplify() {
 				if (IsConstant) {
-					return new ConstantNode(Evaluate(Environments.Empty));
+					return new ConstantNode(Evaluate(CardEnvironments.Basis));
 				}
 				else {
 					return new CategoryValidationNode(Subject.Simplify(), categories);
@@ -265,7 +263,7 @@ namespace SharpSheets.Cards.Definitions {
 	}
 
 	public class MulticategoryType : DefinitionType {
-		public override EvaluationType ReturnType { get; } = EvaluationType.STRING.MakeArray();
+		public override EvaluationType ReturnType { get; } = CardEnvironments.STRING.MakeArray();
 
 		public IReadOnlyList<string> Categories => categories;
 		private readonly string[] categories;
@@ -287,22 +285,23 @@ namespace SharpSheets.Cards.Definitions {
 			private readonly string[] categories;
 
 			public override bool IsConstant => Subject.IsConstant;
-			public override EvaluationType ReturnType { get; } = EvaluationType.STRING.MakeArray();
+			private readonly EvaluationType returnType = CardEnvironments.STRING.MakeArray();
+			public override EvaluationType GetReturnType() => returnType;
 
-			public MulticategoryValidationNode(EvaluationNode subject, string[] categories) {
+			public MulticategoryValidationNode(EvaluationNode subject, string[] categories) : base(subject.Context) {
 				Subject = subject;
 				this.categories = categories;
 			}
 
-			public override object Evaluate(IEnvironment environment) {
-				object? data = Subject.Evaluate(environment);
+			public override EvaluationValue Evaluate(IEnvironment environment) {
+				EvaluationValue data = Subject.Evaluate(environment);
 
-				if (data is Array array) {
+				if (data.Type.Iteration(data) is IEnumerable<EvaluationValue> iterations) {
 
 					string[] result = new string[categories.Length];
 
-					foreach (object value in (IEnumerable)array) {
-						if (value is string text) {
+					foreach (EvaluationValue value in iterations) {
+						if (StringEvaluationType.TryGetString(value, out string? text)) {
 							string simpleText = text.Replace(" ", "");
 							int index = -1;
 							string? matching = null;
@@ -325,7 +324,7 @@ namespace SharpSheets.Cards.Definitions {
 						}
 					}
 
-					return EvaluationTypes.MakeArray(typeof(string), result.WhereNotEmpty().ToArray());
+					return ArrayEvaluationType.MakeArray(CardEnvironments.STRING, result.WhereNotEmpty().Select(s => new EvaluationValue(s, CardEnvironments.STRING)).ToArray());
 				}
 				else {
 					throw new EvaluationTypeException("A multicategory value must be an array of strings.");
@@ -337,7 +336,7 @@ namespace SharpSheets.Cards.Definitions {
 
 			public override EvaluationNode Simplify() {
 				if (IsConstant) {
-					return new ConstantNode(Evaluate(Environments.Empty));
+					return new ConstantNode(Evaluate(CardEnvironments.Basis));
 				}
 				else {
 					return new MulticategoryValidationNode(Subject.Simplify(), categories);
@@ -359,7 +358,7 @@ namespace SharpSheets.Cards.Definitions {
 		internal IntegerRange(int start, int end, int rank) {
 			Start = start;
 			End = end;
-			this.ReturnType = rank > 0 ? EvaluationType.INT.MakeArray(rank) : EvaluationType.INT;
+			this.ReturnType = rank > 0 ? CardEnvironments.INT.MakeArray(rank) : CardEnvironments.INT;
 		}
 
 		public override EvaluationNode Validation(EvaluationNode node) {
@@ -373,47 +372,38 @@ namespace SharpSheets.Cards.Definitions {
 			private readonly int end;
 
 			public override bool IsConstant => Subject.IsConstant;
-			public override EvaluationType ReturnType { get; }
+			public EvaluationType ReturnType { get; }
+			public override EvaluationType GetReturnType() => ReturnType;
 
-			private bool ReturnsCollection => ReturnType.IsArray || ReturnType.IsTuple;
-
-			public IntegerRangeValidationNode(EvaluationNode subject, int start, int end, EvaluationType returnType) {
+			public IntegerRangeValidationNode(EvaluationNode subject, int start, int end, EvaluationType returnType) : base(subject.Context) {
 				Subject = subject;
 				this.start = start;
 				this.end = end;
 				this.ReturnType = returnType;
 			}
 
-			private void ValidateValue(object value) {
-				if (EvaluationTypes.TryGetIntegral(value, out int intVal)) {
+			private void ValidateValue(EvaluationValue value) {
+				if (IntEvaluationType.TryGetInt(value, out int intVal)) {
 					if (intVal < start || intVal > end) {
-						throw new EvaluationCalculationException($"Value{(ReturnsCollection ? "s" : "")} must be in the range {start} to {end} (inclusive).");
+						throw new EvaluationCalculationException($"Values must be in the range {start} to {end} (inclusive).");
 					}
 				}
-				else if (value is Array array) {
-					foreach (object nestedValue in array) {
+				else if (value.Type.Iteration(value) is IEnumerable<EvaluationValue> iterations) {
+					foreach (EvaluationValue nestedValue in iterations) {
 						ValidateValue(nestedValue);
 					}
 				}
 				else {
-					throw new EvaluationTypeException("Subject of integer range must be an integer, or array of integers.");
+					throw new EvaluationTypeException("Value of integer range must be a int, or array of ints.");
 				}
 			}
 
-			public override object Evaluate(IEnvironment environment) {
-				object? result = Subject.Evaluate(environment);
+			public override EvaluationValue Evaluate(IEnvironment environment) {
+				EvaluationValue result = Subject.Evaluate(environment);
 
-				if (result is not null && ReturnType.ValidDataType(result.GetType())) { // result.GetType() == ReturnType.SystemType
-					ValidateValue(result);
+				ValidateValue(result);
 
-					return result;
-				}
-				else if (ReturnsCollection) {
-					throw new EvaluationTypeException($"Value must be an array of integers, not {EvaluationUtils.GetDataTypeName(result)}.");
-				}
-				else {
-					throw new EvaluationTypeException($"Value must be an integer, not {EvaluationUtils.GetDataTypeName(result)}.");
-				}
+				return result;
 			}
 
 			public override EvaluationNode Clone() => new IntegerRangeValidationNode(Subject.Clone(), start, end, ReturnType);
@@ -421,7 +411,7 @@ namespace SharpSheets.Cards.Definitions {
 
 			public override EvaluationNode Simplify() {
 				if (IsConstant) {
-					return new ConstantNode(Evaluate(Environments.Empty));
+					return new ConstantNode(Evaluate(CardEnvironments.Basis));
 				}
 				else {
 					return new IntegerRangeValidationNode(Subject.Simplify(), start, end, ReturnType);
@@ -443,7 +433,7 @@ namespace SharpSheets.Cards.Definitions {
 		internal FloatRange(float start, float end, int rank) {
 			Start = start;
 			End = end;
-			this.ReturnType = rank > 0 ? EvaluationType.FLOAT.MakeArray(rank) : EvaluationType.FLOAT;
+			this.ReturnType = rank > 0 ? CardEnvironments.FLOAT.MakeArray(rank) : CardEnvironments.FLOAT;
 		}
 
 		public override EvaluationNode Validation(EvaluationNode node) {
@@ -457,47 +447,38 @@ namespace SharpSheets.Cards.Definitions {
 			private readonly float end;
 
 			public override bool IsConstant => Subject.IsConstant;
-			public override EvaluationType ReturnType { get; }
+			public EvaluationType ReturnType { get; }
+			public override EvaluationType GetReturnType() => ReturnType;
 
-			private bool ReturnsCollection => ReturnType.IsArray || ReturnType.IsTuple;
-
-			public FloatRangeValidationNode(EvaluationNode subject, float start, float end, EvaluationType returnType) {
+			public FloatRangeValidationNode(EvaluationNode subject, float start, float end, EvaluationType returnType) : base(subject.Context) {
 				Subject = subject;
 				this.start = start;
 				this.end = end;
 				this.ReturnType = returnType;
 			}
 
-			private void ValidateValue(object value) {
-				if (EvaluationTypes.TryGetReal(value, out float realVal)) {
+			private void ValidateValue(EvaluationValue value) {
+				if (FloatEvaluationType.TryGetFloat(value, out float realVal)) {
 					if (realVal < start || realVal > end) {
-						throw new EvaluationCalculationException($"Value{(ReturnsCollection ? "s" : "")} must be in the range {start} to {end} (inclusive).");
+						throw new EvaluationCalculationException($"Values must be in the range {start} to {end} (inclusive).");
 					}
 				}
-				else if (value is Array array) {
-					foreach (object nestedValue in array) {
+				else if (value.Type.Iteration(value) is IEnumerable<EvaluationValue> iterations) {
+					foreach (EvaluationValue nestedValue in iterations) {
 						ValidateValue(nestedValue);
 					}
 				}
 				else {
-					throw new EvaluationTypeException("Subject of float range must be a float, or array of floats.");
+					throw new EvaluationTypeException("Value of float range must be a float, or array of floats.");
 				}
 			}
 
-			public override object Evaluate(IEnvironment environment) {
-				object? result = Subject.Evaluate(environment);
+			public override EvaluationValue Evaluate(IEnvironment environment) {
+				EvaluationValue result = Subject.Evaluate(environment);
 
-				if (result is not null && ReturnType.ValidDataType(result.GetType())) { // result.GetType() == ReturnType.SystemType
-					ValidateValue(result);
+				ValidateValue(result);
 
-					return result;
-				}
-				else if (ReturnsCollection) {
-					throw new EvaluationTypeException($"Value must be an array of floats, not {EvaluationUtils.GetDataTypeName(result)}.");
-				}
-				else {
-					throw new EvaluationTypeException($"Value must be a float, not {EvaluationUtils.GetDataTypeName(result)}.");
-				}
+				return result;
 			}
 
 			public override EvaluationNode Clone() => new FloatRangeValidationNode(Subject.Clone(), start, end, ReturnType);
@@ -505,7 +486,7 @@ namespace SharpSheets.Cards.Definitions {
 
 			public override EvaluationNode Simplify() {
 				if (IsConstant) {
-					return new ConstantNode(Evaluate(Environments.Empty));
+					return new ConstantNode(Evaluate(CardEnvironments.Basis));
 				}
 				else {
 					return new FloatRangeValidationNode(Subject.Simplify(), start, end, ReturnType);

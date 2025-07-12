@@ -69,7 +69,7 @@ namespace SharpSheets.Cards.Card {
 					IEnvironment cardOutlinesEnvironment = Environments.Concat(
 						CardOutlinesEnvironments.GetEnvironment(card, cardCount),
 						subject.Environment,
-						BasisEnvironment.Instance
+						CardEnvironments.Basis
 						);
 
 					if(ProcessCardArrangementOutline(subject, cardConfig.outlines, cardConfig.cardSetConfig.outlines, cardOutlinesEnvironment, cardSetConfig.Source, widgetFactory, errors, "outline", out IWidget? outlineRect)) {
@@ -245,7 +245,7 @@ namespace SharpSheets.Cards.Card {
 			foreach (CardFeature feature in segment) {
 				CardFeatureConfig? featureConfig = feature.FeatureConfig;
 				if (featureConfig != null) {
-					IEnvironment featureEnvironment = BasisEnvironment.Instance.AppendEnvironment(feature.Environment);
+					IEnvironment featureEnvironment = CardEnvironments.Basis.AppendEnvironment(feature.Environment);
 					IContext featureContext = featureConfig.Layout.Evaluate(featureEnvironment, out SharpParsingException[] featureContextErrors);
 					errors.AddRange(featureContextErrors);
 					IWidget featureContent = widgetFactory.MakeWidget(typeof(Div), featureContext, segmentConfig.parent.Source, out SharpParsingException[] featureErrors);
@@ -389,7 +389,7 @@ namespace SharpSheets.Cards.Card {
 			}
 
 			if (featureConfig != null) {
-				IEnvironment featureEnvironment = BasisEnvironment.Instance.AppendEnvironment(subject.Environment);
+				IEnvironment featureEnvironment = CardEnvironments.Basis.AppendEnvironment(subject.Environment);
 				IContext featureContext = featureConfig.Layout.Evaluate(featureEnvironment, out SharpParsingException[] featureContextErrors);
 				errors.AddRange(featureContextErrors);
 				IWidget featureContent = widgetFactory.MakeWidget(typeof(Div), featureContext, segmentConfig.parent.Source, out SharpParsingException[] featureErrors);
@@ -449,7 +449,7 @@ namespace SharpSheets.Cards.Card {
 			for (int partsCount = 1; partsCount <= cardConfig.MaxCards; partsCount++) {
 				for (int part = 0; part < partsCount; part++) {
 					IEnvironment segmentOutlinesEnvironment = Environments.Concat(
-						BasisEnvironment.Instance,
+						CardEnvironments.Basis,
 						environment,
 						CardSegmentOutlineEnvironments.GetEnvironment(part, partsCount));
 

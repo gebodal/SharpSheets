@@ -66,7 +66,7 @@ namespace SharpSheets.Cards.CardSubjects {
 			}
 
 			IVariableBox allVariables = variables.AppendVariables(definitions);
-			Dictionary<Definition, ContextProperty<object>> definitionValues = new Dictionary<Definition, ContextProperty<object>>();
+			Dictionary<Definition, ContextProperty<EvaluationValue>> definitionValues = new Dictionary<Definition, ContextProperty<EvaluationValue>>();
 			Dictionary<Definition, ContextProperty<EvaluationNode>> definitionNodes = new Dictionary<Definition, ContextProperty<EvaluationNode>>();
 			foreach (Definition definition in definitions) {
 				if (definition is ConstantDefinition constant) {
@@ -76,10 +76,10 @@ namespace SharpSheets.Cards.CardSubjects {
 						try {
 							node = constant.MakeNode(value.Value.Value, allVariables);
 							if (node.IsConstant) {
-								object constantValue = node.Evaluate(Environments.Empty) ?? throw new EvaluationTypeException("Definition constant value must not be null.");
+								EvaluationValue constantValue = node.Evaluate(CardEnvironments.Basis); // ?? throw new EvaluationTypeException("Definition constant value must not be null.");
 								////results.AddValue(constant, new ContextProperty<object>(value.Value.Location, value.Value.Name, value.Value.ValueLocation, constantValue));
 								//definitionValues.Add(constant, constantValue);
-								definitionValues.Add(constant, new ContextProperty<object>(value.Value.Location, value.Value.Name, value.Value.ValueLocation, constantValue));
+								definitionValues.Add(constant, new ContextProperty<EvaluationValue>(value.Value.Location, value.Value.Name, value.Value.ValueLocation, constantValue));
 							}
 							else {
 								////results.AddNode(constant, node);
@@ -114,10 +114,10 @@ namespace SharpSheets.Cards.CardSubjects {
 						try {
 							EvaluationNode node = fallback.MakeNode(value.Value.Value, allVariables);
 							if (node.IsConstant) {
-								object fallbackValue = node.Evaluate(Environments.Empty) ?? throw new EvaluationTypeException("Definition fallback value must not be null.");
+								EvaluationValue fallbackValue = node.Evaluate(CardEnvironments.Basis); // ?? throw new EvaluationTypeException("Definition fallback value must not be null.");
 								////results.AddValue(fallback, new ContextProperty<object>(value.Value.Location, value.Value.Name, value.Value.ValueLocation, fallbackValue));
 								//definitionValues.Add(fallback, fallbackValue);
-								definitionValues.Add(fallback, new ContextProperty<object>(value.Value.Location, value.Value.Name, value.Value.ValueLocation, fallbackValue));
+								definitionValues.Add(fallback, new ContextProperty<EvaluationValue>(value.Value.Location, value.Value.Name, value.Value.ValueLocation, fallbackValue));
 							}
 							else {
 								////results.AddNode(fallback, node);

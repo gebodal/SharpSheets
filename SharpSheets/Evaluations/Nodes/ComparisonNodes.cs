@@ -7,23 +7,25 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override int[] CalculationOrder { get; } = new int[] { 1, 0 };
 
-		public sealed override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
-			EvaluationType firstType = First.GetReturnType(typeSystem);
-			EvaluationType secondType = Second.GetReturnType(typeSystem);
+		public RealValueComparisonOperatorNode(EvaluationContext context) : base(context) { }
 
-			return ResultType(firstType, secondType, typeSystem) ?? throw MakeTypeError(firstType, secondType);
+		public sealed override EvaluationType GetReturnType() {
+			EvaluationType firstType = First.GetReturnType();
+			EvaluationType secondType = Second.GetReturnType();
+
+			return ResultType(firstType, secondType) ?? throw MakeTypeError(firstType, secondType);
 		}
 
-		protected abstract EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem);
+		protected abstract EvaluationType? ResultType(EvaluationType first, EvaluationType second);
 
 		public sealed override EvaluationValue Evaluate(IEnvironment environment) {
 			EvaluationValue a = First.Evaluate(environment);
 			EvaluationValue b = Second.Evaluate(environment);
 
-			return Evaluate(a, b, environment.TypeSystem) ?? throw MakeCalculationError(a, b);
+			return Evaluate(a, b) ?? throw MakeCalculationError(a, b);
 		}
 
-		protected abstract EvaluationValue? Evaluate(EvaluationValue first, EvaluationValue second, EvaluationTypeSystem typeSystem);
+		protected abstract EvaluationValue? Evaluate(EvaluationValue first, EvaluationValue second);
 
 		protected EvaluationTypeException MakeTypeError(EvaluationType firstType, EvaluationType secondType) {
 			return new EvaluationTypeException($"Cannot perform {Symbol} comparison on operands of type {firstType} and {secondType}.");
@@ -38,16 +40,18 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 5;
 		public override string Symbol { get; } = "<";
 
-		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
-			return EvaluationOps.LessThanResult(first, second, typeSystem);
+		public LessThanNode(EvaluationContext context) : base(context) { }
+
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second) {
+			return EvaluationOps.LessThanResult(first, second);
 		}
 
-		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
-			return EvaluationOps.LessThan(a, b, typeSystem);
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b) {
+			return EvaluationOps.LessThan(a, b);
 		}
 
 		protected override BinaryOperatorNode Empty() {
-			return new LessThanNode();
+			return new LessThanNode(Context);
 		}
 	}
 
@@ -55,16 +59,18 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 5;
 		public override string Symbol { get; } = ">";
 
-		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
-			return EvaluationOps.GreaterThanResult(first, second, typeSystem);
+		public GreaterThanNode(EvaluationContext context) : base(context) { }
+
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second) {
+			return EvaluationOps.GreaterThanResult(first, second);
 		}
 
-		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
-			return EvaluationOps.GreaterThan(a, b, typeSystem);
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b) {
+			return EvaluationOps.GreaterThan(a, b);
 		}
 
 		protected override BinaryOperatorNode Empty() {
-			return new GreaterThanNode();
+			return new GreaterThanNode(Context);
 		}
 	}
 
@@ -72,16 +78,18 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 5;
 		public override string Symbol { get; } = "<=";
 
-		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
-			return EvaluationOps.LessThanEqualResult(first, second, typeSystem);
+		public LessThanEqualNode(EvaluationContext context) : base(context) { }
+
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second) {
+			return EvaluationOps.LessThanEqualResult(first, second);
 		}
 
-		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
-			return EvaluationOps.LessThanEqual(a, b, typeSystem);
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b) {
+			return EvaluationOps.LessThanEqual(a, b);
 		}
 
 		protected override BinaryOperatorNode Empty() {
-			return new LessThanEqualNode();
+			return new LessThanEqualNode(Context);
 		}
 	}
 
@@ -89,16 +97,18 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override int Precedence { get; } = 5;
 		public override string Symbol { get; } = ">=";
 
-		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
-			return EvaluationOps.GreaterThanEqualResult(first, second, typeSystem);
+		public GreaterThanEqualNode(EvaluationContext context) : base(context) { }
+
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second) {
+			return EvaluationOps.GreaterThanEqualResult(first, second);
 		}
 
-		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
-			return EvaluationOps.GreaterThanEqual(a, b, typeSystem);
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b) {
+			return EvaluationOps.GreaterThanEqual(a, b);
 		}
 
 		protected override BinaryOperatorNode Empty() {
-			return new GreaterThanEqualNode();
+			return new GreaterThanEqualNode(Context);
 		}
 	}
 
@@ -107,23 +117,25 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override Associativity Associativity { get; } = Associativity.LEFT;
 		public sealed override int[] CalculationOrder { get; } = new int[] { 1, 0 };
 
-		public sealed override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
-			EvaluationType firstType = First.GetReturnType(typeSystem);
-			EvaluationType secondType = Second.GetReturnType(typeSystem);
+		public AbstractEqualityNode(EvaluationContext context) : base(context) { }
 
-			return ResultType(firstType, secondType, typeSystem) ?? throw MakeTypeError(firstType, secondType);
+		public sealed override EvaluationType GetReturnType() {
+			EvaluationType firstType = First.GetReturnType();
+			EvaluationType secondType = Second.GetReturnType();
+
+			return ResultType(firstType, secondType) ?? throw MakeTypeError(firstType, secondType);
 		}
 
-		protected abstract EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem);
+		protected abstract EvaluationType? ResultType(EvaluationType first, EvaluationType second);
 
 		public sealed override EvaluationValue Evaluate(IEnvironment environment) {
 			EvaluationValue a = First.Evaluate(environment);
 			EvaluationValue b = Second.Evaluate(environment);
 
-			return Evaluate(a, b, environment.TypeSystem) ?? throw MakeCalculationError(a, b);
+			return Evaluate(a, b) ?? throw MakeCalculationError(a, b);
 		}
 
-		protected abstract EvaluationValue? Evaluate(EvaluationValue first, EvaluationValue second, EvaluationTypeSystem typeSystem);
+		protected abstract EvaluationValue? Evaluate(EvaluationValue first, EvaluationValue second);
 
 		protected EvaluationTypeException MakeTypeError(EvaluationType firstType, EvaluationType secondType) {
 			return new EvaluationTypeException($"Cannot perform {Symbol} comparison on operands of type {firstType} and {secondType}.");
@@ -137,32 +149,36 @@ namespace SharpSheets.Evaluations.Nodes {
 	public class EqualityNode : AbstractEqualityNode {
 		public override string Symbol { get; } = "==";
 
-		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
-			return EvaluationOps.EqualResult(first, second, typeSystem);
+		public EqualityNode(EvaluationContext context) : base(context) { }
+
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second) {
+			return EvaluationOps.EqualResult(first, second);
 		}
 
-		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
-			return EvaluationOps.Equal(a, b, typeSystem);
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b) {
+			return EvaluationOps.Equal(a, b);
 		}
 
 		protected override BinaryOperatorNode Empty() {
-			return new EqualityNode();
+			return new EqualityNode(Context);
 		}
 	}
 
 	public class InequalityNode : AbstractEqualityNode {
 		public override string Symbol { get; } = "!=";
 
-		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second, EvaluationTypeSystem typeSystem) {
-			return EvaluationOps.NotEqualResult(first, second, typeSystem);
+		public InequalityNode(EvaluationContext context) : base(context) { }
+
+		protected override EvaluationType? ResultType(EvaluationType first, EvaluationType second) {
+			return EvaluationOps.NotEqualResult(first, second);
 		}
 
-		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b, EvaluationTypeSystem typeSystem) {
-			return EvaluationOps.NotEqual(a, b, typeSystem);
+		protected override EvaluationValue? Evaluate(EvaluationValue a, EvaluationValue b) {
+			return EvaluationOps.NotEqual(a, b);
 		}
 
 		protected override BinaryOperatorNode Empty() {
-			return new InequalityNode();
+			return new InequalityNode(Context);
 		}
 	}
 

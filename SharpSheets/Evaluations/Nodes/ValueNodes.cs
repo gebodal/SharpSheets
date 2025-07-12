@@ -4,7 +4,9 @@ using System.Collections.Generic;
 namespace SharpSheets.Evaluations.Nodes {
 
 	public abstract class ValueNode : EvaluationNode {
-		public override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) {
+		public ValueNode(EvaluationContext context) : base(context) { }
+
+		public override EvaluationNode Simplify() {
 			return Clone();
 		}
 	}
@@ -12,7 +14,7 @@ namespace SharpSheets.Evaluations.Nodes {
 	public class ConstantNode : ValueNode {
 
 		public override bool IsConstant { get; } = true;
-		public override EvaluationType GetReturnType(EvaluationTypeSystem _) => Value.Type;
+		public override EvaluationType GetReturnType() => Value.Type;
 		public EvaluationValue Value { get; }
 
 		/*
@@ -41,8 +43,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 		*/
 
-		public ConstantNode(EvaluationValue value) {
+		public ConstantNode(EvaluationValue value) : base(value.Type.Context) {
 			this.Value = value;
+		}
+
+		public ConstantNode(object? value, EvaluationType type) : base(type.Context) {
+			this.Value = new EvaluationValue(value, type);
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment) {
@@ -89,10 +95,10 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override bool IsConstant { get; } = false;
 		private readonly EvaluationType returnType;
-		public override EvaluationType GetReturnType(EvaluationTypeSystem _) => returnType;
+		public override EvaluationType GetReturnType() => returnType;
 		public EvaluationName key;
 
-		public VariableNode(EvaluationName key, EvaluationType type) {
+		public VariableNode(EvaluationName key, EvaluationType type) : base(type.Context) {
 			this.key = key;
 			this.returnType = type;
 		}
@@ -121,12 +127,12 @@ namespace SharpSheets.Evaluations.Nodes {
 	public class TypeLiteralNode : ValueNode {
 
 		public override bool IsConstant { get; } = true;
-		private readonly EvaluationType returnType = EvaluationTypes.META;
-		public override EvaluationType GetReturnType(EvaluationTypeSystem _) => returnType;
+		private EvaluationType ReturnType => Context.GetType<MetaEvaluationType>();
+		public override EvaluationType GetReturnType() => ReturnType;
 
 		public EvaluationType TypeValue { get; }
 
-		public TypeLiteralNode(EvaluationType typeValue) {
+		public TypeLiteralNode(EvaluationType typeValue) : base(typeValue.Context) {
 			this.TypeValue = typeValue;
 		}
 
@@ -135,7 +141,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment) {
-			return new EvaluationValue(TypeValue, returnType);
+			return new EvaluationValue(TypeValue, ReturnType);
 		}
 
 		public override IEnumerable<EvaluationName> GetVariables() => Enumerable.Empty<EvaluationName>();

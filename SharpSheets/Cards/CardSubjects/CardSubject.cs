@@ -105,7 +105,7 @@ namespace SharpSheets.Cards.CardSubjects {
 				}
 			}
 
-			return new DefinitionGroup(GetDefinitions().SelectAll());
+			return new DefinitionGroup(CardEnvironments.Context, GetDefinitions().SelectAll());
 		}
 
 	}
@@ -154,7 +154,7 @@ namespace SharpSheets.Cards.CardSubjects {
 
 			this.Properties = subjectProperties;
 
-			this.SubjectDefinitions = new DefinitionGroup(CardSubjectEnvironments.BaseDefinitions, this.Properties);
+			this.SubjectDefinitions = new DefinitionGroup(CardEnvironments.Context, CardSubjectEnvironments.BaseDefinitions, this.Properties);
 			this.Environment = CardSubjectEnvironments.MakeBaseEnvironment(this.Name).AppendEnvironment(this.Properties);
 		}
 
@@ -219,7 +219,7 @@ namespace SharpSheets.Cards.CardSubjects {
 
 			this.Details = details;
 
-			this.SegmentDefinitions = new DefinitionGroup(CardSegmentEnvironments.BaseDefinitions, this.Details);
+			this.SegmentDefinitions = new DefinitionGroup(CardEnvironments.Context, CardSegmentEnvironments.BaseDefinitions, this.Details);
 			this.Environment = Environments.Concat(
 				subject.Environment,
 				CardSegmentEnvironments.MakeBaseEnvironment(this),
@@ -285,14 +285,14 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.Segment = segment;
 			this.Title = new ContextValue<string>(title.Location, title.Value ?? "");
 			this.Note = new ContextValue<string>(note.Location, note.Value ?? "");
-			this.Text = new ContextValue<TextExpression>(text.Location, text.Value ?? new TextExpression(""));
+			this.Text = new ContextValue<TextExpression>(text.Location, text.Value ?? new TextExpression("", CardEnvironments.Context));
 			this.IsMultiLine = isMultiLine;
 			this.IsListItem = isListItem;
 			this.Index = index;
 
 			this.Details = details;
 
-			this.FeatureDefinitions = new DefinitionGroup(CardFeatureEnvironments.BaseDefinitions, this.Details);
+			this.FeatureDefinitions = new DefinitionGroup(CardEnvironments.Context, CardFeatureEnvironments.BaseDefinitions, this.Details);
 			this.Environment = Environments.Concat(
 				segment.Environment,
 				CardFeatureEnvironments.MakeBaseEnvironment(this),

@@ -21,15 +21,15 @@ namespace SharpSheets.Markup.Elements {
 		/// handle in the Markup.</param>
 		/// <param name="value">An expression for the value of this variable. The type of the
 		/// variable will be inferred from the type of this expression.</param>
-		/// <exception cref="EvaluationTypeException">Thrown when <paramref name="value"/> does not have a valid <see cref="EvaluationNode.ReturnType"/></exception>
+		/// <exception cref="EvaluationTypeException">Thrown when <paramref name="value"/> does not have a valid return type.</exception>
 		public MarkupVariable(EvaluationName name, EvaluationNode value) {
 			Name = name;
 			Evaluation = value;
-			Type = Evaluation.ReturnType;
+			Type = Evaluation.GetReturnType();
 		}
 
-		public static IVariableBox MakeVariableBox(IEnumerable<MarkupVariable> variables) {
-			return SimpleVariableBoxes.Create(variables.ToDictionary(v => v.Name, v => v.Evaluation));
+		public static IVariableBox MakeVariableBox(IEnumerable<MarkupVariable> variables, EvaluationContext context) {
+			return VariableBoxes.Create(variables.ToDictionary(v => v.Name, v => v.Evaluation), context);
 		}
 	}
 

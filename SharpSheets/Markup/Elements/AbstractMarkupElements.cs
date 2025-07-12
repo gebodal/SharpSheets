@@ -70,7 +70,7 @@ namespace SharpSheets.Markup.Elements {
 		public ShapeElement(string? id, StyleSheet styleSheet) : base(id, styleSheet) { }
 
 		public void AssignGeometry(MarkupCanvas canvas) {
-			if (StyleSheet.Enabled.Evaluate(canvas.Environment)) {
+			if (StyleSheet.IsEnabled(canvas.Environment)) {
 				DoAssignGeometry(canvas);
 			}
 		}
@@ -83,7 +83,7 @@ namespace SharpSheets.Markup.Elements {
 		protected abstract void DoAssignGeometry(MarkupCanvas canvas); // TODO Better name needed
 
 		public override sealed void Draw(MarkupCanvas canvas) {
-			if (StyleSheet.Enabled.Evaluate(canvas.Environment)) {
+			if (StyleSheet.IsEnabled(canvas.Environment)) {
 				canvas.SaveState();
 				if (StyleSheet.DrawingCoords != null) {
 					canvas.SetDrawingCoords(StyleSheet.DrawingCoords);

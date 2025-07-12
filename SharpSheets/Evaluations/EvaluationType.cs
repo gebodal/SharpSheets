@@ -9,561 +9,412 @@ using System.Text;
 
 namespace SharpSheets.Evaluations {
 
-	/*
-	public class TypeField {
-		
-		public EvaluationName Name { get; }
-		public EvaluationType Type { get; }
-		private readonly Func<object, object?> evaluator;
+	public interface IEvaluationContext {
 
-		public TypeField(EvaluationName name, EvaluationType type, Func<object, object?> evaluator) {
-			Name = name;
-			Type = type;
-			this.evaluator = evaluator;
-		}
-
-		public object? GetValue(object obj) {
-			return evaluator(obj);
-		}
+		T GetType<T>() where T : EvaluationType;
+		bool TryGetLeastUpperBoundType(EvaluationType a, EvaluationType b, [NotNullWhen(true)] out EvaluationType? lubType);
 
 	}
 
-	public class EvaluationType {
+	public static class EvaluationContextUtils {
 
-		public string Name {
-			get {
-				return baseName + GetArrayBrackets();
-			}
-		}
-		private readonly string baseName;
-
-		private string GetArrayBrackets() {
-			return ElementType == null ? "" : ((ElementCount.HasValue ? $"[{ElementCount.Value}]" : "[]") + ElementType.GetArrayBrackets());
-		}
-
-		public Type DataType { get; }
-		public Type DisplayType { get; }
-
-		private readonly Dictionary<EvaluationName, TypeField> fields;
-		public IEnumerable<EvaluationName> FieldNames { get { return fields.Keys; } }
-		public IEnumerable<TypeField> Fields { get { return fields.Values; } }
-
-		public EvaluationType? ElementType { get; }
-		public int? ElementCount { get; } // TODO Is this fully integrated now? Does the Evaluations namespace contain functions that need to respond to this?
-		[MemberNotNullWhen(true, nameof(ElementType))]
-		public bool IsArray { get { return ElementType != null && !ElementCount.HasValue; } }
-		[MemberNotNullWhen(true, nameof(ElementType), nameof(ElementCount))]
-		public bool IsTuple { get { return ElementType != null && ElementCount.HasValue; } }
-
-		public int Rank { get { return ElementType != null ? 1 + ElementType.Rank : 0; } }
-
-		private readonly HashSet<string>? enumValues = null;
-		public IReadOnlyCollection<string>? EnumNames => enumValues;
-		[MemberNotNullWhen(true, nameof(EnumNames))]
-		public bool IsEnum { get { return enumValues != null; } }
-
-		public static readonly EvaluationType INT;
-		public static readonly EvaluationType UINT;
-		public static readonly EvaluationType FLOAT;
-		public static readonly EvaluationType UFLOAT;
-		public static readonly EvaluationType BOOL;
-		public static readonly EvaluationType COLOR;
-		public static readonly EvaluationType STRING;
-
-		private static readonly Dictionary<Type, EvaluationType> systemTypeRegistry;
-
-		static EvaluationType() {
-			INT = new EvaluationType("int", Array.Empty<TypeField>(), typeof(int));
-			UINT = new EvaluationType("uint", Array.Empty<TypeField>(), typeof(uint));
-			FLOAT = new EvaluationType("float", Array.Empty<TypeField>(), typeof(float));
-			UFLOAT = new EvaluationType("ufloat", Array.Empty<TypeField>(), typeof(UFloat));
-			BOOL = new EvaluationType("bool", Array.Empty<TypeField>(), typeof(bool));
-			COLOR = new EvaluationType("color", Array.Empty<TypeField>(), typeof(Color));
-			STRING = new EvaluationType("string", new TypeField[] { new TypeField("length", INT, obj => ((string)obj).Length) }, typeof(string));
-
-			systemTypeRegistry = new Dictionary<Type, EvaluationType>(SystemTypeEqualityComparer.Instance) {
-				{ typeof(int), INT },
-				{ typeof(uint), UINT },
-				{ typeof(float), FLOAT },
-				{ typeof(UFloat), UFLOAT },
-				{ typeof(bool), BOOL },
-				{ typeof(Color), COLOR },
-				{ typeof(string), STRING }
-			};
-		}
-
-		private EvaluationType(string name, IEnumerable<TypeField> fields, Type systemType) {
-			this.baseName = name;
-			this.fields = fields.ToDictionary(f => f.Name);
-			this.DataType = systemType;
-			this.DisplayType = systemType;
-			this.ElementType = null;
-			this.ElementCount = null;
-			this.enumValues = null;
-		}
-
-		private EvaluationType(EvaluationType elementType, IEnumerable<TypeField>? fields) {
-			this.baseName = elementType.baseName;
-			this.fields = (fields ?? Enumerable.Empty<TypeField>())
-				.Append(new TypeField("length", INT, obj => ((Array)obj).Length))
-				.ToDictionary(f => f.Name);
-			this.DataType = elementType.DataType.MakeArrayType(1);
-			this.DisplayType = elementType.DisplayType.MakeArrayType(1);
-			this.ElementType = elementType;
-			this.ElementCount = null;
-			this.enumValues = null;
-		}
-
-		private EvaluationType(EvaluationType elementType, int elementCount, IEnumerable<TypeField>? fields) {
-			this.baseName = elementType.baseName;
-			this.fields = (fields ?? Enumerable.Empty<TypeField>())
-				.Append(new TypeField("length", INT, obj => elementCount))
-				.ToDictionary(f => f.Name);
-			this.DataType = TupleUtils.MakeGenericTupleType(elementType.DataType, elementCount);
-			this.DisplayType = TupleUtils.MakeGenericTupleType(elementType.DisplayType, elementCount);
-			this.ElementType = elementType;
-			this.ElementCount = elementCount;
-			this.enumValues = null;
-		}
-
-		private EvaluationType(string name, IEnumerable<string> enumValues, Type systemType) {
-			this.baseName = name;
-			this.fields = new Dictionary<EvaluationName, TypeField>();
-			this.DataType = typeof(string);
-			this.DisplayType = systemType;
-			this.ElementType = null;
-			this.ElementCount = null;
-			this.enumValues = new HashSet<string>(enumValues.Select(s => s.ToUpperInvariant()), StringComparer.InvariantCultureIgnoreCase);
-		}
-
-		public bool IsField(EvaluationName field) {
-			return fields.ContainsKey(field);
-		}
-
-		public TypeField? GetField(EvaluationName field) {
-			return fields.GetValueOrFallback(field, null);
-		}
-
-		public bool IsEnumValueDefined(string name) {
-			return enumValues?.Contains(name) ?? false;
-		}
-
-		public EvaluationType MakeArray() {
-			return new EvaluationType(this, null);
-		}
-
-		public EvaluationType MakeArray(int rank) {
-			if (rank < 0) { throw new ArgumentException($"Invalid array rank. Value must be greater than zero. {rank} provided."); }
-			EvaluationType result = this;
-			for (int i = 0; i < rank; i++) {
-				result = new EvaluationType(result, null);
-			}
-			return result;
-		}
-
-		public EvaluationType MakeTuple(int size) {
-			return new EvaluationType(this, size, null);
-		}
-
-		public override string ToString() {
-			return Name;
-		}
-
-		public static EvaluationType FromSystemType(Type type, bool includeProperties = true) {
-			if (type == typeof(int)) { return INT; } // The int key seems necessary, as the default comparer for Types gets int mixed up with enums
-			else if (type == typeof(uint)) { return UINT; }
-			else if (type == typeof(float)) { return FLOAT; }
-			else if (type == typeof(UFloat)) { return UFLOAT; }
-			else if (type == typeof(bool)) { return BOOL; }
-			else if (type == typeof(string)) { return STRING; }
-			else if (type == typeof(Color)) { return COLOR; }
-			else if (systemTypeRegistry.TryGetValue(type, out EvaluationType? registered)) {
-				return registered;
-			}
-			else if (type.IsArray) {
-				if (type.GetArrayRank() != 1) {
-					throw new ArgumentException("Can only accept rank 1 arrays.");
+		public static bool TryGetLeastUpperBoundType(this IEvaluationContext context, IEnumerable<EvaluationType> types, [NotNullWhen(true)] out EvaluationType? lubType) {
+			EvaluationType? lub = null;
+			foreach (EvaluationType type in types) {
+				if (lub is null) {
+					lub = type;
 				}
-				Type elementType = type.GetElementType() ?? throw new ArgumentException($"Could not resolve element type for {type}");
-				EvaluationType newType = FromSystemType(elementType, includeProperties).MakeArray();
-				systemTypeRegistry.Add(type, newType);
-				return newType;
-			}
-			else if (type.IsEnum) {
-				EvaluationType newType = new EvaluationType(type.Name, Enum.GetNames(type), type);
-				systemTypeRegistry.Add(type, newType);
-				return newType;
-			}
-			else if (TupleUtils.IsTupleType(type)) {
-				Type[] tupleElems = type.GenericTypeArguments;
-				Type[] distinctTupleElems = tupleElems.Distinct().ToArray();
-				if(distinctTupleElems.Length == 1) {
-					EvaluationType newType = FromSystemType(distinctTupleElems[0], includeProperties).MakeTuple(tupleElems.Length);
-					systemTypeRegistry.Add(type, newType);
-					return newType;
+				else if (context.TryGetLeastUpperBoundType(lub, type, out EvaluationType? newLub)) {
+					lub = newLub;
 				}
 				else {
-					throw new ArgumentException("Cannot support multi-type tuples.");
-				}
-			}
-			else {
-				EvaluationType newType = new EvaluationType(
-					type.Name,
-					!includeProperties ? Enumerable.Empty<TypeField>() : type.GetProperties()
-						.Where(p => p.CanRead && p.GetGetMethod(false) is MethodInfo getMethod && !getMethod.IsStatic && p.PropertyType != type)
-						.Select(p => new TypeField(p.Name.ToLowerInvariant(), FromSystemType(p.PropertyType), obj => p.GetValue(obj))),
-					type);
-
-				systemTypeRegistry.Add(type, newType);
-				return newType;
-			}
-		}
-
-		public static EvaluationType FromData(object value, bool includeProperties = true) {
-			return FromSystemType(value.GetType(), includeProperties);
-		}
-
-		public static EvaluationType CustomType(string name, IEnumerable<TypeField> fields, Type systemType) {
-			if (string.IsNullOrWhiteSpace(name)) {
-				throw new ArgumentException((name != null ? $"\"{name}\"" : "<null>") + " is not a valid type name.");
-			}
-			if(systemType == null) {
-				throw new ArgumentException("Must provide a valid system type.");
-			}
-			return new EvaluationType(name, fields, systemType);
-		}
-
-		public static bool Equals(EvaluationType? a, EvaluationType? b) {
-			if (a is null || b is null) {
-				return a is null && b is null;
-			}
-			else {
-				return ReferenceEquals(a, b) || (
-						a.baseName == b.baseName &&
-						a.DataType == b.DataType &&
-						a.DisplayType == b.DisplayType &&
-						a.ElementType == b.ElementType &&
-						a.ElementCount == b.ElementCount &&
-						SetEquals(a.enumValues, b.enumValues)
-					);
-			}
-		}
-
-		private static bool SetEquals<T>(HashSet<T>? a, HashSet<T>? b) {
-			if (a == null && b == null) {
-				return true;
-			}
-			else if (a != null && b != null) {
-				return a.SetEquals(b);
-			}
-			else {
-				return false;
-			}
-		}
-
-		public static bool operator ==(EvaluationType? a, EvaluationType? b) {
-			return Equals(a, b);
-		}
-		public static bool operator !=(EvaluationType? a, EvaluationType? b) {
-			return !Equals(a, b);
-		}
-
-		public override bool Equals(object? obj) {
-			if (obj is EvaluationType evalType) {
-				return Equals(this, evalType);
-			}
-			else {
-				return false;
-			}
-		}
-
-		public override int GetHashCode() {
-			HashCode hash = new HashCode();
-			hash.Add(baseName);
-			hash.Add(DataType);
-			hash.Add(DisplayType);
-			if (ElementType != null) { hash.Add(ElementType); }
-			if (ElementCount != null) { hash.Add(ElementCount.Value); }
-			return hash.ToHashCode();
-		}
-
-		public bool ValidDataType(Type dataType) {
-			// TODO Is this complete?
-			if(this.DataType == dataType || (this == FLOAT && EvaluationTypes.IsReal(dataType)) || (this == INT && EvaluationTypes.IsIntegral(dataType))) {
-				return true;
-			}
-			else if (this.IsArray && dataType.IsArray && dataType.GetElementType() is Type dataElementType) {
-				return this.ElementType.ValidDataType(dataElementType);
-			}
-			else {
-				return false;
-			}
-		}
-
-		private class SystemTypeEqualityComparer : IEqualityComparer<Type> {
-			public static readonly SystemTypeEqualityComparer Instance = new SystemTypeEqualityComparer();
-
-			private SystemTypeEqualityComparer() { }
-
-			public bool Equals(Type? x, Type? y) {
-				return x == y;
-			}
-
-			public int GetHashCode([DisallowNull] Type obj) {
-				return HashCode.Combine(obj.GetHashCode(), obj.Name); // TODO Is this sufficient?
-			}
-		}
-	}
-
-	public static class EvaluationTypes {
-
-		public static object MakeArray(Type elementType, IList<object?> values) {
-			Array final = Array.CreateInstance(elementType, values.Count);
-			Array.Copy(values.ToArray(), final, final.Length);
-			return final;
-		}
-
-		public static object MakeTuple(Type elementType, IList<object?> values) {
-			Type tupleType = TupleUtils.MakeGenericTupleType(elementType, values.Count);
-			return TupleUtils.CreateTuple(tupleType, values.ToArray());
-		}
-
-		public static bool TryGetArray(object? obj, [MaybeNullWhen(false)] out Array array) {
-			if (obj is Array objArray) {
-				array = objArray;
-				return true;
-			}
-			else if (TupleUtils.IsTupleObject(obj, out Type? tupleType)) {
-				object[] values = new object[TupleUtils.GetTupleLength(tupleType)];
-				for (int i = 0; i < values.Length; i++) {
-					values[i] = TupleUtils.Index(obj!, i);
-				}
-				array = values;
-				return true;
-			}
-			else {
-				array = null;
-				return false;
-			}
-		}
-
-		public static bool IsIntegral(this EvaluationType type) {
-			return type.DataType == typeof(int) || type.DataType == typeof(uint); ;
-		}
-
-		public static bool IsIntegral(Type dataType) {
-			return dataType == typeof(int) || dataType == typeof(uint); ;
-		}
-
-		public static bool IsReal(this EvaluationType type) {
-			return type.IsIntegral() || type.DataType == typeof(float) || type.DataType == typeof(UFloat);
-		}
-
-		public static bool IsReal(Type dataType) {
-			return IsIntegral(dataType) || dataType == typeof(float) || dataType == typeof(UFloat);
-		}
-
-		public static bool TryGetReal(object? arg, out float value) {
-			if (TryGetIntegral(arg, out int i)) {
-				value = i;
-				return true;
-			}
-			else if (arg is float f) {
-				value = f;
-				return true;
-			}
-			else if (arg is UFloat u) {
-				value = u.Value;
-				return true;
-			}
-			else {
-				value = 0f;
-				return false;
-			}
-		}
-
-		public static bool TryGetIntegral(object? arg, out int value) {
-			if (arg is int i) {
-				value = i;
-				return true;
-			}
-			else if (arg is uint u) {
-				value = (int)u;
-				return true;
-			}
-			else {
-				value = 0;
-				return false;
-			}
-		}
-
-		public static EvaluationType? FindCommonNumericType(params EvaluationType[] types) {
-			if(types.Length == 0) {
-				return null;
-			}
-			else if (!types[0].IsReal()) {
-				throw new EvaluationTypeException("Cannot find common numeric type.");
-			}
-
-			EvaluationType commonType = types[0];
-
-			for(int i=1; i<types.Length; i++) {
-				if (!types[i].IsReal()) {
-					throw new EvaluationTypeException("Cannot find common numeric type.");
-				}
-
-				if (types[i] != commonType) {
-					if (commonType.IsIntegral() && types[i].IsIntegral()) {
-						commonType = EvaluationType.INT;
-					}
-					else {
-						commonType = EvaluationType.FLOAT;
-					}
+					lubType = null;
+					return false;
 				}
 			}
 
-			return commonType;
-		}
-
-		public static bool TryGetCompatibleType(EvaluationType a, EvaluationType b, [MaybeNullWhen(false)] out EvaluationType compatible) {
-			if (a == b) {
-				compatible = a;
-				return true;
-			}
-			else if (a.IsIntegral() && b.IsIntegral()) {
-				compatible = EvaluationType.INT;
-				return true;
-			}
-			else if (a.IsReal() && b.IsReal()) {
-				compatible = EvaluationType.FLOAT;
-				return true;
-			}
-			else if (a.IsArray && b.IsArray && TryGetCompatibleType(a.ElementType, b.ElementType, out EvaluationType? compatibleElement)) {
-				compatible = compatibleElement.MakeArray();
+			if (lub is not null) {
+				lubType = lub;
 				return true;
 			}
 			else {
-				compatible = null;
+				lubType = null;
 				return false;
 			}
-		}
-
-		public static bool IsCompatibleType(EvaluationType type, EvaluationType other) {
-			return TryGetCompatibleType(type, other, out EvaluationType? compatible) && type == compatible;
-		}
-
-		/// <summary></summary>
-		/// <param name="compatible"></param>
-		/// <param name="value"></param>
-		/// <returns></returns>
-		/// <exception cref="EvaluationCalculationException"></exception>
-		/// <exception cref="EvaluationTypeException"></exception>
-		public static object GetCompatibleValue(EvaluationType compatible, object? value) {
-			if (value is null) {
-				throw new EvaluationCalculationException($"Cannot convert null value to {compatible}.");
-			}
-			else if (compatible.DataType == value.GetType()) {
-				return value;
-			}
-			else if (compatible == EvaluationType.INT && TryGetIntegral(value, out int intVal)) {
-				return intVal;
-			}
-			else if (compatible == EvaluationType.FLOAT && TryGetReal(value, out float floatVal)) {
-				return floatVal;
-			}
-			else if (compatible.IsArray && value is Array arrayValue) {
-				List<object?> compatibleValues = new List<object?>();
-
-				foreach (object? i in arrayValue) {
-					compatibleValues.Add(GetCompatibleValue(compatible.ElementType, i));
-				}
-
-				return MakeArray(compatible.ElementType.DataType, compatibleValues);
-			}
-			else {
-				throw new EvaluationTypeException($"Cannot convert {value.GetType().Name} value to {compatible} value.");
-			}
-		}
-
-		public static object[] VerifyArray(object?[] array) {
-			object[] result = new object[array.Length];
-			for (int i = 0; i < array.Length; i++) {
-				result[i] = array[i] ?? throw new EvaluationCalculationException("Null values not allowed in this context.");
-			}
-			return result;
 		}
 
 	}
-	*/
 
-	public static class EvaluationTypes {
+	public sealed class EvaluationContext : IEvaluationContext {
 
-		public static EvaluationType META => MetaEvaluationType.Instance;
+		public static readonly EvaluationContext BasisContext = Create().Build();
 
-		public static EvaluationType INT => IntEvaluationType.Instance;
-		public static EvaluationType UINT => UIntEvaluationType.Instance;
-		public static EvaluationType FLOAT => FloatEvaluationType.Instance;
-		public static EvaluationType UFLOAT => UFloatEvaluationType.Instance;
-		public static EvaluationType BOOL => BoolEvaluationType.Instance;
-		public static EvaluationType STRING => StringEvaluationType.Instance;
-		//public static EvaluationType COLOR;
+		private bool initialised = false;
 
-		public static EvaluationTypeSystem BaseTypeSystem { get; } = EvaluationTypeSystem.Create(INT, UINT, FLOAT, UFLOAT, BOOL, STRING);
+		private Dictionary<(EvaluationType, EvaluationType), EvaluationType> promotions = null!;
 
-	}
-
-
-	public sealed class EvaluationContext {
-
-		private EvaluationTypeSystem? typeSystem;
-		public EvaluationTypeSystem TypeSystem => typeSystem!;
-
+		private readonly List<EvaluationType> typesList = new List<EvaluationType>();
 		private readonly Dictionary<Type, EvaluationType> types = new Dictionary<Type, EvaluationType>();
+		private readonly Dictionary<string, EvaluationType> typesByName = new Dictionary<string, EvaluationType>(StringComparer.InvariantCultureIgnoreCase);
 
 		private EvaluationContext() { }
 
-		public EvaluationType GetType<T>() where T : EvaluationType {
-			return types.TryGetValue(typeof(T), out EvaluationType? type) ? type : throw new EvaluationTypeException($"No registered instance of {typeof(T).Name} in this context.");
-		}
-
-		private void SetType(Type key, EvaluationType type) {
-			types.Add(key, type);
-		}
-
-		private void Initialise(IEnumerable<(Type, EvaluationType)> registered) {
-			foreach((Type key, EvaluationType type) in registered) {
-				SetType(key, type);
+		public T GetType<T>() where T : EvaluationType {
+			if(types.TryGetValue(typeof(T), out EvaluationType? type)) {
+				return type as T ?? throw new EvaluationTypeException($"Invalid instance of {typeof(T).Name} registered for this context.");
 			}
-
-			typeSystem = EvaluationTypeSystem.Create(types.Values);
+			else {
+				throw new EvaluationTypeException($"No registered instance of {typeof(T).Name} in this context.");
+			}
 		}
 
-		public static EvaluationContext Build(Func<EvaluationContext, IEnumerable<(Type, EvaluationType)>> registration) {
+		public EvaluationType GetType(string name) {
+			if (typesByName.TryGetValue(name, out EvaluationType? type)) {
+				return type;
+			}
+			else {
+				throw new EvaluationTypeException($"No type with name \"{name}\" in this context.");
+			}
+		}
+
+		public EvaluationType GetSystemType<T>() {
+			if (types.TryGetValue(typeof(T), out EvaluationType? type)) {
+				return type;
+			}
+			else {
+				throw new EvaluationTypeException($"No registered evaluation type for system type {typeof(T).Name} in this context.");
+			}
+		}
+
+		private EvaluationContext SetType<T>(T type) where T : EvaluationType {
+			return SetType(typeof(T), type);
+		}
+
+		private EvaluationContext SetSystemType<T>(EvaluationType type) {
+			return SetType(typeof(T), type);
+		}
+
+		private EvaluationContext SetDataType<T, S>(T type) where T : SingleDataType<S> {
+			SetType(typeof(T), type);
+			types.Add(typeof(S), type);
+			return this;
+		}
+
+		private EvaluationContext SetType(Type systemType, EvaluationType type) {
+			if (initialised) { throw new InvalidOperationException($"Attempting to edit an already initialised context."); }
+			typesList.Add(type);
+			types.Add(systemType, type);
+			typesByName.Add(type.Name, type);
+			return this;
+		}
+
+		public bool TryGetType<T>([NotNullWhen(true)] out T? type) where T : EvaluationType {
+			if (types.TryGetValue(typeof(T), out EvaluationType? foundType) && foundType is T match) {
+				type = match;
+				return true;
+			}
+			else {
+				type = null;
+				return false;
+			}
+		}
+
+		public bool TryGetType(string name, [NotNullWhen(true)] out EvaluationType? type) {
+			return typesByName.TryGetValue(name, out type);
+		}
+
+		public bool TryGetSystemType<T>([NotNullWhen(true)] out EvaluationType? type) {
+			if (types.TryGetValue(typeof(T), out EvaluationType? foundType)) {
+				type = foundType;
+				return true;
+			}
+			else {
+				type = null;
+				return false;
+			}
+		}
+
+		public bool TryGetSystemType(Type systemType, [NotNullWhen(true)] out EvaluationType? type) {
+			if (types.TryGetValue(systemType, out EvaluationType? foundType)) {
+				type = foundType;
+				return true;
+			}
+			else {
+				type = null;
+				return false;
+			}
+		}
+
+		public EvaluationValue MakeValue<T>(object? value) where T : EvaluationType {
+			return new EvaluationValue(value, GetType<T>());
+		}
+
+		public EvaluationValue MakeValue<S>(S value) {
+			return new EvaluationValue(value, GetSystemType<S>());
+		}
+
+		private void Initialise() {
+			promotions = FindPromotions(typesList);
+			initialised = true;
+		}
+
+		/*
+		public static EvaluationContext Build(Action<EvaluationContext> registration) {
 			EvaluationContext context = new EvaluationContext();
 
-			/*
-			context.META = new MetaEvaluationType(context);
-			context.INT = new IntEvaluationType(context);
-			context.UINT = new UIntEvaluationType(context);
-			context.FLOAT = new FloatEvaluationType(context);
-			context.UFLOAT = new UFloatEvaluationType(context);
-			context.BOOL = new BoolEvaluationType(context);
-			context.STRING = new StringEvaluationType(context);
-			*/
+			context.SetType<MetaEvaluationType>(new MetaEvaluationType(context));
+			context.SetType<IntEvaluationType>(new IntEvaluationType(context));
+			context.SetType<UIntEvaluationType>(new UIntEvaluationType(context));
+			context.SetType<FloatEvaluationType>(new FloatEvaluationType(context));
+			context.SetType<UFloatEvaluationType>(new UFloatEvaluationType(context));
+			context.SetType<BoolEvaluationType>(new BoolEvaluationType(context));
+			context.SetType<StringEvaluationType>(new StringEvaluationType(context));
 
-			context.SetType(typeof(MetaEvaluationType), new MetaEvaluationType(context));
-
-			(Type, EvaluationType)[] registered = registration(context).ToArray();
-			context.Initialise(registered);
+			registration(context);
+			context.Initialise();
 			return context;
+		}
+		*/
+
+		public static Builder Create() {
+			EvaluationContext context = new EvaluationContext();
+
+			context.SetType<MetaEvaluationType>(new MetaEvaluationType(context));
+			context.SetDataType<IntEvaluationType, int>(new IntEvaluationType(context));
+			context.SetDataType<UIntEvaluationType, uint>(new UIntEvaluationType(context));
+			context.SetDataType<FloatEvaluationType, float>(new FloatEvaluationType(context));
+			context.SetDataType<UFloatEvaluationType, UFloat>(new UFloatEvaluationType(context));
+			context.SetDataType<BoolEvaluationType, bool>(new BoolEvaluationType(context));
+			context.SetDataType<StringEvaluationType, string>(new StringEvaluationType(context));
+
+			return new Builder(context);
+		}
+
+		public class Builder {
+
+			private readonly EvaluationContext context;
+			private bool built;
+
+			internal Builder(EvaluationContext context) {
+				this.context = context;
+				this.built = false;
+			}
+
+			public T SetType<T>(Func<EvaluationContext, T> typeBuilder) where T : EvaluationType {
+				if (built) { throw new InvalidOperationException("Cannot adjust already-built context builder."); }
+				T type = typeBuilder(context);
+				context.SetType<T>(type);
+				return type;
+			}
+
+			public T SetSystemType<S, T>(Func<EvaluationContext, T> typeBuilder) where T : EvaluationType {
+				if (built) { throw new InvalidOperationException("Cannot adjust already-built context builder."); }
+				T type = typeBuilder(context);
+				context.SetSystemType<S>(type);
+				return type;
+			}
+
+			public T SetDataType<T, S>(Func<EvaluationContext, T> typeBuilder) where T : SingleDataType<S> {
+				if (built) { throw new InvalidOperationException("Cannot adjust already-built context builder."); }
+				T type = typeBuilder(context);
+				context.SetDataType<T, S>(type);
+				return type;
+			}
+
+			public T SetType<T>(Type systemType, Func<EvaluationContext, T> typeBuilder) where T : EvaluationType {
+				if (built) { throw new InvalidOperationException("Cannot adjust already-built context builder."); }
+				T type = typeBuilder(context);
+				context.SetType(systemType, type);
+				return type;
+			}
+
+			public bool IsDefined<T>() where T : EvaluationType {
+				return context.TryGetType<T>(out _);
+			}
+
+			public bool IsDefined(string name) {
+				return context.TryGetType(name, out _);
+			}
+
+			public bool IsSystemTypeDefined<S>() {
+				return context.TryGetSystemType<S>(out _);
+			}
+
+			public EvaluationContext Build() {
+				built = true;
+				context.Initialise();
+				return context;
+			}
+
+		}
+
+		public bool TryGetLeastUpperBoundType(EvaluationType a, EvaluationType b, [NotNullWhen(true)] out EvaluationType? lubType) {
+			if (a.Equals(b)) {
+				lubType = a;
+				return true;
+			}
+			else if (promotions.TryGetValue((a, b), out EvaluationType? promoted)) {
+				lubType = promoted;
+				return true;
+			}
+			// Dislike that these have to be special-cased like this here, but it would need a generic system to solve, and we're not doing that just yet
+			else if (a is CollectionEvaluationType aCollection && aCollection.CanImplicitCastFrom(b, out EvaluationType? aLubCollection)) {
+				lubType = aLubCollection;
+				return true;
+			}
+			else if (b is CollectionEvaluationType bCollection && bCollection.CanImplicitCastFrom(a, out EvaluationType? bLubCollection)) {
+				lubType = bLubCollection;
+				return true;
+			}
+			else if (a.CanImplicitCastFrom(b)) {
+				lubType = a;
+				return true;
+			}
+			else if (b.CanImplicitCastFrom(a)) {
+				lubType = b;
+				return true;
+			}
+
+			lubType = null;
+			return false;
+		}
+
+		private static Dictionary<(EvaluationType, EvaluationType), EvaluationType> FindPromotions(IEnumerable<EvaluationType> providedTypes) {
+			EvaluationType[] types = providedTypes.Distinct().ToArray();
+			SymmetricMatrix<bool> known = new SymmetricMatrix<bool>(types.Length);
+			SymmetricMatrix<int> directConversions = new SymmetricMatrix<int>(types.Length);
+
+			//Console.Write("Types: ");
+			//for(int i=0; i<types.Length; i++) {
+			//	Console.Write($"{i}: {types[i].Name}, ");
+			//}
+			//Console.WriteLine();
+			//int maxLen = types.Max(t => t.Name.Length);
+
+			// Step 1: Find known type conversions
+			for (int super = 0; super < types.Length; super++) {
+				for (int sub = super; sub < types.Length; sub++) {
+					directConversions[super, sub] = -1;
+					known[super, sub] = false;
+
+					if (super == sub) {
+						// Trivial case
+						directConversions[super, sub] = super;
+						known[super, sub] = true;
+					}
+					else {
+						if (types[super].CanImplicitCastFrom(types[sub])) {
+							directConversions[super, sub] = super;
+							known[super, sub] = true;
+						}
+						if (types[sub].CanImplicitCastFrom(types[super])) {
+							if (!known[sub, super]) {
+								directConversions[super, sub] = sub;
+							}
+							else {
+								// Implicit type conversion is known to be ill-defined
+								directConversions[super, sub] = -1;
+							}
+							known[super, sub] = true;
+						}
+					}
+				}
+			}
+
+			//void PrintState(SymmetricMatrix<int> knownPromotions) {
+			//	Console.WriteLine("\n");
+
+			//	Console.Write(string.Format($"{{0,{maxLen + 2}}}", ""));
+			//	for (int i = 0; i < types.Length; i++) {
+			//		Console.Write(string.Format($"{{0,{maxLen + 2}}}", types[i].Name));
+			//	}
+			//	Console.WriteLine();
+			//	for (int j = 0; j < types.Length; j++) {
+			//		Console.Write(string.Format($"{{0,{maxLen + 2}}}", types[j].Name));
+			//		for (int i = 0; i < types.Length; i++) {
+			//			int knownConv = knownPromotions[i, j];
+			//			Console.Write(string.Format($"{{0,{maxLen + 2}}}", knownConv >= 0 ? types[knownConv].Name : ""));
+			//		}
+			//		Console.WriteLine();
+			//	}
+			//}
+
+			//PrintState(directConversions);
+
+			HashSet<int> CollectColumn(int b) {
+				HashSet<int> columnTypes = new HashSet<int>();
+				for (int a = 0; a < types.Length; a++) {
+					if (a != b && known[a, b] && directConversions[a, b] >= 0 && directConversions[a, b] != b) {
+						columnTypes.Add(directConversions[a, b]);
+					}
+				}
+				return columnTypes;
+			}
+
+			// Step 2: Fill in unknown
+			SymmetricMatrix<int> finalPromotions = directConversions.Copy();
+			// Should this process be repeated until there are no changes?
+			for (int a = 0; a < types.Length; a++) {
+				for (int b = a; b < types.Length; b++) {
+					if (!known[a, b]) {
+						//HashSet<int> allParents = new HashSet<int>();
+						//CollectColumn(a, allParents);
+						//CollectColumn(b, allParents);
+						HashSet<int> allParents = CollectColumn(a);
+						allParents.IntersectWith(CollectColumn(b));
+
+						//Console.WriteLine($"Consider {types[a].Name}/{types[b].Name}: {string.Join(", ", allParents.Select(p => types[p].Name))}");
+
+						if (allParents.Count > 1) {
+							foreach (int parent in allParents.ToList()) {
+								foreach (int child in allParents.ToList()) {
+									if (allParents.Contains(parent) && allParents.Contains(child)) {
+										if (directConversions[parent, child] == parent) {
+											allParents.Remove(parent);
+										}
+									}
+								}
+							}
+						}
+
+						if (allParents.Count == 1) {
+							finalPromotions[a, b] = allParents.First();
+							known[a, b] = true;
+						}
+						else {
+							known[a, b] = true; // Either there are no parents, or too many
+						}
+					}
+				}
+			}
+
+			//PrintState(finalPromotions);
+
+			Dictionary<(EvaluationType, EvaluationType), EvaluationType> promotions = new Dictionary<(EvaluationType, EvaluationType), EvaluationType>();
+			for (int a = 0; a < types.Length; a++) {
+				for (int b = 0; b < types.Length; b++) {
+					if (finalPromotions[a, b] >= 0) {
+						promotions[(types[a], types[b])] = types[finalPromotions[a, b]];
+					}
+				}
+			}
+
+			return promotions;
+		}
+
+		public static bool Equals(EvaluationContext a, EvaluationContext b) {
+			return ReferenceEquals(a, b);
+		}
+
+		public override bool Equals(object? obj) {
+			return obj is EvaluationContext other && Equals(this, other);
+		}
+
+		public override int GetHashCode() {
+			return base.GetHashCode(); // TODO Will this work?
 		}
 
 	}
-
-
-
-
-
 
 	public readonly struct EvaluationValue {
 		public readonly object? Value;
@@ -572,6 +423,10 @@ namespace SharpSheets.Evaluations {
 		public EvaluationValue(object? value, EvaluationType type) {
 			Value = value;
 			Type = type;
+		}
+
+		public override string ToString() {
+			return (Value?.ToString() ?? "") + $" {{{Type}}}";
 		}
 	}
 
@@ -595,24 +450,42 @@ namespace SharpSheets.Evaluations {
 
 	public abstract class EvaluationType : IEquatable<EvaluationType> {
 
+		public EvaluationContext Context { get; }
+
 		public abstract string Name { get; }
 
 		public abstract Type DataType { get; }
 		public abstract Type DisplayType { get; }
 
-		private readonly IReadOnlyDictionary<EvaluationName, TypeField> fields;
+		private readonly Dictionary<EvaluationName, TypeField> fields = new Dictionary<EvaluationName, TypeField>();
 		public IEnumerable<EvaluationName> FieldNames { get { return fields.Keys; } }
 		public IEnumerable<TypeField> Fields { get { return fields.Values; } }
 
-		private readonly IReadOnlyDictionary<EvaluationName, TypeField> staticFields;
+		private readonly Dictionary<EvaluationName, TypeField> staticFields = new Dictionary<EvaluationName, TypeField>();
 		public IEnumerable<EvaluationName> StaticFieldNames { get { return staticFields.Keys; } }
 		public IEnumerable<TypeField> StaticFields { get { return staticFields.Values; } }
 
-		protected EvaluationType(IEnumerable<TypeField> fields, IEnumerable<TypeField> staticFields) {
-			this.fields = fields.ToDictionary(f => f.Name);
-			this.staticFields = staticFields.ToDictionary(f => f.Name);
+		protected EvaluationType(EvaluationContext context) {
+			this.Context = context;
 		}
 
+		public EvaluationValue MakeValue(object? value) {
+			return new EvaluationValue(value, this);
+		}
+
+		protected void AddField(TypeField field) {
+			fields.Add(field.Name, field);
+		}
+		protected void AddStaticField(TypeField field) {
+			staticFields.Add(field.Name, field);
+		}
+
+		public static bool SharedContext(EvaluationType a, EvaluationType b) {
+			return ReferenceEquals(a.Context, b.Context);
+		}
+		public bool SharedContext(EvaluationType other) {
+			return SharedContext(this, other);
+		}
 
 		/// <summary>
 		/// Indicates whether the other type can be implicitly cast into the
@@ -623,8 +496,13 @@ namespace SharpSheets.Evaluations {
 		/// <returns><see langword="true"/> if <paramref name="other"/> can be
 		/// implicitly cast into the current type, otherwise
 		/// <see langword="false"/>.</returns>
-		public abstract bool CanImplicitCastFrom(EvaluationType other);
-		public abstract EvaluationValue? Cast(EvaluationValue other);
+		public virtual bool CanImplicitCastFrom(EvaluationType other) {
+			return this == other;
+		}
+		public virtual EvaluationValue? Cast(EvaluationValue other) {
+			//Console.WriteLine($"Casting {other.Type} to {this}: {other} ({this == other.Type})");
+			return this == other.Type ? other : null;
+		}
 
 		/*
 		public bool IsField(EvaluationName field) {
@@ -705,17 +583,6 @@ namespace SharpSheets.Evaluations {
 		public virtual EvaluationType? NotEqualResult(EvaluationType other) => null;
 		public virtual EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) => null;
 
-		/*
-		public virtual EvaluationType? AndResult(EvaluationType other) => null;
-		public virtual EvaluationValue? And(EvaluationValue left, EvaluationValue right) => null;
-
-		public virtual EvaluationType? OrResult(EvaluationType other) => null;
-		public virtual EvaluationValue? Or(EvaluationValue left, EvaluationValue right) => null;
-
-		public virtual EvaluationType? XorResult(EvaluationType other) => null;
-		public virtual EvaluationValue? Xor(EvaluationValue left, EvaluationValue right) => null;
-		*/
-
 		public virtual EvaluationType? IndexerResult(EvaluationType index) => null;
 		public virtual EvaluationValue? Indexer(EvaluationValue subject, EvaluationValue index) => null;
 		public virtual EvaluationType? IndexerSliceResult(EvaluationType start, EvaluationType end) => null;
@@ -732,7 +599,7 @@ namespace SharpSheets.Evaluations {
 		//object.__call__(self[, args...])
 
 		public EvaluationType MakeArray() {
-			return new ArrayEvaluationType(this, Enumerable.Empty<TypeField>());
+			return new ArrayEvaluationType(Context, this);
 		}
 
 		public EvaluationType MakeArray(int rank) {
@@ -745,7 +612,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public EvaluationType MakeTuple(int size) {
-			return new TupleEvaluationType(this, size, Enumerable.Empty<TypeField>());
+			return new TupleEvaluationType(Context, this, size);
 		}
 
 		public bool Equals(EvaluationType? other) {
@@ -760,7 +627,7 @@ namespace SharpSheets.Evaluations {
 			}
 
 			// Subclass compares subclass data
-			return EqualTypeData(other) && FieldsEqual(other);
+			return ReferenceEquals(Context, other.Context) && EqualTypeData(other) && FieldsEqual(other);
 		}
 
 		public override bool Equals(object? obj) {
@@ -768,6 +635,8 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public override int GetHashCode() {
+			// TODO This should include a hash based on the Context identity
+			// System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode( object obj )  ????
 			return HashCode.Combine(GetType(), GetTypeHashCode());
 		}
 
@@ -811,45 +680,46 @@ namespace SharpSheets.Evaluations {
 
 	public static class EvaluationOps {
 
-		private static EvaluationType? GetPromoted(EvaluationTypeSystem typeSystem, EvaluationType a, EvaluationType b) {
-			return typeSystem.TryGetLeastUpperBoundType(a, b, out EvaluationType? promoted) ? promoted : null;
+		private static EvaluationType? GetPromoted(EvaluationType a, EvaluationType b) {
+			// TODO Should we check contexts match?
+			return a.Context.TryGetLeastUpperBoundType(a, b, out EvaluationType? promoted) ? promoted : null;
 		}
 
-		public static EvaluationType? AddResult(EvaluationType left, EvaluationType right, EvaluationTypeSystem typeSystem) => left.AddResult(right) ?? right.RAddResult(left) ?? (GetPromoted(typeSystem, left, right) is EvaluationType promoted ? promoted.AddResult(promoted) : null);
-		public static EvaluationValue? Add(EvaluationValue left, EvaluationValue right, EvaluationTypeSystem typeSystem) => left.Type.Add(left, right) ?? right.Type.RAdd(left, right) ?? (GetPromoted(typeSystem, left.Type, right.Type) is EvaluationType promoted ? promoted.Add(left, right) : null);
+		public static EvaluationType? AddResult(EvaluationType left, EvaluationType right) => left.AddResult(right) ?? right.RAddResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.AddResult(promoted) : null);
+		public static EvaluationValue? Add(EvaluationValue left, EvaluationValue right) => left.Type.Add(left, right) ?? right.Type.RAdd(left, right) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.Add(left, right) : null);
 
-		public static EvaluationType? SubResult(EvaluationType left, EvaluationType right, EvaluationTypeSystem typeSystem) => left.SubResult(right) ?? right.RSubResult(left) ?? (GetPromoted(typeSystem, left, right) is EvaluationType promoted ? promoted.SubResult(promoted) : null);
-		public static EvaluationValue? Sub(EvaluationValue left, EvaluationValue right, EvaluationTypeSystem typeSystem) => left.Type.Sub(left, right) ?? right.Type.RSub(left, right) ?? (GetPromoted(typeSystem, left.Type, right.Type) is EvaluationType promoted ? promoted.Sub(left, right) : null);
+		public static EvaluationType? SubResult(EvaluationType left, EvaluationType right) => left.SubResult(right) ?? right.RSubResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.SubResult(promoted) : null);
+		public static EvaluationValue? Sub(EvaluationValue left, EvaluationValue right) => left.Type.Sub(left, right) ?? right.Type.RSub(left, right) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.Sub(left, right) : null);
 
-		public static EvaluationType? MulResult(EvaluationType left, EvaluationType right, EvaluationTypeSystem typeSystem) => left.MulResult(right) ?? right.RMulResult(left) ?? (GetPromoted(typeSystem, left, right) is EvaluationType promoted ? promoted.MulResult(promoted) : null);
-		public static EvaluationValue? Mul(EvaluationValue left, EvaluationValue right, EvaluationTypeSystem typeSystem) => left.Type.Mul(left, right) ?? right.Type.RMul(left, right) ?? (GetPromoted(typeSystem, left.Type, right.Type) is EvaluationType promoted ? promoted.Mul(left, right) : null);
+		public static EvaluationType? MulResult(EvaluationType left, EvaluationType right) => left.MulResult(right) ?? right.RMulResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.MulResult(promoted) : null);
+		public static EvaluationValue? Mul(EvaluationValue left, EvaluationValue right) => left.Type.Mul(left, right) ?? right.Type.RMul(left, right) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.Mul(left, right) : null);
 
-		public static EvaluationType? DivResult(EvaluationType left, EvaluationType right, EvaluationTypeSystem typeSystem) => left.DivResult(right) ?? right.RDivResult(left) ?? (GetPromoted(typeSystem, left, right) is EvaluationType promoted ? promoted.DivResult(promoted) : null);
-		public static EvaluationValue? PerformDiv(EvaluationValue left, EvaluationValue right, EvaluationTypeSystem typeSystem) => left.Type.Div(left, right) ?? right.Type.RDiv(left, right) ?? (GetPromoted(typeSystem, left.Type, right.Type) is EvaluationType promoted ? promoted.Div(left, right) : null);
+		public static EvaluationType? DivResult(EvaluationType left, EvaluationType right) => left.DivResult(right) ?? right.RDivResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.DivResult(promoted) : null);
+		public static EvaluationValue? PerformDiv(EvaluationValue left, EvaluationValue right) => left.Type.Div(left, right) ?? right.Type.RDiv(left, right) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.Div(left, right) : null);
 
-		public static EvaluationType? ModResult(EvaluationType left, EvaluationType right, EvaluationTypeSystem typeSystem) => left.ModResult(right) ?? right.RModResult(left) ?? (GetPromoted(typeSystem, left, right) is EvaluationType promoted ? promoted.ModResult(promoted) : null);
-		public static EvaluationValue? Mod(EvaluationValue left, EvaluationValue right, EvaluationTypeSystem typeSystem) => left.Type.Mod(left, right) ?? right.Type.RMod(left, right) ?? (GetPromoted(typeSystem, left.Type, right.Type) is EvaluationType promoted ? promoted.Mod(left, right) : null);
+		public static EvaluationType? ModResult(EvaluationType left, EvaluationType right) => left.ModResult(right) ?? right.RModResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.ModResult(promoted) : null);
+		public static EvaluationValue? Mod(EvaluationValue left, EvaluationValue right) => left.Type.Mod(left, right) ?? right.Type.RMod(left, right) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.Mod(left, right) : null);
 
-		public static EvaluationType? PowResult(EvaluationType left, EvaluationType right, EvaluationTypeSystem typeSystem) => left.PowResult(right) ?? right.RPowResult(left) ?? (GetPromoted(typeSystem, left, right) is EvaluationType promoted ? promoted.PowResult(promoted) : null);
-		public static EvaluationValue? Pow(EvaluationValue left, EvaluationValue right, EvaluationTypeSystem typeSystem) => left.Type.Pow(left, right) ?? right.Type.RPow(left, right) ?? (GetPromoted(typeSystem, left.Type, right.Type) is EvaluationType promoted ? promoted.Pow(left, right) : null);
+		public static EvaluationType? PowResult(EvaluationType left, EvaluationType right) => left.PowResult(right) ?? right.RPowResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.PowResult(promoted) : null);
+		public static EvaluationValue? Pow(EvaluationValue left, EvaluationValue right) => left.Type.Pow(left, right) ?? right.Type.RPow(left, right) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.Pow(left, right) : null);
 
-		public static EvaluationType? LessThanResult(EvaluationType left, EvaluationType right, EvaluationTypeSystem typeSystem) => left.LessThanResult(right) ?? right.GreaterThanResult(left) ?? (GetPromoted(typeSystem, left, right) is EvaluationType promoted ? promoted.LessThanResult(promoted) : null);
-		public static EvaluationValue? LessThan(EvaluationValue left, EvaluationValue right, EvaluationTypeSystem typeSystem) => left.Type.LessThan(left, right) ?? right.Type.GreaterThan(right, left) ?? (GetPromoted(typeSystem, left.Type, right.Type) is EvaluationType promoted ? promoted.LessThan(left, right) : null);
+		public static EvaluationType? LessThanResult(EvaluationType left, EvaluationType right) => left.LessThanResult(right) ?? right.GreaterThanResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.LessThanResult(promoted) : null);
+		public static EvaluationValue? LessThan(EvaluationValue left, EvaluationValue right) => left.Type.LessThan(left, right) ?? right.Type.GreaterThan(right, left) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.LessThan(left, right) : null);
 
-		public static EvaluationType? LessThanEqualResult(EvaluationType left, EvaluationType right, EvaluationTypeSystem typeSystem) => left.LessThanEqualResult(right) ?? right.GreaterThanEqualResult(left) ?? (GetPromoted(typeSystem, left, right) is EvaluationType promoted ? promoted.LessThanEqualResult(promoted) : null);
-		public static EvaluationValue? LessThanEqual(EvaluationValue left, EvaluationValue right, EvaluationTypeSystem typeSystem) => left.Type.LessThanEqual(left, right) ?? right.Type.GreaterThanEqual(right, left) ?? (GetPromoted(typeSystem, left.Type, right.Type) is EvaluationType promoted ? promoted.LessThanEqual(left, right) : null);
+		public static EvaluationType? LessThanEqualResult(EvaluationType left, EvaluationType right) => left.LessThanEqualResult(right) ?? right.GreaterThanEqualResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.LessThanEqualResult(promoted) : null);
+		public static EvaluationValue? LessThanEqual(EvaluationValue left, EvaluationValue right) => left.Type.LessThanEqual(left, right) ?? right.Type.GreaterThanEqual(right, left) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.LessThanEqual(left, right) : null);
 
-		public static EvaluationType? GreaterThanResult(EvaluationType left, EvaluationType right, EvaluationTypeSystem typeSystem) => left.GreaterThanResult(right) ?? right.LessThanResult(left) ?? (GetPromoted(typeSystem, left, right) is EvaluationType promoted ? promoted.GreaterThanResult(promoted) : null);
-		public static EvaluationValue? GreaterThan(EvaluationValue left, EvaluationValue right, EvaluationTypeSystem typeSystem) => left.Type.GreaterThan(left, right) ?? right.Type.LessThan(right, left) ?? (GetPromoted(typeSystem, left.Type, right.Type) is EvaluationType promoted ? promoted.GreaterThan(left, right) : null);
+		public static EvaluationType? GreaterThanResult(EvaluationType left, EvaluationType right) => left.GreaterThanResult(right) ?? right.LessThanResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.GreaterThanResult(promoted) : null);
+		public static EvaluationValue? GreaterThan(EvaluationValue left, EvaluationValue right) => left.Type.GreaterThan(left, right) ?? right.Type.LessThan(right, left) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.GreaterThan(left, right) : null);
 
-		public static EvaluationType? GreaterThanEqualResult(EvaluationType left, EvaluationType right, EvaluationTypeSystem typeSystem) => left.GreaterThanEqualResult(right) ?? right.LessThanEqualResult(left) ?? (GetPromoted(typeSystem, left, right) is EvaluationType promoted ? promoted.GreaterThanEqualResult(promoted) : null);
-		public static EvaluationValue? GreaterThanEqual(EvaluationValue left, EvaluationValue right, EvaluationTypeSystem typeSystem) => left.Type.GreaterThanEqual(left, right) ?? right.Type.LessThanEqual(right, left) ?? (GetPromoted(typeSystem, left.Type, right.Type) is EvaluationType promoted ? promoted.GreaterThanEqual(left, right) : null);
+		public static EvaluationType? GreaterThanEqualResult(EvaluationType left, EvaluationType right) => left.GreaterThanEqualResult(right) ?? right.LessThanEqualResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.GreaterThanEqualResult(promoted) : null);
+		public static EvaluationValue? GreaterThanEqual(EvaluationValue left, EvaluationValue right) => left.Type.GreaterThanEqual(left, right) ?? right.Type.LessThanEqual(right, left) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.GreaterThanEqual(left, right) : null);
 
-		public static EvaluationType? EqualResult(EvaluationType left, EvaluationType right, EvaluationTypeSystem typeSystem) => left.EqualResult(right) ?? right.EqualResult(left) ?? (GetPromoted(typeSystem, left, right) is EvaluationType promoted ? promoted.EqualResult(promoted) : null);
-		public static EvaluationValue? Equal(EvaluationValue left, EvaluationValue right, EvaluationTypeSystem typeSystem) => left.Type.Equal(left, right) ?? right.Type.Equal(right, left) ?? (GetPromoted(typeSystem, left.Type, right.Type) is EvaluationType promoted ? promoted.Equal(left, right) : null);
+		public static EvaluationType? EqualResult(EvaluationType left, EvaluationType right) => left.EqualResult(right) ?? right.EqualResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.EqualResult(promoted) : null);
+		public static EvaluationValue? Equal(EvaluationValue left, EvaluationValue right) => left.Type.Equal(left, right) ?? right.Type.Equal(right, left) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.Equal(left, right) : null);
 
-		public static EvaluationType? NotEqualResult(EvaluationType left, EvaluationType right, EvaluationTypeSystem typeSystem) => left.NotEqualResult(right) ?? right.NotEqualResult(left) ?? (GetPromoted(typeSystem, left, right) is EvaluationType promoted ? promoted.NotEqualResult(promoted) : null);
-		public static EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right, EvaluationTypeSystem typeSystem) => left.Type.NotEqual(left, right) ?? right.Type.NotEqual(right, left) ?? (GetPromoted(typeSystem, left.Type, right.Type) is EvaluationType promoted ? promoted.NotEqual(left, right) : null);
+		public static EvaluationType? NotEqualResult(EvaluationType left, EvaluationType right) => left.NotEqualResult(right) ?? right.NotEqualResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.NotEqualResult(promoted) : null);
+		public static EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) => left.Type.NotEqual(left, right) ?? right.Type.NotEqual(right, left) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.NotEqual(left, right) : null);
 
 	}
 
@@ -872,17 +742,12 @@ namespace SharpSheets.Evaluations {
 
 	public sealed class MetaEvaluationType : EvaluationType {
 
-		public static readonly EvaluationType Instance = new MetaEvaluationType();
-
 		public override string Name { get; } = "type";
 
 		public override Type DataType { get; } = typeof(Type);
 		public override Type DisplayType => DataType;
 
-		private MetaEvaluationType() : base(Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>()) { }
-
-		public override bool CanImplicitCastFrom(EvaluationType other) => false;
-		public override EvaluationValue? Cast(EvaluationValue other) => null;
+		public MetaEvaluationType(EvaluationContext context) : base(context) { }
 
 		protected override bool EqualTypeData(EvaluationType other) {
 			return Name == other.Name
@@ -894,11 +759,12 @@ namespace SharpSheets.Evaluations {
 		}
 	}
 
-	public abstract class SingleDataType : EvaluationType {
+	public abstract class SingleDataType<T> : EvaluationType {
 
+		public sealed override Type DataType { get; } = typeof(T);
 		public sealed override Type DisplayType => DataType;
 
-		protected SingleDataType(IEnumerable<TypeField> fields, IEnumerable<TypeField> staticFields) : base(fields, staticFields) { }
+		protected SingleDataType(EvaluationContext context) : base(context) { }
 
 		protected sealed override bool EqualTypeData(EvaluationType other) {
 			return Name == other.Name
@@ -911,20 +777,17 @@ namespace SharpSheets.Evaluations {
 
 	}
 
-	public sealed class FloatEvaluationType : SingleDataType {
-
-		public static readonly FloatEvaluationType Instance = new FloatEvaluationType();
+	public sealed class FloatEvaluationType : SingleDataType<float> {
 
 		public override string Name { get; } = "float";
-		public override Type DataType { get; } = typeof(float);
 
-		private static readonly TypeField MinField = new TypeField("MINVALUE", Instance, t => new EvaluationValue(float.MinValue, Instance));
-		private static readonly TypeField MaxField = new TypeField("MAXVALUE", Instance, t => new EvaluationValue(float.MaxValue, Instance));
-
-		private FloatEvaluationType() : base(Enumerable.Empty<TypeField>(), new TypeField[] { MinField, MaxField }) { }
+		public FloatEvaluationType(EvaluationContext context) : base(context) {
+			AddStaticField(new TypeField("MINVALUE", this, t => new EvaluationValue(float.MinValue, this)));
+			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(float.MaxValue, this)));
+		}
 
 		public static bool IsReal(EvaluationType type) {
-			return type == Instance || UFloatEvaluationType.IsPositiveReal(type) || IntEvaluationType.IsIntegral(type);
+			return type is FloatEvaluationType || UFloatEvaluationType.IsPositiveReal(type) || IntEvaluationType.IsIntegral(type);
 		}
 
 		public static bool AllReal(params EvaluationType[] types) {
@@ -937,11 +800,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public static bool TryGetFloat(EvaluationValue value, out float number) {
-			if (value.Value is null) {
-				number = 0f;
-				return false;
-			}
-			else if (value.Type == Instance && value.Value is float floatVal) {
+			if (value.Type is FloatEvaluationType && value.Value is float floatVal) {
 				number = floatVal;
 				return true;
 			}
@@ -962,117 +821,123 @@ namespace SharpSheets.Evaluations {
 
 		public override EvaluationValue? Cast(EvaluationValue other) {
 			if (TryGetFloat(other, out float value)) {
-				return new EvaluationValue(value, Instance);
+				return new EvaluationValue(value, this);
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? UnaryArithmetic(EvaluationValue operand, Func<float, float> operation) {
+		private EvaluationValue? UnaryArithmetic(EvaluationValue operand, Func<float, float> operation) {
 			if (TryGetFloat(operand, out float operandVal)) {
-				return new EvaluationValue(operation(operandVal), Instance);
+				return new EvaluationValue(operation(operandVal), this);
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationType? BinaryArithmeticResult(EvaluationType other) {
+		private EvaluationType? BinaryArithmeticResult(EvaluationType other) {
 			if (IsReal(other)) { // Another float-like
-				return Instance;
+				return this;
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? BinaryOperationAny<R>(EvaluationValue left, EvaluationValue right, Func<float, float, R> operation) {
+		private EvaluationValue? BinaryOperation(EvaluationValue left, EvaluationValue right, Func<float, float, float> operation) {
 			if (TryGetFloat(left, out float leftVal) && TryGetFloat(right, out float rightVal)) {
-				return new EvaluationValue(operation(leftVal, rightVal), Instance);
+				return new EvaluationValue(operation(leftVal, rightVal), this);
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationType? BinaryComparisonResult(EvaluationType other) {
+		private EvaluationValue? BinaryOperation(EvaluationValue left, EvaluationValue right, Func<float, float, bool> operation) {
+			if (TryGetFloat(left, out float leftVal) && TryGetFloat(right, out float rightVal)) {
+				return new EvaluationValue(operation(leftVal, rightVal), Context.GetType<BoolEvaluationType>());
+			}
+			else {
+				return null;
+			}
+		}
+
+		private EvaluationType? BinaryComparisonResult(EvaluationType other) {
 			if (IsReal(other)) { // Another float-like
-				return BoolEvaluationType.Instance;
+				return Context.GetType<BoolEvaluationType>();
 			}
 			else {
 				return null;
 			}
 		}
 
-		public override EvaluationType? PosResult() => Instance;
+		public override EvaluationType? PosResult() => this;
 		public override EvaluationValue? Pos(EvaluationValue operand) => UnaryArithmetic(operand, (a) => +a);
 
-		public override EvaluationType? NegResult() => Instance;
+		public override EvaluationType? NegResult() => this;
 		public override EvaluationValue? Neg(EvaluationValue operand) => UnaryArithmetic(operand, (a) => -a);
 
 		public override EvaluationType? AddResult(EvaluationType right) => BinaryArithmeticResult(right);
 		public override EvaluationType? RAddResult(EvaluationType left) => BinaryArithmeticResult(left);
-		public override EvaluationValue? Add(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a + b);
-		public override EvaluationValue? RAdd(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a + b);
+		public override EvaluationValue? Add(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a + b);
+		public override EvaluationValue? RAdd(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a + b);
 
 		public override EvaluationType? SubResult(EvaluationType right) => BinaryArithmeticResult(right);
 		public override EvaluationType? RSubResult(EvaluationType left) => BinaryArithmeticResult(left);
-		public override EvaluationValue? Sub(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a - b);
-		public override EvaluationValue? RSub(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a - b);
+		public override EvaluationValue? Sub(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a - b);
+		public override EvaluationValue? RSub(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a - b);
 
 		public override EvaluationType? MulResult(EvaluationType right) => BinaryArithmeticResult(right);
 		public override EvaluationType? RMulResult(EvaluationType left) => BinaryArithmeticResult(left);
-		public override EvaluationValue? Mul(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a * b);
-		public override EvaluationValue? RMul(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a * b);
+		public override EvaluationValue? Mul(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a * b);
+		public override EvaluationValue? RMul(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a * b);
 
 		public override EvaluationType? DivResult(EvaluationType right) => BinaryArithmeticResult(right);
 		public override EvaluationType? RDivResult(EvaluationType left) => BinaryArithmeticResult(left);
-		public override EvaluationValue? Div(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a / b);
-		public override EvaluationValue? RDiv(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a / b);
+		public override EvaluationValue? Div(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a / b);
+		public override EvaluationValue? RDiv(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a / b);
 
 		public override EvaluationType? ModResult(EvaluationType right) => BinaryArithmeticResult(right);
 		public override EvaluationType? RModResult(EvaluationType left) => BinaryArithmeticResult(left);
-		public override EvaluationValue? Mod(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a % b);
-		public override EvaluationValue? RMod(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a % b);
+		public override EvaluationValue? Mod(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a % b);
+		public override EvaluationValue? RMod(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a % b);
 
 		public override EvaluationType? PowResult(EvaluationType right) => BinaryArithmeticResult(right);
 		public override EvaluationType? RPowResult(EvaluationType left) => BinaryArithmeticResult(left);
-		public override EvaluationValue? Pow(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => (float)Math.Pow(a, b));
-		public override EvaluationValue? RPow(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => (float)Math.Pow(a, b));
+		public override EvaluationValue? Pow(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => (float)Math.Pow(a, b));
+		public override EvaluationValue? RPow(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => (float)Math.Pow(a, b));
 
 		public override EvaluationType? LessThanResult(EvaluationType other) => BinaryComparisonResult(other);
-		public override EvaluationValue? LessThan(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a < b);
+		public override EvaluationValue? LessThan(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a < b);
 
 		public override EvaluationType? LessThanEqualResult(EvaluationType other) => BinaryComparisonResult(other);
-		public override EvaluationValue? LessThanEqual(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a <= b);
+		public override EvaluationValue? LessThanEqual(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a <= b);
 
 		public override EvaluationType? GreaterThanResult(EvaluationType other) => BinaryComparisonResult(other);
-		public override EvaluationValue? GreaterThan(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a > b);
+		public override EvaluationValue? GreaterThan(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a > b);
 
 		public override EvaluationType? GreaterThanEqualResult(EvaluationType other) => BinaryComparisonResult(other);
-		public override EvaluationValue? GreaterThanEqual(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a >= b);
+		public override EvaluationValue? GreaterThanEqual(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a >= b);
 
 		public override EvaluationType? EqualResult(EvaluationType other) => BinaryComparisonResult(other);
-		public override EvaluationValue? Equal(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a == b);
+		public override EvaluationValue? Equal(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a == b);
 
 		public override EvaluationType? NotEqualResult(EvaluationType other) => BinaryComparisonResult(other);
-		public override EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a != b);
+		public override EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) => BinaryOperation(left, right, (a, b) => a != b);
 	}
 
-	public sealed class UFloatEvaluationType : SingleDataType {
-
-		public static readonly UFloatEvaluationType Instance = new UFloatEvaluationType();
+	public sealed class UFloatEvaluationType : SingleDataType<UFloat> {
 
 		public override string Name { get; } = "ufloat";
-		public override Type DataType { get; } = typeof(UFloat);
 
-		private static readonly TypeField MaxField = new TypeField("MAXVALUE", Instance, t => new EvaluationValue(UFloat.MaxValue, Instance));
-
-		private UFloatEvaluationType() : base(Enumerable.Empty<TypeField>(), new TypeField[] { MaxField }) { }
+		public UFloatEvaluationType(EvaluationContext context) : base(context) {
+			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(UFloat.MaxValue, this)));
+		}
 
 		public static bool IsPositiveReal(EvaluationType type) {
-			return type == Instance || UIntEvaluationType.IsPositiveIntegral(type);
+			return type is UFloatEvaluationType || UIntEvaluationType.IsPositiveIntegral(type);
 		}
 
 		public static bool AllPositiveReal(params EvaluationType[] types) {
@@ -1085,7 +950,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public static bool TryGetUFloat(EvaluationValue value, out UFloat number) {
-			if (value.Type == Instance && value.Value is UFloat uFloatVal) {
+			if (value.Type is UFloatEvaluationType && value.Value is UFloat uFloatVal) {
 				number = uFloatVal;
 				return true;
 			}
@@ -1102,7 +967,7 @@ namespace SharpSheets.Evaluations {
 
 		public override EvaluationValue? Cast(EvaluationValue other) {
 			if (TryGetUFloat(other, out UFloat value)) {
-				return new EvaluationValue(value, Instance);
+				return new EvaluationValue(value, this);
 			}
 			else {
 				return null;
@@ -1118,56 +983,56 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
-		private static EvaluationType? BinaryArithmeticResult(EvaluationType other, bool closed) {
+		private EvaluationType? BinaryArithmeticResult(EvaluationType other, bool closed) {
 			if (IsPositiveReal(other)) {
-				return closed ? Instance : FloatEvaluationType.Instance;
+				return closed ? this : Context.GetType<FloatEvaluationType>();
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? BinaryOperationClosed(EvaluationValue left, EvaluationValue right, Func<UFloat, UFloat, UFloat> operation) {
+		private EvaluationValue? BinaryOperationClosed(EvaluationValue left, EvaluationValue right, Func<UFloat, UFloat, UFloat> operation) {
 			if (TryGetUFloat(left, out UFloat leftVal) && TryGetUFloat(right, out UFloat rightVal)) {
-				return new EvaluationValue(operation(leftVal, rightVal), Instance);
+				return new EvaluationValue(operation(leftVal, rightVal), this);
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? BinaryOperationNotClosed(EvaluationValue left, EvaluationValue right, Func<UFloat, UFloat, float> operation) {
+		private EvaluationValue? BinaryOperationNotClosed(EvaluationValue left, EvaluationValue right, Func<UFloat, UFloat, float> operation) {
 			if (TryGetUFloat(left, out UFloat leftVal) && TryGetUFloat(right, out UFloat rightVal)) {
-				return new EvaluationValue(operation(leftVal, rightVal), FloatEvaluationType.Instance);
+				return new EvaluationValue(operation(leftVal, rightVal), Context.GetType<FloatEvaluationType>());
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationType? BinaryComparisonResult(EvaluationType other) {
+		private EvaluationType? BinaryComparisonResult(EvaluationType other) {
 			if (IsPositiveReal(other)) { // Another UFloat-like
-				return BoolEvaluationType.Instance;
+				return Context.GetType<BoolEvaluationType>();
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? BinaryComparisonAny(EvaluationValue left, EvaluationValue right, Func<UFloat, UFloat, bool> operation) {
+		private EvaluationValue? BinaryComparisonAny(EvaluationValue left, EvaluationValue right, Func<UFloat, UFloat, bool> operation) {
 			if (TryGetUFloat(left, out UFloat leftVal) && TryGetUFloat(right, out UFloat rightVal)) {
-				return new EvaluationValue(operation(leftVal, rightVal), Instance);
+				return new EvaluationValue(operation(leftVal, rightVal), Context.GetType<BoolEvaluationType>());
 			}
 			else {
 				return null;
 			}
 		}
 
-		public override EvaluationType? PosResult() => Instance;
-		public override EvaluationValue? Pos(EvaluationValue operand) => UnaryArithmetic(operand, (a) => a, Instance);
+		public override EvaluationType? PosResult() => this;
+		public override EvaluationValue? Pos(EvaluationValue operand) => UnaryArithmetic(operand, (a) => a, this);
 
-		public override EvaluationType? NegResult() => FloatEvaluationType.Instance;
-		public override EvaluationValue? Neg(EvaluationValue operand) => UnaryArithmetic(operand, (a) => -a.Value, FloatEvaluationType.Instance);
+		public override EvaluationType? NegResult() => Context.GetType<FloatEvaluationType>();
+		public override EvaluationValue? Neg(EvaluationValue operand) => UnaryArithmetic(operand, (a) => -a.Value, Context.GetType<FloatEvaluationType>());
 
 		public override EvaluationType? AddResult(EvaluationType right) => BinaryArithmeticResult(right, true);
 		public override EvaluationType? RAddResult(EvaluationType left) => BinaryArithmeticResult(left, true);
@@ -1220,20 +1085,17 @@ namespace SharpSheets.Evaluations {
 		public override EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => a != b);
 	}
 
-	public sealed class IntEvaluationType : SingleDataType {
-
-		public static readonly IntEvaluationType Instance = new IntEvaluationType();
+	public sealed class IntEvaluationType : SingleDataType<int> {
 
 		public override string Name { get; } = "int";
-		public override Type DataType { get; } = typeof(int);
 
-		private static readonly TypeField MinField = new TypeField("MINVALUE", Instance, t => new EvaluationValue(int.MinValue, Instance));
-		private static readonly TypeField MaxField = new TypeField("MAXVALUE", Instance, t => new EvaluationValue(int.MaxValue, Instance));
-
-		private IntEvaluationType() : base(Enumerable.Empty<TypeField>(), new TypeField[] { MinField, MaxField }) { }
+		public IntEvaluationType(EvaluationContext context) : base(context) {
+			AddStaticField(new TypeField("MINVALUE", this, t => new EvaluationValue(int.MinValue, this)));
+			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(int.MaxValue, this)));
+		}
 
 		public static bool IsIntegral(EvaluationType type) {
-			return type == Instance || UIntEvaluationType.IsPositiveIntegral(type);
+			return type is IntEvaluationType || UIntEvaluationType.IsPositiveIntegral(type);
 		}
 
 		public static bool AllIntegral(params EvaluationType[] types) {
@@ -1246,11 +1108,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public static bool TryGetInt(EvaluationValue value, out int number) {
-			if (value.Value is null) {
-				number = 0;
-				return false;
-			}
-			else if (value.Type == Instance && value.Value is int intVal) {
+			if (value.Type is IntEvaluationType && value.Value is int intVal) {
 				number = intVal;
 				return true;
 			}
@@ -1267,53 +1125,62 @@ namespace SharpSheets.Evaluations {
 
 		public override EvaluationValue? Cast(EvaluationValue other) {
 			if (TryGetInt(other, out int value)) {
-				return new EvaluationValue(value, Instance);
+				return new EvaluationValue(value, this);
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? UnaryArithmetic(EvaluationValue operand, Func<int, int> operation) {
+		private EvaluationValue? UnaryArithmetic(EvaluationValue operand, Func<int, int> operation) {
 			if (TryGetInt(operand, out int operandVal)) {
-				return new EvaluationValue(operation(operandVal), Instance);
+				return new EvaluationValue(operation(operandVal), this);
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationType? BinaryArithmeticResult(EvaluationType other) {
+		private EvaluationType? BinaryArithmeticResult(EvaluationType other) {
 			if (IsIntegral(other)) { // Another int-like
-				return Instance;
+				return this;
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? BinaryOperationAny<R>(EvaluationValue left, EvaluationValue right, Func<int, int, R> operation) {
+		private EvaluationValue? BinaryOperationAny(EvaluationValue left, EvaluationValue right, Func<int, int, int> operation) {
 			if (TryGetInt(left, out int leftVal) && TryGetInt(right, out int rightVal)) {
-				return new EvaluationValue(operation(leftVal, rightVal), Instance);
+				return new EvaluationValue(operation(leftVal, rightVal), this);
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationType? BinaryComparisonResult(EvaluationType other) {
+		private EvaluationType? BinaryComparisonResult(EvaluationType other) {
 			if (IsIntegral(other)) { // Another float-like
-				return BoolEvaluationType.Instance;
+				return Context.GetType<BoolEvaluationType>();
 			}
 			else {
 				return null;
 			}
 		}
 
-		public override EvaluationType? PosResult() => Instance;
+		private EvaluationValue? BinaryComparisonAny(EvaluationValue left, EvaluationValue right, Func<int, int, bool> operation) {
+			if (TryGetInt(left, out int leftVal) && TryGetInt(right, out int rightVal)) {
+				return new EvaluationValue(operation(leftVal, rightVal), Context.GetType<BoolEvaluationType>());
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? PosResult() => this;
 		public override EvaluationValue? Pos(EvaluationValue operand) => UnaryArithmetic(operand, (a) => +a);
 
-		public override EvaluationType? NegResult() => Instance;
+		public override EvaluationType? NegResult() => this;
 		public override EvaluationValue? Neg(EvaluationValue operand) => UnaryArithmetic(operand, (a) => -a);
 
 		public override EvaluationType? AddResult(EvaluationType right) => BinaryArithmeticResult(right);
@@ -1347,37 +1214,34 @@ namespace SharpSheets.Evaluations {
 		public override EvaluationValue? RPow(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => (int)Math.Pow(a, b));
 
 		public override EvaluationType? LessThanResult(EvaluationType other) => BinaryComparisonResult(other);
-		public override EvaluationValue? LessThan(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a < b);
+		public override EvaluationValue? LessThan(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => a < b);
 
 		public override EvaluationType? LessThanEqualResult(EvaluationType other) => BinaryComparisonResult(other);
-		public override EvaluationValue? LessThanEqual(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a <= b);
+		public override EvaluationValue? LessThanEqual(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => a <= b);
 
 		public override EvaluationType? GreaterThanResult(EvaluationType other) => BinaryComparisonResult(other);
-		public override EvaluationValue? GreaterThan(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a > b);
+		public override EvaluationValue? GreaterThan(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => a > b);
 
 		public override EvaluationType? GreaterThanEqualResult(EvaluationType other) => BinaryComparisonResult(other);
-		public override EvaluationValue? GreaterThanEqual(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a >= b);
+		public override EvaluationValue? GreaterThanEqual(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => a >= b);
 
 		public override EvaluationType? EqualResult(EvaluationType other) => BinaryComparisonResult(other);
-		public override EvaluationValue? Equal(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a == b);
+		public override EvaluationValue? Equal(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => a == b);
 
 		public override EvaluationType? NotEqualResult(EvaluationType other) => BinaryComparisonResult(other);
-		public override EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) => BinaryOperationAny(left, right, (a, b) => a != b);
+		public override EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => a != b);
 	}
 
-	public sealed class UIntEvaluationType : SingleDataType {
-
-		public static readonly UIntEvaluationType Instance = new UIntEvaluationType();
+	public sealed class UIntEvaluationType : SingleDataType<uint> {
 
 		public override string Name { get; } = "uint";
-		public override Type DataType { get; } = typeof(uint);
 
-		private static readonly TypeField MaxField = new TypeField("MAXVALUE", Instance, t => new EvaluationValue(uint.MaxValue, Instance));
-
-		private UIntEvaluationType() : base(Enumerable.Empty<TypeField>(), new TypeField[] { MaxField }) { }
+		public UIntEvaluationType(EvaluationContext context) : base(context) {
+			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(uint.MaxValue, this)));
+		}
 
 		public static bool IsPositiveIntegral(EvaluationType type) {
-			return type == Instance;
+			return type is UIntEvaluationType || BoolEvaluationType.IsBool(type);
 		}
 
 		public static bool AllPositiveIntegral(params EvaluationType[] types) {
@@ -1390,8 +1254,12 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public static bool TryGetUInt(EvaluationValue value, out uint number) {
-			if (value.Type == Instance && value.Value is uint uintVal) {
+			if (value.Type is UIntEvaluationType && value.Value is uint uintVal) {
 				number = uintVal;
+				return true;
+			}
+			else if(BoolEvaluationType.TryGetBool(value, out bool boolean)) {
+				number = boolean ? 1u : 0u;
 				return true;
 			}
 
@@ -1403,7 +1271,7 @@ namespace SharpSheets.Evaluations {
 
 		public override EvaluationValue? Cast(EvaluationValue other) {
 			if (TryGetUInt(other, out uint value)) {
-				return new EvaluationValue(value, Instance);
+				return new EvaluationValue(value, this);
 			}
 			else {
 				return null;
@@ -1419,56 +1287,56 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
-		private static EvaluationType? BinaryArithmeticResult(EvaluationType other, bool closed) {
+		private EvaluationType? BinaryArithmeticResult(EvaluationType other, bool closed) {
 			if (IsPositiveIntegral(other)) {
-				return closed ? Instance : IntEvaluationType.Instance;
+				return closed ? this : Context.GetType<IntEvaluationType>();
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? BinaryOperationClosed(EvaluationValue left, EvaluationValue right, Func<uint, uint, uint> operation) {
+		private EvaluationValue? BinaryOperationClosed(EvaluationValue left, EvaluationValue right, Func<uint, uint, uint> operation) {
 			if (TryGetUInt(left, out uint leftVal) && TryGetUInt(right, out uint rightVal)) {
-				return new EvaluationValue(operation(leftVal, rightVal), Instance);
+				return new EvaluationValue(operation(leftVal, rightVal), this);
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? BinaryOperationNotClosed(EvaluationValue left, EvaluationValue right, Func<uint, uint, int> operation) {
+		private EvaluationValue? BinaryOperationNotClosed(EvaluationValue left, EvaluationValue right, Func<uint, uint, int> operation) {
 			if (TryGetUInt(left, out uint leftVal) && TryGetUInt(right, out uint rightVal)) {
-				return new EvaluationValue(operation(leftVal, rightVal), FloatEvaluationType.Instance);
+				return new EvaluationValue(operation(leftVal, rightVal), Context.GetType<IntEvaluationType>());
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationType? BinaryComparisonResult(EvaluationType other) {
-			if (IsPositiveIntegral(other)) { // Another UFloat-like
-				return BoolEvaluationType.Instance;
+		private EvaluationType? BinaryComparisonResult(EvaluationType other) {
+			if (IsPositiveIntegral(other)) { // Another uint-like
+				return Context.GetType<BoolEvaluationType>();
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? BinaryComparisonAny(EvaluationValue left, EvaluationValue right, Func<uint, uint, bool> operation) {
+		private EvaluationValue? BinaryComparisonAny(EvaluationValue left, EvaluationValue right, Func<uint, uint, bool> operation) {
 			if (TryGetUInt(left, out uint leftVal) && TryGetUInt(right, out uint rightVal)) {
-				return new EvaluationValue(operation(leftVal, rightVal), Instance);
+				return new EvaluationValue(operation(leftVal, rightVal), Context.GetType<BoolEvaluationType>());
 			}
 			else {
 				return null;
 			}
 		}
 
-		public override EvaluationType? PosResult() => Instance;
-		public override EvaluationValue? Pos(EvaluationValue operand) => UnaryArithmetic(operand, (a) => a, Instance);
+		public override EvaluationType? PosResult() => this;
+		public override EvaluationValue? Pos(EvaluationValue operand) => UnaryArithmetic(operand, (a) => a, this);
 
-		public override EvaluationType? NegResult() => FloatEvaluationType.Instance;
-		public override EvaluationValue? Neg(EvaluationValue operand) => UnaryArithmetic(operand, (a) => (int)(-a), IntEvaluationType.Instance);
+		public override EvaluationType? NegResult() => Context.GetType<IntEvaluationType>();
+		public override EvaluationValue? Neg(EvaluationValue operand) => UnaryArithmetic(operand, (a) => (int)(-a), Context.GetType<IntEvaluationType>());
 
 		public override EvaluationType? AddResult(EvaluationType right) => BinaryArithmeticResult(right, true);
 		public override EvaluationType? RAddResult(EvaluationType left) => BinaryArithmeticResult(left, true);
@@ -1521,17 +1389,14 @@ namespace SharpSheets.Evaluations {
 		public override EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => a != b);
 	}
 
-	public sealed class BoolEvaluationType : SingleDataType {
-
-		public static readonly BoolEvaluationType Instance = new BoolEvaluationType();
+	public sealed class BoolEvaluationType : SingleDataType<bool> {
 
 		public override string Name { get; } = "bool";
-		public override Type DataType { get; } = typeof(bool);
 
-		private BoolEvaluationType() : base(Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>()) { }
+		public BoolEvaluationType(EvaluationContext context) : base(context) { }
 
 		public static bool IsBool(EvaluationType other) {
-			return other == Instance;
+			return other is BoolEvaluationType;
 		}
 
 		public static bool AllBool(params EvaluationType[] types) {
@@ -1544,7 +1409,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public static bool TryGetBool(EvaluationValue value, out bool boolean) {
-			if (value.Type == Instance && value.Value is bool boolVal) {
+			if (value.Type is BoolEvaluationType && value.Value is bool boolVal) {
 				boolean = boolVal;
 				return true;
 			}
@@ -1557,7 +1422,7 @@ namespace SharpSheets.Evaluations {
 
 		public override EvaluationValue? Cast(EvaluationValue other) {
 			if (TryGetBool(other, out bool value)) {
-				return new EvaluationValue(value, Instance);
+				return new EvaluationValue(value, this);
 			}
 			else {
 				return null;
@@ -1582,34 +1447,34 @@ namespace SharpSheets.Evaluations {
 			return false;
 		}
 
-		private static EvaluationValue? UnaryOperationAny(EvaluationValue operand, Func<bool, bool> operation) {
+		private EvaluationValue? UnaryOperationAny(EvaluationValue operand, Func<bool, bool> operation) {
 			if (TryGetBool(operand, out bool value)) {
-				return new EvaluationValue(operation(value), Instance);
+				return new EvaluationValue(operation(value), this);
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationType? BinaryComparisonResult(EvaluationType other) {
+		private EvaluationType? BinaryComparisonResult(EvaluationType other) {
 			if (IsBool(other)) { // Another bool
-				return Instance;
+				return this;
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? BinaryComparisonAny(EvaluationValue left, EvaluationValue right, Func<bool, bool, bool> operation) {
+		private EvaluationValue? BinaryComparisonAny(EvaluationValue left, EvaluationValue right, Func<bool, bool, bool> operation) {
 			if (TryGetBool(left, out bool leftVal) && TryGetBool(right, out bool rightVal)) {
-				return new EvaluationValue(operation(leftVal, rightVal), Instance);
+				return new EvaluationValue(operation(leftVal, rightVal), this);
 			}
 			else {
 				return null;
 			}
 		}
 
-		public override EvaluationType? InvertResult() => Instance;
+		public override EvaluationType? InvertResult() => this;
 		public override EvaluationValue? Invert(EvaluationValue operand) => UnaryOperationAny(operand, (a) => !a);
 
 		public override EvaluationType? EqualResult(EvaluationType other) => BinaryComparisonResult(other);
@@ -1631,19 +1496,16 @@ namespace SharpSheets.Evaluations {
 
 	}
 
-	public sealed class StringEvaluationType : SingleDataType {
-
-		public static readonly StringEvaluationType Instance = new StringEvaluationType();
-
-		private static readonly TypeField LengthField = new TypeField("length", IntEvaluationType.Instance, value => new EvaluationValue(((string)value.Value!).Length, IntEvaluationType.Instance));
+	public sealed class StringEvaluationType : SingleDataType<string> {
 
 		public override string Name { get; } = "str";
-		public override Type DataType { get; } = typeof(string);
 
-		private StringEvaluationType() : base(LengthField.Yield(), Enumerable.Empty<TypeField>()) { }
+		public StringEvaluationType(EvaluationContext context) : base(context) {
+			AddField(new TypeField("length", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((string)value.Value!).Length, value.Type.Context.GetType<IntEvaluationType>())));
+		}
 
 		public static bool IsString(EvaluationType other) {
-			return other == Instance;
+			return other is StringEvaluationType;
 		}
 
 		public static bool AllString(params EvaluationType[] types) {
@@ -1656,7 +1518,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public static bool TryGetString(EvaluationValue value, [NotNullWhen(true)] out string? str) {
-			if (value.Type == Instance && value.Value is string stringVal) {
+			if (value.Type is StringEvaluationType && value.Value is string stringVal) {
 				str = stringVal;
 				return true;
 			}
@@ -1669,26 +1531,25 @@ namespace SharpSheets.Evaluations {
 
 		public override EvaluationValue? Cast(EvaluationValue other) {
 			if (TryGetString(other, out string? value)) {
-				return new EvaluationValue(value, Instance);
+				return new EvaluationValue(value, this);
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationType? AddResultAny(EvaluationType other) {
+		private EvaluationType? AddResultAny(EvaluationType other) {
 			if (IsString(other)) { // Another string
-				return Instance;
+				return this;
 			}
-			// TODO Check if other can be converted to string?
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? AddAny(EvaluationValue left, EvaluationValue right) {
+		private EvaluationValue? AddAny(EvaluationValue left, EvaluationValue right) {
 			if (TryGetString(left, out string? leftVal) && TryGetString(right, out string? rightVal)) {
-				return new EvaluationValue(leftVal + rightVal, Instance);
+				return new EvaluationValue(leftVal + rightVal, this);
 			}
 			else {
 				return null;
@@ -1700,9 +1561,9 @@ namespace SharpSheets.Evaluations {
 		public override EvaluationType? RAddResult(EvaluationType left) => AddResultAny(left);
 		public override EvaluationValue? RAdd(EvaluationValue left, EvaluationValue right) => AddAny(left, right);
 
-		private static EvaluationType? MulResultAny(EvaluationType other) {
+		private EvaluationType? MulResultAny(EvaluationType other) {
 			if (IntEvaluationType.IsIntegral(other)) { // An int-like
-				return Instance;
+				return this;
 			}
 			else {
 				return null;
@@ -1717,7 +1578,7 @@ namespace SharpSheets.Evaluations {
 		public override EvaluationType? RMulResult(EvaluationType left) => MulResultAny(left);
 		public override EvaluationValue? Mul(EvaluationValue left, EvaluationValue right) {
 			if (TryGetString(left, out string? stringVal) && IntEvaluationType.TryGetInt(right, out int intVal)) {
-				return new EvaluationValue(RepeatString(stringVal, intVal), Instance);
+				return new EvaluationValue(RepeatString(stringVal, intVal), this);
 			}
 			else {
 				return null;
@@ -1725,30 +1586,43 @@ namespace SharpSheets.Evaluations {
 		}
 		public override EvaluationValue? RMul(EvaluationValue left, EvaluationValue right) {
 			if (IntEvaluationType.TryGetInt(left, out int intVal) && TryGetString(right, out string? stringVal)) {
-				return new EvaluationValue(RepeatString(stringVal, intVal), Instance);
+				return new EvaluationValue(RepeatString(stringVal, intVal), this);
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationType? BinaryComparisonResult(EvaluationType other) {
+		private EvaluationType? BinaryComparisonResult(EvaluationType other) {
 			if (IsString(other)) { // Another string
-				return BoolEvaluationType.Instance;
+				return Context.GetType<BoolEvaluationType>();
 			}
 			else {
 				return null;
 			}
 		}
 
-		private static EvaluationValue? BinaryComparisonAny(EvaluationValue left, EvaluationValue right, Func<string, string, bool> operation) {
+		private EvaluationValue? BinaryComparisonAny(EvaluationValue left, EvaluationValue right, Func<string, string, bool> operation) {
 			if (TryGetString(left, out string? leftVal) && TryGetString(right, out string? rightVal)) {
-				return new EvaluationValue(operation(leftVal, rightVal), Instance);
+				return new EvaluationValue(operation(leftVal, rightVal), Context.GetType<BoolEvaluationType>());
 			}
 			else {
 				return null;
 			}
 		}
+
+		public override EvaluationType? LessThanResult(EvaluationType other) => BinaryComparisonResult(other);
+		public override EvaluationValue? LessThan(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => string.CompareOrdinal(a, b) < 0);
+
+		public override EvaluationType? LessThanEqualResult(EvaluationType other) => BinaryComparisonResult(other);
+		public override EvaluationValue? LessThanEqual(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => string.CompareOrdinal(a, b) <= 0);
+
+		public override EvaluationType? GreaterThanResult(EvaluationType other) => BinaryComparisonResult(other);
+		public override EvaluationValue? GreaterThan(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => string.CompareOrdinal(a, b) > 0);
+
+		public override EvaluationType? GreaterThanEqualResult(EvaluationType other) => BinaryComparisonResult(other);
+		public override EvaluationValue? GreaterThanEqual(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => string.CompareOrdinal(a, b) >= 0);
+
 
 		public override EvaluationType? EqualResult(EvaluationType other) => BinaryComparisonResult(other);
 		public override EvaluationValue? Equal(EvaluationValue left, EvaluationValue right) => BinaryComparisonAny(left, right, (a, b) => a.Equals(b));
@@ -1758,7 +1632,7 @@ namespace SharpSheets.Evaluations {
 
 		public override EvaluationType? IndexerResult(EvaluationType index) {
 			if (IntEvaluationType.IsIntegral(index)) {
-				return Instance;
+				return this;
 			}
 			else {
 				return null;
@@ -1767,7 +1641,7 @@ namespace SharpSheets.Evaluations {
 		public override EvaluationValue? Indexer(EvaluationValue subject, EvaluationValue index) {
 			if(TryGetString(subject, out string? subjectVal) && IntEvaluationType.TryGetInt(index, out int indexVal)) {
 				int indexFinal = EvaluationTypeHelpers.GetIndex(indexVal, subjectVal.Length);
-				return new EvaluationValue(subjectVal[indexFinal].ToString(), Instance);
+				return new EvaluationValue(subjectVal[indexFinal].ToString(), this);
 			}
 			else {
 				return null;
@@ -1776,7 +1650,7 @@ namespace SharpSheets.Evaluations {
 
 		public override EvaluationType? IndexerSliceResult(EvaluationType start, EvaluationType end) {
 			if (IntEvaluationType.IsIntegral(start) && IntEvaluationType.IsIntegral(end)) {
-				return Instance;
+				return this;
 			}
 			else {
 				return null;
@@ -1785,7 +1659,7 @@ namespace SharpSheets.Evaluations {
 		public override EvaluationValue? IndexerSlice(EvaluationValue subject, EvaluationValue start, EvaluationValue end) {
 			if (TryGetString(subject, out string? subjectVal) && IntEvaluationType.TryGetInt(start, out int startVal) && IntEvaluationType.TryGetInt(end, out int endVal)) {
 				EvaluationTypeHelpers.GetSliceIndexes(startVal, endVal, subjectVal.Length, out int startFinal, out int endFinal);
-				return new EvaluationValue(subjectVal[startFinal..endFinal].ToString(), Instance);
+				return new EvaluationValue(subjectVal[startFinal..endFinal].ToString(), this);
 			}
 			else {
 				return null;
@@ -1798,37 +1672,47 @@ namespace SharpSheets.Evaluations {
 
 		public EvaluationType ElementType { get; }
 
-		protected CollectionEvaluationType(EvaluationType elementType, IEnumerable<TypeField> fields, IEnumerable<TypeField> staticFields) : base(fields, staticFields) {
+		protected CollectionEvaluationType(EvaluationContext context, EvaluationType elementType) : base(context) {
 			this.ElementType = elementType;
 		}
 
 		public override string Name {
 			get {
-				return ElementType.Name + GetCollectionBrackets();
+				StringBuilder sb = new StringBuilder();
+				EvaluationType baseType = this;
+				while(baseType is CollectionEvaluationType subCollection) {
+					baseType = subCollection.ElementType;
+					sb.Append(subCollection.GetMyCollectionBrackets());
+				}
+				return baseType.Name + sb.ToString();
+
+				//return ElementType.Name + GetCollectionBrackets();
 			}
 		}
 
+		/*
 		private string GetCollectionBrackets() {
 			return GetMyCollectionBrackets() + (ElementType is CollectionEvaluationType subCollection ? subCollection.GetCollectionBrackets() : "");
 		}
+		*/
 
 		protected abstract string GetMyCollectionBrackets();
 
-		public override bool CanImplicitCastFrom(EvaluationType other) => false; // All collection casting requires more information
-		public abstract bool CanImplicitCastFrom(EvaluationType other, EvaluationTypeSystem typeSystem, [NotNullWhen(true)] out EvaluationType? lubType);
+		public override bool CanImplicitCastFrom(EvaluationType other) => base.CanImplicitCastFrom(other); // All collection casting requires more information
+		public abstract bool CanImplicitCastFrom(EvaluationType other, [NotNullWhen(true)] out EvaluationType? lubType);
 
 	}
 
 	public class ArrayEvaluationType : CollectionEvaluationType {
 
-		private static readonly TypeField LengthField = new TypeField("length", IntEvaluationType.Instance, value => new EvaluationValue(((Array)value.Value!).Length, IntEvaluationType.Instance));
-
 		public override Type DataType { get; }
 		public override Type DisplayType { get; }
 
-		internal ArrayEvaluationType(EvaluationType elementType, IEnumerable<TypeField> fields) : base(elementType, fields.Append(LengthField), Enumerable.Empty<TypeField>()) {
+		internal ArrayEvaluationType(EvaluationContext context, EvaluationType elementType) : base(context, elementType) {
 			this.DataType = this.ElementType.DataType.MakeArrayType(1);
 			this.DisplayType = this.ElementType.DisplayType.MakeArrayType(1);
+
+			AddField(new TypeField("length", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((Array)value.Value!).Length, value.Type.Context.GetType<IntEvaluationType>())));
 		}
 
 		protected override string GetMyCollectionBrackets() {
@@ -1860,8 +1744,8 @@ namespace SharpSheets.Evaluations {
 			return new EvaluationValue(final, elementType.MakeArray());
 		}
 
-		public override bool CanImplicitCastFrom(EvaluationType other, EvaluationTypeSystem typeSystem, [NotNullWhen(true)] out EvaluationType? lubType) {
-			if(other is CollectionEvaluationType collection && typeSystem.TryGetLeastUpperBoundType(ElementType, collection.ElementType, out EvaluationType? lubElement)) {
+		public override bool CanImplicitCastFrom(EvaluationType other, [NotNullWhen(true)] out EvaluationType? lubType) {
+			if(other is CollectionEvaluationType collection && Context.TryGetLeastUpperBoundType(ElementType, collection.ElementType, out EvaluationType? lubElement)) {
 				lubType = lubElement.MakeArray();
 				return true;
 			}
@@ -2010,15 +1894,13 @@ namespace SharpSheets.Evaluations {
 
 		public int ElementCount { get; }
 
-		internal TupleEvaluationType(EvaluationType elementType, int elementCount, IEnumerable<TypeField> fields) : base(elementType, fields.Append(MakeLengthField(elementCount)), Enumerable.Empty<TypeField>()) {
+		internal TupleEvaluationType(EvaluationContext context, EvaluationType elementType, int elementCount) : base(context, elementType) {
 			this.DataType = TupleUtils.MakeGenericTupleType(this.ElementType.DataType, elementCount);
 			this.DisplayType = TupleUtils.MakeGenericTupleType(this.ElementType.DisplayType, elementCount);
 
 			this.ElementCount = elementCount;
-		}
 
-		private static TypeField MakeLengthField(int elementCount) {
-			return new TypeField("length", IntEvaluationType.Instance, value => new EvaluationValue(elementCount, IntEvaluationType.Instance));
+			AddField(new TypeField("length", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(elementCount, value.Type.Context.GetType<IntEvaluationType>())));
 		}
 
 		protected override string GetMyCollectionBrackets() {
@@ -2030,8 +1912,8 @@ namespace SharpSheets.Evaluations {
 			return new EvaluationValue(TupleUtils.CreateTuple(tupleType, values.Select(v => v.Value).ToArray()), elementType.MakeTuple(values.Count));
 		}
 
-		public override bool CanImplicitCastFrom(EvaluationType other, EvaluationTypeSystem typeSystem, [NotNullWhen(true)] out EvaluationType? lubType) {
-			if (other is TupleEvaluationType otherTuple && ElementCount == otherTuple.ElementCount && typeSystem.TryGetLeastUpperBoundType(ElementType, otherTuple.ElementType, out EvaluationType? lubElement)) {
+		public override bool CanImplicitCastFrom(EvaluationType other, [NotNullWhen(true)] out EvaluationType? lubType) {
+			if (other is TupleEvaluationType otherTuple && ElementCount == otherTuple.ElementCount && Context.TryGetLeastUpperBoundType(ElementType, otherTuple.ElementType, out EvaluationType? lubElement)) {
 				lubType = lubElement.MakeTuple(ElementCount);
 				return true;
 			}
@@ -2110,9 +1992,7 @@ namespace SharpSheets.Evaluations {
 		public IReadOnlySet<string> EnumNames { get; }
 		private readonly int enumNamesHash;
 
-		// TODO This should have a static field for returning an array of the enum values
-
-		internal EnumEvaluationType(string name, IEnumerable<string> enumValues, Type systemType) : base(Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>()) {
+		public EnumEvaluationType(EvaluationContext context, string name, IEnumerable<string> enumValues, Type systemType) : base(context) {
 			this.Name = name;
 
 			this.SystemType = systemType;
@@ -2121,15 +2001,43 @@ namespace SharpSheets.Evaluations {
 			enumNamesHash = GetEnumNamesHashCode(this.EnumNames);
 		}
 
+		public static EnumEvaluationType FromSystemType<T>(EvaluationContext context) where T : Enum {
+			return new EnumEvaluationType(context, typeof(T).Name, Enum.GetNames(typeof(T)), typeof(T));
+		}
+		public static EnumEvaluationType FromSystemType(EvaluationContext context, Type type) {
+			if (!type.IsEnum) { throw new ArgumentException("System type must be an enum type.", nameof(type)); }
+			return new EnumEvaluationType(context, type.Name, Enum.GetNames(type), type);
+		}
+
 		public static bool IsEnum(EvaluationType type) {
 			return type is EnumEvaluationType;
+		}
+
+		public static bool IsEnum(EvaluationType type, [NotNullWhen(true)] out EnumEvaluationType? enumType) {
+			enumType = type as EnumEvaluationType;
+			return enumType is not null;
 		}
 
 		public bool IsEnumValueDefined(string name) {
 			return EnumNames?.Contains(name) ?? false;
 		}
 
-		protected bool TryGetEnumValue(EvaluationValue value, [NotNullWhen(true)] out string? enumValue) {
+		public static bool TryGetEnumValue<T>(EvaluationValue value, [NotNullWhen(true)] out T? enumValue) where T : struct {
+			if (value.Value is T enumData) {
+				enumValue = enumData;
+				return true;
+			}
+			else if (value.Value is string stringData && Enum.TryParse(stringData, true, out T parsed)) {
+				enumValue = parsed;
+				return true;
+			}
+			else {
+				enumValue = default;
+				return false;
+			}
+		}
+
+		public bool TryGetEnumValue(EvaluationValue value, [NotNullWhen(true)] out string? enumValue) {
 			if(value.Value is Enum enumData && enumData.GetType() == SystemType) {
 				enumValue = enumData.ToString();
 				return true;
@@ -2144,16 +2052,31 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
+		public bool TryGetEnumValue(EvaluationValue value, [NotNullWhen(true)] out Enum? enumValue) {
+			if (value.Value is Enum enumData && enumData.GetType() == SystemType) {
+				enumValue = enumData;
+				return true;
+			}
+			else if (value.Value is string stringData && Enum.TryParse(SystemType, stringData, true, out object? parsed) && parsed is Enum parsedEnum) {
+				enumValue = parsedEnum;
+				return true;
+			}
+			else {
+				enumValue = null;
+				return false;
+			}
+		}
+
 		// No implicit casting for enums
-		public override bool CanImplicitCastFrom(EvaluationType other) => false;
-		public override EvaluationValue? Cast(EvaluationValue other) => null; // Should this convert string values if possible?
+		//public override bool CanImplicitCastFrom(EvaluationType other) => false;
+		//public override EvaluationValue? Cast(EvaluationValue other) => null; // Should this convert string values if possible?
 
 		private EvaluationType? EqualityResultAny(EvaluationType other) {
 			if (other == this) { // Is the same as us
-				return BoolEvaluationType.Instance;
+				return Context.GetType<BoolEvaluationType>();
 			}
-			else if(other == StringEvaluationType.Instance) { // Is a string value
-				return BoolEvaluationType.Instance;
+			else if(StringEvaluationType.IsString(other)) { // Is a string value
+				return Context.GetType<BoolEvaluationType>();
 			}
 			else {
 				return null;
@@ -2162,7 +2085,7 @@ namespace SharpSheets.Evaluations {
 
 		private EvaluationValue? BinaryComparisonAny(EvaluationValue left, EvaluationValue right, Func<string, string, bool> operation) {
 			if (TryGetEnumValue(left, out string? leftVal) && TryGetEnumValue(right, out string? rightVal)) {
-				return new EvaluationValue(operation(leftVal, rightVal), this);
+				return new EvaluationValue(operation(leftVal, rightVal), Context.GetType<BoolEvaluationType>());
 			}
 			else {
 				return null;
@@ -2210,14 +2133,17 @@ namespace SharpSheets.Evaluations {
 		public override Type DataType { get; }
 		public override Type DisplayType => DataType;
 
-		public CustomEvaluationType(string name, IEnumerable<TypeField> fields, IEnumerable<TypeField> staticFields, Type systemType) : base(fields, staticFields) {
+		public CustomEvaluationType(EvaluationContext context, string name, IEnumerable<TypeField> fields, IEnumerable<TypeField> staticFields, Type systemType) : base(context) {
 			this.Name = name;
 			this.DataType = systemType;
+
+			foreach (TypeField field in fields) { AddField(field); }
+			foreach (TypeField staticField in staticFields) { AddStaticField(staticField); }
 		}
 
 		// TODO This needs some implementation?
-		public override bool CanImplicitCastFrom(EvaluationType other) => false;
-		public override EvaluationValue? Cast(EvaluationValue other) => null;
+		public override bool CanImplicitCastFrom(EvaluationType other) => base.CanImplicitCastFrom(other);
+		public override EvaluationValue? Cast(EvaluationValue other) => base.Cast(other);
 
 		protected override bool EqualTypeData(EvaluationType other) {
 			return Name == other.Name
@@ -2226,168 +2152,6 @@ namespace SharpSheets.Evaluations {
 
 		protected override int GetTypeHashCode() {
 			return HashCode.Combine(Name, DataType);
-		}
-
-	}
-
-	public class EvaluationTypeSystem {
-
-		public static EvaluationTypeSystem Create(params EvaluationType[] providedTypes) {
-			return Create((IEnumerable<EvaluationType>)providedTypes);
-		}
-
-		public static EvaluationTypeSystem Create(IEnumerable<EvaluationType> providedTypes) {
-			EvaluationType[] types = providedTypes.Distinct().ToArray();
-			SymmetricMatrix<bool> known = new SymmetricMatrix<bool>(types.Length);
-			SymmetricMatrix<int> directConversions = new SymmetricMatrix<int>(types.Length);
-
-			// Step 1: Find known type conversions
-			for (int super = 0; super < types.Length; super++) {
-				for (int sub = super; sub < types.Length; sub++) {
-					directConversions[super, sub] = -1;
-					known[super, sub] = false;
-
-					if (super == sub) {
-						// Trivial case
-						directConversions[super, sub] = super;
-						known[super, sub] = true;
-					}
-					else {
-						if (types[super].CanImplicitCastFrom(types[sub])) {
-							directConversions[super, sub] = super;
-							known[super, sub] = true;
-						}
-						if (types[sub].CanImplicitCastFrom(types[super])) {
-							if (!known[sub, super]) {
-								directConversions[super, sub] = sub;
-							}
-							else {
-								// Implicit type conversion is known to be ill-defined
-								directConversions[super, sub] = -1;
-							}
-							known[super, sub] = true;
-						}
-					}
-				}
-			}
-
-			void CollectColumn(int b, HashSet<int> collection) {
-				for (int a = 0; a < types.Length; a++) {
-					if (a != b && known[a, b] && directConversions[a, b] >= 0) {
-						collection.Add(directConversions[a, b]);
-					}
-				}
-			}
-
-			// Step 2: Fill in unknown
-			SymmetricMatrix<int> finalPromotions = directConversions.Copy();
-			// Should this process be repeated until there are no changes?
-			for (int a = 1; a < types.Length; a++) {
-				for (int b = a; b < types.Length; b++) {
-					if (!known[a, b]) {
-						HashSet<int> allParents = new HashSet<int>();
-						CollectColumn(a, allParents);
-						CollectColumn(b, allParents);
-
-						if (allParents.Count > 1) {
-							foreach (int parent in allParents.ToList()) {
-								foreach (int child in allParents.ToList()) {
-									if (allParents.Contains(parent) && allParents.Contains(child)) {
-										if (directConversions[parent, child] == parent) {
-											allParents.Remove(parent);
-										}
-									}
-								}
-							}
-						}
-
-						if (allParents.Count == 1) {
-							finalPromotions[a, b] = allParents.First();
-							known[a, b] = true;
-						}
-						else {
-							known[a, b] = true; // Either there are no parents, or too many
-						}
-					}
-				}
-			}
-
-			Dictionary<(EvaluationType, EvaluationType), EvaluationType> promotions = new Dictionary<(EvaluationType, EvaluationType), EvaluationType>();
-			for (int a = 0; a < types.Length; a++) {
-				for (int b = 0; b < types.Length; b++) {
-					if (finalPromotions[a,b] >= 0) {
-						promotions[(types[a], types[b])] = types[finalPromotions[a, b]];
-					}
-				}
-			}
-
-			return new EvaluationTypeSystem(types, promotions);
-		}
-
-		private readonly EvaluationType[] types;
-		public IEnumerable<EvaluationType> Types => types;
-
-		private readonly Dictionary<(EvaluationType, EvaluationType),  EvaluationType> promotions;
-
-		private EvaluationTypeSystem(EvaluationType[] types, Dictionary<(EvaluationType, EvaluationType), EvaluationType> promotions) {
-			this.types = types;
-			this.promotions = promotions;
-		}
-
-		public bool TryGetLeastUpperBoundType(EvaluationType a, EvaluationType b, [NotNullWhen(true)] out EvaluationType? lubType) {
-			if (a.Equals(b)) {
-				lubType = a;
-				return true;
-			}
-			else if (promotions.TryGetValue((a, b), out EvaluationType? promoted)) {
-				lubType = promoted;
-				return true;
-			}
-			// Dislike that these have to be special-cased like this here, but it would need a generic system to solve, and we're not doing that just yet
-			else if(a is CollectionEvaluationType aCollection && aCollection.CanImplicitCastFrom(b, this, out EvaluationType? aLubCollection)) {
-				lubType = aLubCollection;
-				return true;
-			}
-			else if(b is CollectionEvaluationType bCollection && bCollection.CanImplicitCastFrom(a, this, out EvaluationType? bLubCollection)) {
-				lubType = bLubCollection;
-				return true;
-			}
-			else if (a.CanImplicitCastFrom(b)) {
-				lubType = a;
-				return true;
-			}
-			else if (b.CanImplicitCastFrom(a)) {
-				lubType = b;
-				return true;
-			}
-
-			lubType = null;
-			return false;
-		}
-
-		public bool TryGetLeastUpperBoundType(IEnumerable<EvaluationType> types, [NotNullWhen(true)] out EvaluationType? lubType) {
-			EvaluationType? lub = null;
-			foreach (EvaluationType type in types) {
-				if (lub is null) {
-					lub = type;
-				}
-				else if (TryGetLeastUpperBoundType(lub, type, out EvaluationType? newLub)) {
-					lub = newLub;
-				}
-				else {
-					lubType = null;
-					return false;
-				}
-			}
-
-			if (lub is not null) {
-				lubType = lub;
-				return true;
-			}
-			else {
-				lubType = null;
-				return false;
-			}
 		}
 
 	}

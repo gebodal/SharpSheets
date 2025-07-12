@@ -10,91 +10,187 @@ using SharpSheets.Canvas.Text;
 using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Markup.Parsing;
 using System.Diagnostics.CodeAnalysis;
+using SharpSheets.Colors;
 
 namespace SharpSheets.Markup.Canvas {
 
-	public class ColorStopExpression : IExpression<ColorStop> {
-		public FloatExpression Stop { get { return IsConstant ? value!.Stop : stop!; } }
-		public ColorExpression Color { get { return IsConstant ? value!.Color : color!; } }
+	public class ColorExpression : IExpression<Color> {
+		public EvaluationNode Evaluation { get { return value ?? evaluation!; } }
+		private readonly EvaluationNode? evaluation;
+		private readonly EvaluationValue? value;
+		private FloatExpression? Opacity { get; set; }
 
-		public bool IsConstant { get { return value != null; } }
+		public bool IsConstant { get { return value.HasValue && (Opacity == null || Opacity.IsConstant); } }
 
-		private readonly FloatExpression? stop;
-		private readonly ColorExpression? color;
-		private readonly ColorStop? value;
+		public EvaluationContext Context => value?.Type.Context ?? evaluation!.Context;
 
-		public ColorStopExpression(FloatExpression stop, ColorExpression color) {
-			this.stop = stop;
-			this.color = color;
-			this.value = null;
-		}
-		public ColorStopExpression(ColorStop value) {
-			this.stop = null;
-			this.color = null;
-			this.value = value;
-		}
-		public static implicit operator ColorStopExpression(ColorStop value) {
-			return new ColorStopExpression(value);
-		}
-
-		public IEnumerable<EvaluationName> GetVariables() {
-			return IsConstant ? Enumerable.Empty<EvaluationName>() : stop!.GetVariables().Concat(color!.GetVariables());
-		}
-
-		public ColorStop Evaluate(IEnvironment environment) {
-			if (value != null) {
-				return value;
+		/// <summary></summary>
+		/// <exception cref="EvaluationTypeException"></exception>
+		/// <exception cref="EvaluationCalculationException"></exception>
+		public ColorExpression(EvaluationNode evaluation) {
+			EvaluationType evalType = evaluation.GetReturnType();
+			if (ColorEvaluationType.IsColor(evalType) || StringEvaluationType.IsString(evalType)) {
+				if (evaluation.IsConstant) {
+					this.evaluation = null;
+					EvaluationValue result = evaluation.Evaluate(Environments.Empty(evaluation.Context));
+					if (ColorEvaluationType.TryGetColor(result, out Color color)) {
+						value = new EvaluationValue(color, evaluation.Context.GetType<ColorEvaluationType>());
+					}
+					else if (StringEvaluationType.TryGetString(result, out string? colorStr)) {
+						value = new EvaluationValue(ParseColor(colorStr), evaluation.Context.GetType<ColorEvaluationType>());
+					}
+					else {
+						throw new EvaluationTypeException("Invalid expression type.");
+					}
+				}
+				else {
+					this.evaluation = evaluation;
+					this.value = null;
+				}
 			}
 			else {
-				return new ColorStop(stop!.Evaluate(environment).Clamp(0f, 1f), color!.Evaluate(environment));
+				throw new EvaluationTypeException("Invalid expression type.");
+			}
+		}
+		public ColorExpression(Color value, EvaluationContext context) {
+			this.evaluation = null;
+			this.value = new EvaluationValue(value, context.GetType<ColorEvaluationType>());
+		}
+		/*
+		public static implicit operator ColorExpression(Color value) {
+			return new ColorExpression(value);
+		}
+		*/
+
+		public IEnumerable<EvaluationName> GetVariables() {
+			if (evaluation is not null) {
+				foreach (EvaluationName name in evaluation.GetVariables()) { yield return name; }
+			}
+			if (Opacity is not null) {
+				foreach (EvaluationName name in Opacity.GetVariables()) { yield return name; }
+			}
+		}
+
+		/// <summary></summary>
+		/// <exception cref="EvaluationTypeException"></exception>
+		/// <exception cref="EvaluationCalculationException"></exception>
+		public static ColorExpression Parse(string text, IVariableBox variables) {
+			try {
+				return new ColorExpression(ColorUtils.Parse(text), variables.Context);
+			}
+			catch (FormatException) { }
+			return new ColorExpression(Evaluations.Evaluation.Parse(text, variables));
+		}
+
+		/// <summary></summary>
+		/// <exception cref="EvaluationTypeException"></exception>
+		/// <exception cref="EvaluationCalculationException"></exception>
+		public ColorExpression WithOpacity(FloatExpression opacity) {
+			if (value.HasValue) {
+				return new ColorExpression(value.Value) { Opacity = opacity };
+			}
+			else {
+				return new ColorExpression(evaluation!) { Opacity = opacity };
+			}
+		}
+
+		public Color Evaluate(IEnvironment environment) {
+			Color result;
+			if (value.HasValue && ColorEvaluationType.TryGetColor(value.Value, out Color valueColor)) {
+				result = valueColor;
+			}
+			else {
+				EvaluationValue eval = evaluation!.Evaluate(environment);
+				if (ColorEvaluationType.TryGetColor(eval, out Color color)) {
+					result = color;
+				}
+				else if (StringEvaluationType.TryGetString(eval, out string? colorStr)) {
+					result = ParseColor(colorStr);
+				}
+				else {
+					throw new EvaluationCalculationException("Invalid expression type.");
+				}
+			}
+			if (Opacity != null) {
+				float opacity = this.Opacity.Evaluate(environment);
+				result = result.WithOpacity(opacity);
+			}
+			return result;
+		}
+
+		/// <summary></summary>
+		/// <exception cref="EvaluationCalculationException"></exception>
+		private static Color ParseColor(string colorStr) {
+			try {
+				return ColorUtils.Parse(colorStr);
+			}
+			catch (FormatException e) {
+				throw new EvaluationCalculationException($"Could not parse color string \"{colorStr}\".", e);
 			}
 		}
 	}
 
+	public class ColorStopExpression : IExpression<ColorStop> {
+		public FloatExpression Stop { get; }
+		public ColorExpression Color { get; }
+
+		public bool IsConstant { get { return Stop.IsConstant && Color.IsConstant; } }
+
+		public EvaluationContext Context => Stop.Context;
+
+		public ColorStopExpression(FloatExpression stop, ColorExpression color) {
+			this.Stop = stop;
+			this.Color = color;
+		}
+		public ColorStopExpression(ColorStop value, EvaluationContext context) {
+			this.Stop = new FloatExpression(value.Stop, context);
+			this.Color = new ColorExpression(value.Color, context);
+		}
+		/*
+		public static implicit operator ColorStopExpression(ColorStop value) {
+			return new ColorStopExpression(value);
+		}
+		*/
+
+		public IEnumerable<EvaluationName> GetVariables() {
+			return Expressions.GetVariables(Stop, Color);
+		}
+
+		public ColorStop Evaluate(IEnvironment environment) {
+			return new ColorStop(Stop.Evaluate(environment).Clamp(0f, 1f), Color.Evaluate(environment));
+		}
+	}
+
 	public class DrawPointExpression : IExpression<DrawPoint> {
-		public FloatExpression X { get { return value.HasValue ? value.Value.X : x!; } }
-		public FloatExpression Y { get { return value.HasValue ? value.Value.Y : y!; } }
+		public FloatExpression X { get; }
+		public FloatExpression Y { get; }
 
-		public bool IsConstant { get { return value.HasValue; } }
+		public bool IsConstant { get { return X.IsConstant && Y.IsConstant; } }
 
-		private readonly FloatExpression? x;
-		private readonly FloatExpression? y;
-		private readonly DrawPoint? value;
+		public EvaluationContext Context => X.Context;
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public DrawPointExpression(FloatExpression x, FloatExpression y) {
-			if (x.IsConstant && y.IsConstant) {
-				this.x = null;
-				this.y = null;
-				this.value = new DrawPoint(x.Evaluate(Environments.Empty), y.Evaluate(Environments.Empty));
-			}
-			else {
-				this.x = x;
-				this.y = y;
-				this.value = null;
-			}
+			X = x;
+			Y = y;
 		}
-		public DrawPointExpression(DrawPoint value) {
-			this.x = null;
-			this.y = null;
-			this.value = value;
+		public DrawPointExpression(DrawPoint value, EvaluationContext context) {
+			X = new FloatExpression(value.X, context);
+			Y = new FloatExpression(value.Y, context);
 		}
+		/*
 		public static implicit operator DrawPointExpression(DrawPoint value) {
 			return new DrawPointExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
-			return IsConstant ? Enumerable.Empty<EvaluationName>() : x!.GetVariables().Concat(y!.GetVariables());
+			return Expressions.GetVariables(X, Y);
 		}
 
 		public DrawPoint Evaluate(IEnvironment environment) {
-			if (value.HasValue) {
-				return value.Value;
-			}
-			else {
-				return new DrawPoint(x!.Evaluate(environment), y!.Evaluate(environment));
-			}
+			return new DrawPoint(X.Evaluate(environment), Y.Evaluate(environment));
 		}
 
 		public static DrawPointExpression operator +(DrawPointExpression a, DrawPointExpression b) {
@@ -106,40 +202,33 @@ namespace SharpSheets.Markup.Canvas {
 	}
 
 	public class VectorExpression : IExpression<Vector> {
-		public FloatExpression X { get { return value.HasValue ? value.Value.X : x!; } }
-		public FloatExpression Y { get { return value.HasValue ? value.Value.Y : y!; } }
+		public FloatExpression X { get; }
+		public FloatExpression Y { get; }
 
-		public bool IsConstant { get { return value.HasValue; } }
+		public bool IsConstant { get { return X.IsConstant && Y.IsConstant; } }
 
-		private readonly FloatExpression? x;
-		private readonly FloatExpression? y;
-		private readonly Vector? value;
+		public EvaluationContext Context => X.Context;
 
 		public VectorExpression(FloatExpression x, FloatExpression y) {
-			this.x = x;
-			this.y = y;
-			this.value = null;
+			X = x;
+			Y = y;
 		}
-		public VectorExpression(Vector value) {
-			this.x = null;
-			this.y = null;
-			this.value = value;
+		public VectorExpression(Vector value, EvaluationContext context) {
+			X = new FloatExpression(value.X, context);
+			Y = new FloatExpression(value.Y, context);
 		}
+		/*
 		public static implicit operator VectorExpression(Vector value) {
 			return new VectorExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
-			return IsConstant ? Enumerable.Empty<EvaluationName>() : x!.GetVariables().Concat(y!.GetVariables());
+			return Expressions.GetVariables(X, Y);
 		}
 
 		public Vector Evaluate(IEnvironment environment) {
-			if (value.HasValue) {
-				return value.Value;
-			}
-			else {
-				return new Vector(x!.Evaluate(environment), y!.Evaluate(environment));
-			}
+			return new Vector(X.Evaluate(environment), Y.Evaluate(environment));
 		}
 
 		public static VectorExpression operator +(VectorExpression a, VectorExpression b) {
@@ -151,56 +240,35 @@ namespace SharpSheets.Markup.Canvas {
 	}
 
 	public class SizeExpression : IExpression<Size> {
-		public FloatExpression Width { get { return value != null ? value.Width : width!; } }
-		public FloatExpression Height { get { return value != null ? value.Height : height!; } }
+		public FloatExpression Width { get; }
+		public FloatExpression Height { get; }
 
-		public bool IsConstant { get { return value != null; } }
+		public bool IsConstant => Width.IsConstant && Height.IsConstant;
 
-		private readonly FloatExpression? width;
-		private readonly FloatExpression? height;
-		private readonly Size? value;
+		public EvaluationContext Context => Width.Context;
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public SizeExpression(FloatExpression width, FloatExpression height) {
-			if (width.IsConstant && height.IsConstant) {
-				this.width = null;
-				this.height = null;
-				this.value = EvaluateSize(Environments.Empty, width, height);
-			}
-			else {
-				this.width = width;
-				this.height = height;
-				this.value = null;
-			}
+			Width = width;
+			Height = height;
 		}
-		public SizeExpression(Size value) {
-			this.width = null;
-			this.height = null;
-			this.value = value;
+		public SizeExpression(Size value, EvaluationContext context) {
+			Width = new FloatExpression(value.Width, context);
+			Height = new FloatExpression(value.Height, context);
 		}
+		/*
 		public static implicit operator SizeExpression(Size value) {
 			return new SizeExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
-			return IsConstant ? Enumerable.Empty<EvaluationName>() : width!.GetVariables().Concat(height!.GetVariables());
+			return Expressions.GetVariables(Width, Height);
 		}
 
 		public Size Evaluate(IEnvironment environment) {
-			if (value != null) {
-				return value;
-			}
-			else {
-				return EvaluateSize(environment, width!, height!);
-			}
-		}
-
-		/// <summary></summary>
-		/// <exception cref="EvaluationCalculationException"></exception>
-		/// <exception cref="EvaluationTypeException"></exception>
-		private static Size EvaluateSize(IEnvironment environment, FloatExpression width, FloatExpression height) {
-			return new Size(width.Evaluate(environment), height.Evaluate(environment));
+			return new Size(Width.Evaluate(environment), Height.Evaluate(environment));
 		}
 
 		public override string ToString() {
@@ -209,23 +277,19 @@ namespace SharpSheets.Markup.Canvas {
 	}
 
 	public class RectangleExpression : IExpression<Rectangle> {
-		public FloatExpression X { get { return value != null ? value.X : x!; } }
-		public FloatExpression Y { get { return value != null ? value.Y : y!; } }
-		public FloatExpression Width { get { return value != null ? value.Width : width!; } }
-		public FloatExpression Height { get { return value != null ? value.Height : height!; } }
+		public FloatExpression X { get; }
+		public FloatExpression Y { get; }
+		public FloatExpression Width { get; }
+		public FloatExpression Height { get; }
 
-		public FloatExpression Left { get { return value != null ? value.Left : x!; } }
-		public FloatExpression Bottom { get { return value != null ? value.Bottom : y!; } }
-		public FloatExpression Right { get { return value != null ? value.Right : (x! + width!); } }
-		public FloatExpression Top { get { return value != null ? value.Top : (y! + height!); } }
+		public FloatExpression Left => X;
+		public FloatExpression Bottom => Y;
+		public FloatExpression Right => X + Width;
+		public FloatExpression Top => Y + Height;
 
-		public bool IsConstant { get { return value != null; } }
+		public bool IsConstant => X.IsConstant && Y.IsConstant && Width.IsConstant && Height.IsConstant;
 
-		private readonly FloatExpression? x;
-		private readonly FloatExpression? y;
-		private readonly FloatExpression? width;
-		private readonly FloatExpression? height;
-		private readonly Rectangle? value;
+		public EvaluationContext Context => X.Context;
 
 		/// <summary>
 		/// 
@@ -236,52 +300,31 @@ namespace SharpSheets.Markup.Canvas {
 		/// <param name="_height" default="$height"></param>
 		/// <exception cref="EvaluationException"></exception>
 		public RectangleExpression(FloatExpression _x, FloatExpression _y, FloatExpression _width, FloatExpression _height) {
-			if(_x.IsConstant && _y.IsConstant && _width.IsConstant && _height.IsConstant) {
-				this.x = null;
-				this.y = null;
-				this.width = null;
-				this.height = null;
-				this.value = EvaluateRect(Environments.Empty, _x, _y, _width, _height);
-			}
-			else {
-				this.x = _x;
-				this.y = _y;
-				this.width = _width;
-				this.height = _height;
-				this.value = null;
-			}
+			X = _x;
+			Y = _y;
+			Width = _width;
+			Height = _height;
 		}
-		public RectangleExpression(Rectangle value) {
-			this.x = null;
-			this.y = null;
-			this.width = null;
-			this.height = null;
-			this.value = value;
+		public RectangleExpression(Rectangle value, EvaluationContext context) {
+			X = new FloatExpression(value.X, context);
+			Y = new FloatExpression(value.Y, context);
+			Width = new FloatExpression(value.Width, context);
+			Height = new FloatExpression(value.Height, context);
 		}
+		/*
 		[return: NotNullIfNotNull(nameof(value))]
 		public static implicit operator RectangleExpression?(Rectangle? value) {
 			if (value is null) { return null; }
 			return new RectangleExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
-			return IsConstant ? Enumerable.Empty<EvaluationName>() : x!.GetVariables().Concat(y!.GetVariables()).Concat(width!.GetVariables()).Concat(height!.GetVariables());
+			return Expressions.GetVariables(X, Y, Width, Height);
 		}
 
 		public Rectangle Evaluate(IEnvironment environment) {
-			if (value != null) {
-				return value;
-			}
-			else {
-				return EvaluateRect(environment, x!, y!, width!, height!);
-			}
-		}
-
-		/// <summary></summary>
-		/// <exception cref="EvaluationCalculationException"></exception>
-		/// <exception cref="EvaluationTypeException"></exception>
-		private static Rectangle EvaluateRect(IEnvironment environment, FloatExpression x, FloatExpression y, FloatExpression width, FloatExpression height) {
-			return new Rectangle(x.Evaluate(environment), y.Evaluate(environment), width.Evaluate(environment), height.Evaluate(environment));
+			return new Rectangle(X.Evaluate(environment), Y.Evaluate(environment), Width.Evaluate(environment), Height.Evaluate(environment));
 		}
 
 		public override string ToString() {
@@ -305,29 +348,44 @@ namespace SharpSheets.Markup.Canvas {
 
 	public class XLengthExpression : FloatExpression {
 		public XLengthExpression(EvaluationNode node) : base(node) { }
-		public XLengthExpression(float value) : base(value) { }
+		public XLengthExpression(float value, EvaluationContext context) : base(value, context) { }
 
+		/*
 		public static implicit operator XLengthExpression(float value) {
 			return new XLengthExpression(value);
 		}
+		public static implicit operator XLengthExpression(EvaluationNode node) {
+			return new XLengthExpression(node);
+		}
+		*/
 	}
 
 	public class YLengthExpression : FloatExpression {
 		public YLengthExpression(EvaluationNode node) : base(node) { }
-		public YLengthExpression(float value) : base(value) { }
+		public YLengthExpression(float value, EvaluationContext context) : base(value, context) { }
 
+		/*
 		public static implicit operator YLengthExpression(float value) {
 			return new YLengthExpression(value);
 		}
+		public static implicit operator YLengthExpression(EvaluationNode node) {
+			return new YLengthExpression(node);
+		}
+		*/
 	}
 
 	public class BoundingBoxLengthExpression : FloatExpression {
 		public BoundingBoxLengthExpression(EvaluationNode node) : base(node) { }
-		public BoundingBoxLengthExpression(float value) : base(value) { }
+		public BoundingBoxLengthExpression(float value, EvaluationContext context) : base(value, context) { }
 
+		/*
 		public static implicit operator BoundingBoxLengthExpression(float value) {
 			return new BoundingBoxLengthExpression(value);
 		}
+		public static implicit operator BoundingBoxLengthExpression(EvaluationNode node) {
+			return new BoundingBoxLengthExpression(node);
+		}
+		*/
 	}
 
 	public class AreaRect {
@@ -340,99 +398,82 @@ namespace SharpSheets.Markup.Canvas {
 	}
 
 	public class AreaRectExpression : IExpression<AreaRect> {
-		public RectangleExpression? Rect { get { return value != null ? value.Rect : rect; } }
-		public MarginsExpression? Margins { get { return value != null ? value.Margins : margins; } }
+		public RectangleExpression? Rect { get; }
+		public MarginsExpression? Margins { get; }
 
-		private IEnumerable<EvaluationName> RectVariables { get { return rect != null ? rect.GetVariables() : Enumerable.Empty<EvaluationName>(); } }
-		private IEnumerable<EvaluationName> MarginsVariables { get { return margins != null ? margins.GetVariables() : Enumerable.Empty<EvaluationName>(); } }
+		public bool IsConstant => (Rect?.IsConstant ?? true) && (Margins?.IsConstant ?? true);
 
-		public bool IsConstant { get { return value != null; } }
+		public EvaluationContext Context { get; }
 
-		private readonly RectangleExpression? rect;
-		private readonly MarginsExpression? margins;
-		private readonly AreaRect? value;
-
-		public AreaRectExpression(RectangleExpression? rect, MarginsExpression? margins) {
-			this.rect = rect;
-			this.margins = margins;
-			this.value = null;
+		public AreaRectExpression(RectangleExpression? rect, MarginsExpression? margins, EvaluationContext context) {
+			Rect = rect;
+			Margins = margins;
+			Context = context;
 		}
-		public AreaRectExpression(AreaRect value) {
-			this.rect = null;
-			this.margins = null;
-			this.value = value;
+		public AreaRectExpression(AreaRect value, EvaluationContext context) {
+			Rect = value.Rect is null ? null : new RectangleExpression(value.Rect, context);
+			Margins = value.Margins.HasValue ? new MarginsExpression(value.Margins.Value, context) : null;
+			Context = context;
 		}
+		/*
 		public static implicit operator AreaRectExpression(AreaRect value) {
 			return new AreaRectExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
-			return IsConstant ? Enumerable.Empty<EvaluationName>() : RectVariables.Concat(MarginsVariables);
+			return EnumerableUtils.Concat(
+				Rect?.GetVariables() ?? Enumerable.Empty<EvaluationName>(),
+				Margins?.GetVariables() ?? Enumerable.Empty<EvaluationName>()
+				);
 		}
 
 		public AreaRect Evaluate(IEnvironment environment) {
-			if (value != null) {
-				return value;
-			}
-			else {
-				return new AreaRect(rect?.Evaluate(environment), margins?.Evaluate(environment));
-			}
+			return new AreaRect(Rect?.Evaluate(environment), Margins?.Evaluate(environment));
 		}
 	}
 
 	public class TransformExpression : IExpression<Transform> {
-		public bool IsConstant { get { return value != null; } }
+		public bool IsConstant => Expressions.IsConstant(A, B, C, D, E, F);
+		public EvaluationContext Context => A.Context;
 
-		public FloatExpression A { get { return value != null ? value.a : a!; } }
-		public FloatExpression B { get { return value != null ? value.b : b!; } }
-		public FloatExpression C { get { return value != null ? value.c : c!; } }
-		public FloatExpression D { get { return value != null ? value.d : d!; } }
-		public FloatExpression E { get { return value != null ? value.e : e!; } }
-		public FloatExpression F { get { return value != null ? value.f : f!; } }
-
-		private readonly FloatExpression? a;
-		private readonly FloatExpression? b;
-		private readonly FloatExpression? c;
-		private readonly FloatExpression? d;
-		private readonly FloatExpression? e;
-		private readonly FloatExpression? f;
-		private readonly Transform? value;
+		public FloatExpression A { get; }
+		public FloatExpression B { get; }
+		public FloatExpression C { get; }
+		public FloatExpression D { get; }
+		public FloatExpression E { get; }
+		public FloatExpression F { get; }
 
 		public TransformExpression(FloatExpression a, FloatExpression b, FloatExpression c, FloatExpression d, FloatExpression e, FloatExpression f) {
-			this.a = a;
-			this.b = b;
-			this.c = c;
-			this.d = d;
-			this.e = e;
-			this.f = f;
-			this.value = null;
+			this.A = a;
+			this.B = b;
+			this.C = c;
+			this.D = d;
+			this.E = e;
+			this.F = f;
 		}
-		public TransformExpression(Transform value) {
-			this.a = null;
-			this.b = null;
-			this.c = null;
-			this.d = null;
-			this.e = null;
-			this.f = null;
-			this.value = value;
+		public TransformExpression(Transform value, EvaluationContext context) {
+			this.A = new FloatExpression(value.a, context);
+			this.B = new FloatExpression(value.b, context);
+			this.C = new FloatExpression(value.c, context);
+			this.D = new FloatExpression(value.d, context);
+			this.E = new FloatExpression(value.e, context);
+			this.F = new FloatExpression(value.f, context);
 		}
+		/*
 		[return: NotNullIfNotNull(nameof(value))]
 		public static implicit operator TransformExpression?(Transform? value) {
 			if (value is null) { return null; }
 			return new TransformExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
-			if (IsConstant) {
-				return Enumerable.Empty<EvaluationName>();
-			}
-			else {
-				return new FloatExpression[] { a!, b!, c!, d!, e!, f! }.SelectMany(node => node.GetVariables());
-			}
+			return Expressions.GetVariables(A, B, C, D, E, F);
 		}
 
-		public static TransformExpression Identity() {
-			return new TransformExpression(1, 0, 0, 1, 0, 0);
+		public static TransformExpression Identity(EvaluationContext context) {
+			return new TransformExpression(Transform.Identity, context);
 		}
 
 		public static TransformExpression Matrix(FloatExpression a, FloatExpression b, FloatExpression c, FloatExpression d, FloatExpression e, FloatExpression f) {
@@ -440,19 +481,23 @@ namespace SharpSheets.Markup.Canvas {
 		}
 
 		public static TransformExpression Translate(FloatExpression x, FloatExpression y) {
-			return new TransformExpression(1, 0, 0, 1, x, y);
+			FloatExpression zero = new FloatExpression(0f, x.Context);
+			FloatExpression one = new FloatExpression(1f, x.Context);
+			return new TransformExpression(one, zero, zero, one, x, y);
 		}
 
 		public static TransformExpression Scale(FloatExpression scaleX, FloatExpression scaleY) {
-			return new TransformExpression(scaleX, 0, 0, scaleY, 0, 0);
+			FloatExpression zero = new FloatExpression(0f, scaleX.Context);
+			return new TransformExpression(scaleX, zero, zero, scaleY, zero, zero);
 		}
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public static TransformExpression Rotate(FloatExpression theta) {
-			FloatExpression cos = new FloatExpression(CosFunction.Instance.MakeNode(theta.Evaluation.Clone()));
-			FloatExpression sin = new FloatExpression(SinFunction.Instance.MakeNode(theta.Evaluation.Clone()));
-			return new TransformExpression(cos, sin, -sin, cos, 0, 0);
+			FloatExpression zero = new FloatExpression(0f, theta.Context);
+			FloatExpression cos = new FloatExpression(CosFunction.Instance.MakeNode(theta.Context, theta.Evaluation.Clone()));
+			FloatExpression sin = new FloatExpression(SinFunction.Instance.MakeNode(theta.Context, theta.Evaluation.Clone()));
+			return new TransformExpression(cos, sin, -sin, cos, zero, zero);
 		}
 
 		/// <summary></summary>
@@ -460,8 +505,8 @@ namespace SharpSheets.Markup.Canvas {
 		public static TransformExpression Rotate(FloatExpression theta, FloatExpression x, FloatExpression y) {
 			// For rotating about an arbitrary point
 			// TODO Verify this is correct
-			FloatExpression cos = new FloatExpression(CosFunction.Instance.MakeNode(theta.Evaluation.Clone()));
-			FloatExpression sin = new FloatExpression(SinFunction.Instance.MakeNode(theta.Evaluation.Clone()));
+			FloatExpression cos = new FloatExpression(CosFunction.Instance.MakeNode(theta.Context, theta.Evaluation.Clone()));
+			FloatExpression sin = new FloatExpression(SinFunction.Instance.MakeNode(theta.Context, theta.Evaluation.Clone()));
 			FloatExpression e = x - x * cos + y * sin;
 			FloatExpression f = y - x * sin - y * cos;
 			return new TransformExpression(cos, sin, -sin, cos, e, f);
@@ -470,38 +515,39 @@ namespace SharpSheets.Markup.Canvas {
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public static TransformExpression Skew(FloatExpression x, FloatExpression y) {
-			FloatExpression tanX = new FloatExpression(TanFunction.Instance.MakeNode(x.Evaluation.Clone()));
-			FloatExpression tanY = new FloatExpression(TanFunction.Instance.MakeNode(y.Evaluation.Clone()));
-			return new TransformExpression(1, tanY, tanX, 1, 0, 0);
+			FloatExpression zero = new FloatExpression(0f, x.Context);
+			FloatExpression one = new FloatExpression(1f, x.Context);
+			FloatExpression tanX = new FloatExpression(TanFunction.Instance.MakeNode(x.Context, x.Evaluation.Clone()));
+			FloatExpression tanY = new FloatExpression(TanFunction.Instance.MakeNode(y.Context, y.Evaluation.Clone()));
+			return new TransformExpression(one, tanY, tanX, one, zero, zero);
 		}
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public static TransformExpression SkewX(FloatExpression theta) {
-			FloatExpression tan = new FloatExpression(TanFunction.Instance.MakeNode(theta.Evaluation.Clone()));
-			return new TransformExpression(1, 0, tan, 1, 0, 0);
+			FloatExpression zero = new FloatExpression(0f, theta.Context);
+			FloatExpression one = new FloatExpression(1f, theta.Context);
+			FloatExpression tan = new FloatExpression(TanFunction.Instance.MakeNode(theta.Context, theta.Evaluation.Clone()));
+			return new TransformExpression(one, zero, tan, one, zero, zero);
 		}
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public static TransformExpression SkewY(FloatExpression theta) {
-			FloatExpression tan = new FloatExpression(TanFunction.Instance.MakeNode(theta.Evaluation.Clone()));
-			return new TransformExpression(1, tan, 0, 1, 0, 0);
+			FloatExpression zero = new FloatExpression(0f, theta.Context);
+			FloatExpression one = new FloatExpression(1f, theta.Context);
+			FloatExpression tan = new FloatExpression(TanFunction.Instance.MakeNode(theta.Context, theta.Evaluation.Clone()));
+			return new TransformExpression(one, tan, zero, one, zero, zero);
 		}
 
 		public Transform Evaluate(IEnvironment environment) {
-			if (value != null) {
-				return value;
-			}
-			else {
-				return Transform.Matrix(
-					a!.Evaluate(environment),
-					b!.Evaluate(environment),
-					c!.Evaluate(environment),
-					d!.Evaluate(environment),
-					e!.Evaluate(environment),
-					f!.Evaluate(environment)
-					);
-			}
+			return Transform.Matrix(
+				A.Evaluate(environment),
+				B.Evaluate(environment),
+				C.Evaluate(environment),
+				D.Evaluate(environment),
+				E.Evaluate(environment),
+				F.Evaluate(environment)
+				);
 		}
 
 		public static TransformExpression operator *(TransformExpression t1, TransformExpression t2) {
@@ -519,24 +565,29 @@ namespace SharpSheets.Markup.Canvas {
 	public class NSliceValuesExpression : IExpression<NSliceValues> {
 
 		public bool IsConstant { get { return value != null; } }
+		public EvaluationContext Context { get; }
 
 		private readonly FloatExpression[]? xs;
 		private readonly FloatExpression[]? ys;
 		private readonly NSliceValues? value;
 
-		public NSliceValuesExpression(FloatExpression[] xs, FloatExpression[] ys) {
+		public NSliceValuesExpression(FloatExpression[] xs, FloatExpression[] ys, EvaluationContext context) {
 			this.xs = xs;
 			this.ys = ys;
 			this.value = null;
+			this.Context = context;
 		}
-		public NSliceValuesExpression(NSliceValues value) {
+		public NSliceValuesExpression(NSliceValues value, EvaluationContext context) {
 			this.xs = null;
 			this.xs = null;
 			this.value = value;
+			this.Context = context;
 		}
+		/*
 		public static implicit operator NSliceValuesExpression(NSliceValues value) {
 			return new NSliceValuesExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
 			if (IsConstant) {
@@ -564,98 +615,93 @@ namespace SharpSheets.Markup.Canvas {
 
 	public class MarginsExpression : IExpression<Margins> {
 
-		public bool IsConstant { get { return value != null; } }
+		public bool IsConstant {
+			get {
+				if (expressions.HasValue) {
+					return expressions.Value.top.IsConstant
+						&& expressions.Value.right.IsConstant
+						&& expressions.Value.bottom.IsConstant
+						&& expressions.Value.left.IsConstant;
+				}
+				else {
+					return node!.IsConstant;
+				}
+			}
+		}
+
+		public EvaluationContext Context => node?.Context ?? expressions!.Value.top.Context;
 
 		public FloatExpression Top {
 			get {
-				if (value.HasValue) { return value.Value.Top; }
-				else if (node is not null) { return new MarginAttributeNode(node, m => m.Top); }
-				else { return top!; }
+				if (node is not null) { return new MarginAttributeNode(node, m => m.Top); }
+				else { return expressions!.Value.top; }
 			}
 		}
 		public FloatExpression Right {
 			get {
-				if (value.HasValue) { return value.Value.Right; }
-				else if (node is not null) { return new MarginAttributeNode(node, m => m.Right); }
-				else { return right!; }
+				if (node is not null) { return new MarginAttributeNode(node, m => m.Right); }
+				else { return expressions!.Value.right; }
 			}
 		}
 		public FloatExpression Bottom {
 			get {
-				if (value.HasValue) { return value.Value.Bottom; }
-				else if (node is not null) { return new MarginAttributeNode(node, m => m.Bottom); }
-				else { return bottom!; }
+				if (node is not null) { return new MarginAttributeNode(node, m => m.Bottom); }
+				else { return expressions!.Value.bottom; }
 			}
 		}
 		public FloatExpression Left {
 			get {
-				if (value.HasValue) { return value.Value.Left; }
-				else if (node is not null) { return new MarginAttributeNode(node, m => m.Left); }
-				else { return left!; }
+				if (node is not null) { return new MarginAttributeNode(node, m => m.Left); }
+				else { return expressions!.Value.left; }
 			}
 		}
 
-		private readonly FloatExpression? top;
-		private readonly FloatExpression? right;
-		private readonly FloatExpression? bottom;
-		private readonly FloatExpression? left;
+		private readonly (FloatExpression top, FloatExpression right, FloatExpression bottom, FloatExpression left)? expressions;
 		private readonly EvaluationNode? node;
-		private readonly Margins? value;
 
 		public MarginsExpression(FloatExpression top, FloatExpression right, FloatExpression bottom, FloatExpression left) {
-			this.top = top;
-			this.right = right;
-			this.bottom = bottom;
-			this.left = left;
+			this.expressions = (top, right, bottom, left);
 			this.node = null;
-			this.value = null;
 		}
 		public MarginsExpression(EvaluationNode node) {
-			this.top = null;
-			this.right = null;
-			this.bottom = null;
-			this.left = null;
-			this.node = node;
-			this.value = null;
-
-			if(node.ReturnType != MarkupEvaluationTypes.MARGINS) {
-				throw new EvaluationTypeException($"{nameof(MarginsExpression)} expected node with return type {MarkupEvaluationTypes.MARGINS}.");
+			if(!MarginsEvaluationType.IsMargins(node.GetReturnType())) {
+				throw new EvaluationTypeException("Evaluation does not return the expected Margins value.");
 			}
+
+			this.expressions = null;
+			this.node = node;
 		}
-		public MarginsExpression(Margins value) {
-			this.top = null;
-			this.right = null;
-			this.bottom = null;
-			this.left = null;
+		public MarginsExpression(Margins value, EvaluationContext context) {
+			this.expressions = (
+				new FloatExpression(value.Top, context),
+				new FloatExpression(value.Right, context),
+				new FloatExpression(value.Bottom, context),
+				new FloatExpression(value.Left, context)
+				);
 			this.node = null;
-			this.value = value;
 		}
+		/*
 		public static implicit operator MarginsExpression(Margins value) {
 			return new MarginsExpression(value);
 		}
+		*/
 
 		public MarginsExpression(FloatExpression border) : this(border, border, border, border) { }
 		public MarginsExpression(FloatExpression vertical, FloatExpression horizontal) : this(vertical, horizontal, vertical, horizontal) { }
 
 		public IEnumerable<EvaluationName> GetVariables() {
-			if (IsConstant) {
-				return Enumerable.Empty<EvaluationName>();
-			}
-			else if(node is not null) {
+			if(node is not null) {
 				return node.GetVariables();
 			}
 			else {
-				return top!.GetVariables().Concat(right!.GetVariables()).Concat(bottom!.GetVariables()).Concat(left!.GetVariables());
+				return Expressions.GetVariables(expressions!.Value.top, expressions!.Value.right, expressions!.Value.bottom, expressions!.Value.left);
 			}
 		}
 
 		public Margins Evaluate(IEnvironment environment) {
-			if (value.HasValue) {
-				return value.Value;
-			}
-			else if (node is not null) {
-				object? result = node.Evaluate(environment);
-				if(result is Margins margins) {
+			if (node is not null) {
+				EvaluationValue result = node.Evaluate(environment);
+				if (MarginsEvaluationType.TryGetMargins(result, out Margins margins)) {
 					return margins;
 				}
 				else {
@@ -663,32 +709,34 @@ namespace SharpSheets.Markup.Canvas {
 				}
 			}
 			else {
-				return new Margins(top!.Evaluate(environment), right!.Evaluate(environment), bottom!.Evaluate(environment), left!.Evaluate(environment));
+				return new Margins(
+					expressions!.Value.top.Evaluate(environment),
+					expressions!.Value.right.Evaluate(environment),
+					expressions!.Value.bottom.Evaluate(environment),
+					expressions!.Value.left.Evaluate(environment)
+					);
 			}
 		}
 
 		public override string ToString() {
-			if (value.HasValue) {
-				return $"MarginsExpression({value.Value})";
-			}
-			else if (node is not null) {
-				return $"MarginsExpression(node)";
+			if (node is not null) {
+				return $"MarginsExpression({node})";
 			}
 			else {
-				return $"MarginsExpression(top: {Top}, right: {Right}, bottom: {Bottom}, left: {Left})";
+				return $"MarginsExpression(top: {expressions!.Value.top}, right: {expressions!.Value.right}, bottom: {expressions!.Value.bottom}, left: {expressions!.Value.left})";
 			}
 		}
 
 		private class MarginAttributeNode : EvaluationNode {
 			public override bool IsConstant => subject.IsConstant;
 
-			public override EvaluationType ReturnType => EvaluationType.FLOAT;
+			public override EvaluationType GetReturnType() => Context.GetType<FloatEvaluationType>();
 
 			private readonly EvaluationNode subject;
 			private readonly Func<Margins, float> action;
 
-			public MarginAttributeNode(EvaluationNode subject, Func<Margins, float> action) : base() {
-				if(subject.ReturnType != MarkupEvaluationTypes.MARGINS) {
+			public MarginAttributeNode(EvaluationNode subject, Func<Margins, float> action) : base(subject.Context) {
+				if(!MarginsEvaluationType.IsMargins(subject.GetReturnType())) {
 					throw new EvaluationTypeException($"{nameof(subject)} must return a {nameof(Margins)} value.");
 				}
 
@@ -696,11 +744,11 @@ namespace SharpSheets.Markup.Canvas {
 				this.action = action;
 			}
 
-			public override object? Evaluate(IEnvironment environment) {
-				object? result = subject.Evaluate(environment);
+			public override EvaluationValue Evaluate(IEnvironment environment) {
+				EvaluationValue result = subject.Evaluate(environment);
 
-				if(result is Margins margins) {
-					return action(margins);
+				if(MarginsEvaluationType.TryGetMargins(result, out Margins margins)) {
+					return new EvaluationValue(action(margins), Context.GetType<FloatEvaluationType>());
 				}
 				else {
 					throw new EvaluationCalculationException($"Expected {nameof(Margins)} value.");
@@ -728,6 +776,7 @@ namespace SharpSheets.Markup.Canvas {
 	public class PreserveAspectRatioExpression : IExpression<PreserveAspectRatio> {
 
 		public bool IsConstant { get { return value != null; } }
+		public EvaluationContext Context { get; }
 
 		private readonly EvaluationNode? evaluation;
 		private readonly PreserveAspectRatio? value;
@@ -735,25 +784,29 @@ namespace SharpSheets.Markup.Canvas {
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public PreserveAspectRatioExpression(EvaluationNode evaluation) {
-			if (evaluation.ReturnType != EvaluationType.STRING) {
-				throw new EvaluationTypeException("Invalid evaluation type for PreserveAspectRatioExpression.");
+			if (!StringEvaluationType.IsString(evaluation.GetReturnType())) {
+				throw new EvaluationTypeException($"Invalid evaluation type for {nameof(PreserveAspectRatioExpression)}.");
 			}
 			else if (evaluation.IsConstant) {
 				this.evaluation = null;
-				this.value = Parse(evaluation, Environments.Empty);
+				this.value = Parse(evaluation, Environments.Empty(evaluation.Context));
 			}
 			else {
 				this.evaluation = evaluation;
 				this.value = null;
 			}
+			this.Context = evaluation.Context;
 		}
-		public PreserveAspectRatioExpression(PreserveAspectRatio value) {
+		public PreserveAspectRatioExpression(PreserveAspectRatio value, EvaluationContext context) {
 			this.evaluation = null;
 			this.value = value;
+			this.Context = context;
 		}
+		/*
 		public static implicit operator PreserveAspectRatioExpression(PreserveAspectRatio value) {
 			return new PreserveAspectRatioExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
 			return IsConstant ? Enumerable.Empty<EvaluationName>() : evaluation!.GetVariables();
@@ -772,7 +825,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
 		private static PreserveAspectRatio Parse(EvaluationNode node, IEnvironment environment) {
-			if(node.Evaluate(environment) is string value) {
+			if(StringEvaluationType.TryGetString(node.Evaluate(environment), out string? value)) {
 				try {
 					return PreserveAspectRatio.Parse(value);
 				}
@@ -797,46 +850,55 @@ namespace SharpSheets.Markup.Canvas {
 
 	public class DimensionExpression : IExpression<Dimension> {
 
-		public static EvaluationType DimensionType { get; } = EvaluationType.FromSystemType(typeof(Dimension));
-
 		public bool IsConstant { get { return value != null; } }
+		public EvaluationContext Context => value?.Type.Context ?? evaluation!.Context;
 
 		private readonly EvaluationNode? evaluation;
-		private readonly Dimension? value;
+		private readonly EvaluationValue? value;
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		public DimensionExpression(EvaluationNode evaluation) {
-			if(evaluation.ReturnType != DimensionType) {
+			if(!DimensionEvaluationType.IsDimension(evaluation.GetReturnType())) {
 				throw new EvaluationTypeException("Invalid evaluation type for DimensionExpression.");
 			}
 			else if (evaluation.IsConstant) {
 				this.evaluation = null;
-				this.value = (Dimension)(evaluation.Evaluate(Environments.Empty) ?? throw new EvaluationCalculationException("Provided constant evaluation does not produce a value."));
+				this.value = evaluation.Evaluate(Environments.Empty(evaluation.Context)); // (Dimension)(evaluation.Evaluate(Environments.Empty) ?? throw new EvaluationCalculationException("Provided constant evaluation does not produce a value."));
 			}
 			else {
 				this.evaluation = evaluation;
 				this.value = null;
 			}
 		}
-		public DimensionExpression(Dimension value) {
+		public DimensionExpression(Dimension value, EvaluationContext context) {
 			this.evaluation = null;
-			this.value = value;
+			this.value = new EvaluationValue(value, context.GetType<DimensionEvaluationType>());
 		}
+		/*
 		public static implicit operator DimensionExpression(Dimension value) {
 			return new DimensionExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
 			return IsConstant ? Enumerable.Empty<EvaluationName>() : evaluation!.GetVariables();
 		}
 
 		public Dimension Evaluate(IEnvironment environment) {
-			if (value.HasValue) {
-				return value.Value;
+			if (value.HasValue && DimensionEvaluationType.TryGetDimension(value.Value, out Dimension dimensionVal)) {
+				return dimensionVal;
 			}
 			else {
-				return (Dimension)(evaluation!.Evaluate(environment) ?? throw new EvaluationCalculationException("Evaluation does not produce a value."));
+				//return (Dimension)(evaluation!.Evaluate(environment) ?? throw new EvaluationCalculationException("Evaluation does not produce a value."));
+				EvaluationValue result = evaluation!.Evaluate(environment); // ?? throw new EvaluationCalculationException("Evaluation does not produce a value.");
+
+				if (DimensionEvaluationType.TryGetDimension(result, out Dimension dimensionValue)) {
+					return dimensionValue;
+				}
+				else {
+					throw new EvaluationCalculationException($"Evaluation does not produce a valid {nameof(Dimension)} value.");
+				}
 			}
 		}
 
@@ -853,15 +915,15 @@ namespace SharpSheets.Markup.Canvas {
 	public class PositionExpression : IExpression<Position> {
 
 		public bool IsConstant { get { return value != null; } }
+		public EvaluationContext Context { get; }
 
-		public EnumExpression<Anchor> Anchor { get { return value?.Anchor ?? anchor!; } }
-		public DimensionExpression X { get { return value?.X ?? x!; } }
-		public DimensionExpression Y { get { return value?.Y ?? y!; } }
-		public DimensionExpression Width { get { return value?.Width ?? width!; } }
-		public DimensionExpression Height { get { return value?.Height ?? height!; } }
+		public EnumExpression<Anchor>? Anchor { get { return value.HasValue ? new EnumExpression<Anchor>(value.Value.Anchor, Context) : anchor; } }
+		public DimensionExpression? X { get { return value.HasValue ? new DimensionExpression(value.Value.X, Context) : x; } }
+		public DimensionExpression? Y { get { return value.HasValue ? new DimensionExpression(value.Value.Y, Context) : y; } }
+		public DimensionExpression? Width { get { return value.HasValue ? new DimensionExpression(value.Value.Width, Context) : width; } }
+		public DimensionExpression? Height { get { return value.HasValue ? new DimensionExpression(value.Value.Height, Context) : height; } }
 
 		public readonly EnumExpression<Anchor>? anchor;
-		// TODO Should these be FloatExpression values?
 		public readonly DimensionExpression? x;
 		public readonly DimensionExpression? y;
 		public readonly DimensionExpression? width;
@@ -885,21 +947,31 @@ namespace SharpSheets.Markup.Canvas {
 			this.width = _width;
 			this.height = _height;
 			this.value = null;
+			this.Context = _anchor?.Context ?? _x?.Context ?? _y?.Context ?? _width?.Context ?? _height?.Context ?? throw new InvalidOperationException("Position must have at least one non-null argument.");
 		}
-		public PositionExpression(Position value) {
+		public PositionExpression(Position value, EvaluationContext context) {
 			this.anchor = null;
 			this.x = null;
 			this.y = null;
 			this.width = null;
 			this.height = null;
 			this.value = value;
+			this.Context = context;
 		}
+		/*
 		public static implicit operator PositionExpression(Position value) {
 			return new PositionExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
-			return IsConstant ? Enumerable.Empty<EvaluationName>() : anchor!.GetVariables().Concat(x!.GetVariables(), y!.GetVariables(), width!.GetVariables(), height!.GetVariables());
+			return IsConstant ? Enumerable.Empty<EvaluationName>() :
+				Enumerable.Empty<EvaluationName>()
+				.ConcatOrNothing(anchor?.GetVariables())
+				.ConcatOrNothing(x?.GetVariables())
+				.ConcatOrNothing(y?.GetVariables())
+				.ConcatOrNothing(width?.GetVariables())
+				.ConcatOrNothing(height?.GetVariables());
 		}
 
 		public Position Evaluate(IEnvironment environment) {
@@ -923,6 +995,7 @@ namespace SharpSheets.Markup.Canvas {
 
 	public class RichStringExpression : IExpression<RichString> {
 		public bool IsConstant { get { return value != null; } }
+		public EvaluationContext Context { get; }
 
 		public readonly EnumExpression<TextFormat>? startingFormat;
 		public readonly StringExpression? text;
@@ -932,15 +1005,22 @@ namespace SharpSheets.Markup.Canvas {
 			this.startingFormat = startingFormat;
 			this.text = text;
 			this.value = null;
+			this.Context = text.Context;
 		}
-		public RichStringExpression(RichString value) {
+		public RichStringExpression(RichString value, EvaluationContext context) {
 			this.startingFormat = null;
 			this.text = null;
 			this.value = value;
+			this.Context = context;
 		}
+		public static implicit operator RichStringExpression(StringExpression value) {
+			return new RichStringExpression(value, null);
+		}
+		/*
 		public static implicit operator RichStringExpression(RichString value) {
 			return new RichStringExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
 			return IsConstant ? Enumerable.Empty<EvaluationName>() : text!.GetVariables().ConcatOrNothing(startingFormat?.GetVariables());
@@ -962,6 +1042,7 @@ namespace SharpSheets.Markup.Canvas {
 
 	public class ContextExpression : IExpression<IContext> {
 		public bool IsConstant { get; } = false;
+		public EvaluationContext Context { get; }
 
 		private readonly IExpression<string> name;
 		private readonly Dictionary<string, EvaluationNode> values;
@@ -969,17 +1050,18 @@ namespace SharpSheets.Markup.Canvas {
 		public ContextExpression(IExpression<string> name, Dictionary<string, EvaluationNode> values) {
 			this.name = name;
 			this.values = values;
+			this.Context = name.Context;
 		}
 
 		public IContext Evaluate(IEnvironment environment) {
 			try {
 				string name = this.name.Evaluate(environment);
-				Dictionary<string, object?> values = this.values.ToDictionary(kv => kv.Key, kv => kv.Value.Evaluate(environment), StringComparer.InvariantCultureIgnoreCase);
+				Dictionary<string, EvaluationValue> values = this.values.ToDictionary(kv => kv.Key, kv => kv.Value.Evaluate(environment), StringComparer.InvariantCultureIgnoreCase);
 
-				Dictionary<string, string> properties = values.Where(kv => kv.Value is not bool).ToDictionary(kv => kv.Key, kv => ValueParsing.ToString(kv.Value));
-				Dictionary<string, bool> flags = values.Where(kv => kv.Value is bool).ToDictionary(kv => kv.Key, kv => (bool)kv.Value!);
+				Dictionary<string, string> properties = values.Where(kv => !BoolEvaluationType.IsBool(kv.Value.Type)).ToDictionary(kv => kv.Key, kv => ValueParsing.ToString(kv.Value.Value));
+				Dictionary<string, bool> flags = values.Where(kv => BoolEvaluationType.IsBool(kv.Value.Type)).ToDictionary(kv => kv.Key, kv => BoolEvaluationType.TryGetBool(kv.Value, out bool flag) ? flag : throw new EvaluationCalculationException("Invalid bool value."));
 
-				return Context.Simple(name, properties, flags);
+				return SharpSheets.Parsing.Context.Simple(name, properties, flags);
 			}
 			catch(SystemException e) {
 				throw new EvaluationCalculationException("Error constructing context environment expression: " + e.Message, e);
@@ -1022,6 +1104,7 @@ namespace SharpSheets.Markup.Canvas {
 
 	public class LengthExpression : IExpression<Length> {
 		public bool IsConstant { get { return value != null; } }
+		public EvaluationContext Context { get; }
 
 		public readonly FloatExpression? fixedLength;
 		private readonly Length? value;
@@ -1029,16 +1112,20 @@ namespace SharpSheets.Markup.Canvas {
 		public LengthExpression(FloatExpression fixedLength) {
 			this.fixedLength = fixedLength;
 			this.value = null;
+			this.Context = fixedLength.Context;
 		}
-		public LengthExpression(Length value) {
+		public LengthExpression(Length value, EvaluationContext context) {
 			this.fixedLength = null;
 			this.value = value;
+			this.Context = context;
 		}
+		/*
 		[return: NotNullIfNotNull(nameof(value))]
 		public static implicit operator LengthExpression?(Length? value) {
 			if (value is null) { return null; }
 			return new LengthExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
 			return IsConstant ? Enumerable.Empty<EvaluationName>() : fixedLength!.GetVariables();
@@ -1055,42 +1142,48 @@ namespace SharpSheets.Markup.Canvas {
 	}
 
 	public class FilePathExpression : IExpression<FilePath> {
-
+		[MemberNotNullWhen(true, nameof(value))]
+		[MemberNotNullWhen(false, nameof(evaluation))]
 		public bool IsConstant { get { return value != null; } }
+		public EvaluationContext Context { get; }
 
-		private readonly EvaluationNode[]? evaluation2;
+		private readonly EvaluationNode[]? evaluation;
 		private readonly FilePath? value;
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
-		public FilePathExpression(EvaluationNode evaluation1, params EvaluationNode[] additional) {
+		public FilePathExpression(EvaluationNode basePath, params EvaluationNode[] additional) {
+			this.Context = basePath.Context;
 
-			List<EvaluationNode> evaluations = evaluation1.Yield().Concat(additional).ToList();
+			List<EvaluationNode> evaluations = basePath.Yield().Concat(additional).ToList();
 
-			if (evaluations.Any(e => e.ReturnType != MarkupEvaluationTypes.FILE_PATH && e.ReturnType != EvaluationType.STRING)) {
-				throw new EvaluationTypeException("Invalid evaluation types for FilePathExpression: " + string.Join(", ", evaluations.Select(e => e.ReturnType)));
+			if (!evaluations.All(e => FilePathEvaluationType.IsFilePath(e.GetReturnType()) || StringEvaluationType.IsString(e.GetReturnType()))) {
+				throw new EvaluationTypeException("Invalid evaluation types for FilePathExpression: " + string.Join(", ", evaluations.Select(e => e.GetReturnType())));
 			}
 			else if (evaluations.All(e=>e.IsConstant)) {
-				this.evaluation2 = null;
-				this.value = EvaluatePath(evaluations, Environments.Empty);
+				this.evaluation = null;
+				this.value = EvaluatePath(evaluations, Environments.Empty(this.Context));
 			}
 			else {
-				this.evaluation2 = evaluations.ToArray();
+				this.evaluation = evaluations.ToArray();
 				this.value = null;
 			}
 		}
-		public FilePathExpression(FilePath value) {
-			this.evaluation2 = null;
+		public FilePathExpression(FilePath value, EvaluationContext context) {
+			this.evaluation = null;
 			this.value = value;
+			this.Context = context;
 		}
+		/*
 		[return: NotNullIfNotNull(nameof(value))]
 		public static implicit operator FilePathExpression?(FilePath? value) {
 			if(value is null) { return null; }
 			return new FilePathExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
-			return IsConstant ? Enumerable.Empty<EvaluationName>() : evaluation2!.SelectMany(e => e.GetVariables());
+			return IsConstant ? Enumerable.Empty<EvaluationName>() : evaluation.SelectMany(e => e.GetVariables());
 		}
 
 		public FilePath Evaluate(IEnvironment environment) {
@@ -1098,7 +1191,7 @@ namespace SharpSheets.Markup.Canvas {
 				return value;
 			}
 			else {
-				return EvaluatePath(evaluation2!, environment);
+				return EvaluatePath(evaluation!, environment);
 			}
 		}
 
@@ -1106,24 +1199,30 @@ namespace SharpSheets.Markup.Canvas {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
 		private static FilePath EvaluatePath(IEnumerable<EvaluationNode> evaluations, IEnvironment environment) {
-			object?[] absVals = evaluations.Select(e => e.Evaluate(environment)).ToArray();
+			EvaluationValue[] absVals = evaluations.Select(e => e.Evaluate(environment)).ToArray();
 
 			if (absVals.Length == 1) {
-				if (absVals[0] is FilePath filePath) {
+				if (FilePathEvaluationType.TryGetFilePath(absVals[0], out FilePath? filePath)) {
 					return filePath;
 				}
-				else if (absVals[0] is string fileString) {
+				else if (StringEvaluationType.TryGetString(absVals[0], out string? fileString)) {
 					return new FilePath(fileString);
 				}
 				else {
-					throw new EvaluationTypeException("Invalid result type for FilePathExpression: " + (absVals[0]?.GetType().Name ?? "null"));
+					throw new EvaluationTypeException("Invalid result type for FilePathExpression: " + absVals[0].Type.Name);
 				}
 			}
 			else if (absVals.Length > 0) {
-				string[] parts = absVals.Select(e => e switch {
-					FilePath path => path.ToString(),
-					string text => text,
-					_ => throw new EvaluationCalculationException("Invalid component type for file path expression")
+				string[] parts = absVals.Select(e => {
+					if (FilePathEvaluationType.TryGetFilePath(e, out FilePath? path)) {
+						return path.ToString();
+					}
+					else if (StringEvaluationType.TryGetString(e, out string? text)) {
+						return text;
+					}
+					else {
+						throw new EvaluationCalculationException("Invalid component type for file path expression");
+					}
 				}).ToArray();
 				return new FilePath(parts);
 			}
@@ -1137,7 +1236,7 @@ namespace SharpSheets.Markup.Canvas {
 				return $"FilePathExpression({value})";
 			}
 			else {
-				return $"FilePathExpression({string.Join(", ", evaluation2!.Select(e => e.ToString()))})";
+				return $"FilePathExpression({string.Join(", ", evaluation!.Select(e => e.ToString()))})";
 			}
 		}
 

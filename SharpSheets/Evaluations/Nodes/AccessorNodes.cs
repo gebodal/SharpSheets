@@ -12,33 +12,33 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public EvaluationName Field { get; }
 
-		public FieldAccessNode(EvaluationName field) {
+		public FieldAccessNode(EvaluationName field, EvaluationContext context) : base(context) {
 			this.Field = field;
 			this.Symbol = "." + Field;
 		}
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
+		public override EvaluationType GetReturnType() {
 			if (Operand is TypeLiteralNode typeNode) {
 				EvaluationType typeLiteral = typeNode.TypeValue;
 				TypeField typeField = typeLiteral.GetStaticField(Field) ?? throw new EvaluationTypeException($"{typeLiteral} type does not have a static field named {Field}.");
 				return typeField.Type;
 			}
 			else {
-				EvaluationType type = Operand.GetReturnType(typeSystem);
+				EvaluationType type = Operand.GetReturnType();
 				TypeField typeField = type.GetField(Field) ?? throw new EvaluationTypeException($"{type} does not have a field named {Field}.");
 				return typeField.Type;
 			}
 		}
 
 		protected override UnaryOperatorNode Empty() {
-			return new FieldAccessNode(Field);
+			return new FieldAccessNode(Field, Context);
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment) {
 			if (Operand is TypeLiteralNode typeNode) {
 				EvaluationType typeLiteral = typeNode.TypeValue;
 				TypeField? typeField = typeLiteral.GetStaticField(Field) ?? throw new EvaluationCalculationException($"{typeLiteral} type does not have a static field named {Field}.");
-				return typeField.GetValue(new EvaluationValue(typeLiteral, typeNode.GetReturnType(environment)));
+				return typeField.GetValue(new EvaluationValue(typeLiteral, typeNode.GetReturnType()));
 			}
 			else {
 				EvaluationValue subject = Operand.Evaluate(environment);
@@ -63,9 +63,11 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override int[] CalculationOrder { get; } = new int[] { 1, 0 };
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
-			EvaluationType argType = First.GetReturnType(typeSystem);
-			EvaluationType indexType = Second.GetReturnType(typeSystem);
+		public IndexerNode(EvaluationContext context) : base(context) { }
+
+		public override EvaluationType GetReturnType() {
+			EvaluationType argType = First.GetReturnType();
+			EvaluationType indexType = Second.GetReturnType();
 
 			return argType.IndexerResult(indexType) ?? throw new EvaluationTypeException($"Cannot index into value of type {argType} using {indexType}.");
 		}
@@ -78,7 +80,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		protected override BinaryOperatorNode Empty() {
-			return new IndexerNode();
+			return new IndexerNode(Context);
 		}
 
 		protected override string GetRepresentation() {
@@ -98,10 +100,12 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override int[] CalculationOrder => new int[] { 2, 1, 0 };
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
-			EvaluationType argType = First.GetReturnType(typeSystem);
-			EvaluationType index1Type = Second.GetReturnType(typeSystem);
-			EvaluationType index2Type = Third.GetReturnType(typeSystem);
+		public IndexerSliceNode(EvaluationContext context) : base(context) { }
+
+		public override EvaluationType GetReturnType() {
+			EvaluationType argType = First.GetReturnType();
+			EvaluationType index1Type = Second.GetReturnType();
+			EvaluationType index2Type = Third.GetReturnType();
 
 			return argType.IndexerSliceResult(index1Type, index2Type) ?? throw new EvaluationTypeException($"Cannot slice value of type {argType} using indexes of type ({index1Type}:{index2Type}).");
 		}
@@ -118,7 +122,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		protected override TernaryOperatorNode Empty() {
-			return new IndexerSliceNode();
+			return new IndexerSliceNode(Context);
 		}
 
 		protected override string GetRepresentation() {

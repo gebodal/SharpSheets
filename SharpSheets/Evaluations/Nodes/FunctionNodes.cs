@@ -19,11 +19,11 @@ namespace SharpSheets.Evaluations.Nodes {
 		public EvaluationNode[] Arguments { get { return arguments ?? throw new EvaluationProcessingException("Function arguments not initialized."); ; } }
 		private EvaluationNode[]? arguments;
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) => functionInfo.GetReturnType(typeSystem, Arguments);
+		public override EvaluationType GetReturnType() => functionInfo.GetReturnType(Context, Arguments);
 
 		private readonly IEnvironmentFunctionInfo functionInfo;
 
-		public EnvironmentFunctionNode(IEnvironmentFunctionInfo functionInfo) {
+		public EnvironmentFunctionNode(IEnvironmentFunctionInfo functionInfo, EvaluationContext context) : base(context) {
 			this.functionInfo = functionInfo;
 		}
 
@@ -33,8 +33,10 @@ namespace SharpSheets.Evaluations.Nodes {
 		/// <param name="count"></param>
 		/// <exception cref="EvaluationProcessingException"></exception>
 		public void SetArgumentCount(int count) {
-			if (functionInfo.Args.Count > 0) {
-				foreach (EnvironmentFunctionArgList argList in functionInfo.Args) {
+			EnvironmentFunctionArguments args = functionInfo.GetArguments(Context);
+
+			if (args.Count > 0) {
+				foreach (EnvironmentFunctionArgList argList in args) {
 					if ((!argList.IsParams && count == argList.Arguments.Length) || (argList.IsParams && count >= argList.Arguments.Length)) {
 						arguments = new EvaluationNode[count];
 						return;
@@ -47,7 +49,7 @@ namespace SharpSheets.Evaluations.Nodes {
 			}
 
 			string GetExpectedString() {
-				string[] expected = functionInfo.Args.Select(args => $"{(args.IsParams ? ">=" : "")}{args.Arguments.Length}").ToArray();
+				string[] expected = args.Select(args => $"{(args.IsParams ? ">=" : "")}{args.Arguments.Length}").ToArray();
 				if (expected.Length == 0) {
 					return " (expected 0)";
 				}
@@ -83,14 +85,14 @@ namespace SharpSheets.Evaluations.Nodes {
 			return Name + "(" + string.Join(", ", Arguments.Select(a => a.ToString())) + ")";
 		}
 
-		public sealed override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) {
+		public sealed override EvaluationNode Simplify() {
 			if (IsConstant && functionInfo is IEnvironmentFunctionEvaluator func) {
-				return new ConstantNode(func.Evaluate(Environments.Create(typeSystem), Arguments));
+				return new ConstantNode(func.Evaluate(Environments.Create(Context), Arguments));
 			}
 			else {
 				EnvironmentFunctionNode empty = Empty();
 				for (int i = 0; i < Arguments.Length; i++) {
-					empty.Arguments[i] = Arguments[i].Simplify(typeSystem);
+					empty.Arguments[i] = Arguments[i].Simplify();
 				}
 				return empty;
 			}
@@ -105,7 +107,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		protected EnvironmentFunctionNode Empty() {
-			EnvironmentFunctionNode empty = new EnvironmentFunctionNode(functionInfo);
+			EnvironmentFunctionNode empty = new EnvironmentFunctionNode(functionInfo, Context);
 			empty.SetArgumentCount(this.Operands);
 			return empty;
 		}
@@ -120,23 +122,32 @@ namespace SharpSheets.Evaluations.Nodes {
 		public abstract EvaluationName Name { get; }
 		public abstract string? Description { get; }
 
-		public abstract EnvironmentFunctionArguments Args { get; }
+		//public abstract EnvironmentFunctionArguments Args { get; }
 
-		public abstract EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args);
+		public abstract EnvironmentFunctionArguments GetArguments(EvaluationContext context);
+
+		public abstract EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args);
 		public abstract EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args);
 	}
 
 	public abstract class AbstractSingleArgFunction : AbstractFunction {
-		protected abstract EnvironmentFunctionArg Argument { get; }
 		protected abstract string? Warning { get; }
 
+		protected abstract EnvironmentFunctionArg GetArgument(EvaluationContext context);
+
+		/*
 		public override sealed EnvironmentFunctionArguments Args => new EnvironmentFunctionArguments(Warning,
 			new EnvironmentFunctionArgList(Argument)
 		);
+		*/
 
-		public abstract EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode arg);
-		public sealed override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
-			return GetReturnType(typeSystem, args[0]);
+		public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+			return new EnvironmentFunctionArguments(Warning, new EnvironmentFunctionArgList(GetArgument(context)));
+		}
+
+		public abstract EvaluationType GetReturnType(EvaluationContext context, EvaluationNode arg);
+		public sealed override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+			return GetReturnType(context, args[0]);
 		}
 
 		public abstract EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg);
@@ -151,10 +162,10 @@ namespace SharpSheets.Evaluations.Nodes {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
-		public static EvaluationNode MakeNode(this IEnvironmentFunctionInfo functionInfo, EvaluationTypeSystem typeSystem, params EvaluationNode[] arguments) {
-			EnvironmentFunctionNode node = new EnvironmentFunctionNode(functionInfo);
+		public static EvaluationNode MakeNode(this IEnvironmentFunctionInfo functionInfo, EvaluationContext context, params EvaluationNode[] arguments) {
+			EnvironmentFunctionNode node = new EnvironmentFunctionNode(functionInfo, context);
 			node.SetArguments(arguments);
-			return node.Simplify(typeSystem);
+			return node.Simplify();
 		}
 	}
 

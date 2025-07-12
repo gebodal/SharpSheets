@@ -205,7 +205,7 @@ namespace SharpSheets.Markup.Elements {
 					return FloatExpression.Parse(match.Groups["expression"].Value.Trim(), variables);
 				}
 				else {
-					return new FloatExpression(float.Parse(match.Groups["number"].Value.Trim()));
+					return new FloatExpression(float.Parse(match.Groups["number"].Value.Trim()), variables.Context);
 				}
 			}
 			catch(EvaluationException e) {

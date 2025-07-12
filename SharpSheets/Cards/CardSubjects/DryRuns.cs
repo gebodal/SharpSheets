@@ -19,26 +19,29 @@ namespace SharpSheets.Cards.CardSubjects {
 		private static readonly string String = "string";
 		private static readonly Color Color = Color.Black;
 
-		private static readonly Dictionary<EvaluationType, object> values = new Dictionary<EvaluationType, object>() {
-			[EvaluationType.INT] = Int,
-			[EvaluationType.UINT] = UInt,
-			[EvaluationType.FLOAT] = Float,
-			[EvaluationType.UFLOAT] = UFloat,
-			[EvaluationType.BOOL] = Bool,
-			[EvaluationType.STRING] = String,
-			[EvaluationType.COLOR] = Color
+		private static readonly Dictionary<Type, object> values = new Dictionary<Type, object>() {
+			[typeof(int)] = Int,
+			[typeof(uint)] = UInt,
+			[typeof(float)] = Float,
+			[typeof(UFloat)] = UFloat,
+			[typeof(bool)] = Bool,
+			[typeof(string)] = String,
+			[typeof(Color)] = Color
 		};
 
 		/// <summary></summary>
 		/// <exception cref="NotSupportedException"></exception>
-		public static object Get(EvaluationType type) {
-			if (type.IsTuple) {
-				return EvaluationTypes.MakeTuple(type.ElementType.DataType, Get(type.ElementType).Yield(type.ElementCount.Value).ToArray());
+		public static EvaluationValue Get(EvaluationType type) {
+			if (type is TupleEvaluationType tupleType) {
+				return TupleEvaluationType.MakeTuple(tupleType.ElementType, Get(tupleType.ElementType).Yield(tupleType.ElementCount).ToArray());
 			}
-			else if (type.IsArray) {
-				return EvaluationTypes.MakeArray(type.ElementType.DataType, Get(type.ElementType).Yield().ToArray());
+			else if (type is ArrayEvaluationType arrayType) {
+				return ArrayEvaluationType.MakeArray(arrayType.ElementType, Get(arrayType.ElementType).Yield().ToArray());
 			}
-			return values.GetValueOrFallback(type, null) ?? throw new NotSupportedException($"No dry run constant specified for type {type}.");
+			else {
+				object value = values.GetValueOrFallback(type.DataType, null) ?? throw new NotSupportedException($"No dry run constant specified for type {type}.");
+				return new EvaluationValue(value, type);
+			}
 		}
 	}
 
@@ -47,6 +50,7 @@ namespace SharpSheets.Cards.CardSubjects {
 		private readonly IVariableDefinitionBox definitions;
 
 		public bool IsEmpty => variables.IsEmpty && definitions.IsEmpty;
+		public EvaluationContext Context => variables.Context;
 
 		public DryRunEnvironment(IVariableBox variables, IVariableDefinitionBox definitions) {
 			this.variables = variables;
@@ -57,7 +61,7 @@ namespace SharpSheets.Cards.CardSubjects {
 		public bool TryGetNode(EvaluationName key, [MaybeNullWhen(false)] out EvaluationNode node) => variables.TryGetNode(key, out node);
 		public IEnumerable<EnvironmentVariableInfo> GetVariables() => variables.GetVariables();
 
-		public bool TryGetValue(EvaluationName key, out object? value) {
+		public bool TryGetValue(EvaluationName key, [NotNullWhen(true)] out EvaluationValue? value) {
 			if(definitions.TryGetDefinition(key, out Definition? definition) && definition is ConstantDefinition constant && constant.ExampleValue is not null) {
 				value = constant.ExampleValue;
 				return true;

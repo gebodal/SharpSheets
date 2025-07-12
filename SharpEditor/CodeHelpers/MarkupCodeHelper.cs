@@ -142,7 +142,7 @@ namespace SharpEditor.CodeHelpers {
 				}
 				if (span.Resulting != null && span.Resulting.OfType<MarkupPattern>().FirstOrDefault() is MarkupPattern) {
 					variableBlocks.Add(TooltipBuilder.GetToolTipTextBlock("Canvas variables:"));
-					variableBlocks.Add(TooltipBuilder.GetVariableBoxEntries(MarkupEnvironments.DrawingStateVariables));
+					variableBlocks.Add(TooltipBuilder.GetVariableBoxEntries(new SharpSheets.Markup.Canvas.MarkupEvaluationContext(MarkupEvaluationTypes.BaseContext).DrawingStateVariables()));
 				}
 
 				if(variableBlocks.Count > 0) {

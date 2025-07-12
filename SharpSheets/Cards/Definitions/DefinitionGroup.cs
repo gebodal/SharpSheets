@@ -24,9 +24,12 @@ namespace SharpSheets.Cards.Definitions {
 		public int Count { get { return valueDefinitions.Count + functionDefinitions.Count + (fallback?.Count ?? 0); } }
 
 		public bool IsEmpty => valueDefinitions.Count == 0 && functionDefinitions.Count == 0 && (fallback is null || fallback.IsEmpty);
+		public EvaluationContext Context { get; }
 
-		public DefinitionGroup(DefinitionGroup? fallback) {
+		public DefinitionGroup(DefinitionGroup? fallback, EvaluationContext context) {
 			this.fallback = fallback;
+			this.Context = context;
+
 			valueDefinitions = new List<ValueDefinition>();
 			functionDefinitions = new List<FunctionDefinition>();
 			variableAliasLookup = new Dictionary<EvaluationName, ValueDefinition>();
@@ -34,11 +37,11 @@ namespace SharpSheets.Cards.Definitions {
 			variableInfos = new Dictionary<EvaluationName, EnvironmentVariableInfo>();
 		}
 
-		public DefinitionGroup() : this(null) { }
+		public DefinitionGroup(EvaluationContext context) : this(null, context) { }
 
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException">Duplicate name or alias encountered in <paramref name="definitions"/>.</exception>
-		public DefinitionGroup(IEnumerable<Definition> definitions, params IEnumerable<Definition>[] other) : this(null) {
+		public DefinitionGroup(EvaluationContext context, IEnumerable<Definition> definitions, params IEnumerable<Definition>[] other) : this(context) {
 			foreach (Definition definition in definitions.Concat(other.SelectMany(ds => ds))) {
 				Add(definition);
 			}

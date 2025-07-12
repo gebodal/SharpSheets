@@ -11,62 +11,63 @@ namespace SharpSheets.Cards.Definitions {
 
 	public class DefinitionEnvironment : IEnvironment, IEnumerable<Definition> {
 
-		public static readonly DefinitionEnvironment Empty = new DefinitionEnvironment(new DefinitionGroup(), null, null, null, null);
+		public static readonly DefinitionEnvironment Empty = new DefinitionEnvironment(new DefinitionGroup(CardEnvironments.Context), null, null, null, null);
 
 		private readonly DefinitionGroup definitions;
-		private readonly Dictionary<Definition, ContextValue<object>> contextValues;
+		private readonly Dictionary<Definition, ContextValue<EvaluationValue>> contextValues;
 		private readonly Dictionary<Definition, ContextValue<EvaluationNode>> contextNodes;
-		private readonly Dictionary<Definition, ContextProperty<object>> propertyValues;
+		private readonly Dictionary<Definition, ContextProperty<EvaluationValue>> propertyValues;
 		private readonly Dictionary<Definition, ContextProperty<EvaluationNode>> propertyNodes;
 
-		public IReadOnlyDictionary<Definition, ContextValue<object>> ContextValues => contextValues;
-		public IReadOnlyDictionary<Definition, ContextProperty<object>> ContextProperties => propertyValues;
+		public IReadOnlyDictionary<Definition, ContextValue<EvaluationValue>> ContextValues => contextValues;
+		public IReadOnlyDictionary<Definition, ContextProperty<EvaluationValue>> ContextProperties => propertyValues;
 
 		public bool IsEmpty => definitions.Count == 0 && contextValues.Count == 0 && contextNodes.Count == 0 && propertyValues.Count == 0 && propertyNodes.Count == 0;
+		public EvaluationContext Context => definitions.Context;
 
 		private DefinitionEnvironment(
 			DefinitionGroup definitions,
-			Dictionary<Definition, ContextValue<object>>? contextValues,
+			Dictionary<Definition, ContextValue<EvaluationValue>>? contextValues,
 			Dictionary<Definition, ContextValue<EvaluationNode>>? contextNodes,
-			Dictionary<Definition, ContextProperty<object>>? propertyValues,
+			Dictionary<Definition, ContextProperty<EvaluationValue>>? propertyValues,
 			Dictionary<Definition, ContextProperty<EvaluationNode>>? propertyNodes
 			) {
 
 			this.definitions = definitions;
 
-			this.contextValues = contextValues ?? new Dictionary<Definition, ContextValue<object>>();
+			this.contextValues = contextValues ?? new Dictionary<Definition, ContextValue<EvaluationValue>>();
 			this.contextNodes = contextNodes ?? new Dictionary<Definition, ContextValue<EvaluationNode>>();
 
-			this.propertyValues = propertyValues ?? new Dictionary<Definition, ContextProperty<object>>();
+			this.propertyValues = propertyValues ?? new Dictionary<Definition, ContextProperty<EvaluationValue>>();
 			this.propertyNodes = propertyNodes ?? new Dictionary<Definition, ContextProperty<EvaluationNode>>();
 		}
 
-		public static DefinitionEnvironment Create(DefinitionGroup definitions, Dictionary<Definition, ContextProperty<object>> values, Dictionary<Definition, ContextProperty<EvaluationNode>> nodes) {
+		public static DefinitionEnvironment Create(DefinitionGroup definitions, Dictionary<Definition, ContextProperty<EvaluationValue>> values, Dictionary<Definition, ContextProperty<EvaluationNode>> nodes) {
 			return new DefinitionEnvironment(definitions, null, null, values, nodes);
 		}
 
-		public static DefinitionEnvironment Create(Dictionary<Definition, ContextProperty<object>> values) {
-			return new DefinitionEnvironment(new DefinitionGroup(values.Keys), null, null, values, null);
+		public static DefinitionEnvironment Create(Dictionary<Definition, ContextProperty<EvaluationValue>> values) {
+			return new DefinitionEnvironment(new DefinitionGroup(CardEnvironments.Context, values.Keys), null, null, values, null);
 		}
 
-		public static DefinitionEnvironment Create(Dictionary<Definition, ContextProperty<object>> values, Dictionary<Definition, ContextProperty<EvaluationNode>> nodes) {
-			Dictionary<Definition, ContextProperty<object>> finalvalues = values ?? new Dictionary<Definition, ContextProperty<object>>();
+		public static DefinitionEnvironment Create(Dictionary<Definition, ContextProperty<EvaluationValue>> values, Dictionary<Definition, ContextProperty<EvaluationNode>> nodes) {
+			Dictionary<Definition, ContextProperty<EvaluationValue>> finalvalues = values ?? new Dictionary<Definition, ContextProperty<EvaluationValue>>();
 			Dictionary<Definition, ContextProperty<EvaluationNode>> finalnodes = nodes ?? new Dictionary<Definition, ContextProperty<EvaluationNode>>();
 
-			DefinitionGroup definitions = new DefinitionGroup(finalvalues.Keys.Concat(finalnodes.Keys).Distinct());
+			DefinitionGroup definitions = new DefinitionGroup(CardEnvironments.Context, finalvalues.Keys.Concat(finalnodes.Keys).Distinct());
 
 			return new DefinitionEnvironment(definitions, null, null, finalvalues, finalnodes);
 		}
 
-		public static DefinitionEnvironment Create(Dictionary<Definition, ContextValue<object>> values) {
-			return new DefinitionEnvironment(new DefinitionGroup(values.Keys), values, null, null, null);
+		public static DefinitionEnvironment Create(Dictionary<Definition, ContextValue<EvaluationValue>> values) {
+			return new DefinitionEnvironment(new DefinitionGroup(CardEnvironments.Context, values.Keys), values, null, null, null);
 		}
 
-		public static DefinitionEnvironment Create(Dictionary<Definition, ContextValue<object>> values, Dictionary<Definition, ContextValue<EvaluationNode>> nodes) {
-			Dictionary<Definition, ContextValue<object>> finalvalues = values ?? new Dictionary<Definition, ContextValue<object>>();
+		public static DefinitionEnvironment Create(Dictionary<Definition, ContextValue<EvaluationValue>> values, Dictionary<Definition, ContextValue<EvaluationNode>> nodes) {
+			Dictionary<Definition, ContextValue<EvaluationValue>> finalvalues = values ?? new Dictionary<Definition, ContextValue<EvaluationValue>>();
 			Dictionary<Definition, ContextValue<EvaluationNode>> finalnodes = nodes ?? new Dictionary<Definition, ContextValue<EvaluationNode>>();
 
-			DefinitionGroup definitions = new DefinitionGroup(finalvalues.Keys.Concat(finalnodes.Keys).Distinct());
+			DefinitionGroup definitions = new DefinitionGroup(CardEnvironments.Context, finalvalues.Keys.Concat(finalnodes.Keys).Distinct());
 
 			return new DefinitionEnvironment(definitions, finalvalues, finalnodes, null, null);
 		}
@@ -79,13 +80,13 @@ namespace SharpSheets.Cards.Definitions {
 			return definitions.TryGetVariableInfo(key, out variableInfo);
 		}
 
-		public bool TryGetValue(EvaluationName key, out object? value) {
+		public bool TryGetValue(EvaluationName key, [NotNullWhen(true)] out EvaluationValue? value) {
 			if (definitions.TryGetDefinition(key, out Definition? definition)) {
-				if (contextValues.TryGetValue(definition, out ContextValue<object> context)) {
+				if (contextValues.TryGetValue(definition, out ContextValue<EvaluationValue> context)) {
 					value = context.Value;
 					return true;
 				}
-				else if (propertyValues.TryGetValue(definition, out ContextProperty<object> property)) {
+				else if (propertyValues.TryGetValue(definition, out ContextProperty<EvaluationValue> property)) {
 					value = property.Value;
 					return true;
 				}
@@ -147,7 +148,7 @@ namespace SharpSheets.Cards.Definitions {
 
 		public DefinitionEnvironment AppendDefinitionEnvironment(DefinitionEnvironment other) {
 			return new DefinitionEnvironment(
-				new DefinitionGroup(this.definitions.Where(d => !other.definitions.Conflicting(d)).Concat(other.definitions)),
+				new DefinitionGroup(other.Context, this.definitions.Where(d => !other.definitions.Conflicting(d)).Concat(other.definitions)),
 				this.contextValues.Where(kv => !other.definitions.Conflicting(kv.Key)).Concat(other.contextValues).ToDictionary(),
 				this.contextNodes.Where(kv => !other.definitions.Conflicting(kv.Key)).Concat(other.contextNodes).ToDictionary(),
 				this.propertyValues.Where(kv => !other.definitions.Conflicting(kv.Key)).Concat(other.propertyValues).ToDictionary(),
@@ -155,7 +156,7 @@ namespace SharpSheets.Cards.Definitions {
 				);
 		}
 
-		public IEnumerable<KeyValuePair<Definition, ContextProperty<object>>> GetPropertyValues() {
+		public IEnumerable<KeyValuePair<Definition, ContextProperty<EvaluationValue>>> GetPropertyValues() {
 			return propertyValues;
 		}
 		public IEnumerable<KeyValuePair<Definition, ContextProperty<EvaluationNode>>> GetPropertyNodes() {

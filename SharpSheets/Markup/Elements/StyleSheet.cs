@@ -49,7 +49,7 @@ namespace SharpSheets.Markup.Elements {
 		// Writing mode? (Left-to-Right or Right-to-Left, e.g. for Arabic)
 
 		public EnumExpression<DrawingCoords>? DrawingCoords { get; } // TODO Should this be removed?
-		public BoolExpression Enabled { get; } = true;
+		public BoolExpression? Enabled { get; }
 
 		public ForEachExpression? ForEach { get; } = null;
 
@@ -127,7 +127,7 @@ namespace SharpSheets.Markup.Elements {
 			ColorExpression? text_color,
 			TransformExpression? _transform,
 			EnumExpression<DrawingCoords>? drawing_coords,
-			BoolExpression _enabled,
+			BoolExpression? _enabled,
 			ForEachExpression? _for_each
 			) {
 
@@ -213,13 +213,13 @@ namespace SharpSheets.Markup.Elements {
 				return ForEach.EvaluateEnvironments(outerEnvironment, false);
 			}
 			else {
-				return Environments.Empty.Yield();
+				return Environments.Empty(outerEnvironment.Context).Yield();
 			}
 		}
 
 		public IVariableBox GetVariables(IVariableBox outerVariables) {
 			if (ForEach != null) {
-				return outerVariables.AppendVariables(SimpleVariableBoxes.Single(ForEach.Variable));
+				return outerVariables.AppendVariables(ForEach.Variable);
 			}
 			else {
 				return outerVariables;
@@ -251,6 +251,11 @@ namespace SharpSheets.Markup.Elements {
 				_for_each: null
 			);
 		}
+
+		public bool IsEnabled(IEnvironment environment) {
+			return Enabled?.Evaluate(environment) ?? true;
+		}
+
 	}
 
 }

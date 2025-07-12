@@ -326,6 +326,9 @@ namespace SharpEditor.DataManagers {
 					return value?.ToString() ?? "[Invalid]";
 				}
 			}
+			else if (value is EvaluationValue evalVal) {
+				return GetValueString(type, evalVal.Value);
+			}
 			else {
 				return value?.ToString() ?? "[Invalid]";
 			}

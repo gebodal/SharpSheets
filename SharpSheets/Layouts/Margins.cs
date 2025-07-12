@@ -26,6 +26,19 @@ namespace SharpSheets.Layouts {
 		private static readonly Regex arrayPattern = new Regex(@"^(?:[\-\+]?[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:\s*\,\s*(?:[\-\+]?[0-9]+(?:\.[0-9]*)?|\.[0-9]+))*$");
 		private static readonly Regex dictPattern = new Regex(@"^\{(?<match>[^\}]*)\}$");
 
+		public static Margins operator +(Margins a, Margins b) {
+			return new Margins(a.Top + b.Top, a.Right + b.Right, a.Bottom + b.Bottom, a.Left + b.Left);
+		}
+		public static Margins operator *(Margins a, float b) {
+			return new Margins(a.Top * b, a.Right * b, a.Bottom * b, a.Left * b);
+		}
+		public static Margins operator *(float a, Margins b) {
+			return new Margins(a * b.Top, a * b.Right, a * b.Bottom, a * b.Left);
+		}
+		public static Margins operator /(Margins a, float b) {
+			return new Margins(a.Top / b, a.Right / b, a.Bottom / b, a.Left / b);
+		}
+
 		// TODO This should ideally be a generic method (i.e., for any dict-style initializer) inside SharpFactory
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>

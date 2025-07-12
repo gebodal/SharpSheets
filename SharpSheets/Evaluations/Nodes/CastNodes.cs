@@ -13,41 +13,51 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "int";
 		public override string? Description { get; } = "Converts the argument into an integer. Strings will be parsed, floats will be rounded down, bools cast, and integers unchanged.";
 
+		/*
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.STRING, null)),
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.FLOAT, null)),
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.BOOL, null))
 		);
+		*/
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
-			EvaluationType argType = args[0].GetReturnType(typeSystem);
+		public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+			return new EnvironmentFunctionArguments(null,
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<StringEvaluationType>(), null)),
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<FloatEvaluationType>(), null)),
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<BoolEvaluationType>(), null))
+			);
+		}
+
+		public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+			EvaluationType argType = args[0].GetReturnType();
 			if (FloatEvaluationType.IsReal(argType) || BoolEvaluationType.IsBool(argType) || StringEvaluationType.IsString(argType)) {
-				return EvaluationTypes.INT;
+				return context.GetType<IntEvaluationType>();
 			}
 			else {
 				throw new EvaluationTypeException($"Cannot cast value of type {argType} to integer.");
 			}
 		}
 
-		private static EvaluationValue MakeResult(int result) {
-			return new EvaluationValue(result, EvaluationTypes.INT);
+		private static EvaluationValue MakeResult(int result, EvaluationContext context) {
+			return new EvaluationValue(result, context.GetType<IntEvaluationType>());
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
 			EvaluationValue a = args[0].Evaluate(environment);
 
 			if (IntEvaluationType.TryGetInt(a, out int aInt)) {
-				return MakeResult(aInt);
+				return MakeResult(aInt, environment.Context);
 			}
 			else if (FloatEvaluationType.TryGetFloat(a, out float aFloat)) {
-				return MakeResult((int)aFloat);
+				return MakeResult((int)aFloat, environment.Context);
 			}
 			else if (BoolEvaluationType.TryGetBool(a, out bool aBool)) {
-				return MakeResult(aBool ? 1 : 0);
+				return MakeResult(aBool ? 1 : 0, environment.Context);
 			}
 			else if (StringEvaluationType.TryGetString(a, out string? aStr)) {
 				if (int.TryParse(aStr, out int parsed)) {
-					return MakeResult(parsed);
+					return MakeResult(parsed, environment.Context);
 				}
 				else {
 					throw new EvaluationCalculationException($"Provided string is not a valid int: \"{aStr}\"");
@@ -58,10 +68,10 @@ namespace SharpSheets.Evaluations.Nodes {
 			}
 		}
 
-		public static EvaluationNode MakeIntCastNode(EvaluationNode argument, EvaluationTypeSystem typeSystem) {
-			EnvironmentFunctionNode node = new EnvironmentFunctionNode(Instance);
+		public static EvaluationNode MakeIntCastNode(EvaluationNode argument) {
+			EnvironmentFunctionNode node = new EnvironmentFunctionNode(Instance, argument.Context);
 			node.SetArguments(argument);
-			return node.Simplify(typeSystem);
+			return node.Simplify();
 		}
 	}
 
@@ -73,40 +83,50 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "float";
 		public override string? Description { get; } = "Converts the argument into a floating point number. Strings will be parsed, bools and integers will be cast, and floating point numbers will be unchanged.";
 
+		/*
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.STRING, null)),
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.FLOAT, null)),
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.BOOL, null))
 		);
+		*/
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
-			EvaluationType argType = args[0].GetReturnType(typeSystem);
+		public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+			return new EnvironmentFunctionArguments(null,
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<StringEvaluationType>(), null)),
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<FloatEvaluationType>(), null)),
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<BoolEvaluationType>(), null))
+			);
+		}
+
+		public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+			EvaluationType argType = args[0].GetReturnType();
 			if (FloatEvaluationType.IsReal(argType) || BoolEvaluationType.IsBool(argType) || StringEvaluationType.IsString(argType)) {
-				return EvaluationTypes.FLOAT;
+				return context.GetType<FloatEvaluationType>();
 			}
 			else {
 				throw new EvaluationTypeException($"Cannot cast value of type {argType} to float.");
 			}
 		}
 
-		private static EvaluationValue MakeResult(float result) {
-			return new EvaluationValue(result, EvaluationTypes.FLOAT);
+		private static EvaluationValue MakeResult(float result, EvaluationContext context) {
+			return new EvaluationValue(result, context.GetType<FloatEvaluationType>());
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
 			EvaluationValue a = args[0].Evaluate(environment);
 
 			if (FloatEvaluationType.TryGetFloat(a, out float aFloat)) {
-				return MakeResult(aFloat);
+				return MakeResult(aFloat, environment.Context);
 			}
 			else if (IntEvaluationType.TryGetInt(a, out int aInt)) {
-				return MakeResult((float)aInt);
+				return MakeResult((float)aInt, environment.Context);
 			}
 			else if (BoolEvaluationType.TryGetBool(a, out bool aBool)) {
-				return MakeResult(aBool ? 1f : 0f);
+				return MakeResult(aBool ? 1f : 0f, environment.Context);
 			}
 			else if (StringEvaluationType.TryGetString(a, out string? aStr)) {
-				return MakeResult(Parse(aStr));
+				return MakeResult(Parse(aStr), environment.Context);
 			}
 			else {
 				throw new EvaluationTypeException($"Cannot cast value of type {a.Type} to float.");
@@ -138,10 +158,10 @@ namespace SharpSheets.Evaluations.Nodes {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
-		public static EvaluationNode MakeFloatCastNode(EvaluationNode argument, EvaluationTypeSystem typeSystem) {
-			EnvironmentFunctionNode node = new EnvironmentFunctionNode(Instance);
+		public static EvaluationNode MakeFloatCastNode(EvaluationNode argument) {
+			EnvironmentFunctionNode node = new EnvironmentFunctionNode(Instance, argument.Context);
 			node.SetArguments(argument);
-			return node.Simplify(typeSystem);
+			return node.Simplify();
 		}
 	}
 
@@ -153,41 +173,51 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "bool";
 		public override string? Description { get; } = "Converts the argument into a boolean value. Strings will be parsed, floats and integers will be compared to zero, and bools will be unchanged.";
 
+		/*
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.STRING, null)),
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.FLOAT, null)),
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.BOOL, null))
 		);
+		*/
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
-			EvaluationType argType = args[0].GetReturnType(typeSystem);
+		public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+			return new EnvironmentFunctionArguments(null,
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<StringEvaluationType>(), null)),
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<FloatEvaluationType>(), null)),
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<BoolEvaluationType>(), null))
+			);
+		}
+
+		public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+			EvaluationType argType = args[0].GetReturnType();
 			if (FloatEvaluationType.IsReal(argType) || BoolEvaluationType.IsBool(argType) || StringEvaluationType.IsString(argType)) {
-				return EvaluationTypes.BOOL;
+				return context.GetType<BoolEvaluationType>();
 			}
 			else {
 				throw new EvaluationTypeException($"Cannot cast value of type {argType} to boolean.");
 			}
 		}
 
-		private static EvaluationValue MakeResult(bool result) {
-			return new EvaluationValue(result, EvaluationTypes.BOOL);
+		private static EvaluationValue MakeResult(bool result, EvaluationContext context) {
+			return new EvaluationValue(result, context.GetType<BoolEvaluationType>());
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
 			EvaluationValue a = args[0].Evaluate(environment);
 
 			if (BoolEvaluationType.TryGetBool(a, out bool aBool)) {
-				return MakeResult(aBool);
+				return MakeResult(aBool, environment.Context);
 			}
 			else if (IntEvaluationType.TryGetInt(a, out int aInt)) {
-				return MakeResult(aInt != 0);
+				return MakeResult(aInt != 0, environment.Context);
 			}
 			else if (FloatEvaluationType.TryGetFloat(a, out float aFloat)) {
-				return MakeResult(aFloat != 0f);
+				return MakeResult(aFloat != 0f, environment.Context);
 			}
 			else if (StringEvaluationType.TryGetString(a, out string? aStr)) {
 				if (bool.TryParse(aStr, out bool parsed)) {
-					return MakeResult(parsed);
+					return MakeResult(parsed, environment.Context);
 				}
 				else {
 					throw new EvaluationCalculationException($"Provided string is not a valid boolean: \"{aStr}\"");
@@ -207,6 +237,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "str";
 		public override string? Description { get; } = "Converts the argument into a string value. Real values will be serialised as decimal numbers, bools as true/false, enums as the value name, and strings will be unchanged.";
 
+		/*
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.FLOAT, null)),
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.INT, null)),
@@ -214,32 +245,43 @@ namespace SharpSheets.Evaluations.Nodes {
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", EvaluationTypes.STRING, null)),
 			new EnvironmentFunctionArgList(new EnvironmentFunctionArg("enumVal", null, null))
 		);
+		*/
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode[] args) {
-			EvaluationType argType = args[0].GetReturnType(typeSystem);
+		public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+			return new EnvironmentFunctionArguments(null,
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<FloatEvaluationType>(), null)),
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<IntEvaluationType>(), null)),
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<BoolEvaluationType>(), null)),
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<StringEvaluationType>(), null)),
+				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("enumVal", null, null))
+			);
+		}
+
+		public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+			EvaluationType argType = args[0].GetReturnType();
 			if (FloatEvaluationType.IsReal(argType) || BoolEvaluationType.IsBool(argType) || StringEvaluationType.IsString(argType) || EnumEvaluationType.IsEnum(argType)) {
-				return EvaluationTypes.STRING;
+				return context.GetType<StringEvaluationType>();
 			}
 			else {
 				throw new EvaluationTypeException($"Cannot cast value of type {argType} to string.");
 			}
 		}
 
-		private static EvaluationValue MakeResult(string result) {
-			return new EvaluationValue(result, EvaluationTypes.STRING);
+		private static EvaluationValue MakeResult(string result, EvaluationContext context) {
+			return new EvaluationValue(result, context.GetType<StringEvaluationType>());
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
 			EvaluationValue a = args[0].Evaluate(environment);
 
 			if (FloatEvaluationType.IsReal(a.Type) || BoolEvaluationType.IsBool(a.Type) || StringEvaluationType.IsString(a.Type)) {
-				return MakeResult(a.Value?.ToString() ?? ""); // Sensible fallback?
+				return MakeResult(a.Value?.ToString() ?? "", environment.Context); // Sensible fallback?
 			}
 			else if (EnumEvaluationType.IsEnum(a.Type)) {
 				if (a.Value is null) {
 					throw new EvaluationCalculationException("Cannot convert null enum value to string.");
 				}
-				return MakeResult((a.ToString() ?? throw new EvaluationCalculationException("Could not resolve enum name.")).ToUpperInvariant());
+				return MakeResult((a.ToString() ?? throw new EvaluationCalculationException("Could not resolve enum name.")).ToUpperInvariant(), environment.Context);
 			}
 			else {
 				throw new EvaluationCalculationException($"Cannot cast variable of type {a.Type} to string.");
@@ -250,10 +292,10 @@ namespace SharpSheets.Evaluations.Nodes {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
-		public static EvaluationNode MakeStringCastNode(EvaluationNode argument, EvaluationTypeSystem typeSystem) {
-			EnvironmentFunctionNode node = new EnvironmentFunctionNode(Instance);
+		public static EvaluationNode MakeStringCastNode(EvaluationNode argument) {
+			EnvironmentFunctionNode node = new EnvironmentFunctionNode(Instance, argument.Context);
 			node.SetArguments(argument);
-			return node.Simplify(typeSystem);
+			return node.Simplify();
 		}
 	}
 

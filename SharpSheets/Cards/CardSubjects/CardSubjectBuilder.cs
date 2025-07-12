@@ -47,7 +47,7 @@ namespace SharpSheets.Cards.CardSubjects {
 				}
 				else {
 					IVariableBox subjectVariables = VariableBoxes.Concat(
-						BasisEnvironment.Instance,
+						CardEnvironments.Basis,
 						CardSubjectEnvironments.GetVariables(cardConfig.Value));
 
 					DefinitionEnvironment? subjectProperties = SubjectValueParsing.ParseValues(this.Name.Location, setupProperties ?? Array.Empty<ContextProperty<string>>(), subjectVariables, cardConfig.Value.definitions, out List<SharpParsingException> propertyErrors);
@@ -366,11 +366,11 @@ namespace SharpSheets.Cards.CardSubjects {
 			}
 			catch (EvaluationException e) {
 				errors.Add(new SharpParsingException(Location, e.Message, e));
-				textExpr = new TextExpression(text.Value);
+				textExpr = new TextExpression(text.Value, CardEnvironments.Context);
 			}
 			catch (FormatException e) {
 				errors.Add(new SharpParsingException(Location, e.Message, e));
-				textExpr = new TextExpression(text.Value);
+				textExpr = new TextExpression(text.Value, CardEnvironments.Context);
 			}
 			return new ContextValue<TextExpression>(text.Location, textExpr);
 		}

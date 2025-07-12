@@ -13,27 +13,29 @@ namespace SharpSheets.Markup.Elements {
 		/// <summary></summary>
 		/// <exception cref="EvaluationTypeException"></exception>
 		public ForEachExpression(EvaluationName variable, EvaluationNode arrayExpr) {
-			if (!(arrayExpr.ReturnType.IsArray || arrayExpr.ReturnType.IsTuple)) {
+			EvaluationType arrayExprType = arrayExpr.GetReturnType();
+
+			if (!(arrayExprType.IterationResult() is EvaluationType arrayElementType)) {
 				throw new EvaluationTypeException("Expression must produce an array or tuple.");
 			}
 
 			this.arrayExpr = arrayExpr;
-			this.ReturnType = this.arrayExpr.ReturnType.ElementType;
+			this.ReturnType = arrayElementType;
 			this.Variable = new EnvironmentVariableInfo(variable, ReturnType, null);
 		}
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
-		public IEnumerable<object> Evaluate(IEnvironment environment) {
-			object? eval = arrayExpr.Evaluate(environment);
-			if (EvaluationTypes.TryGetArray(eval, out Array? values)) {
-				foreach (object value in values) {
+		public IEnumerable<EvaluationValue> Evaluate(IEnvironment environment) {
+			EvaluationValue eval = arrayExpr.Evaluate(environment);
+			if (eval.Type.Iteration(eval) is IEnumerable<EvaluationValue> iters) {
+				foreach (EvaluationValue value in iters) {
 					yield return value;
 				}
 			}
 			else {
-				throw new EvaluationCalculationException("Invalid type received from for-each expression: " + (eval?.GetType()?.Name ?? "null"));
+				throw new EvaluationCalculationException($"Invalid type received from for-each expression: {eval.Type.Name}");
 			}
 		}
 
@@ -47,15 +49,20 @@ namespace SharpSheets.Markup.Elements {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
 		public IEnumerable<IEnvironment> EvaluateEnvironments(IEnvironment environment, bool includeOriginal) {
-			Array values = (Array)(arrayExpr.Evaluate(environment) ?? throw new EvaluationCalculationException("Could not resolve for-each expression."));
-			foreach (object value in values) {
-				IEnvironment variableEnv = SimpleEnvironments.Single(Variable, value);
-				if (includeOriginal) {
-					yield return variableEnv.AppendEnvironment(environment);
+			EvaluationValue eval = arrayExpr.Evaluate(environment);
+			if (eval.Type.Iteration(eval) is IEnumerable<EvaluationValue> iters) {
+				foreach (EvaluationValue value in iters) {
+					IEnvironment variableEnv = Environments.Single(Variable, value);
+					if (includeOriginal) {
+						yield return variableEnv.AppendEnvironment(environment);
+					}
+					else {
+						yield return variableEnv;
+					}
 				}
-				else {
-					yield return variableEnv;
-				}
+			}
+			else {
+				throw new EvaluationCalculationException("Could not resolve for-each expression.");
 			}
 		}
 

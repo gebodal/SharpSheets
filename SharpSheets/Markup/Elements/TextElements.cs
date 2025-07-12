@@ -96,7 +96,7 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		public void Draw(MarkupCanvas canvas) {
-			if (!StyleSheet.Enabled.Evaluate(canvas.Environment)) {
+			if (!StyleSheet.IsEnabled(canvas.Environment)) {
 				return;
 			}
 
@@ -117,12 +117,12 @@ namespace SharpSheets.Markup.Elements {
 
 			TextAnchor anchor = StyleSheet.TextAnchor?.Evaluate(canvas.Environment) ?? TextAnchor.Start;
 
-			DrawPoint start = canvas.TransformPoint(x ?? 0, y ?? 0);
+			DrawPoint start = canvas.TransformPoint(x ?? new FloatExpression(0, canvas.Context), y ?? new FloatExpression(0, canvas.Context));
 			Vector normal = new Vector(0, 1);
-			Vector offset = canvas.TransformVector(dx ?? 0, dy ?? 0);
+			Vector offset = canvas.TransformVector(dx ?? new FloatExpression(0, canvas.Context), dy ?? new FloatExpression(0, canvas.Context));
 			start += offset;
 
-			Queue<ITextPiece> pieces = new Queue<ITextPiece>(textContent.Where(s => s.StyleSheet.Enabled.Evaluate(canvas.Environment)));
+			Queue<ITextPiece> pieces = new Queue<ITextPiece>(textContent.Where(s => s.StyleSheet.IsEnabled(canvas.Environment)));
 
 			bool first = true;
 
@@ -139,7 +139,7 @@ namespace SharpSheets.Markup.Elements {
 				if (spans.Count > 0) {
 
 					DrawPoint startInvert = canvas.InverseTransformPoint(start);
-					start = canvas.TransformPoint(new DrawPointExpression(spans[0].x ?? startInvert.X, spans[0].y ?? startInvert.Y));
+					start = canvas.TransformPoint(new DrawPointExpression(spans[0].x ?? new FloatExpression(startInvert.X, canvas.Context), spans[0].y ?? new FloatExpression(startInvert.Y, canvas.Context)));
 
 					Vector direction = new Vector(normal.Y, -normal.X);
 					float directionRotation = direction.Rotation();
@@ -159,7 +159,7 @@ namespace SharpSheets.Markup.Elements {
 							texts[i] = texts[i].TrimEnd();
 						}
 
-						textWidths[i] = canvas.GetWidth((StringExpression)texts[i], spans[i].StyleSheet.FontStyle, spans[i].StyleSheet.FontSize);
+						textWidths[i] = canvas.GetWidth(new StringExpression(texts[i], canvas.Context), spans[i].StyleSheet.FontStyle, spans[i].StyleSheet.FontSize);
 						dxs[i] = spans[i].dx != null ? canvas.TransformLength(spans[i].dx!) : 0f;
 						totalWidth += textWidths[i] + dxs[i];
 					}
@@ -212,10 +212,10 @@ namespace SharpSheets.Markup.Elements {
 						bool trimEnd = pieces.Count == 0;
 						first = false;
 
-						textPath.Draw(canvas, out DrawPointExpression? end, out VectorExpression? normalExpression, trimStart, trimEnd);
+						textPath.Draw(canvas, out DrawPoint? end, out Vector? normalExpression, trimStart, trimEnd);
 
-						if (end != null) { start = canvas.TransformPoint(end); }
-						normal = canvas.Evaluate(normalExpression, new Vector(0, 1));
+						if (end != null) { start = canvas.TransformPoint(end.Value); }
+						normal = normalExpression ?? new Vector(0, 1);
 
 						canvas.RestoreEnvironment();
 					}
@@ -310,7 +310,7 @@ namespace SharpSheets.Markup.Elements {
 		public void Draw(MarkupCanvas canvas) {
 			canvas.SaveState();
 
-			if (!StyleSheet.Enabled.Evaluate(canvas.Environment)) {
+			if (!StyleSheet.IsEnabled(canvas.Environment)) {
 				return;
 			}
 
@@ -327,7 +327,7 @@ namespace SharpSheets.Markup.Elements {
 			// Need to apply text style information from StyleSheet
 			TextElementUtils.ApplyGraphicsParameters(this, canvas);
 
-			TSpan[] spans = textContent.Where(s => s.StyleSheet.Enabled.Evaluate(canvas.Environment)).ToArray();
+			TSpan[] spans = textContent.Where(s => s.StyleSheet.IsEnabled(canvas.Environment)).ToArray();
 
 			List<RichString> spanStrings = new List<RichString>();
 			for (int i = 0; i < spans.Length; i++) {
@@ -367,18 +367,18 @@ namespace SharpSheets.Markup.Elements {
 
 			if (fitText) {
 				if (singleLine) {
-					canvas.FitRichTextLine(area, new RichStringExpression(formattedText), maxFontSize, lineSpacing, justification, alignment, heightStrategy);
+					canvas.FitRichTextLine(area, new RichStringExpression(formattedText, canvas.Context), maxFontSize, lineSpacing, justification, alignment, heightStrategy);
 				}
 				else {
-					canvas.FitRichText(area, new RichStringExpression(formattedText), minFontSize, maxFontSize, lineSpacing, paragraphSpacing, justification, alignment, heightStrategy);
+					canvas.FitRichText(area, new RichStringExpression(formattedText, canvas.Context), minFontSize, maxFontSize, lineSpacing, paragraphSpacing, justification, alignment, heightStrategy);
 				}
 			}
 			else {
 				if (singleLine) {
-					canvas.DrawRichText(area, new RichStringExpression(formattedText), justification, alignment, heightStrategy);
+					canvas.DrawRichText(area, new RichStringExpression(formattedText, canvas.Context), justification, alignment, heightStrategy);
 				}
 				else {
-					canvas.DrawRichText(area, new RichStringExpression(formattedText), lineSpacing, paragraphSpacing, justification, alignment, heightStrategy);
+					canvas.DrawRichText(area, new RichStringExpression(formattedText, canvas.Context), lineSpacing, paragraphSpacing, justification, alignment, heightStrategy);
 				}
 			}
 
@@ -517,7 +517,7 @@ namespace SharpSheets.Markup.Elements {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="MarkupCanvasStateException"></exception>
 		/// <exception cref="InvalidOperationException"></exception>
-		public void Draw(MarkupCanvas canvas, out DrawPointExpression? end, out VectorExpression? endNormal, bool trimStart, bool trimEnd) {
+		public void Draw(MarkupCanvas canvas, out DrawPoint? end, out Vector? endNormal, bool trimStart, bool trimEnd) {
 
 			IPathCalculator? path = pathElem?.GetPath(canvas);
 
@@ -607,7 +607,7 @@ namespace SharpSheets.Markup.Elements {
 
 					for (int i = 0; i < text.Length; i++) {
 						string c = text[i].ToString();
-						float charWidth = canvas.GetWidth((StringExpression)c, span.StyleSheet.FontStyle, span.StyleSheet.FontSize);
+						float charWidth = canvas.GetWidth(canvas.MakeExpression(c), span.StyleSheet.FontStyle, span.StyleSheet.FontSize);
 						float pointPosition = position + direction * 0.5f * charWidth;
 						if (continuePastEnd == ContinueStyle.LOOP) {
 							//Console.Write($"Position: {pointPosition}, ");
@@ -655,7 +655,7 @@ namespace SharpSheets.Markup.Elements {
 								bounds = new Rectangle(point.Value.X, point.Value.Y, 0f, 0f);
 							}
 							bounds = bounds.Include(point.Value);
-							bounds = bounds.Include(point.Value + (normal!.Value * canvas.GetAscent(new StringExpression(c), span.StyleSheet.FontStyle, span.StyleSheet.FontSize)));
+							bounds = bounds.Include(point.Value + (normal!.Value * canvas.GetAscent(canvas.MakeExpression(c), span.StyleSheet.FontStyle, span.StyleSheet.FontSize)));
 						}
 					}
 

@@ -7,10 +7,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override Associativity Associativity { get; } = Associativity.RIGHT;
 		public override string Symbol { get; } = "+";
 
+		public PlusOperator(EvaluationContext context) : base(context) { }
+
 		/// <summary></summary>
 		/// <exception cref="EvaluationTypeException"></exception>
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
-			EvaluationType operandType = Operand.GetReturnType(typeSystem);
+		public override EvaluationType GetReturnType() {
+			EvaluationType operandType = Operand.GetReturnType();
 			return operandType.PosResult() ?? throw new EvaluationTypeException($"Cannot take positive value of type {operandType}.");
 		}
 
@@ -20,7 +22,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		protected override UnaryOperatorNode Empty() {
-			return new PlusOperator();
+			return new PlusOperator(Context);
 		}
 	}
 
@@ -29,8 +31,10 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override Associativity Associativity { get; } = Associativity.RIGHT;
 		public override string Symbol { get; } = "-";
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
-			EvaluationType operandType = Operand.GetReturnType(typeSystem);
+		public MinusOperator(EvaluationContext context) : base(context) { }
+
+		public override EvaluationType GetReturnType() {
+			EvaluationType operandType = Operand.GetReturnType();
 			return operandType.NegResult() ?? throw new EvaluationTypeException($"Cannot take negative value of type {operandType}.");
 		}
 
@@ -40,7 +44,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		protected override UnaryOperatorNode Empty() {
-			return new MinusOperator();
+			return new MinusOperator(Context);
 		}
 	}
 
@@ -49,8 +53,10 @@ namespace SharpSheets.Evaluations.Nodes {
 		public sealed override Associativity Associativity { get; } = Associativity.RIGHT;
 		public override string Symbol { get; } = "!";
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
-			EvaluationType operandType = Operand.GetReturnType(typeSystem);
+		public NegateOperator(EvaluationContext context) : base(context) { }
+
+		public override EvaluationType GetReturnType() {
+			EvaluationType operandType = Operand.GetReturnType();
 			return operandType.InvertResult() ?? throw new EvaluationTypeException($"Cannot negate value of type {operandType}.");
 		}
 
@@ -60,7 +66,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		protected override UnaryOperatorNode Empty() {
-			return new NegateOperator();
+			return new NegateOperator(Context);
 		}
 	}
 

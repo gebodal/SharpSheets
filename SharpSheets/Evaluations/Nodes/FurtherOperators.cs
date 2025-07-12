@@ -9,10 +9,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override string Symbol { get; } = "??";
 		public override int[] CalculationOrder { get; } = new int[] { 1, 0 };
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
-			EvaluationType firstType = First.GetReturnType(typeSystem);
-			EvaluationType secondType = Second.GetReturnType(typeSystem);
-			if (typeSystem.TryGetLeastUpperBoundType(firstType, secondType, out EvaluationType? compatible)) {
+		public NullCoalescingNode(EvaluationContext context) : base(context) { }
+
+		public override EvaluationType GetReturnType() {
+			EvaluationType firstType = First.GetReturnType();
+			EvaluationType secondType = Second.GetReturnType();
+			if (Context.TryGetLeastUpperBoundType(firstType, secondType, out EvaluationType? compatible)) {
 				return compatible;
 			}
 			else {
@@ -21,12 +23,12 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		protected override BinaryOperatorNode Empty() {
-			return new NullCoalescingNode();
+			return new NullCoalescingNode(Context);
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment) {
-			EvaluationType firstType = First.GetReturnType(environment);
-			EvaluationType secondType = Second.GetReturnType(environment);
+			EvaluationType firstType = First.GetReturnType();
+			EvaluationType secondType = Second.GetReturnType();
 			if (!environment.TryGetLeastUpperBoundType(firstType, secondType, out EvaluationType? compatible)) {
 				throw new EvaluationTypeException($"Operands must have compatible return types ({firstType} != {secondType}).");
 			}
@@ -51,14 +53,16 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override Type OpeningType { get; } = typeof(ConditionalOpenNode);
 		public override int[] CalculationOrder { get; } = new int[] { 2, 1, 0 };
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
-			EvaluationType conditionType = First.GetReturnType(typeSystem);
+		public ConditionalOperatorNode(EvaluationContext context) : base(context) { }
+
+		public override EvaluationType GetReturnType() {
+			EvaluationType conditionType = First.GetReturnType();
 			if (!BoolEvaluationType.IsBool(conditionType)) { // Could we be more lenient here? (And therefore below when evaluating?)
 				throw new EvaluationTypeException($"Condition for conditional operator must evaluate to a boolean.");
 			}
-			EvaluationType consequentType = Second.GetReturnType(typeSystem);
-			EvaluationType alternativeType = Third.GetReturnType(typeSystem);
-			if (typeSystem.TryGetLeastUpperBoundType(consequentType, alternativeType, out EvaluationType? compatibleType)) {
+			EvaluationType consequentType = Second.GetReturnType();
+			EvaluationType alternativeType = Third.GetReturnType();
+			if (Context.TryGetLeastUpperBoundType(consequentType, alternativeType, out EvaluationType? compatibleType)) {
 				return compatibleType;
 			}
 			else {
@@ -69,7 +73,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		internal override void AssignOpening(OperatorNode openingNode) { }
 
 		protected override TernaryOperatorNode Empty() {
-			return new ConditionalOperatorNode();
+			return new ConditionalOperatorNode(Context);
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment) {
@@ -77,19 +81,21 @@ namespace SharpSheets.Evaluations.Nodes {
 				throw new EvaluationCalculationException("Cannot evaluate condition.");
 			}
 
-			EvaluationValue consequent = Second.Evaluate(environment);
-			EvaluationValue alternative = Third.Evaluate(environment);
+			EvaluationType consequentType = Second.GetReturnType();
+			EvaluationType alternativeType = Third.GetReturnType();
 
-			if (environment.TryGetLeastUpperBoundType(consequent.Type, alternative.Type, out EvaluationType? compatibleType)) {
+			if (environment.TryGetLeastUpperBoundType(consequentType, alternativeType, out EvaluationType? compatibleType)) {
 				if (condition) {
+					EvaluationValue consequent = Second.Evaluate(environment);
 					return compatibleType.Cast(consequent) ?? throw new EvaluationCalculationException($"Could not convert {consequent.Type} to {compatibleType}.");
 				}
 				else {
+					EvaluationValue alternative = Third.Evaluate(environment);
 					return compatibleType.Cast(alternative) ?? throw new EvaluationCalculationException($"Could not convert {alternative.Type} to {compatibleType}.");
 				}
 			}
 			else {
-				throw new EvaluationTypeException($"Expressions must have compatible return types ({consequent.Type} != {alternative.Type}).");
+				throw new EvaluationTypeException($"Expressions must have compatible return types ({consequentType} != {alternativeType}).");
 			}
 		}
 
@@ -111,13 +117,14 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		internal class ConditionalOpenNode : OperatorNode {
 			public override bool IsConstant => throw new NotImplementedException();
-			public override EvaluationType GetReturnType(EvaluationTypeSystem _) => throw new NotImplementedException();
+			public override EvaluationType GetReturnType() => throw new NotImplementedException();
 			public sealed override int Operands { get { return 0; } }
 			public sealed override int Precedence { get; } = 11;
 			public sealed override Associativity Associativity { get; } = Associativity.RIGHT;
+			public ConditionalOpenNode(EvaluationContext context) : base(context) { }
 			public override EvaluationValue Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
-			public override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) { throw new NotImplementedException(); }
-			public override EvaluationNode Clone() { return new ConditionalOpenNode(); }
+			public override EvaluationNode Simplify() { throw new NotImplementedException(); }
+			public override EvaluationNode Clone() { return new ConditionalOpenNode(Context); }
 			public override IEnumerable<EvaluationName> GetVariables() { throw new NotImplementedException(); }
 			//public override void Print(int indent, IEnvironment environment) { throw new NotImplementedException(); }
 			protected override string GetRepresentation() { throw new NotImplementedException(); }

@@ -38,11 +38,11 @@ namespace SharpSheets.Markup.Patterns {
 		}
 
 		protected IEnvironment ParseWidgetArguments(IContext context, WidgetSetup setup, Utilities.DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool useExamples, out SharpParsingException[] buildErrors) {
-			IEnvironment environment = ParseArguments(context ?? Context.Empty, source, widgetFactory, shapeFactory, useExamples, out buildErrors)
-				.AppendEnvironment(SimpleEnvironments.Create(new List<(object?, EnvironmentVariableInfo)>() {
-					(setup.gutter, PatternData.WidgetGutterVariable),
-					(setup.layout, PatternData.WidgetLayoutVariable)
-				}));
+			IEnvironment environment = ParseArguments(context ?? SharpSheets.Parsing.Context.Empty, source, widgetFactory, shapeFactory, useExamples, out buildErrors)
+				.AppendEnvironment(new List<(object?, EnvironmentVariableInfo)>() {
+					(setup.gutter, PatternData.WidgetGutterVariable(Context)),
+					(setup.layout, PatternData.WidgetLayoutVariable(Context))
+				});
 
 			return environment;
 		}
@@ -64,7 +64,7 @@ namespace SharpSheets.Markup.Patterns {
 					useExamples = false;
 				}
 
-				IEnvironment argumentEnvironment = ParseWidgetArguments(context ?? Context.Empty, setup, source, widgetFactory, shapeFactory, useExamples, out SharpParsingException[] argErrors);
+				IEnvironment argumentEnvironment = ParseWidgetArguments(context ?? SharpSheets.Parsing.Context.Empty, setup, source, widgetFactory, shapeFactory, useExamples, out SharpParsingException[] argErrors);
 				errors.AddRange(argErrors);
 
 				DrawableDivElement? drawable = rootElement.GetDrawable(GetGraphicsData(setup), argumentEnvironment, shapeFactory, useExamples || setup.diagnostic);
@@ -86,7 +86,7 @@ namespace SharpSheets.Markup.Patterns {
 			try {
 				WidgetSetup setup = knownSetup ?? new WidgetSetup();
 
-				IEnvironment argumentEnvironment = ParseWidgetArguments(Context.Empty, setup, sourceDirectory, widgetFactory, shapeFactory, true, out buildErrors);
+				IEnvironment argumentEnvironment = ParseWidgetArguments(SharpSheets.Parsing.Context.Empty, setup, sourceDirectory, widgetFactory, shapeFactory, true, out buildErrors);
 
 				DrawableDivElement? drawable = rootElement.GetDrawable(GetGraphicsData(setup), argumentEnvironment, shapeFactory, setup.diagnostic);
 
@@ -129,7 +129,7 @@ namespace SharpSheets.Markup.Patterns {
 					if (typeof(IWidget).IsAssignableFrom(singleArg.Type.DataType)) {
 						yield return new Regex(@"^" + Regex.Escape(singleArg.ArgumentName.ToString()) + @"$", RegexOptions.IgnoreCase);
 					}
-					else if(singleArg.IsNumbered && typeof(IWidget).IsAssignableFrom(singleArg.Type.ElementType!.DataType)) {
+					else if(singleArg.IsNumbered && typeof(IWidget).IsAssignableFrom((singleArg.Type.IterationResult() ?? throw new InvalidOperationException("Numbered argument must be iterable.")).DataType)) {
 						yield return new Regex(@"^" + Regex.Escape(singleArg.ArgumentName.ToString()) + @"[0-9]+$", RegexOptions.IgnoreCase);
 					}
 				}

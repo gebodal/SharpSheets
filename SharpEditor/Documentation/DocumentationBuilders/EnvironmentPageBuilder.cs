@@ -46,7 +46,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
 			foreach (IEnvironmentFunctionInfo funcInfo in variables.GetFunctionInfos().OrderBy(f => f.Name.ToString(), StringComparer.OrdinalIgnoreCase)) {
-				Control funcElem = MakeEnvironmentFunctionBlock(funcInfo, window);
+				Control funcElem = MakeEnvironmentFunctionBlock(funcInfo, variables.Context, window);
 				funcElem.AddMargin(ParagraphSpacingMargin);
 				stack.Children.Add(funcElem);
 			}
@@ -124,12 +124,12 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return argPanel;
 		}
 
-		private static Control MakeEnvironmentFunctionBlock(IEnvironmentFunctionInfo functionInfo, DocumentationWindow window) {
+		private static Control MakeEnvironmentFunctionBlock(IEnvironmentFunctionInfo functionInfo, EvaluationContext context, DocumentationWindow window) {
 			StackPanel argPanel = new StackPanel() { Orientation = Orientation.Vertical };
 
 			TextBlock titleBlock = GetContentTextBlock(TextBlockMargin);
 
-			EnvironmentFunctionArgList[] funcArgLists = functionInfo.Args.OrderBy(a => a.Arguments.Length).ToArray();
+			EnvironmentFunctionArgList[] funcArgLists = functionInfo.GetArguments(context).OrderBy(a => a.Arguments.Length).ToArray();
 
 			for (int i = 0; i < funcArgLists.Length; i++) {
 				EnvironmentFunctionArgList args = funcArgLists[i];

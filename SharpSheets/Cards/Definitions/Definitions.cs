@@ -28,12 +28,11 @@ namespace SharpSheets.Cards.Definitions {
 
 		protected static EvaluationNode MakeBaseNode(string text, EvaluationType returnType, IVariableBox variables) {
 			// TODO This method needs some documentation... I'm not sure what it's doing
-			if (returnType.IsArray) {
-				EvaluationType elementType = returnType.ElementType;
+
+			if (returnType is ArrayEvaluationType arrayType) {
 				char splitChar;
-				if (elementType.IsArray) {
-					EvaluationType nestedElementType = elementType.ElementType;
-					if (nestedElementType.IsArray) {
+				if (arrayType.ElementType is ArrayEvaluationType nestedArrayType) {
+					if (nestedArrayType.ElementType is ArrayEvaluationType) {
 						throw new NotSupportedException("Array definitions with rank greater than 2 not allowed.");
 					}
 					splitChar = ';';
@@ -50,11 +49,11 @@ namespace SharpSheets.Cards.Definitions {
 					throw new FormatException("Could not split array values.");
 				}
 				else {
-					EvaluationNode[] nodes = splitValues.Select(v => MakeBaseNode(v.Value, elementType, variables)).ToArray();
-					return ArrayCreateFunction.MakeArrayCreateNode(nodes);
+					EvaluationNode[] nodes = splitValues.Select(v => MakeBaseNode(v.Value, arrayType.ElementType, variables)).ToArray();
+					return ArrayCreateFunction.MakeArrayCreateNode(returnType.Context, nodes);
 				}
 			}
-			else if (returnType == EvaluationType.STRING) {
+			else if (StringEvaluationType.IsString(returnType)) {
 				return Interpolation.Parse(text, variables, false).Evaluation;
 			}
 			else {
@@ -168,7 +167,7 @@ namespace SharpSheets.Cards.Definitions {
 						}
 					}
 					else {
-						definitionType = DefinitionType.Simple(EvaluationType.STRING, arrayRank);
+						definitionType = DefinitionType.Simple(CardEnvironments.STRING, arrayRank);
 					}
 				}
 				else if (match.Groups["rangetype"].Success && match.Groups["range"].Success) {
@@ -197,11 +196,11 @@ namespace SharpSheets.Cards.Definitions {
 						throw new FormatException($"Invalid definition range type: {rangeType}");
 					}
 				}
-				else if (typeNameStr == "int") { definitionType = DefinitionType.Simple(EvaluationType.INT, arrayRank); }
-				else if (typeNameStr == "uint") { definitionType = DefinitionType.Simple(EvaluationType.UINT, arrayRank); }
-				else if (typeNameStr == "float") { definitionType = DefinitionType.Simple(EvaluationType.FLOAT, arrayRank); }
-				else if (typeNameStr == "ufloat") { definitionType = DefinitionType.Simple(EvaluationType.UFLOAT, arrayRank); }
-				else if (typeNameStr == "bool") { definitionType = DefinitionType.Simple(EvaluationType.BOOL, arrayRank); }
+				else if (typeNameStr == "int") { definitionType = DefinitionType.Simple(CardEnvironments.INT, arrayRank); }
+				else if (typeNameStr == "uint") { definitionType = DefinitionType.Simple(CardEnvironments.UINT, arrayRank); }
+				else if (typeNameStr == "float") { definitionType = DefinitionType.Simple(CardEnvironments.FLOAT, arrayRank); }
+				else if (typeNameStr == "ufloat") { definitionType = DefinitionType.Simple(CardEnvironments.UFLOAT, arrayRank); }
+				else if (typeNameStr == "bool") { definitionType = DefinitionType.Simple(CardEnvironments.BOOL, arrayRank); }
 				else { throw new FormatException($"Unrecognized definition type: {match.Groups["type"].Value}"); }
 			}
 			else if (match.Groups["categories"].Success) {
@@ -214,14 +213,14 @@ namespace SharpSheets.Cards.Definitions {
 				}
 			}
 
-			object? exampleValue = null;
+			EvaluationValue? exampleValue = null;
 			if (match.Groups["example"].Success) {
 				if (definitionType is null) {
 					throw new FormatException("Example values can only be provided for value definitions.");
 				}
 				string exampleValueStr = match.Groups["example"].Value;
-				EvaluationNode exampleValueNode = Evaluation.Parse(exampleValueStr, VariableBoxes.Empty); // Evaluation.Parse(exampleValueStr, variables)
-				if (!EvaluationTypes.IsCompatibleType(definitionType.ReturnType, exampleValueNode.ReturnType)) {
+				EvaluationNode exampleValueNode = Evaluation.Parse(exampleValueStr, CardEnvironments.Basis); // Evaluation.Parse(exampleValueStr, variables)
+				if (!definitionType.ReturnType.CanImplicitCastFrom(exampleValueNode.GetReturnType())) {
 					throw new FormatException("Provided example value does not match definition type.");
 				}
 				if (!exampleValueNode.IsConstant) {
@@ -229,7 +228,7 @@ namespace SharpSheets.Cards.Definitions {
 				}
 				try {
 					exampleValueNode = definitionType.Validation(exampleValueNode);
-					exampleValue = exampleValueNode.Evaluate(Environments.Empty);
+					exampleValue = exampleValueNode.Evaluate(CardEnvironments.Basis);
 				}
 				catch (EvaluationException e) {
 					throw new FormatException($"Invalid value for definition example value.", e);
@@ -267,12 +266,12 @@ namespace SharpSheets.Cards.Definitions {
 
 	public class ConstantDefinition : ValueDefinition {
 
-		public readonly object? ExampleValue;
+		public readonly EvaluationValue? ExampleValue;
 
-		public ConstantDefinition(EvaluationName name, EvaluationName[] aliases, string? description, DefinitionType type, object? exampleValue) : base(name, aliases, type, description) {
-			if (exampleValue is not null && !type.ReturnType.ValidDataType(exampleValue.GetType())) {
+		public ConstantDefinition(EvaluationName name, EvaluationName[] aliases, string? description, DefinitionType type, EvaluationValue? exampleValue) : base(name, aliases, type, description) {
+			if (exampleValue.HasValue && !type.ReturnType.CanImplicitCastFrom(exampleValue.Value.Type)) {
 				throw new ArgumentException($"Invalid example value provided for constant definition. " +
-					$"Expected {type.ReturnType}, got {exampleValue.GetType()}.", nameof(exampleValue));
+					$"Expected {type.ReturnType}, got {exampleValue.Value.Type}.", nameof(exampleValue));
 			}
 			ExampleValue = exampleValue;
 		}
@@ -285,7 +284,7 @@ namespace SharpSheets.Cards.Definitions {
 	public class CalculatedDefinition : ValueDefinition {
 		public EvaluationNode Evaluation { get; }
 
-		public CalculatedDefinition(EvaluationName name, EvaluationName[] aliases, string? description, EvaluationNode evaluation) : base(name, aliases, DefinitionType.Simple(evaluation.ReturnType, 0), description) {
+		public CalculatedDefinition(EvaluationName name, EvaluationName[] aliases, string? description, EvaluationNode evaluation) : base(name, aliases, DefinitionType.Simple(evaluation.GetReturnType(), 0), description) {
 			this.Evaluation = evaluation;
 		}
 	}
@@ -294,7 +293,7 @@ namespace SharpSheets.Cards.Definitions {
 		public EvaluationNode Evaluation { get; }
 
 		public FallbackDefinition(EvaluationName name, EvaluationName[] aliases, string? description, DefinitionType type, EvaluationNode evaluation) : base(name, aliases, type, description) {
-			if(!EvaluationTypes.TryGetCompatibleType(this.Type.ReturnType, evaluation.ReturnType, out _)) {
+			if(!this.Type.ReturnType.CanImplicitCastFrom(evaluation.GetReturnType())) {
 				throw new EvaluationTypeException($"Invalid definition: fallback expression return type must must match the stated definition type.");
 			}
 
@@ -315,9 +314,9 @@ namespace SharpSheets.Cards.Definitions {
 		EvaluationName IEnvironmentFunctionInfo.Name => this.name;
 		string? IEnvironmentFunctionInfo.Description => this.description;
 		private readonly EnvironmentFunctionArguments args;
-		EnvironmentFunctionArguments IEnvironmentFunctionInfo.Args => args;
+		EnvironmentFunctionArguments IEnvironmentFunctionInfo.GetArguments(EvaluationContext context) => args;
 
-		public FunctionDefinition(EvaluationName name, string? description, EnvironmentVariableInfo[] arguments, EvaluationNode expression) : base(name, Array.Empty<EvaluationName>(), DefinitionType.Simple(expression.ReturnType, 0), description) {
+		public FunctionDefinition(EvaluationName name, string? description, EnvironmentVariableInfo[] arguments, EvaluationNode expression) : base(name, Array.Empty<EvaluationName>(), DefinitionType.Simple(expression.GetReturnType(), 0), description) {
 			Expression = expression;
 			this.Arguments = arguments;
 			this.args = new EnvironmentFunctionArguments(null,
@@ -326,36 +325,36 @@ namespace SharpSheets.Cards.Definitions {
 				});
 		}
 
-		public EvaluationType GetReturnType(EvaluationNode[] args) {
+		public EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
 			if (args.Length != Arguments.Length) {
 				throw new EvaluationTypeException($"Invalid number of arguments for {name}: expected {Arguments.Length}, got {args.Length}");
 			}
 
 			for (int i = 0; i < Arguments.Length; i++) {
 				EvaluationType paramType = Arguments[i].EvaluationType;
-				EvaluationType argType = args[i].ReturnType;
+				EvaluationType argType = args[i].GetReturnType();
 
-				if(!EvaluationTypes.IsCompatibleType(paramType, argType)) {
-					throw new EvaluationTypeException($"Invalid argument types for {name}: " + string.Join(", ", args.Select(a => a.ReturnType)));
+				if(!paramType.CanImplicitCastFrom(argType)) {
+					throw new EvaluationTypeException($"Invalid argument types for {name}: " + string.Join(", ", args.Select(a => a.GetReturnType())));
 				}
 			}
 
 			return Type.ReturnType;
 		}
 
-		public object? Evaluate(IEnvironment environment, EvaluationNode[] args) {
+		public EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
 			if (args.Length != Arguments.Length) {
 				throw new EvaluationCalculationException($"Invalid number of arguments for {name}: expected {Arguments.Length}, got {args.Length}");
 			}
 
-			object?[] argVals = new object?[args.Length];
+			EvaluationValue[] argVals = new EvaluationValue[args.Length];
 			for(int i=0; i<args.Length; i++) {
-				object? argVal = args[i].Evaluate(environment);
-				argVals[i] = EvaluationTypes.GetCompatibleValue(Arguments[i].EvaluationType, argVal);
+				EvaluationValue argVal = args[i].Evaluate(environment);
+				argVals[i] = Arguments[i].EvaluationType.Cast(argVal) ?? throw new EvaluationCalculationException($"Cannot cast value for argument {Arguments[i].Name} in {name} to expected type {Arguments[i].EvaluationType}.");
 			}
 
 			IEnvironment evaluationEnvironment = Environments.Concat(
-				SimpleEnvironments.Create(argVals.Zip(Arguments).ToArray()),
+				Environments.Create(argVals.Zip(Arguments).ToArray(), environment.Context),
 				environment
 				);
 
@@ -428,20 +427,20 @@ namespace SharpSheets.Cards.Definitions {
 				int arrayRank = argMatch.Groups["array"].Success ? Regex.Replace(argMatch.Groups["array"].Value, @"\s+", "").Length / 2 : 0;
 
 				EvaluationType argType = (typeStr switch {
-					"int" => EvaluationType.INT,
-					"uint" => EvaluationType.UINT,
-					"float" => EvaluationType.FLOAT,
-					"ufloat" => EvaluationType.UFLOAT,
-					"bool" => EvaluationType.BOOL,
-					"color" => EvaluationType.COLOR,
-					"string" => EvaluationType.STRING,
+					"int" => (EvaluationType)CardEnvironments.INT,
+					"uint" => (EvaluationType)CardEnvironments.UINT,
+					"float" => (EvaluationType)CardEnvironments.FLOAT,
+					"ufloat" => (EvaluationType)CardEnvironments.UFLOAT,
+					"bool" => (EvaluationType)CardEnvironments.BOOL,
+					//"color" => EvaluationType.COLOR,
+					"string" => (EvaluationType)CardEnvironments.STRING,
 					_ => throw new FormatException($"Unrecognized definition argument type: \"{argMatch.Groups["type"].Value}\"")
 				}).MakeArray(arrayRank);
 
 				args.Add(new EnvironmentVariableInfo(argName, argType, null));
 			}
 
-			IVariableBox functionVariables = variables.AppendVariables(SimpleVariableBoxes.Create(args));
+			IVariableBox functionVariables = variables.AppendVariables(args);
 
 			string expressionStr = match.Groups["expression"].Value;
 			EvaluationNode? expression = Evaluation.Parse(expressionStr, functionVariables);
@@ -452,20 +451,20 @@ namespace SharpSheets.Cards.Definitions {
 
 	public static class DefinitionUtils {
 
-		public static IEnvironment ToEnvironment(this Dictionary<Definition, object> source) {
-			return SimpleEnvironments.Create(source.SelectMany(kv => kv.Key.AllNames.Select(n => ((object?)kv.Value, new EnvironmentVariableInfo(n, kv.Key.Type.ReturnType, kv.Key.description)))));
+		public static IEnvironment ToEnvironment(this Dictionary<Definition, object> source, EvaluationContext context) {
+			return Environments.Create(source.SelectMany(kv => kv.Key.AllNames.Select(n => ((object?)kv.Value, new EnvironmentVariableInfo(n, kv.Key.Type.ReturnType, kv.Key.description)))), context);
 		}
 
 		public static IEnvironment AppendEnvironment(this IEnvironment source, Dictionary<Definition, object> values) {
-			return source.AppendEnvironment(values.ToEnvironment());
+			return source.AppendEnvironment(values.ToEnvironment(source.Context));
 		}
 
-		public static IVariableBox ToVariableBox(this Dictionary<Definition, EvaluationNode> source) {
-			return SimpleVariableBoxes.Create(source.SelectMany(kv => kv.Key.AllNames.Select(n => new KeyValuePair<EvaluationName, EvaluationNode>(n, kv.Value))));
+		public static IVariableBox ToVariableBox(this Dictionary<Definition, EvaluationNode> source, EvaluationContext context) {
+			return VariableBoxes.Create(source.SelectMany(kv => kv.Key.AllNames.Select(n => new KeyValuePair<EvaluationName, EvaluationNode>(n, kv.Value))), context);
 		}
 
 		public static IVariableBox AppendVariables(this IVariableBox source, Dictionary<Definition, EvaluationNode> nodes) {
-			return source.AppendVariables(nodes.ToVariableBox());
+			return source.AppendVariables(nodes.ToVariableBox(source.Context));
 		}
 
 	}

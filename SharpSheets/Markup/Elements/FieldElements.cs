@@ -66,7 +66,7 @@ namespace SharpSheets.Markup.Elements {
 			this.StyleSheet = styleSheet;
 
 			this.rect = new RectangleExpression(_x, _y, _width, _height);
-			this.name = _name ?? new StringExpression("NAME");
+			this.name = _name;
 			this.tooltip = _tooltip;
 			this.fieldType = _field_type;
 			this.value = _value;
@@ -77,7 +77,7 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		public void Draw(MarkupCanvas canvas) {
-			if (!StyleSheet.Enabled.Evaluate(canvas.Environment)) {
+			if (!StyleSheet.IsEnabled(canvas.Environment)) {
 				return;
 			}
 
@@ -142,13 +142,13 @@ namespace SharpSheets.Markup.Elements {
 			this.StyleSheet = styleSheet;
 
 			this.rect = new RectangleExpression(_x, _y, _width, _height);
-			this.name = _name ?? new StringExpression("NAME");
+			this.name = _name;
 			this.tooltip = _tooltip;
 			this.checkType = _check_type;
 		}
 
 		public void Draw(MarkupCanvas canvas) {
-			if (!StyleSheet.Enabled.Evaluate(canvas.Environment)) {
+			if (!StyleSheet.IsEnabled(canvas.Environment)) {
 				return;
 			}
 
@@ -197,12 +197,12 @@ namespace SharpSheets.Markup.Elements {
 			this.StyleSheet = styleSheet;
 
 			this.rect = new RectangleExpression(_x, _y, _width, _height);
-			this.name = _name ?? new StringExpression("NAME");
+			this.name = _name;
 			this.tooltip = _tooltip;
 		}
 
 		public void Draw(MarkupCanvas canvas) {
-			if (!StyleSheet.Enabled.Evaluate(canvas.Environment)) {
+			if (!StyleSheet.IsEnabled(canvas.Environment)) {
 				return;
 			}
 

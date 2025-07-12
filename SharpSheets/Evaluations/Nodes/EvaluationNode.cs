@@ -8,10 +8,15 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public abstract bool IsConstant { get; }
 
+		public EvaluationContext Context { get; }
+
+		protected EvaluationNode(EvaluationContext context) {
+			this.Context = context;
+		}
+
 		/// <summary></summary>
 		/// <exception cref="EvaluationTypeException"></exception>
-		public abstract EvaluationType GetReturnType(EvaluationTypeSystem typeSystem);
-		public EvaluationType GetReturnType(IVariableBox variables) => GetReturnType(variables.TypeSystem);
+		public abstract EvaluationType GetReturnType();
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>
@@ -22,7 +27,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// /// <exception cref="EvaluationTypeException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
-		public abstract EvaluationNode Simplify(EvaluationTypeSystem typeSystem);
+		public abstract EvaluationNode Simplify();
 
 		/// <summary>
 		/// 
@@ -37,62 +42,65 @@ namespace SharpSheets.Evaluations.Nodes {
 		/// <exception cref="EvaluationTypeException"></exception>
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
-		private static EvaluationNode Validate(EvaluationNode node, EvaluationTypeSystem typeSystem) {
-			_ = node.GetReturnType(typeSystem);
-			return node.Simplify(typeSystem);
+		private static EvaluationNode Validate(EvaluationNode node) {
+			_ = node.GetReturnType();
+			return node.Simplify();
 		}
 
-		/*
 		public static EvaluationNode operator *(EvaluationNode a, EvaluationNode b) {
-			return Validate(new MultiplicationNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new MultiplicationNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator /(EvaluationNode a, EvaluationNode b) {
-			return Validate(new DivisionNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new DivisionNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator %(EvaluationNode a, EvaluationNode b) {
-			return Validate(new RemainderNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new RemainderNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator +(EvaluationNode a, EvaluationNode b) {
-			return Validate(new AdditionNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new AdditionNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator -(EvaluationNode a, EvaluationNode b) {
-			return Validate(new SubtractNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new SubtractNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator -(EvaluationNode a) {
-			return Validate(new MinusOperator() { Operand = a.Clone() });
+			return Validate(new MinusOperator(a.Context) { Operand = a.Clone() });
 		}
 		public static EvaluationNode operator <(EvaluationNode a, EvaluationNode b) {
-			return Validate(new LessThanNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new LessThanNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator >(EvaluationNode a, EvaluationNode b) {
-			return Validate(new GreaterThanNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new GreaterThanNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator <=(EvaluationNode a, EvaluationNode b) {
-			return Validate(new LessThanEqualNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new LessThanEqualNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator >=(EvaluationNode a, EvaluationNode b) {
-			return Validate(new GreaterThanEqualNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new GreaterThanEqualNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator ==(EvaluationNode a, EvaluationNode b) {
-			return Validate(new EqualityNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new EqualityNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator !=(EvaluationNode a, EvaluationNode b) {
-			return Validate(new InequalityNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new InequalityNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator &(EvaluationNode a, EvaluationNode b) {
-			return Validate(new ANDNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new ANDNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator ^(EvaluationNode a, EvaluationNode b) {
-			return Validate(new XORNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new XORNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator |(EvaluationNode a, EvaluationNode b) {
-			return Validate(new ORNode() { First = a.Clone(), Second = b.Clone() });
+			return Validate(new ORNode(a.Context) { First = a.Clone(), Second = b.Clone() });
 		}
 		public static EvaluationNode operator !(EvaluationNode a) {
-			return Validate(new NegateOperator() { Operand = a.Clone() });
+			return Validate(new NegateOperator(a.Context) { Operand = a.Clone() });
 		}
-		*/
 
+
+		public static implicit operator EvaluationNode(EvaluationValue value) {
+			return new ConstantNode(value);
+		}
+		/*
 		public static implicit operator EvaluationNode(float value) {
 			return new ConstantNode(new EvaluationValue(value, EvaluationTypes.FLOAT));
 		}
@@ -111,6 +119,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		public static implicit operator EvaluationNode(string value) {
 			return new ConstantNode(new EvaluationValue(value, EvaluationTypes.STRING));
 		}
+		*/
 		/*
 		public static implicit operator EvaluationNode(Color value) {
 			return new ConstantNode(value);

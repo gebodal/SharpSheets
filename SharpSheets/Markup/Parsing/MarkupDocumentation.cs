@@ -44,6 +44,8 @@ namespace SharpSheets.Markup.Parsing {
 		/// <exception cref="TargetInvocationException"></exception>
 		static MarkupDocumentation() {
 
+			MarkupEvaluationContext markupContext = new MarkupEvaluationContext(MarkupEvaluationTypes.BaseContext);
+
 			// Initialize Constructor Infos
 			divSetupConstructorInfo = typeof(DivSetup).GetConstructors().First();
 			divSetupConstructorDoc = SharpDocumentation.GetConstructorDoc(divSetupConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(DivSetup)} documentation.");
@@ -54,7 +56,7 @@ namespace SharpSheets.Markup.Parsing {
 			positionExpressionConstructorInfo = typeof(PositionExpression).GetConstructors().First(c => c.GetParameters().Length == 5);
 			positionExpressionConstructorDoc = SharpDocumentation.GetConstructorDoc(positionExpressionConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(PositionExpression)} documentation.");
 
-			labelDetailsExpressionConstructorInfo = typeof(LabelDetailsExpression).GetConstructors().First(c => c.GetParameters().Length == 7);
+			labelDetailsExpressionConstructorInfo = typeof(LabelDetailsExpression).GetConstructors().First(c => c.GetParameters().Length == 8);
 			labelDetailsExpressionConstructorDoc = SharpDocumentation.GetConstructorDoc(positionExpressionConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(LabelDetailsExpression)} documentation.");
 
 			rectangleExpressionConstructorInfo = typeof(RectangleExpression).GetConstructors().First(c => c.GetParameters().Length == 4);
@@ -99,10 +101,10 @@ namespace SharpSheets.Markup.Parsing {
 				"use", "use",
 				new ArgumentDetails[] {
 					new ArgumentDetails("href", new DocumentationString("A reference to the drawable element to duplicate here."), ArgumentType.Simple(typeof(IDrawableElement)), true, true, null, null, null),
-					new ArgumentDetails("x", new DocumentationString("The x-coordinate at which to draw the duplicate element."), ArgumentType.Simple(typeof(XLengthExpression)), true, true, MarkupEnvironments.ZeroWidthExpression, null, null),
-					new ArgumentDetails("y", new DocumentationString("The y-coordinate at which to draw the duplicate element."), ArgumentType.Simple(typeof(YLengthExpression)), true, true, MarkupEnvironments.ZeroHeightExpression, null, null),
-					new ArgumentDetails("width", new DocumentationString(new TextSpan("The width to use for the duplicate element. This will only be used if the referenced element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element.")), ArgumentType.Simple(typeof(XLengthExpression)), true, true, MarkupEnvironments.ZeroWidthExpression, null, null),
-					new ArgumentDetails("height", new DocumentationString(new TextSpan("The height to use for the duplicate element. This will only be used if the referenced element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element.")), ArgumentType.Simple(typeof(YLengthExpression)), true, true, MarkupEnvironments.ZeroHeightExpression, null, null),
+					new ArgumentDetails("x", new DocumentationString("The x-coordinate at which to draw the duplicate element."), ArgumentType.Simple(typeof(XLengthExpression)), true, true, markupContext.ZeroWidthExpression, null, null),
+					new ArgumentDetails("y", new DocumentationString("The y-coordinate at which to draw the duplicate element."), ArgumentType.Simple(typeof(YLengthExpression)), true, true, markupContext.ZeroHeightExpression, null, null),
+					new ArgumentDetails("width", new DocumentationString(new TextSpan("The width to use for the duplicate element. This will only be used if the referenced element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element.")), ArgumentType.Simple(typeof(XLengthExpression)), true, true, markupContext.ZeroWidthExpression, null, null),
+					new ArgumentDetails("height", new DocumentationString(new TextSpan("The height to use for the duplicate element. This will only be used if the referenced element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element.")), ArgumentType.Simple(typeof(YLengthExpression)), true, true, markupContext.ZeroHeightExpression, null, null),
 				}.Concat(GetArgumentDetails(styleSheetConstructorInfo, styleSheetConstructorDoc, true)).ToArray(),
 				new DocumentationString(new TextSpan("This element duplicates another drawable element at a specified location. " +
 				"If the duplicated element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element, then a new " +
@@ -162,8 +164,8 @@ namespace SharpSheets.Markup.Parsing {
 				typeof(IMarkupElement), typeof(IMarkupElement),
 				"stop", "stop",
 				new ArgumentDetails[] {
-					new ArgumentDetails("offset", new DocumentationString("The location of this stop in the gradient, expressed as a percentage (e.g. \"50%\") or float value (in the range 0-1)."), ArgumentType.Simple(typeof(FloatExpression)), true, true, FloatExpression.Zero, null, null),
-					new ArgumentDetails("stop-color", new DocumentationString(new TextSpan("The color for this gradient stop, indicating the color value at the specified "), new ParameterSpan("offset"), new TextSpan(" in the gradient.")), ArgumentType.Simple(typeof(ColorExpression)), true, true, new ColorExpression(Colors.Color.Black), null, null)
+					new ArgumentDetails("offset", new DocumentationString("The location of this stop in the gradient, expressed as a percentage (e.g. \"50%\") or float value (in the range 0-1)."), ArgumentType.Simple(typeof(FloatExpression)), true, true, new FloatExpression(0f, markupContext.TypeSystem), null, null),
+					new ArgumentDetails("stop-color", new DocumentationString(new TextSpan("The color for this gradient stop, indicating the color value at the specified "), new ParameterSpan("offset"), new TextSpan(" in the gradient.")), ArgumentType.Simple(typeof(ColorExpression)), true, true, new ColorExpression(Colors.Color.Black, markupContext.TypeSystem), null, null)
 				},
 				new DocumentationString("This element defines a color and its position in a gradient."),
 				null, null

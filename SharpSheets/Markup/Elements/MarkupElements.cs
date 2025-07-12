@@ -31,7 +31,7 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		public override void Draw(MarkupCanvas canvas) {
-			if (StyleSheet.Enabled.Evaluate(canvas.Environment)) {
+			if (StyleSheet.IsEnabled(canvas.Environment)) {
 				canvas.SaveState();
 
 				if (StyleSheet.DrawingCoords != null) {
@@ -150,7 +150,7 @@ namespace SharpSheets.Markup.Elements {
 		/// <exception cref="EvaluationException"></exception>
 		/// <exception cref="MarkupCanvasStateException"></exception>
 		public void Apply(MarkupCanvas canvas) {
-			if (StyleSheet.Enabled.Evaluate(canvas.Environment) && elements.Length > 0) {
+			if (StyleSheet.IsEnabled(canvas.Environment) && elements.Length > 0) {
 				foreach (IShapeElement elem in elements) {
 					foreach (IEnvironment forEachEnv in elem.StyleSheet.GetForEachEnvironments(canvas.Environment)) {
 						canvas.SaveEnvironment();
@@ -248,7 +248,7 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		public void Draw(MarkupCanvas canvas) {
-			if (!StyleSheet.Enabled.Evaluate(canvas.Environment)) {
+			if (!StyleSheet.IsEnabled(canvas.Environment)) {
 				return;
 			}
 
@@ -361,7 +361,7 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		public void Draw(MarkupCanvas canvas) {
-			if (!StyleSheet.Enabled.Evaluate(canvas.Environment)) {
+			if (!StyleSheet.IsEnabled(canvas.Environment)) {
 				return;
 			}
 
@@ -396,7 +396,7 @@ namespace SharpSheets.Markup.Elements {
 
 				Rectangle viewBox = new Rectangle(0f, 0f, imageData.Width, imageData.Height);
 				RectangleExpression placement = new RectangleExpression(x, y, width, height);
-				canvas.ApplyViewBox(placement, viewBox, preserveAspectRatio, out RectangleExpression contentRect);
+				canvas.ApplyViewBox(placement, new RectangleExpression(viewBox, placement.Context), preserveAspectRatio, out RectangleExpression contentRect);
 				try {
 					canvas.AddImage(imageData, contentRect, -1); // -1 aspect so that image conforms to contentRect aspect (allowing for "none" preserveAspectRatio values)
 				}
@@ -445,7 +445,8 @@ namespace SharpSheets.Markup.Elements {
 		/// values provided for <paramref name="_xs"/> and <paramref name="_ys"/>.</param>
 		/// <param name="_enabled" default="true">A flag to indicate whether this element should be
 		/// enabled and included in layout calculations.</param>
-		public SlicingValuesElement(string? _id, FloatExpression[]? _xs, FloatExpression[]? _ys, MarginsExpression? _border, BoolExpression _enabled) {
+		/// <param name="markupContext" exclude="True"></param>
+		public SlicingValuesElement(string? _id, FloatExpression[]? _xs, FloatExpression[]? _ys, MarginsExpression? _border, BoolExpression _enabled, MarkupEvaluationContext markupContext) {
 			this.ID = _id;
 			this.Enabled = _enabled;
 
@@ -453,14 +454,14 @@ namespace SharpSheets.Markup.Elements {
 			FloatExpression[] finalYs = Array.Empty<FloatExpression>();
 
 			if (_border is MarginsExpression borderMargins) {
-				finalXs = new FloatExpression[] { borderMargins.Left, MarkupEnvironments.WidthExpression - borderMargins.Right };
-				finalYs = new FloatExpression[] { borderMargins.Bottom, MarkupEnvironments.HeightExpression - borderMargins.Top };
+				finalXs = new FloatExpression[] { borderMargins.Left, markupContext.WidthExpression - borderMargins.Right };
+				finalYs = new FloatExpression[] { borderMargins.Bottom, markupContext.HeightExpression - borderMargins.Top };
 			}
 
 			finalXs = _xs ?? finalXs;
 			finalYs = _ys ?? finalYs;
 
-			this.NSliceValues = new NSliceValuesExpression(finalXs, finalYs);
+			this.NSliceValues = new NSliceValuesExpression(finalXs, finalYs, markupContext.TypeSystem);
 		}
 	}
 

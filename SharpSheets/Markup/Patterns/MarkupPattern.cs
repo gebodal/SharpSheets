@@ -30,6 +30,7 @@ namespace SharpSheets.Markup.Patterns {
 		//public readonly Dictionary<string, IMarkupVariable> allVariables;
 
 		public IVariableBox Variables { get; }
+		public EvaluationContext Context => rootElement.MarkupContext.TypeSystem;
 
 		public readonly Rectangle? exampleRect; // TODO Rename to exampleSize?
 		public readonly Size? exampleCanvas;
@@ -62,7 +63,7 @@ namespace SharpSheets.Markup.Patterns {
 
 			// TODO Should rootElement also be providing variables here?
 			//this.Variables = VariableBoxes.Simple(patternArguments.ToDictionary(a => a.Name, a => a.Type), patternVariables.ToDictionary(v => v.Name, v => v.Evaluation));
-			this.Variables = SimpleVariableBoxes.Create(patternArguments.Select(a => new EnvironmentVariableInfo(a.VariableName, a.Type, a.Description)));
+			this.Variables = VariableBoxes.Create(patternArguments.Select(a => new EnvironmentVariableInfo(a.VariableName, a.Type, a.Description)), rootElement.MarkupContext.TypeSystem);
 
 			this.exampleRect = exampleSize;
 			this.exampleCanvas = exampleCanvas;
@@ -142,24 +143,30 @@ namespace SharpSheets.Markup.Patterns {
 		}
 
 		private static ArgumentType GetArgDocumentationType(MarkupSingleArgument arg) {
+			EvaluationType? argElemType = arg.Type.IterationResult();
+
 			if (arg.FromEntries) {
 				// This is here to abide by SharpFactory conventions
-				Type entriesListDisplayType = typeof(List<>).MakeGenericType(arg.Type.ElementType!.DisplayType);
-				Type entriesListDataType = typeof(List<>).MakeGenericType(arg.Type.ElementType.DataType); // TODO Should this just be the raw DataType?
+				EvaluationType knownArgElemType = argElemType ?? throw new InvalidOperationException("Entries argument types must be iterable.");
+				Type entriesListDisplayType = typeof(List<>).MakeGenericType(knownArgElemType.DisplayType);
+				Type entriesListDataType = typeof(List<>).MakeGenericType(knownArgElemType.DataType); // TODO Should this just be the raw DataType?
 				return new ArgumentType(entriesListDisplayType, entriesListDataType);
 			}
-			else if(arg.Type.DataType == typeof(IWidget)) {
+			else if (arg.Type.DataType == typeof(IWidget)) {
 				return new ArgumentType(typeof(ChildHolder), arg.Type.DataType); // TODO Is this the right option now?
 			}
-			else if (arg.IsNumbered && arg.Type.ElementType!.DataType == typeof(IWidget)) {
-				Type numberedDisplayType = typeof(Numbered<>).MakeGenericType(typeof(ChildHolder));
-				Type numberedDataType = typeof(Numbered<>).MakeGenericType(arg.Type.ElementType.DataType); // TODO Should this just be the raw DataType?
-				return new ArgumentType(numberedDisplayType, numberedDataType);
-			}
 			else if (arg.IsNumbered) {
-				Type numberedDisplayType = typeof(Numbered<>).MakeGenericType(arg.Type.ElementType!.DisplayType);
-				Type numberedDataType = typeof(Numbered<>).MakeGenericType(arg.Type.ElementType.DataType); // TODO Should this just be the raw DataType?
-				return new ArgumentType(numberedDisplayType, numberedDataType);
+				EvaluationType knownArgElemType = argElemType ?? throw new InvalidOperationException("Numbered argument types must be iterable.");
+				if (knownArgElemType.DataType == typeof(IWidget)) {
+					Type numberedDisplayType = typeof(Numbered<>).MakeGenericType(typeof(ChildHolder));
+					Type numberedDataType = typeof(Numbered<>).MakeGenericType(knownArgElemType.DataType); // TODO Should this just be the raw DataType?
+					return new ArgumentType(numberedDisplayType, numberedDataType);
+				}
+				else {
+					Type numberedDisplayType = typeof(Numbered<>).MakeGenericType(knownArgElemType.DisplayType);
+					Type numberedDataType = typeof(Numbered<>).MakeGenericType(knownArgElemType.DataType); // TODO Should this just be the raw DataType?
+					return new ArgumentType(numberedDisplayType, numberedDataType);
+				}
 			}
 			else {
 				return new ArgumentType(arg.Type.DisplayType, arg.Type.DataType); // TODO Is this the right option now?
@@ -235,7 +242,10 @@ namespace SharpSheets.Markup.Patterns {
 						object? processed = ProcessExampleValue(entry, elementType);
 						values.Add(processed);
 					}
-					return EvaluationTypes.MakeArray(elementType, values);
+
+					Array final = Array.CreateInstance(elementType, values.Count);
+					Array.Copy(values.ToArray(), final, final.Length);
+					return final;
 				}
 				else {
 					throw new ArgumentException($"Array value expected (got {(value?.GetType()?.Name ?? "null")}).");

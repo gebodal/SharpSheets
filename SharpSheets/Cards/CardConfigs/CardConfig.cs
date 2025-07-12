@@ -134,7 +134,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.allowFeatureFollowOn = _allowFeatureFollowOn;
 			this.requireFormalSetupEnd = _requireFormalSetupEnd;
 
-			this.definitions = new DefinitionGroup();
+			this.definitions = new DefinitionGroup(CardEnvironments.Context);
 
 			this.cardConfigs = new ConditionalCollection<CardConfig>();
 
@@ -274,7 +274,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.multiCardLayout = multiCardLayout;
 			this.allowMultipage = allowMultipage;
 
-			this.definitions = new DefinitionGroup(cardSetConfig.definitions); // Combined with card set definitions here
+			this.definitions = new DefinitionGroup(CardEnvironments.Context, cardSetConfig.definitions); // Combined with card set definitions here
 			this.backgrounds = new ConditionalCollection<InterpolatedContext>();
 			this.outlines = new ConditionalCollection<InterpolatedContext>();
 			this.cardSegments = new ConditionalCollection<AbstractCardSegmentConfig>();
@@ -339,7 +339,7 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			this.regexFormats = format ?? new RegexFormats(null, null, null, null);
 
-			this.definitions = new DefinitionGroup();
+			this.definitions = new DefinitionGroup(CardEnvironments.Context);
 			this.outlines = new ConditionalCollection<InterpolatedContext>();
 
 			this.variableBox = new VariableDefinitionBox(CardSegmentEnvironments.BaseDefinitions, this.definitions, parent.Variables);
@@ -470,9 +470,9 @@ namespace SharpSheets.Cards.CardConfigs {
 		) : base(parent, _name, _description, _splittable, _acceptRemaining, _atPosition, format) {
 
 			this.content = _content ?? CardFeatureEnvironments.TextExpression;
-			this.delimiter = _delimiter ?? new StringExpression("\n");
-			this.prefix = _prefix ?? new StringExpression("");
-			this.tail = _tail ?? new StringExpression("");
+			this.delimiter = _delimiter ?? new StringExpression("\n", CardEnvironments.Context);
+			this.prefix = _prefix ?? new StringExpression("", CardEnvironments.Context);
+			this.tail = _tail ?? new StringExpression("", CardEnvironments.Context);
 
 			this.paragraphIndent = (paragraph ?? new ParagraphIndentArg()).Indent;
 
@@ -709,7 +709,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.layout = null;
 			this.regexFormats = format;
 
-			this.definitions = new DefinitionGroup();
+			this.definitions = new DefinitionGroup(CardEnvironments.Context);
 
 			this.variableBox = new VariableDefinitionBox(CardFeatureEnvironments.BaseDefinitions, this.definitions, cardSegmentConfig.Variables);
 		}
@@ -719,13 +719,14 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	public class VariableDefinitionBox : IVariableDefinitionBox {
 
-		public static readonly VariableDefinitionBox Empty = new VariableDefinitionBox(new DefinitionGroup(), new DefinitionGroup(), null);
+		public static readonly VariableDefinitionBox Empty = new VariableDefinitionBox(new DefinitionGroup(CardEnvironments.Context), new DefinitionGroup(CardEnvironments.Context), null);
 
 		public readonly DefinitionGroup baseDefinitions;
 		public readonly DefinitionGroup definitions;
 		public readonly IVariableDefinitionBox? fallback;
 
 		public bool IsEmpty => baseDefinitions.Count == 0 && definitions.Count == 0 && (fallback is null || fallback.IsEmpty);
+		public EvaluationContext Context => baseDefinitions.Context;
 
 		public VariableDefinitionBox(DefinitionGroup baseDefinitions, DefinitionGroup definitions, IVariableDefinitionBox? fallback) {
 			this.baseDefinitions = baseDefinitions;

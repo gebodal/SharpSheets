@@ -10,6 +10,7 @@ using SharpSheets.Canvas.Text;
 using SharpSheets.Colors;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Exceptions;
+using System.Linq.Expressions;
 
 namespace SharpSheets.Markup.Canvas {
 
@@ -107,8 +108,8 @@ namespace SharpSheets.Markup.Canvas {
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>
-		public static MarkupGeometry CreateGeometry(SharpCanvasGraphicsSnapshot snapshot, Layouts.Rectangle drawingRect, Layouts.Size? referenceRect, NSliceValuesExpression? slicingValues, IEnvironment contextEnvironment, out IEnvironment finalEnvironment) {
-			IEnvironment drawingEnvironment = MarkupEnvironments.MakeDrawingStateEnvironment(
+		public static MarkupGeometry CreateGeometry(SharpCanvasGraphicsSnapshot snapshot, Layouts.Rectangle drawingRect, Layouts.Size? referenceRect, NSliceValuesExpression? slicingValues, IEnvironment contextEnvironment, MarkupEvaluationContext markupContext, out IEnvironment finalEnvironment) {
+			IEnvironment drawingEnvironment = markupContext.MakeDrawingStateEnvironment(
 				snapshot.GetMarkupData(),
 				drawingRect,
 				new Layouts.Rectangle(drawingRect.Width, drawingRect.Height),
@@ -125,6 +126,10 @@ namespace SharpSheets.Markup.Canvas {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		public DrawPoint TransformPoint(DrawPointExpression currentTransformPointExpr, IEnvironment environment) {
 			DrawPoint currentTransformPoint = currentTransformPointExpr.Evaluate(environment); // Point in the currently transformed space
+			return TransformPoint(currentTransformPoint);
+		}
+
+		public DrawPoint TransformPoint(DrawPoint currentTransformPoint) { // Point in the currently transformed space
 			if (referenceRect != null && state.DrawingCoords == DrawingCoords.RELATIVE) { //if (state.DrawingCoords == DrawingCoords.RELATIVE) {
 				DrawPoint referenceSpacePoint = state.Transform.Map(currentTransformPoint); // That point mapped to the reference space
 				DrawPoint adjustedPoint; // That point adjusted to the current drawing rect
@@ -174,6 +179,10 @@ namespace SharpSheets.Markup.Canvas {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		public float TransformLength(FloatExpression currentTransformLengthExpr, IEnvironment environment) {
 			float currentTransformLength = currentTransformLengthExpr.Evaluate(environment);
+			return TransformLength(currentTransformLength);
+		}
+
+		public float TransformLength(float currentTransformLength) {
 			//if (state.DrawingCoords == DrawingCoords.RELATIVE) {
 			if (referenceRect != null && state.DrawingCoords == DrawingCoords.RELATIVE) {
 				if (Slicing != null) {
@@ -288,6 +297,7 @@ namespace SharpSheets.Markup.Canvas {
 		
 		private readonly Stack<IEnvironment> envStack;
 		public IEnvironment Environment { get; private set; }
+		public EvaluationContext Context => Environment.Context;
 
 		private readonly MarkupGeometry _geometry;
 
@@ -314,10 +324,10 @@ namespace SharpSheets.Markup.Canvas {
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>
-		private static MarkupCanvas SetupCanvas(MarkupCanvas? parent, ISharpCanvas canvas, Layouts.Rectangle drawingRect, Layouts.Size? referenceRect, NSliceValuesExpression? slicingValues, IEnvironment contextEnvironment, bool collectDiagnostics) {
+		private static MarkupCanvas SetupCanvas(MarkupCanvas? parent, ISharpCanvas canvas, Layouts.Rectangle drawingRect, Layouts.Size? referenceRect, NSliceValuesExpression? slicingValues, IEnvironment contextEnvironment, MarkupEvaluationContext markupContext, bool collectDiagnostics) {
 			canvas.SaveState();
 
-			MarkupGeometry geometry = MarkupGeometry.CreateGeometry(canvas.GetSnapshot(), drawingRect, referenceRect, slicingValues, contextEnvironment, out IEnvironment finalEnvironment);
+			MarkupGeometry geometry = MarkupGeometry.CreateGeometry(canvas.GetSnapshot(), drawingRect, referenceRect, slicingValues, contextEnvironment, markupContext, out IEnvironment finalEnvironment);
 
 			canvas.ApplyTransform(geometry.CanvasOriginTranslation);
 			MarkupCanvas markupCanvas = new MarkupCanvas(parent, canvas, geometry, finalEnvironment, collectDiagnostics);
@@ -327,8 +337,8 @@ namespace SharpSheets.Markup.Canvas {
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>
-		public static MarkupCanvas Open(ISharpCanvas canvas, Layouts.Rectangle drawingRect, Layouts.Size? referenceRect, NSliceValuesExpression? slicingValues, IEnvironment contextEnvironment, bool collectDiagnostics) {
-			return SetupCanvas(null, canvas, drawingRect, referenceRect, slicingValues, contextEnvironment, collectDiagnostics);
+		public static MarkupCanvas Open(ISharpCanvas canvas, Layouts.Rectangle drawingRect, Layouts.Size? referenceRect, NSliceValuesExpression? slicingValues, IEnvironment contextEnvironment, MarkupEvaluationContext markupContext, bool collectDiagnostics) {
+			return SetupCanvas(null, canvas, drawingRect, referenceRect, slicingValues, contextEnvironment, markupContext, collectDiagnostics);
 		}
 
 		/// <summary></summary>
@@ -336,7 +346,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// <exception cref="MarkupCanvasStateException"> If the canvas has an unclosed child canvas. </exception>
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// 
-		public MarkupCanvas CreateChild(RectangleExpression drawingRectExpr, SizeExpression referenceRectExpr, NSliceValuesExpression slicingValues, IEnvironment contextEnvironment) {
+		public MarkupCanvas CreateChild(RectangleExpression drawingRectExpr, SizeExpression referenceRectExpr, NSliceValuesExpression slicingValues, IEnvironment contextEnvironment, MarkupEvaluationContext markupContext) {
 			if(Canvas is null) { throw new MarkupCanvasStateException(); }
 			
 			ISharpCanvas documentCanvas = Canvas;
@@ -345,7 +355,7 @@ namespace SharpSheets.Markup.Canvas {
 			Layouts.Rectangle drawingRect = Evaluate(drawingRectExpr);
 			Layouts.Size? referenceRect = Evaluate(referenceRectExpr, null);
 
-			return SetupCanvas(this, documentCanvas, drawingRect, referenceRect, slicingValues, contextEnvironment, CollectingDiagnostics);
+			return SetupCanvas(this, documentCanvas, drawingRect, referenceRect, slicingValues, contextEnvironment, markupContext, CollectingDiagnostics);
 		}
 
 		/// <summary></summary>
@@ -396,6 +406,10 @@ namespace SharpSheets.Markup.Canvas {
 			return result;
 		}
 
+		public IExpression<T> MakeExpression<T>(T value) {
+			return new ConstantExpression<T>(value, Context);
+		}
+
 		public void LogError(object origin, string message, Exception innerException) {
 			exceptions.Add(new SharpDrawingException(origin, message, innerException));
 		}
@@ -405,6 +419,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>
 		public DrawPoint TransformPoint(DrawPointExpression currentTransformPointExpr) => _geometry.TransformPoint(currentTransformPointExpr, Environment);
+		public DrawPoint TransformPoint(DrawPoint currentTransformPoint) => _geometry.TransformPoint(currentTransformPoint);
 		public DrawPoint InverseTransformPoint(DrawPoint currentTransformAdjustedPoint) => _geometry.InverseTransformPoint(currentTransformAdjustedPoint);
 
 		/// <summary></summary>
@@ -415,6 +430,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>
 		public float TransformLength(FloatExpression currentTransformLengthExpr) => _geometry.TransformLength(currentTransformLengthExpr, Environment);
+		public float TransformLength(float currentTransformLength) => _geometry.TransformLength(currentTransformLength);
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>
@@ -494,8 +510,14 @@ namespace SharpSheets.Markup.Canvas {
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
 			if (coordsExression != null) {
 				DrawingCoords coords = Evaluate(coordsExression);
-				_geometry.State.DrawingCoords = coords;
+				return SetDrawingCoords(coords);
 			}
+			return this;
+		}
+
+		public MarkupCanvas SetDrawingCoords(DrawingCoords coords) {
+			if (Canvas is null) { throw new MarkupCanvasStateException(); }
+			_geometry.State.DrawingCoords = coords;
 			return this;
 		}
 
@@ -507,8 +529,13 @@ namespace SharpSheets.Markup.Canvas {
 		public MarkupCanvas ApplyTransform(TransformExpression transform) {
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
 			Transform abs = Evaluate(transform);
-			Canvas.ApplyTransform(abs);
-			_geometry.State.ApplyTransform(abs);
+			return ApplyTransform(abs);
+		}
+
+		public MarkupCanvas ApplyTransform(Transform transform) {
+			if (Canvas is null) { throw new MarkupCanvasStateException(); }
+			Canvas.ApplyTransform(transform);
+			_geometry.State.ApplyTransform(transform);
 			return this;
 		}
 
@@ -693,7 +720,12 @@ namespace SharpSheets.Markup.Canvas {
 		public MarkupCanvas Rectangle(RectangleExpression rect) {
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
 			Layouts.Rectangle finalRect = TransformRectangle(rect);
-			Canvas.Rectangle(finalRect);
+			return Rectangle(finalRect);
+		}
+
+		public MarkupCanvas Rectangle(Rectangle rect) {
+			if (Canvas is null) { throw new MarkupCanvasStateException(); }
+			Canvas.Rectangle(rect);
 			return this;
 		}
 
@@ -880,7 +912,7 @@ namespace SharpSheets.Markup.Canvas {
 
 			Layouts.Rectangle referenceSpaceContent = InverseTransformRectangle(drawingSpaceContentRect);
 
-			contentRect = referenceSpaceContent;
+			contentRect = new RectangleExpression(referenceSpaceContent, placement.Context);
 
 			return this;
 		}

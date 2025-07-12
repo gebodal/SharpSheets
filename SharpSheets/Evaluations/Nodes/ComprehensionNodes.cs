@@ -10,7 +10,7 @@ namespace SharpSheets.Evaluations.Nodes {
 	internal interface IVariableProvider {
 		/// <summary></summary>
 		/// <exception cref="EvaluationProcessingException"></exception>
-		IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables(EvaluationTypeSystem typeSystem);
+		IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables(EvaluationContext context);
 	}
 
 	public class ComprehensionNode : BinaryOperatorNode, IVariableProvider {
@@ -20,10 +20,10 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override int[] CalculationOrder { get; } = new int[] { 1, 0 };
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
-			EvaluationType secondType = Second.GetReturnType(typeSystem);
+		public override EvaluationType GetReturnType() {
+			EvaluationType secondType = Second.GetReturnType();
 			if (secondType.IterationResult() is not null) {
-				return First.GetReturnType(typeSystem).MakeArray();
+				return First.GetReturnType().MakeArray();
 			}
 			else {
 				throw new EvaluationTypeException($"Comprehension requires an array from which to draw values (got {secondType}).");
@@ -32,21 +32,30 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public EvaluationName LoopVariable { get; }
 
-		public ComprehensionNode(EvaluationName loopVariable) {
+		public ComprehensionNode(EvaluationName loopVariable, EvaluationContext context) : base(context) {
 			this.LoopVariable = loopVariable;
 		}
 
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables(EvaluationTypeSystem typeSystem) {
-			EvaluationType loopVarType = Second.GetReturnType(typeSystem).IterationResult() ?? throw new EvaluationTypeException("Comprehension requires an iterable source from which to draw values.");
+		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables(EvaluationContext context) {
+			/*
+			EvaluationType loopVarType = Second.GetReturnType().IterationResult() ?? throw new EvaluationTypeException("Comprehension requires an iterable source from which to draw values.");
 			return new KeyValuePair<EvaluationName, EvaluationType>(LoopVariable, loopVarType).Yield();
+			*/
+			try {
+				EvaluationType loopVarType = Second.GetReturnType().IterationResult() ?? throw new EvaluationTypeException("Comprehension requires an iterable source from which to draw values.");
+				return new KeyValuePair<EvaluationName, EvaluationType>(LoopVariable, loopVarType).Yield();
+			}
+			catch (UndefinedVariableException) {
+				return Enumerable.Empty<KeyValuePair<EvaluationName, EvaluationType>>();
+			}
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment) {
-			EvaluationType secondIterationType = Second.GetReturnType(environment).IterationResult() ?? throw new EvaluationTypeException("Comprehension requires an iterable source from which to draw values.");
+			EvaluationType secondIterationType = Second.GetReturnType().IterationResult() ?? throw new EvaluationTypeException("Comprehension requires an iterable source from which to draw values.");
 
 			ComprehensionEnvironment loopEnv = new ComprehensionEnvironment(LoopVariable, secondIterationType, environment);
 
-			EvaluationType resultElementType = First.GetReturnType(environment);
+			EvaluationType resultElementType = First.GetReturnType();
 
 			EvaluationValue secondResult = Second.Evaluate(environment);
 
@@ -65,7 +74,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		protected override BinaryOperatorNode Empty() {
-			return new ComprehensionNode(LoopVariable);
+			return new ComprehensionNode(LoopVariable, Context);
 		}
 
 		protected override string GetRepresentation() {
@@ -79,12 +88,14 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public override int[] CalculationOrder { get; } = new int[] { 1, 2, 0 };
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
-			if (!BoolEvaluationType.IsBool(Third.GetReturnType(typeSystem))) {
+		public ComprehensionIfNode(EvaluationContext context) : base(context) { }
+
+		public override EvaluationType GetReturnType() {
+			if (!BoolEvaluationType.IsBool(Third.GetReturnType())) {
 				throw new EvaluationTypeException("Comprehension condition must be a boolean expression.");
 			}
-			else if (Second.GetReturnType(typeSystem).IterationResult() is not null) {
-				return First.GetReturnType(typeSystem).MakeArray();
+			else if (Second.GetReturnType().IterationResult() is not null) {
+				return First.GetReturnType().MakeArray();
 			}
 			else {
 				throw new EvaluationTypeException("Comprehension requires an array from which to draw values.");
@@ -95,11 +106,11 @@ namespace SharpSheets.Evaluations.Nodes {
 
 		public EvaluationName? LoopVariable { get; set; } = null;
 
-		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables(EvaluationTypeSystem typeSystem) {
+		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables(EvaluationContext context) {
 			if (LoopVariable == null) {
 				throw new EvaluationProcessingException("Loop variable not yet assigned.");
 			}
-			EvaluationType loopVarType = Second.GetReturnType(typeSystem).IterationResult() ?? throw new EvaluationTypeException("Comprehension-if requires an iterable source from which to draw values.");
+			EvaluationType loopVarType = Second.GetReturnType().IterationResult() ?? throw new EvaluationTypeException("Comprehension-if requires an iterable source from which to draw values.");
 			return new KeyValuePair<EvaluationName, EvaluationType>(LoopVariable.Value, loopVarType).Yield();
 		}
 
@@ -117,11 +128,11 @@ namespace SharpSheets.Evaluations.Nodes {
 				throw new EvaluationProcessingException("Loop variable not yet assigned.");
 			}
 
-			EvaluationType secondIterationType = Second.GetReturnType(environment).IterationResult() ?? throw new EvaluationTypeException("Comprehension-if requires an iterable source from which to draw values.");
+			EvaluationType secondIterationType = Second.GetReturnType().IterationResult() ?? throw new EvaluationTypeException("Comprehension-if requires an iterable source from which to draw values.");
 
 			ComprehensionEnvironment loopEnv = new ComprehensionEnvironment(LoopVariable.Value, secondIterationType, environment);
 
-			EvaluationType resultElementType = First.GetReturnType(environment);
+			EvaluationType resultElementType = First.GetReturnType();
 
 			EvaluationValue secondResult = Second.Evaluate(environment);
 
@@ -144,7 +155,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		protected override TernaryOperatorNode Empty() {
-			ComprehensionIfNode empty = new ComprehensionIfNode() {
+			ComprehensionIfNode empty = new ComprehensionIfNode(Context) {
 				LoopVariable = LoopVariable
 			};
 			return empty;
@@ -172,7 +183,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private bool initialized;
 
 		public bool IsEmpty { get; } = false;
-		public EvaluationTypeSystem TypeSystem => environment.TypeSystem;
+		public EvaluationContext Context => environment.Context;
 
 		public ComprehensionEnvironment(EvaluationName loopIdentifier, EvaluationType loopVariableType, IEnvironment environment) {
 			this.loopIdentifier = loopIdentifier;

@@ -113,16 +113,16 @@ namespace SharpSheets.Markup.Elements {
 				return forEach.EvaluateEnvironments(outerEnvironment, includeOriginal);
 			}
 			else {
-				return Environments.Empty.Yield();
+				return Environments.Empty(outerEnvironment.Context).Yield();
 			}
 		}
 
-		public IVariableBox ForEachVariables() {
+		public IVariableBox ForEachVariables(EvaluationContext context) {
 			if (forEach != null) {
-				return SimpleVariableBoxes.Create(new EnvironmentVariableInfo[] { forEach.Variable });
+				return VariableBoxes.Single(forEach.Variable, context);
 			}
 			else {
-				return VariableBoxes.Empty;
+				return VariableBoxes.Empty(context);
 			}
 		}
 	}
@@ -136,6 +136,8 @@ namespace SharpSheets.Markup.Elements {
 	/// will be drawn in the area assigned to the division.
 	/// </summary>
 	public class DivElement : IIdentifiableMarkupElement {
+
+		public readonly MarkupEvaluationContext MarkupContext;
 
 		/// <summary>
 		/// These are the variables inherited from the Div parents (this does not include canvas variables)
@@ -167,15 +169,18 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="_id" default="null">A unique name for this element.</param>
 		/// <param name="setup"> The DivSetup values for this element. </param>
 		/// <param name="outerContext"> The variables inherited from this Divs parents (not including canvas variables). </param>
+		/// <param name="markupContext"></param>
 		/// <param name="variables"> The variables declared with this Div. </param>
-		public DivElement(string? _id, DivSetup setup, IVariableBox outerContext, IEnumerable<MarkupVariable> variables) {
+		public DivElement(string? _id, DivSetup setup, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables) {
 			this.ID = _id;
 			this.setup = setup;
 			this.slicingValueElements = new List<SlicingValuesElement>();
 			this.elements = new List<IIdentifiableMarkupElement>();
 			this.outerContext = outerContext;
 			this.markupVariables = variables.ToArray(); // variables.ToDictionary(v => v.Name, StringComparer.InvariantCultureIgnoreCase);
-			this.Variables = this.outerContext.AppendVariables(MarkupVariable.MakeVariableBox(this.markupVariables)).AppendVariables(setup.ForEachVariables());
+			this.Variables = this.outerContext.AppendVariables(MarkupVariable.MakeVariableBox(this.markupVariables, this.outerContext.Context)).AppendVariables(setup.ForEachVariables(outerContext.Context));
+
+			this.MarkupContext = markupContext;
 		}
 
 		public virtual void AddElement(IIdentifiableMarkupElement element) {
@@ -203,13 +208,13 @@ namespace SharpSheets.Markup.Elements {
 
 			List<DrawableDivElement> components = new List<DrawableDivElement>();
 
-			IEnvironment graphicsEnvironment = MarkupEnvironments.MakeGraphicsStateEnvironment(graphicsData); // How does this interact with changing canvas variables?
+			IEnvironment graphicsEnvironment = MarkupContext.MakeGraphicsStateEnvironment(graphicsData); // How does this interact with changing canvas variables?
 			IEnvironment fullDivEnvironment = outerEnvironment.AppendEnvironment(Variables.ToEnvironment()); // (Is this necessary?)
 			IEnvironment outerGraphicsEnvironment = Environments.Concat(graphicsEnvironment, fullDivEnvironment);
 
 			int repeat = setup.repeat?.Evaluate(fullDivEnvironment) ?? 1;
 			for (int i = 0; i < repeat; i++) {
-				if(setup.enabled != null && setup.enabled.CanCompute(Variables.AppendVariables(MarkupEnvironments.GraphicsStateVariables))) {
+				if(setup.enabled != null && setup.enabled.CanCompute(Variables.AppendVariables(MarkupContext.GraphicsStateVariables()))) {
 					try {
 						if (!setup.enabled.Evaluate(outerGraphicsEnvironment)) {
 							continue; // Short cirsuit checking later steps if possible
@@ -518,7 +523,7 @@ namespace SharpSheets.Markup.Elements {
 				else if (elements[i] is IDrawableElement drawable) {
 					MarkupCanvas? markupCanvas = null;
 					try {
-						markupCanvas = MarkupCanvas.Open(canvas, drawingRect, pattern.setup.canvasArea, slicingValues, environment, diagnostic);
+						markupCanvas = MarkupCanvas.Open(canvas, drawingRect, pattern.setup.canvasArea, slicingValues, environment, pattern.MarkupContext, diagnostic);
 						//if (pattern.setup.drawingCoords != null) markupCanvas.SetDrawingCoords(pattern.setup.drawingCoords);
 						foreach(IEnvironment forEachEnv in drawable.StyleSheet.GetForEachEnvironments(markupCanvas.Environment)) {
 							markupCanvas.SaveEnvironment();
@@ -612,7 +617,7 @@ namespace SharpSheets.Markup.Elements {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		private NSliceScaling? GetSlicing(ISharpCanvas canvas, Rectangle fullRect) {
 			Rectangle rect = ApplyAspect(fullRect);
-			MarkupGeometry markupGeometry = MarkupGeometry.CreateGeometry(canvas.GetSnapshot(), rect, pattern.setup.canvasArea, slicingValues, environment, out _);
+			MarkupGeometry markupGeometry = MarkupGeometry.CreateGeometry(canvas.GetSnapshot(), rect, pattern.setup.canvasArea, slicingValues, environment, pattern.MarkupContext, out _);
 			NSliceScaling? slicing = markupGeometry.Slicing;
 
 			return slicing;
@@ -626,10 +631,10 @@ namespace SharpSheets.Markup.Elements {
 			return rect.ContainAspect(AspectRatio);
 		}
 
-		private IVariableBox AreaMarginsOnlyComputeVariables => VariableBoxes.Concat(environment, MarkupEnvironments.GraphicsStateVariables);
-		private IEnvironment AreaMarginsOnlyComputeEnvironment(ISharpGraphicsState graphicsState) => Environments.Concat(environment, MarkupEnvironments.MakeGraphicsStateEnvironment(graphicsState.GetMarkupData()));
+		private IVariableBox AreaMarginsOnlyComputeVariables => VariableBoxes.Concat(environment, pattern.MarkupContext.GraphicsStateVariables());
+		private IEnvironment AreaMarginsOnlyComputeEnvironment(ISharpGraphicsState graphicsState) => Environments.Concat(environment, pattern.MarkupContext.MakeGraphicsStateEnvironment(graphicsState.GetMarkupData()));
 		
-		private IVariableBox AreaFullComputeVariables => MarkupEnvironments.InferenceDrawingStateVariables.AppendVariables(environment);
+		private IVariableBox AreaFullComputeVariables => pattern.MarkupContext.InferenceDrawingStateVariables().AppendVariables(environment);
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
@@ -644,13 +649,13 @@ namespace SharpSheets.Markup.Elements {
 				return marginedRect;
 			}
 			else if (rectExpression != null) {
-				MarkupGeometry markupGeometry = MarkupGeometry.CreateGeometry(graphicsState.GetSnapshot(), availableRect, pattern.setup.canvasArea, slicingValues, environment, out IEnvironment geometryEnv);
+				MarkupGeometry markupGeometry = MarkupGeometry.CreateGeometry(graphicsState.GetSnapshot(), availableRect, pattern.setup.canvasArea, slicingValues, environment, pattern.MarkupContext, out IEnvironment geometryEnv);
 				
 				//AreaRect evaluatedAreaRect = rectExpression.Evaluate(markupGeometry.Environment);
-				Rectangle evaluatedRect = (rectExpression.Rect ?? MarkupEnvironments.WholeAreaRectExpression).Evaluate(geometryEnv);
+				Rectangle evaluatedRect = (rectExpression.Rect ?? pattern.MarkupContext.WholeAreaRectExpression).Evaluate(geometryEnv);
 				Margins evaluatedMargins = rectExpression.Margins?.Evaluate(geometryEnv) ?? Margins.Zero;
 
-				Rectangle transformedRect = markupGeometry.TransformRectangle(evaluatedRect, geometryEnv);
+				Rectangle transformedRect = markupGeometry.TransformRectangle(new RectangleExpression(evaluatedRect, geometryEnv.Context), geometryEnv);
 				Rectangle positionedRect = new Rectangle(availableRect.X + transformedRect.X, availableRect.Y + transformedRect.Y, transformedRect.Width, transformedRect.Height);
 				Rectangle marginedRect = positionedRect.Margins(evaluatedMargins, false);
 
@@ -678,10 +683,10 @@ namespace SharpSheets.Markup.Elements {
 					return InvertApplyAspect(marginedRect.Margins(Margins, true));
 				}
 				else if (canvasArea != null && remainingRectExpr.CanCompute(AreaFullComputeVariables)) {
-					MarkupGeometry markupGeometry = MarkupGeometry.CreateGeometry(graphicsState.GetSnapshot(), (Rectangle)canvasArea, canvasArea, slicingValues, environment, out IEnvironment geometryEnv);
+					MarkupGeometry markupGeometry = MarkupGeometry.CreateGeometry(graphicsState.GetSnapshot(), (Rectangle)canvasArea, canvasArea, slicingValues, environment, pattern.MarkupContext, out IEnvironment geometryEnv);
 
 					//AreaRect remainingAreaRect = remainingRectExpr.Evaluate(markupGeometry.Environment);
-					Rectangle remainingRect = (remainingRectExpr.Rect ?? MarkupEnvironments.WholeAreaRectExpression).Evaluate(geometryEnv);
+					Rectangle remainingRect = (remainingRectExpr.Rect ?? pattern.MarkupContext.WholeAreaRectExpression).Evaluate(geometryEnv);
 					Margins remainingMargins = remainingRectExpr.Margins?.Evaluate(geometryEnv) ?? Margins.Zero;
 
 					Rectangle marginedRect = availableRect.Margins(remainingMargins, true);
@@ -735,11 +740,19 @@ namespace SharpSheets.Markup.Elements {
 		/// and <paramref name="_height"/>.</param>
 		/// <param name="enabled" default="true">A flag to indicate whether this area should
 		/// be available in the pattern.</param>
-		public AreaElement(string? id, IExpression<string> _name, FloatExpression? _x, FloatExpression? _y, FloatExpression? _width, FloatExpression? _height, MarginsExpression? margin, BoolExpression enabled) {
+		/// <param name="markupContext" exclude="True"></param>
+		public AreaElement(string? id, IExpression<string> _name, FloatExpression? _x, FloatExpression? _y, FloatExpression? _width, FloatExpression? _height, MarginsExpression? margin, BoolExpression enabled, MarkupEvaluationContext markupContext) {
 			this.ID = id;
 			this.Name = _name;
-			RectangleExpression? rect = (_x is not null || _y is not null || _width is not null || _height is not null) ? new RectangleExpression(_x ?? 0f, _y ?? 0f, _width ?? MarkupEnvironments.WidthExpression, _height ?? MarkupEnvironments.HeightExpression) : null;
-			this.Area = new AreaRectExpression(rect, margin);
+			RectangleExpression? rect =
+				(_x is not null || _y is not null || _width is not null || _height is not null)
+				? new RectangleExpression(
+					_x ?? new FloatExpression(0f, markupContext.TypeSystem),
+					_y ?? new FloatExpression(0f, markupContext.TypeSystem),
+					_width ?? markupContext.WidthExpression,
+					_height ?? markupContext.HeightExpression)
+				: null;
+			this.Area = new AreaRectExpression(rect, margin, markupContext.TypeSystem);
 			this.Enabled = enabled;
 		}
 
@@ -768,10 +781,18 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="_height" default="$height">The height of this area.</param>
 		/// <param name="enabled" default="true">A flag to indicate whether this area should
 		/// be shown with the pattern.</param>
-		public DiagnosticElement(string? id, FloatExpression? _x, FloatExpression? _y, FloatExpression? _width, FloatExpression? _height, BoolExpression enabled) {
+		/// <param name="markupContext" exclude="True"></param>
+		public DiagnosticElement(string? id, FloatExpression? _x, FloatExpression? _y, FloatExpression? _width, FloatExpression? _height, BoolExpression enabled, MarkupEvaluationContext markupContext) {
 			this.ID = id;
-			RectangleExpression? rect = (_x is not null || _y is not null || _width is not null || _height is not null) ? new RectangleExpression(_x ?? 0f, _y ?? 0f, _width ?? MarkupEnvironments.WidthExpression, _height ?? MarkupEnvironments.HeightExpression) : null;
-			this.Area = new AreaRectExpression(rect, Margins.Zero);
+			RectangleExpression? rect =
+				(_x is not null || _y is not null || _width is not null || _height is not null)
+				? new RectangleExpression(
+					_x ?? new FloatExpression(0f, markupContext.TypeSystem),
+					_y ?? new FloatExpression(0f, markupContext.TypeSystem),
+					_width ?? markupContext.WidthExpression,
+					_height ?? markupContext.HeightExpression)
+				: null;
+			this.Area = new AreaRectExpression(rect, new MarginsExpression(Margins.Zero, markupContext.TypeSystem), markupContext.TypeSystem);
 			this.Enabled = enabled;
 		}
 

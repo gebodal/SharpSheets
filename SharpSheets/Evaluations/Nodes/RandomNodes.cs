@@ -10,12 +10,16 @@ namespace SharpSheets.Evaluations.Nodes {
 		public override EvaluationName Name { get; } = "random";
 		public override string? Description { get; } = "Returns a pseudo-random number based on the provided seed. The relationship between seed and return value is deterministic (you will always get the same pseudo-random number for a given input).";
 
-		protected override EnvironmentFunctionArg Argument { get; } = new EnvironmentFunctionArg("seed", EvaluationTypes.FLOAT, null);
+		//protected override EnvironmentFunctionArg Argument { get; } = new EnvironmentFunctionArg("seed", EvaluationTypes.FLOAT, null);
 		protected override string? Warning => null;
 
-		public override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem, EvaluationNode arg) {
-			EvaluationType argType = arg.GetReturnType(typeSystem);
-			return FloatEvaluationType.IsReal(argType) ? EvaluationTypes.FLOAT : throw new EvaluationTypeException($"{Name} must take a real number for a seed, not {argType}.");
+		protected override EnvironmentFunctionArg GetArgument(EvaluationContext context) {
+			return new EnvironmentFunctionArg("seed", context.GetType<FloatEvaluationType>(), null);
+		}
+
+		public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode arg) {
+			EvaluationType argType = arg.GetReturnType();
+			return FloatEvaluationType.IsReal(argType) ? context.GetType<FloatEvaluationType>() : throw new EvaluationTypeException($"{Name} must take a real number for a seed, not {argType}.");
 		}
 
 		public sealed override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
@@ -36,7 +40,7 @@ namespace SharpSheets.Evaluations.Nodes {
 
 			float result = (float)rng.NextDouble();
 
-			return new EvaluationValue(result, EvaluationTypes.FLOAT);
+			return new EvaluationValue(result, environment.GetType<FloatEvaluationType>());
 		}
 	}
 

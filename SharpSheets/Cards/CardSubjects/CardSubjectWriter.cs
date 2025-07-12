@@ -27,12 +27,12 @@ namespace SharpSheets.Cards.CardSubjects {
 			result.Append($"# {subject.Name.Value}");
 
 			bool firstProperty = true;
-			foreach ((Definition definition, ContextProperty<object> property) in subject.Properties.ContextProperties) {
+			foreach ((Definition definition, ContextProperty<EvaluationValue> property) in subject.Properties.ContextProperties) {
 				if (firstProperty) {
 					firstProperty = false;
 					result.Append('\n');
 				}
-				result.Append($"\n{GetName(definition)}: {DefinitionType.ValueToString(property.Value)}");
+				result.Append($"\n{GetName(definition)}: {DefinitionType.ValueToString(property.Value.Value)}");
 			}
 
 			foreach (CardSegment segment in subject) {
@@ -84,11 +84,11 @@ namespace SharpSheets.Cards.CardSubjects {
 				if (segment.Details.ContextProperties.Count > 0) {
 					result.Append(" [");
 					bool first = true;
-					foreach ((Definition definition, ContextProperty<object> detail) in segment.Details.ContextProperties) {
+					foreach ((Definition definition, ContextProperty<EvaluationValue> detail) in segment.Details.ContextProperties) {
 						if (first) { first = false; }
 						else { result.Append(' '); }
 
-						if (detail.Value is bool boolean) {
+						if (BoolEvaluationType.TryGetBool(detail.Value, out bool boolean)) {
 							result.Append((boolean ? "" : "!") + (definition.AllNames.Select(n => n.ToString()).FirstOrDefault(n => !n.Contains(' ')) ?? definition.name));
 						}
 						else {
@@ -124,11 +124,11 @@ namespace SharpSheets.Cards.CardSubjects {
 				if (feature.Details.ContextProperties.Count > 0) {
 					result.Append(" [");
 					bool first = true;
-					foreach ((Definition definition, ContextProperty<object> detail) in feature.Details.ContextProperties) {
+					foreach ((Definition definition, ContextProperty<EvaluationValue> detail) in feature.Details.ContextProperties) {
 						if (first) { first = false; }
 						else { result.Append(", "); }
 
-						if (detail.Value is bool boolean) {
+						if (BoolEvaluationType.TryGetBool(detail.Value, out bool boolean)) {
 							result.Append((boolean ? "" : "!") + (definition.AllNames.Select(n => n.ToString()).FirstOrDefault(n => !n.Contains(' ')) ?? definition.name));
 						}
 						else {

@@ -101,17 +101,22 @@ namespace SharpSheets.Evaluations {
 	public static class Environments {
 
 		// TODO This should probably utilise some default type system, with just Array and Tuple?
-		public static readonly IEnvironment Empty = new ConcatenatedEnvironment(Array.Empty<IEnvironment>());
+		//public static readonly IEnvironment Empty = new ConcatenatedEnvironment(Array.Empty<IEnvironment>());
+
+		public static IEnvironment Empty(EvaluationContext context) {
+			return new ConcatenatedEnvironment(context, Array.Empty<IEnvironment>());
+		}
 
 		private class ConcatenatedEnvironment : IEnvironment {
 			public readonly IEnvironment[] environments;
 
 			public bool IsEmpty => environments.All(e => e.IsEmpty);
-			public EvaluationTypeSystem TypeSystem { get; }
 
-			public ConcatenatedEnvironment(IEnumerable<IEnvironment> environments) {
+			public EvaluationContext Context { get; }
+
+			public ConcatenatedEnvironment(EvaluationContext context, IEnumerable<IEnvironment> environments) {
 				this.environments = environments.Where(e => !e.IsEmpty).ToArray();
-				TypeSystem = EvaluationTypeSystem.Create(environments.SelectMany(e => e.TypeSystem.Types).Concat(EvaluationTypes.BaseTypeSystem.Types));
+				this.Context = context;
 			}
 
 			public bool TryGetValue(EvaluationName key, [NotNullWhen(true)] out EvaluationValue? value) {
@@ -186,21 +191,6 @@ namespace SharpSheets.Evaluations {
 
 		#region Appending Environments
 
-		public static IEnvironment AppendEnvironment(this IEnvironment source, IEnvironment other) {
-			if (source is ConcatenatedEnvironment concatFirst && other is ConcatenatedEnvironment concatSecond) {
-				return new ConcatenatedEnvironment(concatFirst.environments.Concat(concatSecond.environments));
-			}
-			else if (source is ConcatenatedEnvironment concatSource) {
-				return new ConcatenatedEnvironment(concatSource.environments.Append(other));
-			}
-			else if (other is ConcatenatedEnvironment concatOther) {
-				return new ConcatenatedEnvironment(source.Yield().Concat(concatOther.environments));
-			}
-			else {
-				return new ConcatenatedEnvironment(new IEnvironment[] { source, other });
-			}
-		}
-
 		private static IEnumerable<IEnvironment> UnpackEnvironments(IEnumerable<IEnvironment> environments) {
 			foreach (IEnvironment env in environments) {
 				if (env is ConcatenatedEnvironment concatenated) {
@@ -214,16 +204,71 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
-		public static IEnvironment Concat(params IEnvironment[] environments) {
-			return new ConcatenatedEnvironment(UnpackEnvironments(environments));
+		public static IEnvironment AppendEnvironment(this IEnvironment source, IEnvironment other) {
+			if (source is ConcatenatedEnvironment concatFirst && other is ConcatenatedEnvironment concatSecond) {
+				return new ConcatenatedEnvironment(source.Context, concatFirst.environments.Concat(concatSecond.environments));
+			}
+			else if (source is ConcatenatedEnvironment concatSource) {
+				return new ConcatenatedEnvironment(source.Context, concatSource.environments.Append(other));
+			}
+			else if (other is ConcatenatedEnvironment concatOther) {
+				return new ConcatenatedEnvironment(source.Context, source.Yield().Concat(concatOther.environments));
+			}
+			else {
+				return new ConcatenatedEnvironment(source.Context, new IEnvironment[] { source, other });
+			}
+		}
+
+		public static IEnvironment AppendEnvironment(this IEnvironment source,
+			IEnumerable<(EvaluationValue, EnvironmentVariableInfo)>? values,
+			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes,
+			IEnumerable<IEnvironmentFunction>? functions,
+			IVariableBox? variables) {
+			return source.AppendEnvironment(Create(values, nodes, functions, variables, source.Context));
+		}
+
+		public static IEnvironment AppendEnvironment(this IEnvironment source, IEnumerable<(EvaluationValue, EnvironmentVariableInfo)> values) {
+			return source.AppendEnvironment(Create(values, source.Context));
+		}
+
+		public static IEnvironment AppendEnvironment(this IEnvironment source, IEnumerable<(object?, EnvironmentVariableInfo)> values) {
+			return source.AppendEnvironment(Create(values, source.Context));
+		}
+
+		public static IEnvironment AppendEnvironment(this IEnvironment source, IEnumerable<(EvaluationValue, EnvironmentVariableInfo)> values, IEnumerable<IEnvironmentFunction> functions) {
+			return source.AppendEnvironment(Create(values, functions, source.Context));
+		}
+
+		public static IEnvironment AppendEnvironment(this IEnvironment source, IEnumerable<(EvaluationValue, EnvironmentVariableInfo)> values, IVariableBox variables) {
+			return source.AppendEnvironment(Create(values, variables));
+		}
+
+		public static IEnvironment AppendEnvironment(this IEnvironment source, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes) {
+			return source.AppendEnvironment(Create(nodes, source.Context));
+		}
+
+		public static IEnvironment AppendEnvironment(this IEnvironment source, IEnumerable<IEnvironmentFunction> functions) {
+			return source.AppendEnvironment(Create(functions, source.Context));
+		}
+
+		public static IEnvironment AppendEnvironment(this IEnvironment source, EnvironmentVariableInfo info, EvaluationValue value) {
+			return source.AppendEnvironment(Single(info, value));
+		}
+
+		public static IEnvironment Concat(EvaluationContext context, params IEnvironment[] environments) {
+			return new ConcatenatedEnvironment(context, UnpackEnvironments(environments));
+		}
+
+		public static IEnvironment Concat(IEnvironment first, params IEnvironment[] environments) {
+			return new ConcatenatedEnvironment(first.Context, UnpackEnvironments(first.Yield().Concat(environments)));
 		}
 
 		#endregion
 
 		#region SimpleEnvironment creation methods
 
-		public static IEnvironment Create(EvaluationTypeSystem typeSystem) {
-			return new SimpleEnvironment(null, null, null, VariableBoxes.Create(typeSystem));
+		public static IEnvironment Create(EvaluationContext context) {
+			return new SimpleEnvironment(null, null, null, null, context);
 		}
 
 		/*
@@ -240,8 +285,9 @@ namespace SharpSheets.Evaluations {
 			IEnumerable<(EvaluationValue, EnvironmentVariableInfo)>? values,
 			IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes,
 			IEnumerable<IEnvironmentFunction>? functions,
-			IVariableBox? variables) {
-			return new SimpleEnvironment(values, nodes, functions, variables);
+			IVariableBox? variables,
+			EvaluationContext context) {
+			return new SimpleEnvironment(values, nodes, functions, variables, context);
 		}
 
 		/*
@@ -250,32 +296,36 @@ namespace SharpSheets.Evaluations {
 		}
 		*/
 
-		public static IEnvironment Create(IEnumerable<(EvaluationValue, EnvironmentVariableInfo)> values) {
-			return new SimpleEnvironment(values, null, null, null);
+		public static IEnvironment Create(IEnumerable<(EvaluationValue, EnvironmentVariableInfo)> values, EvaluationContext context) {
+			return new SimpleEnvironment(values, null, null, null, context);
 		}
 
-		public static IEnvironment Create(IEnumerable<(EvaluationValue, EnvironmentVariableInfo)> values, IEnumerable<IEnvironmentFunction> functions) {
-			return new SimpleEnvironment(values, null, functions, null);
+		public static IEnvironment Create(IEnumerable<(object?, EnvironmentVariableInfo)> values, EvaluationContext context) {
+			return new SimpleEnvironment(values.Select(kv => (new EvaluationValue(kv.Item1, kv.Item2.EvaluationType), kv.Item2)), null, null, null, context);
+		}
+
+		public static IEnvironment Create(IEnumerable<(EvaluationValue, EnvironmentVariableInfo)> values, IEnumerable<IEnvironmentFunction> functions, EvaluationContext context) {
+			return new SimpleEnvironment(values, null, functions, null, context);
 		}
 
 		public static IEnvironment Create(IEnumerable<(EvaluationValue, EnvironmentVariableInfo)> values, IVariableBox variables) {
-			return new SimpleEnvironment(values, null, null, variables);
+			return new SimpleEnvironment(values, null, null, variables, variables.Context);
 		}
 
-		public static IEnvironment Create(IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes) {
-			return new SimpleEnvironment(null, nodes, null, null);
+		public static IEnvironment Create(IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>> nodes, EvaluationContext context) {
+			return new SimpleEnvironment(null, nodes, null, null, context);
 		}
 
-		public static IEnvironment Create(IEnumerable<IEnvironmentFunction> functions) {
-			return new SimpleEnvironment(null, null, functions, null);
+		public static IEnvironment Create(IEnumerable<IEnvironmentFunction> functions, EvaluationContext context) {
+			return new SimpleEnvironment(null, null, functions, null, context);
 		}
 
 		public static IEnvironment ToEnvironment(this IVariableBox variables) {
-			return new SimpleEnvironment(null, null, null, variables);
+			return new SimpleEnvironment(null, null, null, variables, variables.Context);
 		}
 
 		public static IEnvironment Single(EnvironmentVariableInfo info, EvaluationValue value) {
-			return new SimpleEnvironment((value, info).Yield(), null, null, null);
+			return new SimpleEnvironment((value, info).Yield(), null, null, null, value.Type.Context);
 		}
 
 		#endregion
@@ -288,13 +338,14 @@ namespace SharpSheets.Evaluations {
 
 			public bool IsEmpty => values.Count == 0 && functions.Count == 0 && nodes.Count == 0 && variables.IsEmpty;
 
-			public EvaluationTypeSystem TypeSystem => variables.TypeSystem;
+			public EvaluationContext Context { get; }
 
-			public SimpleEnvironment(IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)>? values, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes, IEnumerable<IEnvironmentFunction>? functions, IVariableBox? variables) {
+			public SimpleEnvironment(IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)>? values, IEnumerable<KeyValuePair<EvaluationName, EvaluationNode>>? nodes, IEnumerable<IEnvironmentFunction>? functions, IVariableBox? variables, EvaluationContext context) {
 				this.values = values?.ToDictionaryAllowRepeats(valInfo => valInfo.info.Name, true) ?? new Dictionary<EvaluationName, (EvaluationValue, EnvironmentVariableInfo)>();
 				this.functions = functions?.ToDictionaryAllowRepeats(d => d.Name, true) ?? new Dictionary<EvaluationName, IEnvironmentFunction>();
 				this.nodes = nodes?.ToDictionaryAllowRepeats(true) ?? new Dictionary<EvaluationName, EvaluationNode>();
-				this.variables = variables ?? VariableBoxes.Empty;
+				this.Context = context;
+				this.variables = variables ?? VariableBoxes.Empty(this.Context);
 			}
 
 			/*
@@ -321,7 +372,7 @@ namespace SharpSheets.Evaluations {
 					return true;
 				}
 				else if(nodes.TryGetValue(key, out EvaluationNode? node)) {
-					variableInfo = new EnvironmentVariableInfo(key, node.GetReturnType(TypeSystem), null);
+					variableInfo = new EnvironmentVariableInfo(key, node.GetReturnType(), null);
 					return true;
 				}
 				else {
@@ -386,10 +437,10 @@ namespace SharpSheets.Evaluations {
 
 	public abstract class AbstractDataEnvironment : IEnvironment {
 
-		public EvaluationTypeSystem TypeSystem { get; }
+		public EvaluationContext Context { get; }
 
-		public AbstractDataEnvironment(EvaluationTypeSystem typeSystem) {
-			this.TypeSystem = typeSystem;
+		public AbstractDataEnvironment(EvaluationContext context) {
+			this.Context = context;
 		}
 
 		public abstract bool IsEmpty { get; }

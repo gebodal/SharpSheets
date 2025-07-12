@@ -1,6 +1,8 @@
 ﻿using SharpSheets.Evaluations;
 using SharpSheets.Exceptions;
+using SharpSheets.Markup.Canvas;
 using SharpSheets.Markup.Elements;
+using SharpSheets.Markup.Parsing;
 using SharpSheets.Shapes;
 using SharpSheets.Utilities;
 using SharpSheets.Widgets;
@@ -20,7 +22,7 @@ namespace SharpSheets.Markup.Patterns {
 				  Array.Empty<IMarkupArgument>(),
 				  Array.Empty<MarkupValidation>(),
 				  exampleSize, exampleCanvas,
-				  new DivElement(null, new DivSetup(source), VariableBoxes.Empty, Enumerable.Empty<MarkupVariable>()),
+				  new DivElement(null, new DivSetup(source), VariableBoxes.Empty(MarkupEvaluationTypes.BaseContext), new MarkupEvaluationContext(MarkupEvaluationTypes.BaseContext), Enumerable.Empty<MarkupVariable>()),
 				  source
 				  ) {
 			

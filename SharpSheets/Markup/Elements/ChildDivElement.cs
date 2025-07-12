@@ -32,9 +32,10 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="_href" default="null">The widget to use as the content for this element.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
+		/// <param name="markupContext"></param>
 		/// <param name="variables">The variables declared with this Div.</param>
-		public ChildDivElement(string? _id, DivSetup setup, IExpression<IWidget?>? _href, IVariableBox outerContext, IEnumerable<MarkupVariable> variables)
-			: base(_id, setup, outerContext, variables) {
+		public ChildDivElement(string? _id, DivSetup setup, IExpression<IWidget?>? _href, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
+			: base(_id, setup, outerContext, markupContext, variables) {
 
 			this.href = _href;
 		}
@@ -99,6 +100,7 @@ namespace SharpSheets.Markup.Elements {
 
 	public class WidgetReferenceExpression : IExpression<IWidget?> {
 		public virtual bool IsConstant { get { return value != null; } }
+		public EvaluationContext Context { get; }
 
 		protected readonly EvaluationNode? evaluation;
 		private readonly IWidget? value;
@@ -106,10 +108,12 @@ namespace SharpSheets.Markup.Elements {
 		public WidgetReferenceExpression(EvaluationNode evaluation) {
 			this.evaluation = evaluation;
 			this.value = default;
+			this.Context = evaluation.Context;
 		}
-		public WidgetReferenceExpression(IWidget widget) {
+		public WidgetReferenceExpression(IWidget widget, EvaluationContext context) {
 			this.evaluation = null;
 			this.value = widget;
+			this.Context = context;
 		}
 
 		public virtual IEnumerable<EvaluationName> GetVariables() {
@@ -120,7 +124,7 @@ namespace SharpSheets.Markup.Elements {
 			if (value != null) {
 				return value;
 			}
-			else if (evaluation is not null && evaluation.Evaluate(environment) is IWidget result) {
+			else if (evaluation is not null && evaluation.Evaluate(environment) is EvaluationValue eval && eval.Value is IWidget result) {
 				return result;
 			}
 			else {

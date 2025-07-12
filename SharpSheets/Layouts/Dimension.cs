@@ -83,6 +83,29 @@ namespace SharpSheets.Layouts {
 			return new Dimension(a.Relative / b, a.Absolute / b, a.Percent / b, false);
 		}
 
+		public bool Equals(Dimension other) {
+			return this.Relative == other.Relative
+				&& this.Absolute == other.Absolute
+				&& this.Percent == other.Percent
+				&& this.Auto == other.Auto;
+		}
+
+		public override bool Equals(object? obj) {
+			return obj is Dimension dimension && Equals(dimension);
+		}
+
+		public static bool operator ==(Dimension left, Dimension right) {
+			return left.Equals(right);
+		}
+
+		public static bool operator !=(Dimension left, Dimension right) {
+			return !left.Equals(right);
+		}
+
+		public override int GetHashCode() {
+			return HashCode.Combine(Relative, Absolute, Percent, Auto);
+		}
+
 		private static readonly Regex dimensionRegex = new Regex(@"^(?<number>[\+\-]?[0-9]+\.[0-9]+|\.[0-9]+|[\+\-]?[0-9]+\.?)\s*(?<unit>pt|in|cm|mm|pc|\%)?$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
 		/// <summary></summary>

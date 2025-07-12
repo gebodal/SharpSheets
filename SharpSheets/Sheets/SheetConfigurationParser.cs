@@ -12,6 +12,8 @@ namespace SharpSheets.Sheets {
 
 		private readonly WidgetFactory widgetFactory;
 
+		private static readonly IEnvironment Basis = BasisEnvironment.MakeInstance(EvaluationContext.Create().Build());
+
 		public SheetConfigurationParser(WidgetFactory widgetFactory) {
 			this.widgetFactory = widgetFactory;
 		}
@@ -61,9 +63,9 @@ namespace SharpSheets.Sheets {
 
 				WidgetFactory originTrackingFactory = widgetFactory.TrackOrigins(origins);
 
-				InterpolatedContext parsedRoot = InterpolatedContext.Parse(rootEntry, BasisEnvironment.Instance, true, out SharpParsingException[] contextParseErrors, out IReadOnlyLineOwnership knownLineOwners);
+				InterpolatedContext parsedRoot = InterpolatedContext.Parse(rootEntry, Basis, true, out SharpParsingException[] contextParseErrors, out IReadOnlyLineOwnership knownLineOwners);
 				errors.AddRange(contextParseErrors);
-				IContext evaluatedRoot = parsedRoot.Evaluate(BasisEnvironment.Instance, out SharpParsingException[] contextEvaluateErrors);
+				IContext evaluatedRoot = parsedRoot.Evaluate(Basis, out SharpParsingException[] contextEvaluateErrors);
 				errors.AddRange(contextEvaluateErrors);
 
 				VisitTrackingContext trackingContext = new VisitTrackingContext(evaluatedRoot);

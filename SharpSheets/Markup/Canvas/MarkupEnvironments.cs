@@ -9,25 +9,137 @@ using SharpSheets.Fonts;
 using SharpSheets.Colors;
 using SharpSheets.Markup.Parsing;
 using SharpSheets.Evaluations.Nodes;
+using System.Diagnostics.CodeAnalysis;
 
 namespace SharpSheets.Markup.Canvas {
 
-	public static class MarkupEnvironments {
-		// This class only accepts graphics snapshots, which means all the environments it produces should be static/immutable
+	public class MarkupEvaluationContext {
 
-		public static VariableNode WidthNode { get; } = new VariableNode("width", EvaluationType.FLOAT);
-		public static VariableNode HeightNode { get; } = new VariableNode("height", EvaluationType.FLOAT);
-		public static EvaluationNode BoundingBoxLengthNode { get; } = MinVarFunction.Instance.MakeNode(WidthNode, HeightNode);
+		public EvaluationContext TypeSystem { get; }
 
-		public static XLengthExpression ZeroWidthExpression { get; } = new XLengthExpression(0f);
-		public static XLengthExpression CentreXExpression { get; } = new XLengthExpression(WidthNode * 0.5f);
-		public static XLengthExpression WidthExpression { get; } = new XLengthExpression(WidthNode);
-		public static YLengthExpression ZeroHeightExpression { get; } = new YLengthExpression(0f);
-		public static YLengthExpression CentreYExpression { get; } = new YLengthExpression(HeightNode * 0.5f);
-		public static YLengthExpression HeightExpression { get; } = new YLengthExpression(HeightNode);
-		public static BoundingBoxLengthExpression BoundingBoxLengthExpression { get; } = new BoundingBoxLengthExpression(BoundingBoxLengthNode);
+		public VariableNode WidthNode { get; }
+		public VariableNode HeightNode { get; }
+		public EvaluationNode BoundingBoxLengthNode { get; }
 
-		public static DrawPointExpression CentreExpression { get; } = new DrawPointExpression(CentreXExpression, CentreYExpression);
+		public XLengthExpression ZeroWidthExpression { get; }
+		public XLengthExpression CentreXExpression { get; }
+		public XLengthExpression WidthExpression { get; }
+		public YLengthExpression ZeroHeightExpression { get; }
+		public YLengthExpression CentreYExpression { get; }
+		public YLengthExpression HeightExpression { get; }
+		public BoundingBoxLengthExpression BoundingBoxLengthExpression { get; }
+
+		public DrawPointExpression CentreExpression { get; }
+
+		public RectangleExpression WholeAreaRectExpression { get; }
+
+		public ColorExpression BackgroundExpression { get; }
+		public ColorExpression TextColorExpression { get; }
+
+
+		// SharpCanvas variables
+		public readonly EnvironmentVariableInfo LineWidth;
+		public readonly EnvironmentVariableInfo Foreground;
+		public readonly EnvironmentVariableInfo Background;
+		public readonly EnvironmentVariableInfo Midtone;
+		public readonly EnvironmentVariableInfo TextColor;
+
+		// Canvas area variables
+		public readonly EnvironmentVariableInfo Width;
+		public readonly EnvironmentVariableInfo Height;
+		public readonly EnvironmentVariableInfo Left;
+		public readonly EnvironmentVariableInfo Right;
+		public readonly EnvironmentVariableInfo Bottom;
+		public readonly EnvironmentVariableInfo Top;
+
+		// Drawing rect variables
+		public readonly EnvironmentVariableInfo DrawWidth;
+		public readonly EnvironmentVariableInfo DrawHeight;
+		public readonly EnvironmentVariableInfo DrawLeft;
+		public readonly EnvironmentVariableInfo DrawRight;
+		public readonly EnvironmentVariableInfo DrawBottom;
+		public readonly EnvironmentVariableInfo DrawTop;
+
+		// Drawing rect variables
+		public readonly EnvironmentVariableInfo PageWidth;
+		public readonly EnvironmentVariableInfo PageHeight;
+		public readonly EnvironmentVariableInfo PageLeft;
+		public readonly EnvironmentVariableInfo PageRight;
+		public readonly EnvironmentVariableInfo PageBottom;
+		public readonly EnvironmentVariableInfo PageTop;
+
+		// Random seed calculated from area variables
+		public readonly EnvironmentVariableInfo Seed;
+
+
+		public MarkupEvaluationContext(EvaluationContext context) {
+			this.TypeSystem = context;
+
+			FloatEvaluationType floatType = TypeSystem.GetType<FloatEvaluationType>();
+			IntEvaluationType intType = TypeSystem.GetType<IntEvaluationType>();
+			ColorEvaluationType colorType = TypeSystem.GetType<ColorEvaluationType>();
+
+			WidthNode = new VariableNode("width", floatType);
+			HeightNode = new VariableNode("height", floatType);
+			BoundingBoxLengthNode = MinVarFunction.Instance.MakeNode(TypeSystem, WidthNode, HeightNode);
+
+			ZeroWidthExpression = new XLengthExpression(0f, TypeSystem);
+			CentreXExpression = new XLengthExpression(WidthNode * floatType.MakeValue(0.5f));
+			WidthExpression = new XLengthExpression(WidthNode);
+			ZeroHeightExpression = new YLengthExpression(0f, TypeSystem);
+			CentreYExpression = new YLengthExpression(HeightNode * floatType.MakeValue(0.5f));
+			HeightExpression = new YLengthExpression(HeightNode);
+			BoundingBoxLengthExpression = new BoundingBoxLengthExpression(BoundingBoxLengthNode);
+
+			CentreExpression = new DrawPointExpression(CentreXExpression, CentreYExpression);
+
+			WholeAreaRectExpression = new RectangleExpression(
+				new FloatExpression(0f, TypeSystem), // new FloatExpression(new VariableNode("left", EvaluationType.FLOAT)),
+				new FloatExpression(0f, TypeSystem), // new FloatExpression(new VariableNode("bottom", EvaluationType.FLOAT)),
+				WidthExpression,
+				HeightExpression
+				);
+
+			BackgroundExpression = new ColorExpression(new VariableNode("background", colorType));
+			TextColorExpression = new ColorExpression(new VariableNode("textcolor", colorType));
+
+
+
+			// SharpCanvas variables
+			LineWidth = new EnvironmentVariableInfo("linewidth", floatType, "The current default line width.");
+			Foreground = new EnvironmentVariableInfo("foreground", colorType, "The current foreground color.");
+			Background = new EnvironmentVariableInfo("background", colorType, "The current background color.");
+			Midtone = new EnvironmentVariableInfo("midtone", colorType, "The current midtone color.");
+			TextColor = new EnvironmentVariableInfo("textcolor", colorType, "The current text color.");
+
+			// Canvas area variables
+			Width = new EnvironmentVariableInfo("width", floatType, "The width of the drawing canvas.");
+			Height = new EnvironmentVariableInfo("height", floatType, "The height of the drawing canvas.");
+			Left = new EnvironmentVariableInfo("left", floatType, "The left-hand side x-coordinate of the drawing canvas.");
+			Right = new EnvironmentVariableInfo("right", floatType, "The right-hand side x-coordinate of the drawing canvas.");
+			Bottom = new EnvironmentVariableInfo("bottom", floatType, "The bottom edge y-coordinate of the drawing canvas.");
+			Top = new EnvironmentVariableInfo("top", floatType, "The top edge y-coordinate of the drawing canvas.");
+
+			// Drawing rect variables
+			DrawWidth = new EnvironmentVariableInfo("drawwidth", floatType, "The width of the actual drawing area on the document page.");
+			DrawHeight = new EnvironmentVariableInfo("drawheight", floatType, "The height of the actual drawing area on the document page.");
+			DrawLeft = new EnvironmentVariableInfo("drawleft", floatType, "The left-hand side x-coordinate of the drawing area in its own coordinate view.");
+			DrawRight = new EnvironmentVariableInfo("drawright", floatType, "The right-hand side x-coordinate of the drawing area in its own coordinate view.");
+			DrawBottom = new EnvironmentVariableInfo("drawbottom", floatType, "The bottom edge y-coordinate of the drawing area in its own coordinate view.");
+			DrawTop = new EnvironmentVariableInfo("drawtop", floatType, "The top edge y-coordinate of the drawing area in its own coordinate view.");
+
+			// Drawing rect variables
+			PageWidth = new EnvironmentVariableInfo("pagewidth", floatType, "The width of the actual drawing area on the document page.");
+			PageHeight = new EnvironmentVariableInfo("pageheight", floatType, "The height of the actual drawing area on the document page.");
+			PageLeft = new EnvironmentVariableInfo("pageleft", floatType, "The left-hand side x-coordinate of the actual drawing area on the document page.");
+			PageRight = new EnvironmentVariableInfo("pageright", floatType, "The right-hand side x-coordinate of the actual drawing area on the document page.");
+			PageBottom = new EnvironmentVariableInfo("pagebottom", floatType, "The bottom edge y-coordinate of the actual drawing area on the document page.");
+			PageTop = new EnvironmentVariableInfo("pagetop", floatType, "The top edge y-coordinate of the actual drawing area on the document page.");
+
+			// Random seed calculated from area variables
+			Seed = new EnvironmentVariableInfo("seed", intType, "A random seed for this drawing area (based on the actual position on the document page).");
+
+		}
 
 		public static bool IsWidthDefined(IVariableBox variables) {
 			return variables.IsVariable("width");
@@ -39,28 +151,18 @@ namespace SharpSheets.Markup.Canvas {
 			return IsWidthDefined(variables) && IsHeightDefined(variables);
 		}
 
-		public static RectangleExpression WholeAreaRectExpression { get; } = new RectangleExpression(
-			0f, // new FloatExpression(new VariableNode("left", EvaluationType.FLOAT)),
-			0f, // new FloatExpression(new VariableNode("bottom", EvaluationType.FLOAT)),
-			WidthExpression,
-			HeightExpression
-			);
-
-		public static ColorExpression BackgroundExpression { get; } = new ColorExpression(new VariableNode("background", EvaluationType.COLOR));
-		public static ColorExpression TextColorExpression { get; } = new ColorExpression(new VariableNode("textcolor", EvaluationType.COLOR));
-
 		/// <summary>
 		/// Variable state for when only the graphics state is known (linewidth, colours, etc.), including functions for calculating text sizes, dimensions, and colors.
 		/// </summary>
-		public static IVariableBox GraphicsStateVariables { get; } =
-			BasisEnvironment.Instance.AppendVariables(SimpleVariableBoxes.Create(
+		public IVariableBox GraphicsStateVariables() {
+			return BasisEnvironment.MakeInstance(TypeSystem).AppendVariables(
 				new EnvironmentVariableInfo[] {
 					// SharpCanvas variables
-					MarkupEnvironmentVariables.LineWidth,
-					MarkupEnvironmentVariables.Foreground,
-					MarkupEnvironmentVariables.Background,
-					MarkupEnvironmentVariables.Midtone,
-					MarkupEnvironmentVariables.TextColor
+					LineWidth,
+					Foreground,
+					Background,
+					Midtone,
+					TextColor
 				},
 				new IEnvironmentFunctionInfo[] {
 					MarkupEnvironmentFunctions.WidthFunctionInfo.Instance,
@@ -77,64 +179,67 @@ namespace SharpSheets.Markup.Canvas {
 					MarkupEnvironmentFunctions.MultiplyDimensionFunction.Instance,
 					MarkupEnvironmentFunctions.DarkenColorFunction.Instance,
 					MarkupEnvironmentFunctions.LightenColorFunction.Instance
-				}));
+				});
+		}
 
 		/// <summary>
 		/// Variable state for when the exact drawing dimensions are unknown ("drawwidth"/"drawheight"/etc.).
 		/// Includes graphics state variables and markup canvas area values ("width"/"height"/etc.).
 		/// </summary>
-		public static IVariableBox InferenceDrawingStateVariables { get; } =
-			GraphicsStateVariables.AppendVariables(SimpleVariableBoxes.Create(
+		public IVariableBox InferenceDrawingStateVariables() {
+			return GraphicsStateVariables().AppendVariables(
 				new EnvironmentVariableInfo[] {
 					// SharpCanvas variables
-					MarkupEnvironmentVariables.LineWidth,
-					MarkupEnvironmentVariables.Foreground,
-					MarkupEnvironmentVariables.Background,
-					MarkupEnvironmentVariables.Midtone,
-					MarkupEnvironmentVariables.TextColor,
+					LineWidth,
+					Foreground,
+					Background,
+					Midtone,
+					TextColor,
 					// MarkupCanvas area variables
-					MarkupEnvironmentVariables.Width,
-					MarkupEnvironmentVariables.Height,
-					MarkupEnvironmentVariables.Left,
-					MarkupEnvironmentVariables.Right,
-					MarkupEnvironmentVariables.Bottom,
-					MarkupEnvironmentVariables.Top,
+					Width,
+					Height,
+					Left,
+					Right,
+					Bottom,
+					Top,
 					// Random seed calculated from area variables
-					MarkupEnvironmentVariables.Seed
-				}));
+					Seed
+				});
+		}
 
 		/// <summary>
 		/// Variable state for when the full drawing information is available, including the exact dimensions of the drawing area.
 		/// </summary>
-		public static IVariableBox DrawingStateVariables { get; } =
-			InferenceDrawingStateVariables.AppendVariables(SimpleVariableBoxes.Create(
+		public IVariableBox DrawingStateVariables() {
+			return InferenceDrawingStateVariables().AppendVariables(
 				new EnvironmentVariableInfo[] {
 					// Drawing rect variables
-					MarkupEnvironmentVariables.DrawWidth,
-					MarkupEnvironmentVariables.DrawHeight,
-					MarkupEnvironmentVariables.DrawLeft,
-					MarkupEnvironmentVariables.DrawRight,
-					MarkupEnvironmentVariables.DrawBottom,
-					MarkupEnvironmentVariables.DrawTop,
+					DrawWidth,
+					DrawHeight,
+					DrawLeft,
+					DrawRight,
+					DrawBottom,
+					DrawTop,
 					// Page rect variables
-					MarkupEnvironmentVariables.PageWidth,
-					MarkupEnvironmentVariables.PageHeight,
-					MarkupEnvironmentVariables.PageLeft,
-					MarkupEnvironmentVariables.PageRight,
-					MarkupEnvironmentVariables.PageBottom,
-					MarkupEnvironmentVariables.PageTop
-				}));
+					PageWidth,
+					PageHeight,
+					PageLeft,
+					PageRight,
+					PageBottom,
+					PageTop
+				});
+		}
 
-		public static IEnvironment MakeGraphicsStateEnvironment(MarkupCanvasGraphicsData graphicsData) {
-			return BasisEnvironment.Instance.AppendEnvironment(
-				SimpleEnvironments.Create(
-					new (object?, EnvironmentVariableInfo)[] {
+		public IEnvironment MakeGraphicsStateEnvironment(MarkupCanvasGraphicsData graphicsData) {
+			return BasisEnvironment.MakeInstance(TypeSystem).AppendEnvironment(
+				Environments.Create(
+					new (EvaluationValue, EnvironmentVariableInfo)[] {
 						// SharpCanvas variables
-						(graphicsData.DefaultLineWidth, MarkupEnvironmentVariables.LineWidth),
-						(graphicsData.ForegroundColor, MarkupEnvironmentVariables.Foreground),
-						(graphicsData.BackgroundColor, MarkupEnvironmentVariables.Background),
-						(graphicsData.MidtoneColor, MarkupEnvironmentVariables.Midtone),
-						(graphicsData.TextColor, MarkupEnvironmentVariables.TextColor)
+						(LineWidth.EvaluationType.MakeValue(graphicsData.DefaultLineWidth), LineWidth),
+						(Foreground.EvaluationType.MakeValue(graphicsData.ForegroundColor), Foreground),
+						(Background.EvaluationType.MakeValue(graphicsData.BackgroundColor), Background),
+						(Midtone.EvaluationType.MakeValue(graphicsData.MidtoneColor), Midtone),
+						(TextColor.EvaluationType.MakeValue(graphicsData.TextColor), TextColor)
 					},
 					new List<IEnvironmentFunction> {
 						MarkupEnvironmentFunctions.WidthFunctionInfo.GetFunction(graphicsData),
@@ -151,41 +256,41 @@ namespace SharpSheets.Markup.Canvas {
 						MarkupEnvironmentFunctions.MultiplyDimensionFunction.Instance,
 						MarkupEnvironmentFunctions.DarkenColorFunction.Instance,
 						MarkupEnvironmentFunctions.LightenColorFunction.Instance
-					})
+					},
+					TypeSystem)
 				);
 		}
 
-		public static IEnvironment MakeDrawingStateEnvironment(MarkupCanvasGraphicsData graphicsData, Layouts.Rectangle pageRect, Layouts.Rectangle drawingRect, Layouts.Size? referenceRect) {
+		public IEnvironment MakeDrawingStateEnvironment(MarkupCanvasGraphicsData graphicsData, Layouts.Rectangle pageRect, Layouts.Rectangle drawingRect, Layouts.Size? referenceRect) {
 			return MakeGraphicsStateEnvironment(graphicsData).AppendEnvironment(
-				SimpleEnvironments.Create(
+				Environments.Create(
 					new (object?, EnvironmentVariableInfo)[] {
 						// Canvas area variables
-						(referenceRect?.Width ?? drawingRect.Width, MarkupEnvironmentVariables.Width),
-						(referenceRect?.Height ?? drawingRect.Height, MarkupEnvironmentVariables.Height),
-						(referenceRect != null ? 0f : drawingRect.Left, MarkupEnvironmentVariables.Left),
-						(referenceRect != null ? referenceRect.Width : drawingRect.Right, MarkupEnvironmentVariables.Right),
-						(referenceRect != null ? 0f : drawingRect.Bottom, MarkupEnvironmentVariables.Bottom),
-						(referenceRect != null ? referenceRect.Height : drawingRect.Top, MarkupEnvironmentVariables.Top),
+						(referenceRect?.Width ?? drawingRect.Width, Width),
+						(referenceRect?.Height ?? drawingRect.Height, Height),
+						(referenceRect != null ? 0f : drawingRect.Left, Left),
+						(referenceRect != null ? referenceRect.Width : drawingRect.Right, Right),
+						(referenceRect != null ? 0f : drawingRect.Bottom, Bottom),
+						(referenceRect != null ? referenceRect.Height : drawingRect.Top, Top),
 						// Drawing rect variables
-						(drawingRect.Width, MarkupEnvironmentVariables.DrawWidth),
-						(drawingRect.Height, MarkupEnvironmentVariables.DrawHeight),
-						(drawingRect.Left, MarkupEnvironmentVariables.DrawLeft),
-						(drawingRect.Right, MarkupEnvironmentVariables.DrawRight),
-						(drawingRect.Bottom, MarkupEnvironmentVariables.DrawBottom),
-						(drawingRect.Top, MarkupEnvironmentVariables.DrawTop),
+						(drawingRect.Width, DrawWidth),
+						(drawingRect.Height, DrawHeight),
+						(drawingRect.Left, DrawLeft),
+						(drawingRect.Right, DrawRight),
+						(drawingRect.Bottom, DrawBottom),
+						(drawingRect.Top, DrawTop),
 						// Page rect variables
-						(pageRect.Width, MarkupEnvironmentVariables.PageWidth),
-						(pageRect.Height, MarkupEnvironmentVariables.PageHeight),
-						(pageRect.Left, MarkupEnvironmentVariables.PageLeft),
-						(pageRect.Right, MarkupEnvironmentVariables.PageRight),
-						(pageRect.Bottom, MarkupEnvironmentVariables.PageBottom),
-						(pageRect.Top, MarkupEnvironmentVariables.PageTop),
+						(pageRect.Width, PageWidth),
+						(pageRect.Height, PageHeight),
+						(pageRect.Left, PageLeft),
+						(pageRect.Right, PageRight),
+						(pageRect.Bottom, PageBottom),
+						(pageRect.Top, PageTop),
 						// Random seed calculated from area variables
-						(drawingRect.GetHashCode(), MarkupEnvironmentVariables.Seed)
-					})
+						(drawingRect.GetHashCode(), Seed)
+					}, TypeSystem)
 				);
 		}
-
 	}
 
 	// TODO This should probably be a class
@@ -233,44 +338,6 @@ namespace SharpSheets.Markup.Canvas {
 
 	}
 
-	public static class MarkupEnvironmentVariables {
-
-		// SharpCanvas variables
-		public static readonly EnvironmentVariableInfo LineWidth = new EnvironmentVariableInfo("linewidth", EvaluationType.FLOAT, "The current default line width.");
-		public static readonly EnvironmentVariableInfo Foreground = new EnvironmentVariableInfo("foreground", EvaluationType.COLOR, "The current foreground color.");
-		public static readonly EnvironmentVariableInfo Background = new EnvironmentVariableInfo("background", EvaluationType.COLOR, "The current background color.");
-		public static readonly EnvironmentVariableInfo Midtone = new EnvironmentVariableInfo("midtone", EvaluationType.COLOR, "The current midtone color.");
-		public static readonly EnvironmentVariableInfo TextColor = new EnvironmentVariableInfo("textcolor", EvaluationType.COLOR, "The current text color.");
-
-		// Canvas area variables
-		public static readonly EnvironmentVariableInfo Width = new EnvironmentVariableInfo("width", EvaluationType.FLOAT, "The width of the drawing canvas.");
-		public static readonly EnvironmentVariableInfo Height = new EnvironmentVariableInfo("height", EvaluationType.FLOAT, "The height of the drawing canvas.");
-		public static readonly EnvironmentVariableInfo Left = new EnvironmentVariableInfo("left", EvaluationType.FLOAT, "The left-hand side x-coordinate of the drawing canvas.");
-		public static readonly EnvironmentVariableInfo Right = new EnvironmentVariableInfo("right", EvaluationType.FLOAT, "The right-hand side x-coordinate of the drawing canvas.");
-		public static readonly EnvironmentVariableInfo Bottom = new EnvironmentVariableInfo("bottom", EvaluationType.FLOAT, "The bottom edge y-coordinate of the drawing canvas.");
-		public static readonly EnvironmentVariableInfo Top = new EnvironmentVariableInfo("top", EvaluationType.FLOAT, "The top edge y-coordinate of the drawing canvas.");
-
-		// Drawing rect variables
-		public static readonly EnvironmentVariableInfo DrawWidth = new EnvironmentVariableInfo("drawwidth", EvaluationType.FLOAT, "The width of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo DrawHeight = new EnvironmentVariableInfo("drawheight", EvaluationType.FLOAT, "The height of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo DrawLeft = new EnvironmentVariableInfo("drawleft", EvaluationType.FLOAT, "The left-hand side x-coordinate of the drawing area in its own coordinate view.");
-		public static readonly EnvironmentVariableInfo DrawRight = new EnvironmentVariableInfo("drawright", EvaluationType.FLOAT, "The right-hand side x-coordinate of the drawing area in its own coordinate view.");
-		public static readonly EnvironmentVariableInfo DrawBottom = new EnvironmentVariableInfo("drawbottom", EvaluationType.FLOAT, "The bottom edge y-coordinate of the drawing area in its own coordinate view.");
-		public static readonly EnvironmentVariableInfo DrawTop = new EnvironmentVariableInfo("drawtop", EvaluationType.FLOAT, "The top edge y-coordinate of the drawing area in its own coordinate view.");
-
-		// Drawing rect variables
-		public static readonly EnvironmentVariableInfo PageWidth = new EnvironmentVariableInfo("pagewidth", EvaluationType.FLOAT, "The width of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo PageHeight = new EnvironmentVariableInfo("pageheight", EvaluationType.FLOAT, "The height of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo PageLeft = new EnvironmentVariableInfo("pageleft", EvaluationType.FLOAT, "The left-hand side x-coordinate of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo PageRight = new EnvironmentVariableInfo("pageright", EvaluationType.FLOAT, "The right-hand side x-coordinate of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo PageBottom = new EnvironmentVariableInfo("pagebottom", EvaluationType.FLOAT, "The bottom edge y-coordinate of the actual drawing area on the document page.");
-		public static readonly EnvironmentVariableInfo PageTop = new EnvironmentVariableInfo("pagetop", EvaluationType.FLOAT, "The top edge y-coordinate of the actual drawing area on the document page.");
-
-		// Random seed calculated from area variables
-		public static readonly EnvironmentVariableInfo Seed = new EnvironmentVariableInfo("seed", EvaluationType.INT, "A random seed for this drawing area (based on the actual position on the document page).");
-
-	}
-
 	public static class MarkupEnvironmentFunctions {
 
 		public class WidthFunctionInfo : IEnvironmentFunctionInfo {
@@ -280,16 +347,18 @@ namespace SharpSheets.Markup.Canvas {
 			public EvaluationName Name { get; } = "width";
 			public string? Description { get; } = "Returns the width of the input text, at the given fontsize, for the given font format (which will use the font associated with that format in the current graphics state).";
 
-			public EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(
-					new EnvironmentFunctionArg("text", EvaluationType.STRING, null),
-					new EnvironmentFunctionArg("format", MarkupEvaluationTypes.TEXT_FORMAT, null),
-					new EnvironmentFunctionArg("fontsize", EvaluationType.FLOAT, null)
+			public EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+				return new EnvironmentFunctionArguments(null,
+					new EnvironmentFunctionArgList(
+						new EnvironmentFunctionArg("text", context.GetType<StringEvaluationType>(), null),
+						new EnvironmentFunctionArg("format", context.GetSystemType<TextFormat>(), null), // TODO This would be better as some kind of getter on the context using the system enum type?
+						new EnvironmentFunctionArg("fontsize", context.GetType<FloatEvaluationType>(), null)
 					)
-			);
+				);
+			}
 
-			public EvaluationType GetReturnType(EvaluationNode[] args) {
-				return EvaluationType.FLOAT;
+			public EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+				return context.GetType<FloatEvaluationType>();
 			}
 
 			public static IEnvironmentFunction GetFunction(MarkupCanvasGraphicsData graphicsData) {
@@ -303,11 +372,19 @@ namespace SharpSheets.Markup.Canvas {
 					this.graphicsData = graphicsData;
 				}
 
-				public object? Evaluate(IEnvironment environment, EvaluationNode[] args) {
-					string text = ConvertValue<string>(args[0].Evaluate(environment));
-					TextFormat format = ParseEnumArg<TextFormat>(args[1].Evaluate(environment));
-					float fontsize = CastToFloat(args[2].Evaluate(environment));
-					return FontMetrics.GetWidth(text, graphicsData.Fonts, format, fontsize);
+				public EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+					EvaluationValue textVal = args[0].Evaluate(environment);
+					EvaluationValue formatVal = args[1].Evaluate(environment);
+					EvaluationValue fontsizeVal = args[2].Evaluate(environment);
+
+					if(StringEvaluationType.TryGetString(textVal, out string? text) && EnumEvaluationType.TryGetEnumValue(formatVal, out TextFormat? format) && FloatEvaluationType.TryGetFloat(fontsizeVal, out float fontsize)) {
+						float width = FontMetrics.GetWidth(text, graphicsData.Fonts, format.Value, fontsize);
+						return new EvaluationValue(width, environment.GetType<FloatEvaluationType>());
+					}
+					else {
+						throw new EvaluationCalculationException($"Cannot call {Name} with values of types {textVal.Type.Name}, {formatVal.Type.Name}, and {fontsizeVal.Type.Name}.");
+					}
+					
 				}
 			}
 		}
@@ -319,16 +396,18 @@ namespace SharpSheets.Markup.Canvas {
 			public EvaluationName Name { get; } = "height";
 			public string? Description { get; } = "Returns the height of the input text (the ascent plus the descent of the text), at the given fontsize, for the given font format (which will use the font associated with that format in the current graphics state).";
 
-			public EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(
-					new EnvironmentFunctionArg("text", EvaluationType.STRING, null),
-					new EnvironmentFunctionArg("format", MarkupEvaluationTypes.TEXT_FORMAT, null),
-					new EnvironmentFunctionArg("fontsize", EvaluationType.FLOAT, null)
+			public EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+				return new EnvironmentFunctionArguments(null,
+					new EnvironmentFunctionArgList(
+						new EnvironmentFunctionArg("text", context.GetType<StringEvaluationType>(), null),
+						new EnvironmentFunctionArg("format", context.GetSystemType<TextFormat>(), null), // TODO This would be better as some kind of getter on the context using the system enum type?
+						new EnvironmentFunctionArg("fontsize", context.GetType<FloatEvaluationType>(), null)
 					)
-			);
+				);
+			}
 
-			public EvaluationType GetReturnType(EvaluationNode[] args) {
-				return EvaluationType.FLOAT;
+			public EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+				return context.GetType<FloatEvaluationType>();
 			}
 
 			public static IEnvironmentFunction GetFunction(MarkupCanvasGraphicsData graphicsData) {
@@ -342,14 +421,21 @@ namespace SharpSheets.Markup.Canvas {
 					this.graphicsData = graphicsData;
 				}
 
-				public object? Evaluate(IEnvironment environment, EvaluationNode[] args) {
-					string text = ConvertValue<string>(args[0].Evaluate(environment));
-					TextFormat format = ParseEnumArg<TextFormat>(args[1].Evaluate(environment));
-					float fontsize = CastToFloat(args[2].Evaluate(environment));
+				public EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+					EvaluationValue textVal = args[0].Evaluate(environment);
+					EvaluationValue formatVal = args[1].Evaluate(environment);
+					EvaluationValue fontsizeVal = args[2].Evaluate(environment);
 
-					float ascent = FontMetrics.GetAscent(text, graphicsData.Fonts, format, fontsize);
-					float descent = FontMetrics.GetDescent(text, graphicsData.Fonts, format, fontsize);
-					return Math.Abs(ascent) + Math.Abs(descent); // TODO This doesn't make sense
+					if (StringEvaluationType.TryGetString(textVal, out string? text) && EnumEvaluationType.TryGetEnumValue(formatVal, out TextFormat? format) && FloatEvaluationType.TryGetFloat(fontsizeVal, out float fontsize)) {
+						float ascent = FontMetrics.GetAscent(text, graphicsData.Fonts, format.Value, fontsize);
+						float descent = FontMetrics.GetDescent(text, graphicsData.Fonts, format.Value, fontsize);
+						float height = Math.Abs(ascent) + Math.Abs(descent); // TODO This doesn't make sense
+						return new EvaluationValue(height, environment.GetType<FloatEvaluationType>());
+					}
+					else {
+						throw new EvaluationCalculationException($"Cannot call {Name} with values of types {textVal.Type.Name}, {formatVal.Type.Name}, and {fontsizeVal.Type.Name}.");
+					}
+
 				}
 			}
 		}
@@ -364,16 +450,18 @@ namespace SharpSheets.Markup.Canvas {
 				"at the given fontsize, for the given font format (which will use the font " +
 				"associated with that format in the current graphics state).";
 
-			public EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(
-					new EnvironmentFunctionArg("text", EvaluationType.STRING, null),
-					new EnvironmentFunctionArg("format", MarkupEvaluationTypes.TEXT_FORMAT, null),
-					new EnvironmentFunctionArg("fontsize", EvaluationType.FLOAT, null)
+			public EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+				return new EnvironmentFunctionArguments(null,
+					new EnvironmentFunctionArgList(
+						new EnvironmentFunctionArg("text", context.GetType<StringEvaluationType>(), null),
+						new EnvironmentFunctionArg("format", context.GetSystemType<TextFormat>(), null), // TODO This would be better as some kind of getter on the context using the system enum type?
+						new EnvironmentFunctionArg("fontsize", context.GetType<FloatEvaluationType>(), null)
 					)
-			);
+				);
+			}
 
-			public EvaluationType GetReturnType(EvaluationNode[] args) {
-				return EvaluationType.FLOAT;
+			public EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+				return context.GetType<FloatEvaluationType>();
 			}
 
 			public static IEnvironmentFunction GetFunction(MarkupCanvasGraphicsData graphicsData) {
@@ -387,141 +475,192 @@ namespace SharpSheets.Markup.Canvas {
 					this.graphicsData = graphicsData;
 				}
 
-				public object? Evaluate(IEnvironment environment, EvaluationNode[] args) {
-					string text = ConvertValue<string>(args[0].Evaluate(environment));
-					TextFormat format = ParseEnumArg<TextFormat>(args[1].Evaluate(environment));
-					float fontsize = CastToFloat(args[2].Evaluate(environment));
-					return FontMetrics.GetAscent(text, graphicsData.Fonts, format, fontsize);
+				public EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+					EvaluationValue textVal = args[0].Evaluate(environment);
+					EvaluationValue formatVal = args[1].Evaluate(environment);
+					EvaluationValue fontsizeVal = args[2].Evaluate(environment);
+
+					if (StringEvaluationType.TryGetString(textVal, out string? text) && EnumEvaluationType.TryGetEnumValue(formatVal, out TextFormat? format) && FloatEvaluationType.TryGetFloat(fontsizeVal, out float fontsize)) {
+						float ascent = FontMetrics.GetAscent(text, graphicsData.Fonts, format.Value, fontsize);
+						return new EvaluationValue(ascent, environment.GetType<FloatEvaluationType>());
+					}
+					else {
+						throw new EvaluationCalculationException($"Cannot call {Name} with values of types {textVal.Type.Name}, {formatVal.Type.Name}, and {fontsizeVal.Type.Name}.");
+					}
+
 				}
 			}
 		}
 
-		public class FromRelativeFunction : AbstractFunction {
+		public class FromRelativeFunction : AbstractSingleArgFunction {
 			public static readonly FromRelativeFunction Instance = new FromRelativeFunction();
 			private FromRelativeFunction() { }
 
 			public override EvaluationName Name { get; } = "fromrelative";
 			public override string? Description { get; } = "Returns a relative Dimension value with the argument as the relative size.";
 
-			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("relative", EvaluationType.FLOAT, null))
-			);
+			protected override string? Warning => null;
 
-			public override EvaluationType GetReturnType(EvaluationNode[] args) {
-				return DimensionExpression.DimensionType;
+			protected override EnvironmentFunctionArg GetArgument(EvaluationContext context) {
+				return new EnvironmentFunctionArg("relative", context.GetType<FloatEvaluationType>(), null);
 			}
 
-			public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				object? a = args[0].Evaluate(environment);
-				return Dimension.FromRelative(CastToFloat(a));
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode arg) {
+				return context.GetType<DimensionEvaluationType>();
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
+				EvaluationValue a = arg.Evaluate(environment);
+				if(FloatEvaluationType.TryGetFloat(a, out float relative)) {
+					return new EvaluationValue(Dimension.FromRelative(relative), environment.GetType<DimensionEvaluationType>());
+				}
+				else {
+					throw new InvalidCastException($"Cannot cast from {a.Type.Name} to float.");
+				}
 			}
 		}
 
-		public class FromPointsFunction : AbstractFunction {
+		public class FromPointsFunction : AbstractSingleArgFunction {
 			public static readonly FromPointsFunction Instance = new FromPointsFunction();
 			private FromPointsFunction() { }
 
 			public override EvaluationName Name { get; } = "frompoints";
 			public override string? Description { get; } = "Returns an absolute Dimension value with the argument as the size in points.";
 
-			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("points", EvaluationType.FLOAT, null))
-			);
+			protected override string? Warning => null;
 
-			public override EvaluationType GetReturnType(EvaluationNode[] args) {
-				return DimensionExpression.DimensionType;
+			protected override EnvironmentFunctionArg GetArgument(EvaluationContext context) {
+				return new EnvironmentFunctionArg("points", context.GetType<FloatEvaluationType>(), null);
 			}
 
-			public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				float a = CastToFloat(args[0].Evaluate(environment));
-				return Dimension.FromPoints(a);
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode arg) {
+				return context.GetType<DimensionEvaluationType>();
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
+				EvaluationValue a = arg.Evaluate(environment);
+				if (FloatEvaluationType.TryGetFloat(a, out float points)) {
+					return new EvaluationValue(Dimension.FromPoints(points), environment.GetType<DimensionEvaluationType>());
+				}
+				else {
+					throw new InvalidCastException($"Cannot cast from {a.Type.Name} to float.");
+				}
 			}
 		}
 
-		public class FromPercentFunction : AbstractFunction {
+		public class FromPercentFunction : AbstractSingleArgFunction {
 			public static readonly FromPercentFunction Instance = new FromPercentFunction();
 			private FromPercentFunction() { }
 
 			public override EvaluationName Name { get; } = "frompercent";
 			public override string? Description { get; } = "Returns a percentage Dimension value with the argument as the percentage size (range from 0 to 100).";
 
-			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("percent", EvaluationType.FLOAT, null))
-			);
+			protected override string? Warning => null;
 
-			public override EvaluationType GetReturnType(EvaluationNode[] args) {
-				return DimensionExpression.DimensionType;
+			protected override EnvironmentFunctionArg GetArgument(EvaluationContext context) {
+				return new EnvironmentFunctionArg("percent", context.GetType<FloatEvaluationType>(), null);
 			}
 
-			public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				float a = CastToFloat(args[0].Evaluate(environment));
-				return Dimension.FromPercent(a);
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode arg) {
+				return context.GetType<DimensionEvaluationType>();
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
+				EvaluationValue a = arg.Evaluate(environment);
+				if (FloatEvaluationType.TryGetFloat(a, out float percent)) {
+					return new EvaluationValue(Dimension.FromPercent(percent), environment.GetType<DimensionEvaluationType>());
+				}
+				else {
+					throw new InvalidCastException($"Cannot cast from {a.Type.Name} to float.");
+				}
 			}
 		}
 
-		public class FromCentimetresFunction : AbstractFunction {
+		public class FromCentimetresFunction : AbstractSingleArgFunction {
 			public static readonly FromCentimetresFunction Instance = new FromCentimetresFunction();
 			private FromCentimetresFunction() { }
 
 			public override EvaluationName Name { get; } = "fromcentimetres";
 			public override string? Description { get; } = "Returns an absolute Dimension value with the argument as the size in centimetres.";
 
-			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("centimetres", EvaluationType.FLOAT, null))
-			);
+			protected override string? Warning => null;
 
-			public override EvaluationType GetReturnType(EvaluationNode[] args) {
-				return DimensionExpression.DimensionType;
+			protected override EnvironmentFunctionArg GetArgument(EvaluationContext context) {
+				return new EnvironmentFunctionArg("centimetres", context.GetType<FloatEvaluationType>(), null);
 			}
 
-			public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				float a = CastToFloat(args[0].Evaluate(environment));
-				return Dimension.FromCentimetres(a);
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode arg) {
+				return context.GetType<DimensionEvaluationType>();
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
+				EvaluationValue a = arg.Evaluate(environment);
+				if (FloatEvaluationType.TryGetFloat(a, out float centimetres)) {
+					return new EvaluationValue(Dimension.FromCentimetres(centimetres), environment.GetType<DimensionEvaluationType>());
+				}
+				else {
+					throw new InvalidCastException($"Cannot cast from {a.Type.Name} to float.");
+				}
 			}
 		}
 
-		public class FromMillimetresFunction : AbstractFunction {
+		public class FromMillimetresFunction : AbstractSingleArgFunction {
 			public static readonly FromMillimetresFunction Instance = new FromMillimetresFunction();
 			private FromMillimetresFunction() { }
 
 			public override EvaluationName Name { get; } = "frommillimetres";
 			public override string? Description { get; } = "Returns an absolute Dimension value with the argument as the size in millimetres.";
 
-			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("millimetres", EvaluationType.FLOAT, null))
-			);
+			protected override string? Warning => null;
 
-			public override EvaluationType GetReturnType(EvaluationNode[] args) {
-				return DimensionExpression.DimensionType;
+			protected override EnvironmentFunctionArg GetArgument(EvaluationContext context) {
+				return new EnvironmentFunctionArg("millimetres", context.GetType<FloatEvaluationType>(), null);
 			}
 
-			public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				float a = CastToFloat(args[0].Evaluate(environment));
-				return Dimension.FromMillimetres(a);
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode arg) {
+				return context.GetType<DimensionEvaluationType>();
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
+				EvaluationValue a = arg.Evaluate(environment);
+				if (FloatEvaluationType.TryGetFloat(a, out float millimetres)) {
+					return new EvaluationValue(Dimension.FromMillimetres(millimetres), environment.GetType<DimensionEvaluationType>());
+				}
+				else {
+					throw new InvalidCastException($"Cannot cast from {a.Type.Name} to float.");
+				}
 			}
 		}
 
-		public class FromInchesFunction : AbstractFunction {
+		public class FromInchesFunction : AbstractSingleArgFunction {
 			public static readonly FromInchesFunction Instance = new FromInchesFunction();
 			private FromInchesFunction() { }
 
 			public override EvaluationName Name { get; } = "frominches";
 			public override string? Description { get; } = "Returns an absolute Dimension value with the argument as the size in inches.";
 
-			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("inches", EvaluationType.FLOAT, null))
-			);
+			protected override string? Warning => null;
 
-			public override EvaluationType GetReturnType(EvaluationNode[] args) {
-				return DimensionExpression.DimensionType;
+			protected override EnvironmentFunctionArg GetArgument(EvaluationContext context) {
+				return new EnvironmentFunctionArg("inches", context.GetType<FloatEvaluationType>(), null);
 			}
 
-			public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				float a = CastToFloat(args[0].Evaluate(environment));
-				return Dimension.FromCentimetres(a);
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode arg) {
+				return context.GetType<DimensionEvaluationType>();
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode arg) {
+				EvaluationValue a = arg.Evaluate(environment);
+				if (FloatEvaluationType.TryGetFloat(a, out float inches)) {
+					return new EvaluationValue(Dimension.FromCentimetres(inches), environment.GetType<DimensionEvaluationType>());
+				}
+				else {
+					throw new InvalidCastException($"Cannot cast from {a.Type.Name} to float.");
+				}
 			}
 		}
 
+		// TODO We should be able to remove this
 		public class FromAutoFunction : AbstractFunction {
 			public static readonly FromAutoFunction Instance = new FromAutoFunction();
 			private FromAutoFunction() { }
@@ -529,17 +668,20 @@ namespace SharpSheets.Markup.Canvas {
 			public override EvaluationName Name { get; } = "fromauto";
 			public override string? Description { get; } = "Returns an automatic Dimension value.";
 
-			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null);
-
-			public override EvaluationType GetReturnType(EvaluationNode[] args) {
-				return DimensionExpression.DimensionType;
+			public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+				return new EnvironmentFunctionArguments(null);
 			}
 
-			public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				return Dimension.Automatic;
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+				return context.GetType<DimensionEvaluationType>();
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+				return new EvaluationValue(Dimension.Automatic, environment.GetType<DimensionEvaluationType>());
 			}
 		}
 
+		// TODO We should be able to remove this
 		public class SumDimensionsFunction : AbstractFunction {
 			public static readonly SumDimensionsFunction Instance = new SumDimensionsFunction();
 			private SumDimensionsFunction() { }
@@ -547,19 +689,31 @@ namespace SharpSheets.Markup.Canvas {
 			public override EvaluationName Name { get; } = "sumdimensions";
 			public override string? Description { get; } = "Returns the sum of the Dimension arguments, as a single Dimension value.";
 
-			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(new EnvironmentFunctionArg("dim", DimensionExpression.DimensionType, null), true)
-			);
-
-			public override EvaluationType GetReturnType(EvaluationNode[] args) {
-				return DimensionExpression.DimensionType;
+			public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+				return new EnvironmentFunctionArguments(null,
+					new EnvironmentFunctionArgList(new EnvironmentFunctionArg("dim", context.GetType<DimensionEvaluationType>(), null), true)
+				);
 			}
 
-			public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				return DimensionUtils.Sum(args.Select(a => ConvertValue<Dimension>(a.Evaluate(environment))));
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+				return context.GetType<DimensionEvaluationType>();
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+				Dimension[] argsEval = args.Select(a => {
+					EvaluationValue aVal = a.Evaluate(environment);
+					if (DimensionEvaluationType.TryGetDimension(aVal, out Dimension dim)) {
+						return dim;
+					}
+					else {
+						throw new EvaluationCalculationException($"Cannot cast from {aVal.Type.Name} to {typeof(Dimension).Name}.");
+					}
+				}).ToArray();
+				return new EvaluationValue(DimensionUtils.Sum(argsEval), environment.GetType<DimensionEvaluationType>());
 			}
 		}
 
+		// TODO We should be able to remove this
 		public class MultiplyDimensionFunction : AbstractFunction {
 			public static readonly MultiplyDimensionFunction Instance = new MultiplyDimensionFunction();
 			private MultiplyDimensionFunction() { }
@@ -567,21 +721,30 @@ namespace SharpSheets.Markup.Canvas {
 			public override EvaluationName Name { get; } = "multiplydimension";
 			public override string? Description { get; } = "Multiplies a Dimension value by a given real-valued multiplier (this multiplies each of the absolute, relative, and percentage values separately).";
 
-			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(
-					new EnvironmentFunctionArg("dimension", DimensionExpression.DimensionType, null),
-					new EnvironmentFunctionArg("factor", EvaluationType.FLOAT, null)
-					)
-			);
-
-			public override EvaluationType GetReturnType(EvaluationNode[] args) {
-				return DimensionExpression.DimensionType;
+			public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+				return new EnvironmentFunctionArguments(null,
+					new EnvironmentFunctionArgList(
+						new EnvironmentFunctionArg("dimension", context.GetType<DimensionEvaluationType>(), null),
+						new EnvironmentFunctionArg("factor", context.GetType<FloatEvaluationType>(), null)
+						)
+				);
 			}
 
-			public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				Dimension dim = ConvertValue<Dimension>(args[0].Evaluate(environment));
-				float factor = CastToFloat(args[1].Evaluate(environment));
-				return factor * dim;
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+				return context.GetType<DimensionEvaluationType>();
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+				EvaluationValue dimVal = args[0].Evaluate(environment);
+				EvaluationValue factorVal = args[1].Evaluate(environment);
+
+				if(DimensionEvaluationType.TryGetDimension(dimVal, out Dimension dim) && FloatEvaluationType.TryGetFloat(factorVal, out float factor)) {
+					Dimension result = factor * dim;
+					return new EvaluationValue(result, environment.GetType<DimensionEvaluationType>());
+				}
+				else {
+					throw new EvaluationCalculationException($"Cannot multiply values of types {dimVal.Type.Name} and {factorVal.Type.Name}.");
+				}
 			}
 		}
 
@@ -592,21 +755,30 @@ namespace SharpSheets.Markup.Canvas {
 			public override EvaluationName Name { get; } = "darken";
 			public override string? Description { get; } = "Darkens a color by the given factor (which will be clamped to the range 0 to 1). This amounts to multiplying the HSV value/lightness by the factor, and keeping the same hue and saturation.";
 
-			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(
-					new EnvironmentFunctionArg("color", EvaluationType.COLOR, null),
-					new EnvironmentFunctionArg("factor", EvaluationType.FLOAT, null)
-					)
-			);
-
-			public override EvaluationType GetReturnType(EvaluationNode[] args) {
-				return EvaluationType.COLOR;
+			public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+				return new EnvironmentFunctionArguments(null,
+					new EnvironmentFunctionArgList(
+						new EnvironmentFunctionArg("color", context.GetType<ColorEvaluationType>(), null),
+						new EnvironmentFunctionArg("factor", context.GetType<FloatEvaluationType>(), null)
+						)
+				);
 			}
 
-			public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				Color color = ConvertValue<Color>(args[0].Evaluate(environment));
-				float factor = CastToFloat(args[1].Evaluate(environment));
-				return color.Darken(factor);
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+				return context.GetType<ColorEvaluationType>();
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+				EvaluationValue colorVal = args[0].Evaluate(environment);
+				EvaluationValue factorVal = args[1].Evaluate(environment);
+
+				if (ColorEvaluationType.TryGetColor(colorVal, out Color color) && FloatEvaluationType.TryGetFloat(factorVal, out float factor)) {
+					Color result = color.Darken(factor);
+					return new EvaluationValue(result, environment.GetType<ColorEvaluationType>());
+				}
+				else {
+					throw new EvaluationCalculationException($"Cannot call {Name} with values of types {colorVal.Type.Name} and {factorVal.Type.Name}.");
+				}
 			}
 		}
 
@@ -617,64 +789,32 @@ namespace SharpSheets.Markup.Canvas {
 			public override EvaluationName Name { get; } = "lighten";
 			public override string? Description { get; } = "Lightens a color by the given factor (which will be clamped to the range 0 to 1). This amounts to changing the HSV value/lightness (L) with the factor (f) to 1-((1-L)*f), and keeping the same hue and saturation.";
 
-			public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
-				new EnvironmentFunctionArgList(
-					new EnvironmentFunctionArg("color", EvaluationType.COLOR, null),
-					new EnvironmentFunctionArg("factor", EvaluationType.FLOAT, null)
-					)
-			);
-
-			public override EvaluationType GetReturnType(EvaluationNode[] args) {
-				return EvaluationType.COLOR;
+			public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+				return new EnvironmentFunctionArguments(null,
+					new EnvironmentFunctionArgList(
+						new EnvironmentFunctionArg("color", context.GetType<ColorEvaluationType>(), null),
+						new EnvironmentFunctionArg("factor", context.GetType<FloatEvaluationType>(), null)
+						)
+				);
 			}
 
-			public override object Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				Color color = ConvertValue<Color>(args[0].Evaluate(environment));
-				float factor = CastToFloat(args[1].Evaluate(environment));
-				return color.Lighten(factor);
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+				return context.GetType<ColorEvaluationType>();
 			}
-		}
 
-		#region Helper Functions
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+				EvaluationValue colorVal = args[0].Evaluate(environment);
+				EvaluationValue factorVal = args[1].Evaluate(environment);
 
-		private static T ConvertValue<T>(object? value) {
-			if (value is T converted) {
-				return converted;
-			}
-			else {
-				throw new InvalidCastException($"Cannot cast from {value?.GetType().Name ?? "null"} to {typeof(T).Name}.");
-			}
-		}
-
-		private static float CastToFloat(object? value) {
-			return value switch {
-				int intVal => intVal,
-				float floatVal => floatVal,
-				double doubleVal => (float)doubleVal,
-				uint uintVal => uintVal,
-				UFloat ufloatVal => ufloatVal.Value,
-				_ => throw new InvalidCastException($"Cannot cast from {value?.GetType().Name ?? "null"} to float.")
-			};
-		}
-
-		private static T ParseEnumArg<T>(object? arg) where T : Enum {
-			if (arg is T enumVal) {
-				return enumVal;
-			}
-			else if (arg is string stringVal) {
-				try {
-					return EnumUtils.ParseEnum<T>(stringVal);
+				if (ColorEvaluationType.TryGetColor(colorVal, out Color color) && FloatEvaluationType.TryGetFloat(factorVal, out float factor)) {
+					Color result = color.Lighten(factor);
+					return new EvaluationValue(result, environment.GetType<ColorEvaluationType>());
 				}
-				catch (FormatException e) {
-					throw new EvaluationCalculationException("Invalid value for enum argument.", e);
+				else {
+					throw new EvaluationCalculationException($"Cannot call {Name} with values of types {colorVal.Type.Name} and {factorVal.Type.Name}.");
 				}
 			}
-			else {
-				throw new EvaluationCalculationException($"Invalid type for enum argument, must be string or {typeof(T).Name}, got {arg?.GetType().Name ?? "null"}.");
-			}
 		}
-
-		#endregion
 
 	}
 

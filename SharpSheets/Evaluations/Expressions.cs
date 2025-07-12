@@ -12,6 +12,8 @@ namespace SharpSheets.Evaluations {
 
 		bool IsConstant { get; }
 
+		EvaluationContext Context { get; }
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -25,19 +27,74 @@ namespace SharpSheets.Evaluations {
 
 	}
 
+	public static class Expressions {
+
+		public static IEnumerable<EvaluationName> GetVariables<T1, T2>(IExpression<T1> expr1, IExpression<T2> expr2) {
+			return expr1.GetVariables().Concat(expr2.GetVariables());
+		}
+		public static IEnumerable<EvaluationName> GetVariables<T1, T2, T3>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3) {
+			return expr1.GetVariables().Concat(expr2.GetVariables()).Concat(expr3.GetVariables());
+		}
+		public static IEnumerable<EvaluationName> GetVariables<T1, T2, T3, T4>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3, IExpression<T4> expr4) {
+			return expr1.GetVariables().Concat(expr2.GetVariables()).Concat(expr3.GetVariables()).Concat(expr4.GetVariables());
+		}
+		public static IEnumerable<EvaluationName> GetVariables<T1, T2, T3, T4, T5>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3, IExpression<T4> expr4, IExpression<T5> expr5) {
+			return expr1.GetVariables().Concat(expr2.GetVariables()).Concat(expr3.GetVariables()).Concat(expr4.GetVariables()).Concat(expr5.GetVariables());
+		}
+		public static IEnumerable<EvaluationName> GetVariables<T1, T2, T3, T4, T5, T6>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3, IExpression<T4> expr4, IExpression<T5> expr5, IExpression<T6> expr6) {
+			return expr1.GetVariables().Concat(expr2.GetVariables()).Concat(expr3.GetVariables()).Concat(expr4.GetVariables()).Concat(expr5.GetVariables()).Concat(expr6.GetVariables());
+		}
+
+		public static bool IsConstant<T1, T2>(IExpression<T1> expr1, IExpression<T2> expr2) {
+			return expr1.IsConstant && expr2.IsConstant;
+		}
+		public static bool IsConstant<T1, T2, T3>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3) {
+			return expr1.IsConstant && expr2.IsConstant && expr3.IsConstant;
+		}
+		public static bool IsConstant<T1, T2, T3, T4>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3, IExpression<T4> expr4) {
+			return expr1.IsConstant && expr2.IsConstant && expr3.IsConstant && expr4.IsConstant;
+		}
+		public static bool IsConstant<T1, T2, T3, T4, T5>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3, IExpression<T4> expr4, IExpression<T5> expr5) {
+			return expr1.IsConstant && expr2.IsConstant && expr3.IsConstant && expr4.IsConstant && expr5.IsConstant;
+		}
+		public static bool IsConstant<T1, T2, T3, T4, T5, T6>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3, IExpression<T4> expr4, IExpression<T5> expr5, IExpression<T6> expr6) {
+			return expr1.IsConstant && expr2.IsConstant && expr3.IsConstant && expr4.IsConstant && expr5.IsConstant && expr6.IsConstant;
+		}
+
+	}
+
 	public static class ExpressionUtils {
+		
 		public static bool CanCompute<T>(this IExpression<T> expr, IVariableBox variables) {
 			return expr.GetVariables().All(variables.IsVariable);
 		}
+
+	}
+
+	public sealed class ConstantExpression<T> : IExpression<T> {
+		public bool IsConstant => true;
+
+		public T Value { get; }
+		public EvaluationContext Context { get; }
+
+		public ConstantExpression(T value, EvaluationContext context) {
+			this.Value = value;
+			this.Context = context;
+		}
+
+		public T Evaluate(IEnvironment environment) => Value;
+		public IEnumerable<EvaluationName> GetVariables() => Enumerable.Empty<EvaluationName>();
 	}
 
 	public class FloatExpression : IExpression<float> {
 
-		public static readonly FloatExpression Zero = new FloatExpression(0f);
+		//public static readonly FloatExpression Zero = new FloatExpression(0f);
 
 		public EvaluationNode Evaluation { get { return value ?? evaluation!; } }
 		private readonly EvaluationNode? evaluation;
-		private readonly float? value;
+		private readonly EvaluationValue? value;
+
+		public EvaluationContext Context => value?.Type.Context ?? evaluation!.Context;
 
 		public bool IsConstant { get { return value.HasValue; } }
 
@@ -46,12 +103,12 @@ namespace SharpSheets.Evaluations {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
 		public FloatExpression(EvaluationNode evaluation) {
-			if (evaluation.ReturnType.IsReal()) {
+			if (FloatEvaluationType.IsReal(evaluation.GetReturnType())) {
 				if (evaluation.IsConstant) {
 					float value;
-					object eval = evaluation.Evaluate(Environments.Empty) ?? throw new EvaluationProcessingException("Provided constant evaluation does not produce a value.");
+					EvaluationValue eval = evaluation.Evaluate(Environments.Empty(evaluation.Context)); // ?? throw new EvaluationProcessingException("Provided constant evaluation does not produce a value.");
 
-					if(EvaluationTypes.TryGetReal(eval, out float evalResult)) {
+					if (FloatEvaluationType.TryGetFloat(eval, out float evalResult)) {
 						value = evalResult;
 					}
 					else {
@@ -59,7 +116,7 @@ namespace SharpSheets.Evaluations {
 					}
 
 					this.evaluation = null;
-					this.value = value;
+					this.value = new EvaluationValue(value, evaluation.Context.GetType<FloatEvaluationType>());
 				}
 				else {
 					this.evaluation = evaluation;
@@ -70,16 +127,18 @@ namespace SharpSheets.Evaluations {
 				throw new EvaluationTypeException("Invalid expression type.");
 			}
 		}
-		public FloatExpression(float value) {
+		public FloatExpression(float value, EvaluationContext context) {
 			this.evaluation = null;
-			this.value = value;
+			this.value = new EvaluationValue(value, context.GetType<FloatEvaluationType>());
 		}
 		public static implicit operator FloatExpression(EvaluationNode evaluation) {
 			return new FloatExpression(evaluation);
 		}
+		/*
 		public static implicit operator FloatExpression(float value) {
 			return new FloatExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
 			return evaluation is not null ? evaluation.GetVariables() : Enumerable.Empty<EvaluationName>();
@@ -95,13 +154,13 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public float Evaluate(IEnvironment environment) {
-			if (value.HasValue) {
-				return value.Value;
+			if (value.HasValue && FloatEvaluationType.TryGetFloat(value.Value, out float floatVal)) {
+				return floatVal;
 			}
 			else {
-				object result = evaluation!.Evaluate(environment) ?? throw new EvaluationCalculationException("Evaluation does not produce a value.");
+				EvaluationValue result = evaluation!.Evaluate(environment); // ?? throw new EvaluationCalculationException("Evaluation does not produce a value.");
 				
-				if(EvaluationTypes.TryGetReal(result, out float realValue)) {
+				if(FloatEvaluationType.TryGetFloat(result, out float realValue)) {
 					return realValue;
 				}
 				else {
@@ -113,8 +172,20 @@ namespace SharpSheets.Evaluations {
 		public static FloatExpression operator +(FloatExpression a, FloatExpression b) {
 			return new FloatExpression(a.Evaluation + b.Evaluation);
 		}
+		public static FloatExpression operator +(FloatExpression a, float b) {
+			return a + new FloatExpression(b, a.Context);
+		}
+		public static FloatExpression operator +(float a, FloatExpression b) {
+			return new FloatExpression(a, b.Context) + b;
+		}
 		public static FloatExpression operator -(FloatExpression a, FloatExpression b) {
 			return new FloatExpression(a.Evaluation - b.Evaluation);
+		}
+		public static FloatExpression operator -(FloatExpression a, float b) {
+			return a - new FloatExpression(b, a.Context);
+		}
+		public static FloatExpression operator -(float a, FloatExpression b) {
+			return new FloatExpression(a, b.Context) - b;
 		}
 		public static FloatExpression operator -(FloatExpression a) {
 			return new FloatExpression(-a.Evaluation);
@@ -122,19 +193,33 @@ namespace SharpSheets.Evaluations {
 		public static FloatExpression operator *(FloatExpression a, FloatExpression b) {
 			return new FloatExpression(a.Evaluation * b.Evaluation);
 		}
+		public static FloatExpression operator *(FloatExpression a, float b) {
+			return a * new FloatExpression(b, a.Context);
+		}
+		public static FloatExpression operator *(float a, FloatExpression b) {
+			return new FloatExpression(a, b.Context) * b;
+		}
 		public static FloatExpression operator /(FloatExpression a, FloatExpression b) {
 			return new FloatExpression(a.Evaluation / b.Evaluation);
 		}
+		public static FloatExpression operator /(FloatExpression a, float b) {
+			return a / new FloatExpression(b, a.Context);
+		}
+		public static FloatExpression operator /(float a, FloatExpression b) {
+			return new FloatExpression(a, b.Context) / b;
+		}
 
 		public override string ToString() {
-			return value.HasValue ? value.Value.ToString() : evaluation!.ToString()!;
+			return value.HasValue ? (value.Value.Value?.ToString() ?? "") : evaluation!.ToString()!;
 		}
 	}
 
 	public class IntExpression : IExpression<int> {
 		public EvaluationNode Evaluation { get { return value ?? evaluation!; } }
 		private readonly EvaluationNode? evaluation;
-		private readonly int? value;
+		private readonly EvaluationValue? value;
+
+		public EvaluationContext Context => value?.Type.Context ?? evaluation!.Context;
 
 		public bool IsConstant { get { return value.HasValue; } }
 
@@ -143,12 +228,12 @@ namespace SharpSheets.Evaluations {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
 		public IntExpression(EvaluationNode evaluation) {
-			if (evaluation.ReturnType.IsIntegral()) {
+			if (IntEvaluationType.IsIntegral(evaluation.GetReturnType())) {
 				if (evaluation.IsConstant) {
 					int value;
-					object eval = evaluation.Evaluate(Environments.Empty) ?? throw new EvaluationProcessingException("Provided constant evaluation does not produce a value.");
+					EvaluationValue eval = evaluation.Evaluate(Environments.Empty(evaluation.Context)); // ?? throw new EvaluationProcessingException("Provided constant evaluation does not produce a value.");
 
-					if (EvaluationTypes.TryGetIntegral(eval, out int evalResult)) {
+					if (IntEvaluationType.TryGetInt(eval, out int evalResult)) {
 						value = evalResult;
 					}
 					else {
@@ -156,7 +241,7 @@ namespace SharpSheets.Evaluations {
 					}
 
 					this.evaluation = null;
-					this.value = value;
+					this.value = new EvaluationValue(value, evaluation.Context.GetType<IntEvaluationType>());
 				}
 				else {
 					this.evaluation = evaluation;
@@ -167,16 +252,18 @@ namespace SharpSheets.Evaluations {
 				throw new EvaluationTypeException("Invalid expression type.");
 			}
 		}
-		public IntExpression(int value) {
+		public IntExpression(int value, EvaluationContext context) {
 			this.evaluation = null;
-			this.value = value;
+			this.value = new EvaluationValue(value, context.GetType<IntEvaluationType>());
 		}
 		public static implicit operator IntExpression(EvaluationNode evaluation) {
 			return new IntExpression(evaluation);
 		}
+		/*
 		public static implicit operator IntExpression(int value) {
 			return new IntExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
 			return evaluation is not null ? evaluation.GetVariables() : Enumerable.Empty<EvaluationName>();
@@ -192,13 +279,13 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public int Evaluate(IEnvironment environment) {
-			if (value.HasValue) {
-				return value.Value;
+			if (value.HasValue && IntEvaluationType.TryGetInt(value.Value, out int intVal)) {
+				return intVal;
 			}
 			else {
-				object result = evaluation!.Evaluate(environment) ?? throw new EvaluationCalculationException("Evaluation does not produce a value.");
+				EvaluationValue result = evaluation!.Evaluate(environment); // ?? throw new EvaluationCalculationException("Evaluation does not produce a value.");
 
-				if (EvaluationTypes.TryGetIntegral(result, out int intValue)) {
+				if (IntEvaluationType.TryGetInt(result, out int intValue)) {
 					return intValue;
 				}
 				else {
@@ -224,14 +311,16 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public override string ToString() {
-			return value.HasValue ? value.Value.ToString() : evaluation!.ToString()!;
+			return value.HasValue ? (value.Value.Value?.ToString() ?? "") : evaluation!.ToString()!;
 		}
 	}
 
 	public class StringExpression : IExpression<string> {
 		public EvaluationNode Evaluation { get { return value ?? evaluation!; } }
 		private readonly EvaluationNode? evaluation;
-		private readonly string? value;
+		private readonly EvaluationValue? value;
+
+		public EvaluationContext Context => value?.Type.Context ?? evaluation!.Context;
 
 		public bool IsConstant { get { return value != null; } }
 
@@ -240,10 +329,20 @@ namespace SharpSheets.Evaluations {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
 		public StringExpression(EvaluationNode evaluation) {
-			if (evaluation.ReturnType == EvaluationType.STRING) {
+			if (StringEvaluationType.IsString(evaluation.GetReturnType())) {
 				if (evaluation.IsConstant) {
+					string value;
+					EvaluationValue eval = evaluation.Evaluate(Environments.Empty(evaluation.Context)); // ?? throw new EvaluationProcessingException("Provided constant evaluation does not produce a value.");
+
+					if (StringEvaluationType.TryGetString(eval, out string? evalResult)) {
+						value = evalResult;
+					}
+					else {
+						throw new EvaluationCalculationException("Provided constant evaluation does not produce a valid string value.");
+					}
+
 					this.evaluation = null;
-					value = (string)(evaluation.Evaluate(Environments.Empty) ?? throw new EvaluationProcessingException("Provided constant evaluation does not produce a value."));
+					this.value = new EvaluationValue(value, evaluation.Context.GetType<StringEvaluationType>());
 				}
 				else {
 					this.evaluation = evaluation;
@@ -254,16 +353,18 @@ namespace SharpSheets.Evaluations {
 				throw new EvaluationTypeException("Invalid expression type.");
 			}
 		}
-		public StringExpression(string value) {
+		public StringExpression(string value, EvaluationContext context) {
 			this.evaluation = null;
-			this.value = value;
+			this.value = new EvaluationValue(value, context.GetType<StringEvaluationType>());
 		}
 		public static implicit operator StringExpression(EvaluationNode evaluation) {
 			return new StringExpression(evaluation);
 		}
+		/*
 		public static implicit operator StringExpression(string value) {
 			return new StringExpression(value);
 		}
+		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
 			return evaluation is not null ? evaluation.GetVariables() : Enumerable.Empty<EvaluationName>();
@@ -279,11 +380,18 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public string Evaluate(IEnvironment environment) {
-			if (value != null) {
-				return value;
+			if (value.HasValue && StringEvaluationType.TryGetString(value.Value, out string? stringVal)) {
+				return stringVal;
 			}
 			else {
-				return (string)(evaluation!.Evaluate(environment) ?? throw new EvaluationCalculationException("Evaluation does not produce a value."));
+				EvaluationValue result = evaluation!.Evaluate(environment); // ?? throw new EvaluationCalculationException("Evaluation does not produce a value.");
+
+				if (StringEvaluationType.TryGetString(result, out string? stringValue)) {
+					return stringValue;
+				}
+				else {
+					throw new EvaluationCalculationException("Evaluation does not produce a valid string value.");
+				}
 			}
 		}
 
@@ -299,20 +407,32 @@ namespace SharpSheets.Evaluations {
 	public class BoolExpression : IExpression<bool> {
 		private EvaluationNode Evaluation { get { return value ?? evaluation!; } }
 		private readonly EvaluationNode? evaluation;
-		private readonly bool? value;
+		private readonly EvaluationValue? value;
+
+		public EvaluationContext Context => value?.Type.Context ?? evaluation!.Context;
 
 		public bool IsConstant { get { return value.HasValue; } }
-		public bool IsTrue { get { return value.HasValue && value.Value; } }
+		public bool IsTrue { get { return value.HasValue && value.Value.Value is bool boolVal && boolVal; } }
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationTypeException"></exception>
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
 		public BoolExpression(EvaluationNode evaluation) {
-			if (evaluation.ReturnType == EvaluationType.BOOL) {
+			if (BoolEvaluationType.IsBool(evaluation.GetReturnType())) {
 				if (evaluation.IsConstant) {
+					bool value;
+					EvaluationValue eval = evaluation.Evaluate(Environments.Empty(evaluation.Context)); // ?? throw new EvaluationProcessingException("Provided constant evaluation does not produce a value.");
+
+					if (BoolEvaluationType.TryGetBool(eval, out bool evalResult)) {
+						value = evalResult;
+					}
+					else {
+						throw new EvaluationCalculationException("Provided constant evaluation does not produce a valid boolean value.");
+					}
+
 					this.evaluation = null;
-					value = (bool)(evaluation.Evaluate(Environments.Empty) ?? throw new EvaluationProcessingException("Provided constant evaluation does not produce a value."));
+					this.value = new EvaluationValue(value, evaluation.Context.GetType<BoolEvaluationType>());
 				}
 				else {
 					this.evaluation = evaluation;
@@ -323,16 +443,18 @@ namespace SharpSheets.Evaluations {
 				throw new EvaluationTypeException("Invalid expression type.");
 			}
 		}
-		public BoolExpression(bool value) {
+		public BoolExpression(bool value, EvaluationContext context) {
 			this.evaluation = null;
-			this.value = value;
+			this.value = new EvaluationValue(value, context.GetType<BoolEvaluationType>());
 		}
 		public static implicit operator BoolExpression(EvaluationNode evaluation) {
 			return new BoolExpression(evaluation);
 		}
+		/*
 		public static implicit operator BoolExpression(bool value) {
 			return new BoolExpression(value);
 		}
+		*/
 		/*
 		public static explicit operator BoolExpression(FloatExpression floatExpr) {
 			return new BoolExpression(new InequalityNode() { First = floatExpr.Evaluation, Second = 0f });
@@ -353,11 +475,18 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public bool Evaluate(IEnvironment environment) {
-			if (value.HasValue) {
-				return value.Value;
+			if (value.HasValue && BoolEvaluationType.TryGetBool(value.Value, out bool boolVal)) {
+				return boolVal;
 			}
 			else {
-				return (bool)(evaluation!.Evaluate(environment) ?? throw new EvaluationCalculationException("Evaluation does not produce a value."));
+				EvaluationValue result = evaluation!.Evaluate(environment); // ?? throw new EvaluationCalculationException("Evaluation does not produce a value.");
+
+				if (BoolEvaluationType.TryGetBool(result, out bool boolValue)) {
+					return boolValue;
+				}
+				else {
+					throw new EvaluationCalculationException("Evaluation does not produce a valid boolean value.");
+				}
 			}
 		}
 
@@ -366,7 +495,12 @@ namespace SharpSheets.Evaluations {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
 		public static BoolExpression IsNonZero(FloatExpression floatExpr) {
-			return new BoolExpression(new InequalityNode() { First = floatExpr.Evaluation, Second = 0f });
+			return new BoolExpression(
+				new InequalityNode(floatExpr.Context) {
+					First = floatExpr.Evaluation,
+					Second = new EvaluationValue(0f, floatExpr.Context.GetType<FloatEvaluationType>()) 
+				}
+			);
 		}
 
 		public static BoolExpression operator &(BoolExpression a, BoolExpression b) {
@@ -377,129 +511,20 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public override string ToString() {
-			return value.HasValue ? value.Value.ToString() : evaluation!.ToString()!;
+			return value.HasValue ? (value.Value.Value?.ToString() ?? "") : evaluation!.ToString()!;
 		}
 	}
-
-	/*
-	public class ColorExpression : IExpression<Color> {
-		public EvaluationNode Evaluation { get { return value ?? evaluation!; } }
-		private readonly EvaluationNode? evaluation;
-		private readonly Color? value;
-		private FloatExpression? Opacity { get; set; }
-
-		public bool IsConstant { get { return value.HasValue && (Opacity == null || Opacity.IsConstant); } }
-
-		/// <summary></summary>
-		/// <exception cref="EvaluationTypeException"></exception>
-		/// <exception cref="EvaluationCalculationException"></exception>
-		public ColorExpression(EvaluationNode evaluation) {
-			if (evaluation.ReturnType == EvaluationType.COLOR || evaluation.ReturnType == EvaluationType.STRING) {
-				if (evaluation.IsConstant) {
-					this.evaluation = null;
-					object? result = evaluation.Evaluate(Environments.Empty);
-					if(result is Color color) {
-						value = color;
-					}
-					else if (result is string colorStr) {
-						value = ParseColor(colorStr);
-					}
-					else {
-						throw new EvaluationTypeException("Invalid expression type.");
-					}
-				}
-				else {
-					this.evaluation = evaluation;
-					this.value = null;
-				}
-			}
-			else {
-				throw new EvaluationTypeException("Invalid expression type.");
-			}
-		}
-		public ColorExpression(Color value) {
-			this.evaluation = null;
-			this.value = value;
-		}
-		public static implicit operator ColorExpression(Color value) {
-			return new ColorExpression(value);
-		}
-
-		public IEnumerable<EvaluationName> GetVariables() {
-			if(evaluation is not null) {
-				foreach(EvaluationName name in evaluation.GetVariables()) { yield return name; }
-			}
-			if (Opacity is not null) {
-				foreach (EvaluationName name in Opacity.GetVariables()) { yield return name; }
-			}
-		}
-
-		/// <summary></summary>
-		/// <exception cref="EvaluationTypeException"></exception>
-		/// <exception cref="EvaluationCalculationException"></exception>
-		public static ColorExpression Parse(string text, IVariableBox variables) {
-			try {
-				return new ColorExpression(ColorUtils.Parse(text));
-			}
-			catch (FormatException) { }
-			return new ColorExpression(Evaluations.Evaluation.Parse(text, variables));
-		}
-
-		/// <summary></summary>
-		/// <exception cref="EvaluationTypeException"></exception>
-		/// <exception cref="EvaluationCalculationException"></exception>
-		public ColorExpression WithOpacity(FloatExpression opacity) {
-			if (value.HasValue) {
-				return new ColorExpression(value.Value) { Opacity = opacity };
-			}
-			else {
-				return new ColorExpression(evaluation!) { Opacity = opacity };
-			}
-		}
-
-		public Color Evaluate(IEnvironment environment) {
-			Color result;
-			if (value.HasValue) {
-				result = value.Value;
-			}
-			else {
-				object? eval = evaluation!.Evaluate(environment);
-				if (eval is Color color) {
-					result = color;
-				}
-				else if (eval is string colorStr) {
-					result = ParseColor(colorStr);
-				}
-				else {
-					throw new EvaluationCalculationException("Invalid expression type.");
-				}
-			}
-			if (Opacity != null) {
-				float opacity = this.Opacity.Evaluate(environment);
-				result = result.WithOpacity(opacity);
-			}
-			return result;
-		}
-
-		/// <summary></summary>
-		/// <exception cref="EvaluationCalculationException"></exception>
-		private static Color ParseColor(string colorStr) {
-			try {
-				return ColorUtils.Parse(colorStr);
-			}
-			catch (FormatException e) {
-				throw new EvaluationCalculationException($"Could not parse color string \"{colorStr}\".", e);
-			}
-		}
-	}
-	*/
 
 	public class EnumExpression<T> : IExpression<T> where T : Enum {
 
 		public bool IsConstant { get { return evaluation is null || evaluation.IsConstant; } }
 
+		private EnumEvaluationType EvaluationType { get; }
+
 		private readonly EvaluationNode? evaluation;
 		private readonly T? value;
+
+		public EvaluationContext Context => this.EvaluationType.Context;
 
 		/*
 		public EnumExpression(StringExpression expression) {
@@ -512,20 +537,21 @@ namespace SharpSheets.Evaluations {
 		/// <exception cref="EvaluationTypeException"></exception>
 		/// <exception cref="EvaluationCalculationException"></exception>
 		public EnumExpression(EvaluationNode evaluation) {
+			this.EvaluationType = EnumEvaluationType.FromSystemType<T>(evaluation.Context);
+
+			EvaluationType expressionType = evaluation.GetReturnType();
+
 			if (evaluation.IsConstant) {
 				this.evaluation = null;
-				object? eval = evaluation.Evaluate(Environments.Empty);
-				if (evaluation.ReturnType == EvaluationType.STRING && eval is string result) {
-					this.value = ParseEnum(result);
-				}
-				else if (evaluation.ReturnType.IsEnum && evaluation.ReturnType.DisplayType == typeof(T) && eval is T enumVal) {
-					this.value = enumVal;
+				EvaluationValue eval = evaluation.Evaluate(Environments.Empty(evaluation.Context));
+				if (eval.Type == this.EvaluationType && this.EvaluationType.TryGetEnumValue(eval, out Enum? evalEnum) && evalEnum is T finalEnum) {
+					this.value = finalEnum;
 				}
 				else {
 					throw new EvaluationTypeException("Invalid expression type.");
 				}
 			}
-			else if ((evaluation.ReturnType.IsEnum && evaluation.ReturnType.DisplayType == typeof(T)) || evaluation.ReturnType == EvaluationType.STRING) {
+			else if (this.EvaluationType == expressionType || StringEvaluationType.IsString(expressionType)) {
 				this.evaluation = evaluation;
 				this.value = default;
 			}
@@ -533,25 +559,26 @@ namespace SharpSheets.Evaluations {
 				throw new EvaluationTypeException("Invalid expression type.");
 			}
 		}
-		public EnumExpression(T value) {
+		public EnumExpression(T value, EvaluationContext context) {
+			this.EvaluationType = EnumEvaluationType.FromSystemType<T>(context);
+
 			this.evaluation = null;
 			this.value = value;
 		}
+		/*
 		public static implicit operator EnumExpression<T>(T value) {
 			return new EnumExpression<T>(value);
 		}
+		*/
 
 		public T Evaluate(IEnvironment environment) {
 			if (evaluation is null) {
 				return value!;
 			}
 			else {
-				object? evaluated = evaluation.Evaluate(environment);
-				if(evaluated is string stringVal) {
-					return ParseEnum(stringVal);
-				}
-				else if(evaluated is T enumVal) {
-					return enumVal;
+				EvaluationValue evaluated = evaluation.Evaluate(environment);
+				if(this.EvaluationType.TryGetEnumValue(evaluated, out Enum? enumEval) && enumEval is T result) {
+					return result;
 				}
 				else {
 					throw new EvaluationCalculationException($"Invalid evaluation result type for EnumExpression<{typeof(T).Name}>.");
@@ -568,7 +595,7 @@ namespace SharpSheets.Evaluations {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		public static EnumExpression<T> Parse(string text, IVariableBox variables) {
 			if (EnumUtils.IsDefined<T>(text)) { // Enum.IsDefined(typeof(T), text)
-				return ParseEnum(text);
+				return new EnumExpression<T>(ParseEnum(text), variables.Context);
 			}
 			else {
 				EvaluationNode node = Evaluation.Parse(text, variables);

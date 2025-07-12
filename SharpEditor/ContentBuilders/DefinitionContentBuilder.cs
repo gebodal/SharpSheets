@@ -96,8 +96,8 @@ namespace SharpEditor.ContentBuilders {
 			//bool printedValue = false;
 			if (environment != null) {
 				object? result = null;
-				if (environment.TryGetValue(definition.name, out object? value)) {
-					result = value;
+				if (environment.TryGetValue(definition.name, out EvaluationValue? value)) {
+					result = value.Value.Value;
 				}
 				else if (environment.TryGetNode(definition.name, out EvaluationNode? node)) {
 					try {
@@ -176,16 +176,16 @@ namespace SharpEditor.ContentBuilders {
 		}
 
 		private static Inline GetResultInline(Definition definition, IEnvironment evaluationEnvironment) {
-			object? result = null;
-			if (evaluationEnvironment.TryGetValue(definition.name, out object? value)) {
-				result = value;
+			EvaluationValue? result = null;
+			if (evaluationEnvironment.TryGetValue(definition.name, out EvaluationValue? value)) {
+				result = value.Value;
 			}
 			else if (evaluationEnvironment.TryGetNode(definition.name, out EvaluationNode? node)) {
 				result = node.Evaluate(evaluationEnvironment); // Can this ever fail?
 			}
 
 			Inline resultText;
-			if (result is Array a) {
+			if (result.HasValue && result.Value.Value is Array a) {
 				if (a.Length > 0) {
 					resultText = BaseContentBuilder.GetValueInline(definition.Type.ReturnType.DisplayType, a, false);
 				}
@@ -193,7 +193,7 @@ namespace SharpEditor.ContentBuilders {
 					resultText = new Run("empty") { Foreground = SharpEditorPalette.DefaultValueBrush };
 				}
 			}
-			else if (result is string textResult) {
+			else if (result.HasValue && result.Value.Value is string textResult) {
 				if (textResult.Length > 0) {
 					resultText = new Run(textResult) { };
 				}

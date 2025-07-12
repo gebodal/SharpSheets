@@ -17,11 +17,11 @@ namespace SharpSheets.Markup.Parsing {
 	public static class MarkupArgumentParsing {
 
 		public static IEnvironment ParseArguments(IMarkupArgument[] markupArguments, MarkupValidation[] validations, IVariableBox variables, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool useExamples, out List<SharpParsingException> argumentErrors) { // TODO out SharpParsingException[] errors?
-			List<(object?, EnvironmentVariableInfo)> arguments = new List<(object?, EnvironmentVariableInfo)>();
+			List<(EvaluationValue, EnvironmentVariableInfo)> arguments = new List<(EvaluationValue, EnvironmentVariableInfo)>();
 			List<SharpParsingException> errors = new List<SharpParsingException>();
 
 			foreach (IMarkupArgument arg in markupArguments) {
-				if(ParseArgument(arg, out object? argValue, out DocumentSpan? argLocation, context, source, widgetFactory, shapeFactory, useExamples, ref errors)) {
+				if(ParseArgument(arg, out EvaluationValue argValue, out DocumentSpan? argLocation, context, source, widgetFactory, shapeFactory, useExamples, ref errors)) {
 					arguments.Add((argValue, new EnvironmentVariableInfo(arg.VariableName, arg.Type, arg.Description)));
 				}
 			}
@@ -30,7 +30,7 @@ namespace SharpSheets.Markup.Parsing {
 				throw new SharpFactoryException(errors, $"Errors parsing pattern arguments.");
 			}
 
-			IEnvironment environment = SimpleEnvironments.Create(arguments, variables);
+			IEnvironment environment = Environments.Create(arguments, variables);
 
 			foreach(MarkupValidation validation in validations) {
 				try {
@@ -52,7 +52,7 @@ namespace SharpSheets.Markup.Parsing {
 			return environment;
 		}
 
-		private static bool ParseArgument(IMarkupArgument arg, out object? value, out DocumentSpan? location, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool useExamples, ref List<SharpParsingException> errors) {
+		private static bool ParseArgument(IMarkupArgument arg, out EvaluationValue value, out DocumentSpan? location, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool useExamples, ref List<SharpParsingException> errors) {
 			if (arg is MarkupSingleArgument singleArg) {
 				bool response = ParseSingleArgument(singleArg, out value, out location, context, source, widgetFactory, shapeFactory, useExamples, ref errors);
 				response = response && ValidateArgValue(singleArg, value, location, context, ref errors);
@@ -60,8 +60,8 @@ namespace SharpSheets.Markup.Parsing {
 			}
 			else if (arg is MarkupGroupArgument groupArg) {
 				location = context.Location;
-				bool response = ParseGroupArgument(groupArg, out Dictionary<EvaluationName, object?> result, context, source, widgetFactory, shapeFactory, useExamples, ref errors);
-				value = result;
+				bool response = ParseGroupArgument(groupArg, out Dictionary<EvaluationName, EvaluationValue> result, context, source, widgetFactory, shapeFactory, useExamples, ref errors);
+				value = new EvaluationValue(result, groupArg.Type);
 				return response;
 			}
 			else {
@@ -69,14 +69,14 @@ namespace SharpSheets.Markup.Parsing {
 			}
 		}
 
-		private static bool ValidateArgValue(MarkupSingleArgument singleArg, object? value, DocumentSpan? location, IContext context, ref List<SharpParsingException> errors) {
+		private static bool ValidateArgValue(MarkupSingleArgument singleArg, EvaluationValue value, DocumentSpan? location, IContext context, ref List<SharpParsingException> errors) {
 			if (singleArg.Validation is not null) {
-				if (!singleArg.Validation.Evaluate(SimpleEnvironments.Single(new EnvironmentVariableInfo(singleArg.VariableName, singleArg.Type, singleArg.Description), value))) {
+				if (!singleArg.Validation.Evaluate(Environments.Single(new EnvironmentVariableInfo(singleArg.VariableName, singleArg.Type, singleArg.Description), value))) {
 					if (!string.IsNullOrWhiteSpace(singleArg.ValidationMessage)) {
 						errors.Add(new SharpParsingException(location ?? context.Location, singleArg.ValidationMessage));
 					}
 					else {
-						errors.Add(new SharpParsingException(location ?? context.Location, $"{value?.ToString() ?? "null"} is an invalid value for {singleArg.ArgumentName}. Must satisfy {{{singleArg.Validation}}}."));
+						errors.Add(new SharpParsingException(location ?? context.Location, $"{value.Value?.ToString() ?? "null"} is an invalid value for {singleArg.ArgumentName}. Must satisfy {{{singleArg.Validation}}}."));
 					}
 					return false;
 				}
@@ -85,20 +85,21 @@ namespace SharpSheets.Markup.Parsing {
 			return true;
 		}
 
-		private static bool ParseSingleArgument(MarkupSingleArgument arg, out object? value, out DocumentSpan? location, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool useExamples, ref List<SharpParsingException> errors) {
+		private static bool ParseSingleArgument(MarkupSingleArgument arg, out EvaluationValue value, out DocumentSpan? location, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool useExamples, ref List<SharpParsingException> errors) {
 			if (useExamples && arg.ExampleValue != null) {
-				value = arg.ExampleValue;
+				value = new EvaluationValue(arg.ExampleValue, arg.Type);
 				location = null;
 				return true;
 			}
 			else if (arg.IsNumbered) {
-				Type numberedElementType = arg.Type.ElementType!.DataType;
+				EvaluationType numberedElementEvalType = arg.Type.IterationResult() ?? throw new InvalidOperationException("Numbered arguments must be of an iterable type.");
+				Type numberedElementType = numberedElementEvalType.DataType;
 				Type numberedType = typeof(Numbered<>).MakeGenericType(numberedElementType);
 				INumbered? numbered = (INumbered?)Activator.CreateInstance(numberedType);
 
 				if (numbered is null) {
 					errors.Add(new SharpParsingException(context.Location, $"Could not initialize {numberedType} object."));
-					value = null;
+					value = default;
 					location = null;
 					return false;
 				}
@@ -126,28 +127,29 @@ namespace SharpSheets.Markup.Parsing {
 					int num = numbers[i];
 					int index = num - 1;
 					string numberedName = parameterName + num.ToString();
-					MarkupSingleArgument numberedArg = new MarkupSingleArgument(numberedName, arg.Type.ElementType,
+					MarkupSingleArgument numberedArg = new MarkupSingleArgument(numberedName, numberedElementEvalType,
 						_optional: arg.IsOptional, _default: elementDefaultValue, _local: arg.UseLocal, _format: MarkupArgumentFormat.DEFAULT);
 
-					if(ParseSingleArgument(numberedArg, out object? numberedResult, out _, context, source, widgetFactory, shapeFactory, useExamples, ref errors)) {
-						numbered.Add(index, numberedResult);
+					if(ParseSingleArgument(numberedArg, out EvaluationValue numberedResult, out _, context, source, widgetFactory, shapeFactory, useExamples, ref errors)) {
+						numbered.Add(index, numberedResult.Value);
 					}
 				}
 
 				Array result = numbered.TakeContinuous(numbered.Length).ToArray(numberedElementType);
 
-				value = result;
+				value = new EvaluationValue(result, arg.Type);
 				location = null;
 				return true;
 			}
 			else if (arg.FromEntries) {
-				Type listElementType = arg.Type.ElementType!.DataType;
+				EvaluationType listElementEvalType = arg.Type.IterationResult() ?? throw new InvalidOperationException("Entry arguments must be of an iterable type.");
+				Type listElementType = listElementEvalType.DataType;
 				Type listType = typeof(List<>).MakeGenericType(listElementType);
 				IList? entries = (IList?)Activator.CreateInstance(listType);
 
 				if (entries is null) {
 					errors.Add(new SharpParsingException(context.Location, "Error instantiating entries list."));
-					value = null;
+					value = default;
 					location = null;
 					return false;
 				}
@@ -155,7 +157,7 @@ namespace SharpSheets.Markup.Parsing {
 				foreach (ContextValue<string> entry in context.GetEntries(context)) {
 					try {
 						//entries.Add(ValueParsing.Parse(entry.Value, listElementType));
-						entries.Add(ParseValue(entry.Value, arg.Type.ElementType, source));
+						entries.Add(ParseValue(entry.Value, listElementEvalType, source).Value);
 					}
 					catch (FormatException e) {
 						errors.Add(new SharpParsingException(entry.Location, e.Message, e));
@@ -166,7 +168,7 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				Array result = entries.ToArray(listElementType);
 				//AddValue(arg, result, context.Location);
-				value = result;
+				value = new EvaluationValue(result, arg.Type);
 				location = context.Location;
 				return true;
 			}
@@ -181,7 +183,7 @@ namespace SharpSheets.Markup.Parsing {
 				Type? defaultStyle = ShapeFactory.GetDefaultStyle(arg.Type.DataType);
 				if (defaultStyle is null) {
 					errors.Add(new SharpParsingException(context.Location, $"Could not identify default style for {arg.Type.DataType}."));
-					value = null;
+					value = default;
 					location = null;
 					return false;
 				}
@@ -190,7 +192,7 @@ namespace SharpSheets.Markup.Parsing {
 				IShape shape = shapeFactory.MakeShape(arg.Type.DataType, shapeContext, contextName, defaultStyle, source, out SharpParsingException[] shapeBuildErrors);
 				
 				errors.AddRange(shapeBuildErrors);
-				value = shape;
+				value = new EvaluationValue(shape, arg.Type);
 				location = styleLocation;
 				return true;
 			}
@@ -209,20 +211,20 @@ namespace SharpSheets.Markup.Parsing {
 					if (child is not Div) {
 						errors.AddRange(widgetBuildErrors);
 						errors.Add(new SharpParsingException(childContext.Location, "Invalid child element."));
-						value = null;
+						value = default;
 						location = null;
 						return false;
 					}
 					errors.AddRange(widgetBuildErrors);
-					value = child;
+					value = new EvaluationValue(child, arg.Type);
 					location = childContext.Location;
 					return true;
 				}
 			}
-			else if (arg.Type == EvaluationType.BOOL && context.HasFlag(arg.ArgumentName.ToString(), arg.UseLocal, context)) {
+			else if (BoolEvaluationType.IsBool(arg.Type) && context.HasFlag(arg.ArgumentName.ToString(), arg.UseLocal, context)) {
 				bool flag = context.GetFlag(arg.ArgumentName.ToString(), arg.UseLocal, context, out DocumentSpan? flagLocation);
 				//AddValue(arg, flag, flagLocation);
-				value = flag;
+				value = new EvaluationValue(flag, arg.Type);
 				location = flagLocation;
 				return true;
 			}
@@ -230,7 +232,7 @@ namespace SharpSheets.Markup.Parsing {
 				string valueStr = context.GetProperty(arg.ArgumentName.ToString(), arg.UseLocal, context, null, out DocumentSpan? propertyLocation)!;
 				try {
 					//object result = Parsing.ValueParsing.Parse(value, arg.Type.SystemType);
-					object? result = ParseValue(valueStr, arg.Type, source);
+					EvaluationValue result = ParseValue(valueStr, arg.Type, source);
 
 					//AddValue(arg, result, propertyLocation);
 					value = result;
@@ -250,7 +252,7 @@ namespace SharpSheets.Markup.Parsing {
 
 			if (arg.DefaultValue != null) { // TODO "arg.IsOptional"?
 				//AddValue(arg, arg.DefaultValue, null);
-				value = arg.DefaultValue;
+				value = new EvaluationValue(arg.DefaultValue, arg.Type);
 				location = null;
 				return true;
 			}
@@ -259,16 +261,16 @@ namespace SharpSheets.Markup.Parsing {
 				errors.Add(new MissingParameterException(context.Location, arg.ArgumentName.ToString(), arg.Type.DisplayType, $"No value for required argument \"{arg.ArgumentName}\".")); // context.Location good here?
 			}
 
-			value = null;
+			value = default;
 			location = null;
 			return false;
 		}
 
-		private static bool ParseGroupArgument(MarkupGroupArgument arg, out Dictionary<EvaluationName, object?> value, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool useExamples, ref List<SharpParsingException> errors) {
-			Dictionary<EvaluationName, object?> result = new Dictionary<EvaluationName, object?>();
+		private static bool ParseGroupArgument(MarkupGroupArgument arg, out Dictionary<EvaluationName, EvaluationValue> value, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool useExamples, ref List<SharpParsingException> errors) {
+			Dictionary<EvaluationName, EvaluationValue> result = new Dictionary<EvaluationName, EvaluationValue>();
 			
 			foreach(IMarkupArgument childArg in arg.Args) {
-				if(ParseArgument(childArg, out object? childValue, out _, new NamedContext(context, arg.ArgumentName.ToString()), source, widgetFactory, shapeFactory, useExamples, ref errors)) {
+				if(ParseArgument(childArg, out EvaluationValue childValue, out _, new NamedContext(context, arg.ArgumentName.ToString()), source, widgetFactory, shapeFactory, useExamples, ref errors)) {
 					result.Add(childArg.VariableName, childValue);
 				}
 			}
@@ -277,42 +279,37 @@ namespace SharpSheets.Markup.Parsing {
 			return true;
 		}
 
-		public static object? ParseValue(string text, EvaluationType evaluationType, DirectoryPath source) {
+		public static EvaluationValue ParseValue(string text, EvaluationType evaluationType, DirectoryPath source) {
 			object? value = ValueParsing.Parse(text, evaluationType.DataType, source);
+			EvaluationValue result = new EvaluationValue(value, evaluationType);
 
-			ValidateData(value, evaluationType);
+			ValidateData(result, evaluationType);
 
-			return value;
+			return result;
 		}
 
-		private static void ValidateData(object? value, EvaluationType evaluationType) {
-			if(value is null) {
-				return;
-			}
-			else if (evaluationType.IsEnum) {
-				if(value is string enumString && evaluationType.IsEnumValueDefined(enumString)) {
-					return; // TODO Can we replace the value here with the exact string from the type?
-				}
-				else if (value is Enum) {
-					return; // Is this still appropriate? Is it actually unhelpful now?
+		private static void ValidateData(EvaluationValue value, EvaluationType type) {
+			if (EnumEvaluationType.IsEnum(type, out EnumEvaluationType? enumType)) {
+				if(enumType.TryGetEnumValue(value, out string? stringVal)) {
+					return;
 				}
 				else {
-					throw new FormatException($"{evaluationType.Name} must be one of the following: " + string.Join(", ", evaluationType.EnumNames));
+					throw new FormatException($"{enumType.Name} must be one of the following: " + string.Join(", ", enumType.EnumNames));
 				}
 			}
-			else if (evaluationType.IsArray || evaluationType.IsTuple) {
-				if(EvaluationTypes.TryGetArray(value, out Array? array)) {
-					foreach(object entry in array) {
-						ValidateData(entry, evaluationType.ElementType);
+			else if (type.IterationResult() is EvaluationType elementType) {
+				if (type.Iteration(value) is IEnumerable<EvaluationValue> iterations) {
+					foreach (EvaluationValue entry in iterations) {
+						ValidateData(entry, elementType);
 					}
 					return;
 				}
 				else {
-					throw new FormatException($"Invalid data type (expected an {(evaluationType.IsArray ? "array" : "tuple")} but got {value.GetType()}).");
+					throw new FormatException($"Invalid data type (expected a collection, {type.Name}, but got {value.Value?.GetType().Name ?? "null"}).");
 				}
 			}
-			else if (TupleUtils.IsTupleObject(value)) {
-				foreach(TypeField field in evaluationType.Fields) {
+			else if (value.Value is not null && TupleUtils.IsTupleObject(value.Value)) { // What is going on here?
+				foreach(TypeField field in type.Fields) {
 					ValidateData(field.GetValue(value), field.Type);
 				}
 			}

@@ -17,6 +17,7 @@ using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 using System.Xml.Linq;
+using SharpSheets.Documentation;
 
 namespace SharpSheets.Markup.Parsing {
 
@@ -283,30 +284,30 @@ namespace SharpSheets.Markup.Parsing {
 
 			#region Structural Elements
 
-			private IVariableBox? GetPatternVariables(ContextProperty<MarkupPatternType> typeAttr) {
+			private IVariableBox? GetPatternVariables(ContextProperty<MarkupPatternType> typeAttr, EvaluationContext context) {
 				if (typeAttr.Value == MarkupPatternType.BOX) {
-					return PatternData.GetPatternVariables<MarkupBoxPattern>();
+					return PatternData.GetPatternVariables<MarkupBoxPattern>(context);
 				}
 				else if (typeAttr.Value == MarkupPatternType.LABELLEDBOX) {
-					return PatternData.GetPatternVariables<MarkupLabelledBoxPattern>();
+					return PatternData.GetPatternVariables<MarkupLabelledBoxPattern>(context);
 				}
 				else if (typeAttr.Value == MarkupPatternType.TITLEDBOX) {
-					return PatternData.GetPatternVariables<MarkupTitledBoxPattern>();
+					return PatternData.GetPatternVariables<MarkupTitledBoxPattern>(context);
 				}
 				else if (typeAttr.Value == MarkupPatternType.ENTRIEDSHAPE) {
-					return PatternData.GetPatternVariables<MarkupEntriedShapePattern>();
+					return PatternData.GetPatternVariables<MarkupEntriedShapePattern>(context);
 				}
 				else if (typeAttr.Value == MarkupPatternType.BAR) {
-					return PatternData.GetPatternVariables<MarkupBarPattern>();
+					return PatternData.GetPatternVariables<MarkupBarPattern>(context);
 				}
 				else if (typeAttr.Value == MarkupPatternType.USAGEBAR) {
-					return PatternData.GetPatternVariables<MarkupUsageBarPattern>();
+					return PatternData.GetPatternVariables<MarkupUsageBarPattern>(context);
 				}
 				else if (typeAttr.Value == MarkupPatternType.DETAIL) {
-					return PatternData.GetPatternVariables<MarkupDetailPattern>();
+					return PatternData.GetPatternVariables<MarkupDetailPattern>(context);
 				}
 				else if (typeAttr.Value == MarkupPatternType.WIDGET) {
-					return PatternData.GetPatternVariables<MarkupWidgetPattern>();
+					return PatternData.GetPatternVariables<MarkupWidgetPattern>(context);
 				}
 				else {
 					LogError(typeAttr, $"Unrecognised pattern type: {typeAttr.Value}");
@@ -316,7 +317,7 @@ namespace SharpSheets.Markup.Parsing {
 
 			private MarkupPattern MakePattern(XMLElement patternElem, string? libraryName) {
 				if (RequiredAttribute(patternElem, "type", false, s => EnumUtils.ParseEnum<MarkupPatternType>(s), out ContextProperty<MarkupPatternType> typeAttr)) {
-					IVariableBox? patternVariables = GetPatternVariables(typeAttr);
+					IVariableBox? patternVariables = GetPatternVariables(typeAttr, MarkupEvaluationTypes.BaseContext);
 					if(patternVariables is null) {
 						return MakeErrorPattern(patternElem, libraryName, new Exception("Invalid pattern type."));
 					}
@@ -437,12 +438,21 @@ namespace SharpSheets.Markup.Parsing {
 					description = null;
 				}
 
+				// First pass through arguments to collect any new types
+				EvaluationContext.Builder contextBuilder = MarkupEvaluationTypes.Create();
+				foreach (XMLElement argElem in GetVariableElements(patternElement, VariableType.ARGUMENT, true)) {
+					CollectArgumentTypes(argElem, contextBuilder);
+				}
+
+				MarkupEvaluationContext patternContext = new MarkupEvaluationContext(contextBuilder.Build());
+
+				// Second pass through arguments to actually build markup argument instances using constructed EvaluationContext
 				List<IMarkupArgument> arguments = new List<IMarkupArgument>();
 				HashSet<EvaluationName> argNames = new HashSet<EvaluationName>();
 				Dictionary<EvaluationName, EnvironmentVariableInfo> varTypes = new Dictionary<EvaluationName, EnvironmentVariableInfo>();
 				bool entriesUsed = false;
 				foreach (XMLElement argElem in GetVariableElements(patternElement, VariableType.ARGUMENT, true)) {
-					IMarkupArgument? argument = MakeArgument(argElem, out ContextProperty<EvaluationName> argName, out ContextProperty<EvaluationName>? varName);
+					IMarkupArgument? argument = MakeArgument(argElem, patternContext, out ContextProperty<EvaluationName> argName, out ContextProperty<EvaluationName>? varName);
 					if (argument != null) {
 						if (patternVariables.IsVariable(argument.VariableName)) {
 							LogError(varName ?? argName, "This variable name is already taken by a pattern argument.");
@@ -466,9 +476,10 @@ namespace SharpSheets.Markup.Parsing {
 					LogVisit(argElem);
 				}
 
-				IVariableBox topLevelPatternVariables = patternVariables.AppendVariables(SimpleVariableBoxes.Create(varTypes.Values));
+				// TODO This is kinda ugly? Can we make this kind of setup cleaner?
+				IVariableBox topLevelPatternVariables = VariableBoxes.Concat(patternContext.TypeSystem, patternVariables, VariableBoxes.Create(varTypes.Values, patternContext.TypeSystem));
 				
-				IVariableBox validationVariables = BasisEnvironment.Instance.AppendVariables(topLevelPatternVariables);
+				IVariableBox validationVariables = BasisEnvironment.MakeInstance(patternContext.TypeSystem).AppendVariables(topLevelPatternVariables);
 				List<MarkupValidation> validations = new List<MarkupValidation>();
 				foreach (XMLElement validationElem in GetVariableElements(patternElement, VariableType.VALIDATION, true)) {
 					MarkupValidation? validation = MakeValidation(validationElem, validationVariables);
@@ -479,7 +490,7 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				
 				// TODO Need to deal with errors from here
-				DivElement rootDiv = MakeDivElement(patternElement, patternElement, topLevelPatternVariables, new Dictionary<XMLElement, IIdentifiableMarkupElement>(), source);
+				DivElement rootDiv = MakeDivElement(patternElement, patternElement, topLevelPatternVariables, patternContext, new Dictionary<XMLElement, IIdentifiableMarkupElement>(), source);
 				
 				LogVisit(patternElement);
 				LogOrigin(patternElement, rootDiv);
@@ -507,7 +518,7 @@ namespace SharpSheets.Markup.Parsing {
 				}
 			}
 
-			private DivSetup GetDivSetup(XMLElement divElem, IVariableBox outerContext, out string? id, out MarkupVariable[] divVariables) {
+			private DivSetup GetDivSetup(XMLElement divElem, IVariableBox outerContext, MarkupEvaluationContext markupContext, out string? id, out MarkupVariable[] divVariables) {
 				// Get div id (which must be a concrete string)
 				id = GetAttribute(divElem, "id", false, s => s, null);
 
@@ -517,29 +528,29 @@ namespace SharpSheets.Markup.Parsing {
 				IVariableBox variables = outerContext;
 				if (forEach != null) {
 					// If for-each provided, add it's variable to the collection used for parsing MarkupVariable entries
-					variables = variables.AppendVariables(SimpleVariableBoxes.Create(new EnvironmentVariableInfo[] { forEach.Variable }));
+					variables = variables.AppendVariables(new EnvironmentVariableInfo[] { forEach.Variable });
 				}
 
 				// Collect variables from this div (not arguments, as they belong solely to the pattern-level, and are dealt with separately)
-				divVariables = XElementVariables.GetMarkupVariables(this, divElem, variables);
+				divVariables = XElementVariables.GetMarkupVariables(this, divElem, variables, markupContext);
 
 				// Now collect outer-context variables (including canvas drawing variables) and this div's MarkupVariables (and for-each loop variable) into a single VariableBox for parsing the div attributes
 				//IVariableBox setupVariables = variables.AppendVariables(MarkupEnvironments.DrawingStateVariables).AppendVariables(VariableBoxes.Simple(divVariables.ToDictionary(v => v.Name, v => v.Type)));
 				// We don't need to add drawing variables here, as they're added to the VariableBox at a higher level
-				IVariableBox setupVariables = variables.AppendVariables(SimpleVariableBoxes.Create(divVariables.Select(v => new EnvironmentVariableInfo(v.Name, v.Type, null))));
+				IVariableBox setupVariables = variables.AppendVariables(divVariables.Select(v => new EnvironmentVariableInfo(v.Name, v.Type, null)));
 
 				// Get setup information for this div, using complete variables (including foreach loop variable)
 				FloatExpression? gutter = GetAttribute(divElem, "gutter", true, s => FloatExpression.Parse(s, setupVariables), null);
-				DimensionExpression size = GetAttribute(divElem, "size", false, s => MarkupValueParsing.ParseDimension(s, setupVariables), Dimension.Single);
+				DimensionExpression size = GetAttribute(divElem, "size", false, s => MarkupValueParsing.ParseDimension(s, setupVariables), new DimensionExpression(Dimension.Single, setupVariables.Context));
 				PositionExpression? position = MakePositionExpression(divElem, setupVariables);
 				MarginsExpression? margins = GetAttribute(divElem, "margins", false, s => MarkupValueParsing.ParseMargins(s, setupVariables), null);
 				EnumExpression<Layout>? layout = GetAttribute(divElem, "layout", true, s => MarkupValueParsing.ParseEnum<Layout>(s, setupVariables), null);
 				EnumExpression<Arrangement>? arrangement = GetAttribute(divElem, "arrangement", true, s => MarkupValueParsing.ParseEnum<Arrangement>(s, setupVariables), null);
 				EnumExpression<LayoutOrder>? order = GetAttribute(divElem, "order", true, s => MarkupValueParsing.ParseEnum<LayoutOrder>(s, setupVariables), null);
-				BoolExpression provideRemaining = GetAttribute(divElem, "provide-remaining", false, s => BoolExpression.Parse(s, setupVariables), false);
+				BoolExpression provideRemaining = GetAttribute(divElem, "provide-remaining", false, s => BoolExpression.Parse(s, setupVariables), new BoolExpression(false, setupVariables.Context));
 				Size? canvasArea = GetAttribute(divElem, "canvas", false, MarkupValueParsing.ParseConcreteSize, null); // TODO Does this need a default value?
 				FloatExpression? aspectRatio = GetAttribute(divElem, "aspect-ratio", false, s => FloatExpression.Parse(s, setupVariables), null);
-				BoolExpression enabled = GetAttribute(divElem, "enabled", false, s => BoolExpression.Parse(s, setupVariables), true);
+				BoolExpression enabled = GetAttribute(divElem, "enabled", false, s => BoolExpression.Parse(s, setupVariables), new BoolExpression(true, setupVariables.Context));
 				IntExpression? repeat = GetAttribute(divElem, "repeat", false, s => IntExpression.Parse(s, setupVariables), null);
 				//EnumExpression<DrawingCoords> drawingCoords = GetAttribute(elem, "coords", true, s => ParseEnum<DrawingCoords>(s, variables), null);
 				//BoolExpression keepAspectRatio = GetAttribute(elem, "keepAspectRatio", false, ParseSimpleBool, false);
@@ -548,20 +559,20 @@ namespace SharpSheets.Markup.Parsing {
 				//setup = MakeDivSetup(divElem, setupVariables);
 			}
 
-			private DivElement MakeDivElement(XMLElement root, XMLElement divElem, IVariableBox outerContext, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, DirectoryPath source) {
+			private DivElement MakeDivElement(XMLElement root, XMLElement divElem, IVariableBox outerContext, MarkupEvaluationContext markupContext, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, DirectoryPath source) {
 
-				IVariableBox variables = MarkupEnvironments.DrawingStateVariables.AppendVariables(outerContext);
+				IVariableBox variables = markupContext.DrawingStateVariables().AppendVariables(outerContext);
 
 				// Get setup information for this div element
-				DivSetup setup = GetDivSetup(divElem, variables, out string? id, out MarkupVariable[] divVariables);
+				DivSetup setup = GetDivSetup(divElem, variables, markupContext, out string? id, out MarkupVariable[] divVariables);
 
 				// Make div object, using outer-context variables and this div's MarkupVariables
-				DivElement divElement = new DivElement(id, setup, outerContext, divVariables);
+				DivElement divElement = new DivElement(id, setup, outerContext, markupContext, divVariables);
 
 				// Create full VariableBox, including all information from this div and canvas drawing variables
-				IVariableBox fullDrawingVariables = MarkupEnvironments.DrawingStateVariables.AppendVariables(divElement.Variables);
+				IVariableBox fullDrawingVariables = markupContext.DrawingStateVariables().AppendVariables(divElement.Variables);
 
-				IVariableBox parentParseVariables = BasisEnvironment.Instance.AppendVariables(divElement.Variables);
+				IVariableBox parentParseVariables = BasisEnvironment.MakeInstance(divElement.Variables.Context).AppendVariables(divElement.Variables);
 
 				// Begin constructing child nodes
 				foreach (XMLElement childElem in divElem.Elements) {
@@ -571,7 +582,7 @@ namespace SharpSheets.Markup.Parsing {
 						}
 						else if (childElem.Name == "div") {
 							// This child is constructed as a standard div
-							DivElement child = MakeDivElement(root, childElem, divElement.Variables, constructed, source);
+							DivElement child = MakeDivElement(root, childElem, divElement.Variables, markupContext, constructed, source);
 							if (child != null) {
 								divElement.AddElement(child);
 								LogOrigin(childElem, child);
@@ -580,7 +591,7 @@ namespace SharpSheets.Markup.Parsing {
 						}
 						else if(childElem.Name == "child") {
 							// This child is child div
-							DivElement child = MakeChildDivElement(childElem, divElement.Variables, constructed, source);
+							DivElement child = MakeChildDivElement(childElem, divElement.Variables, markupContext, constructed, source);
 							if (child != null) {
 								divElement.AddElement(child);
 								LogOrigin(childElem, child);
@@ -589,7 +600,7 @@ namespace SharpSheets.Markup.Parsing {
 						}
 						else if (MarkupParsingConstants.IsReferenceElement(childElem.Name)) {
 							// This child is a styled div, and we leave the MakeStyledDivElement method to determine which kind
-							DivElement? styledChild = MakeStyledDivElement(root, childElem, divElement.Variables, constructed, source);
+							DivElement? styledChild = MakeStyledDivElement(root, childElem, divElement.Variables, markupContext, constructed, source);
 							if (styledChild != null) {
 								divElement.AddElement(styledChild);
 								LogOrigin(childElem, styledChild);
@@ -598,7 +609,7 @@ namespace SharpSheets.Markup.Parsing {
 						}
 						else if (childElem.Name == "slicing") {
 							if (setup.canvasArea != null) {
-								SlicingValuesElement? slicingValuesElem = MakeSlicingValuesElement(childElem, parentParseVariables, fullDrawingVariables);
+								SlicingValuesElement? slicingValuesElem = MakeSlicingValuesElement(childElem, parentParseVariables, fullDrawingVariables, markupContext);
 								if (slicingValuesElem != null) {
 									divElement.AddSlicingValues(slicingValuesElem);
 								}
@@ -609,7 +620,7 @@ namespace SharpSheets.Markup.Parsing {
 							LogVisit(childElem);
 						}
 						else if (childElem.Name == "area") {
-							AreaElement? areaElement = MakeAreaElement(childElem, parentParseVariables, fullDrawingVariables);
+							AreaElement? areaElement = MakeAreaElement(childElem, parentParseVariables, fullDrawingVariables, markupContext);
 							if (areaElement != null) {
 								divElement.AddElement(areaElement);
 								LogOrigin(childElem, areaElement);
@@ -617,7 +628,7 @@ namespace SharpSheets.Markup.Parsing {
 							LogVisit(childElem);
 						}
 						else if (childElem.Name == "diagnostic") {
-							DiagnosticElement? diagnosticElement = MakeDiagnosticElement(childElem, parentParseVariables, fullDrawingVariables);
+							DiagnosticElement? diagnosticElement = MakeDiagnosticElement(childElem, parentParseVariables, fullDrawingVariables, markupContext);
 							if (diagnosticElement != null) {
 								divElement.AddElement(diagnosticElement);
 								LogOrigin(childElem, diagnosticElement);
@@ -625,7 +636,7 @@ namespace SharpSheets.Markup.Parsing {
 							LogVisit(childElem);
 						}
 						else if (MarkupParsingConstants.IsRenderedElement(childElem.Name)) {
-							IIdentifiableMarkupElement? part = MakeElement(root, childElem, constructed, new HashSet<XMLElement>() { divElem }, fullDrawingVariables, source);
+							IIdentifiableMarkupElement? part = MakeElement(root, childElem, constructed, new HashSet<XMLElement>() { divElem }, fullDrawingVariables, markupContext, source);
 							if (part is IDrawableElement drawable) {
 								divElement.AddElement(drawable);
 								LogOrigin(childElem, drawable);
@@ -652,32 +663,32 @@ namespace SharpSheets.Markup.Parsing {
 				return divElement;
 			}
 
-			private ChildDivElement MakeChildDivElement(XMLElement divElem, IVariableBox outerContext, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, DirectoryPath source) {
+			private ChildDivElement MakeChildDivElement(XMLElement divElem, IVariableBox outerContext, MarkupEvaluationContext markupContext, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, DirectoryPath source) {
 
-				IVariableBox variables = MarkupEnvironments.DrawingStateVariables.AppendVariables(outerContext);
+				IVariableBox variables = markupContext.DrawingStateVariables().AppendVariables(outerContext);
 
 				// Get setup information for this div element
-				DivSetup setup = GetDivSetup(divElem, variables, out string? id, out MarkupVariable[] divVariables);
+				DivSetup setup = GetDivSetup(divElem, variables, markupContext, out string? id, out MarkupVariable[] divVariables);
 
 				EvaluationNode? href = GetAttribute(divElem, "href", false, s => Evaluation.Parse(s, variables), null);
 				WidgetReferenceExpression? hrefExpr = href is not null ? new WidgetReferenceExpression(href) : null;
 
-				ChildDivElement childDivElement = new ChildDivElement(id, setup, hrefExpr, variables, divVariables);
+				ChildDivElement childDivElement = new ChildDivElement(id, setup, hrefExpr, variables, markupContext, divVariables);
 
 				LogVisit(divElem);
 
 				return childDivElement;
 			}
 
-			private KeyedChildrenDivElement? MakeStyledDivElement(XMLElement root, XMLElement divElem, IVariableBox outerContext, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, DirectoryPath source) {
+			private KeyedChildrenDivElement? MakeStyledDivElement(XMLElement root, XMLElement divElem, IVariableBox outerContext, MarkupEvaluationContext markupContext, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, DirectoryPath source) {
 
 				// Get regex which determines which child elements are valid children
 				Regex namedChildRegex = MarkupParsingConstants.GetReferenceElementChildrenRegex(divElem.Name);
 
-				IVariableBox variables = MarkupEnvironments.DrawingStateVariables.AppendVariables(outerContext);
+				IVariableBox variables = markupContext.DrawingStateVariables().AppendVariables(outerContext);
 
 				// Get setup information for this div element
-				DivSetup setup = GetDivSetup(divElem, variables, out string? id, out MarkupVariable[] divVariables);
+				DivSetup setup = GetDivSetup(divElem, variables, markupContext, out string? id, out MarkupVariable[] divVariables);
 
 				// TODO This is so very hacky. Why can this not be a proper expression?
 				//string? href = GetAttribute(divElem, "href", false, s => (string.IsNullOrWhiteSpace(s) ? null : s), null);
@@ -692,25 +703,25 @@ namespace SharpSheets.Markup.Parsing {
 				if (divElem.Name == "box") {
 					ShapeReferenceExpression<IBox>? hrefExpr = href is not null ? new ShapeReferenceExpression<IBox>(href) : null;
 
-					BoxStyledDivElement boxDivElement = new BoxStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, divVariables);
+					BoxStyledDivElement boxDivElement = new BoxStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, markupContext, divVariables);
 					divElement = boxDivElement;
 				}
 				else if (divElem.Name == "labelledBox") {
 					ShapeReferenceExpression<ILabelledBox>? hrefExpr = href is not null ? new ShapeReferenceExpression<ILabelledBox>(href) : null;
 
-					LabelledBoxStyledDivElement labelledBoxDivElement = new LabelledBoxStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, divVariables);
+					LabelledBoxStyledDivElement labelledBoxDivElement = new LabelledBoxStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, markupContext, divVariables);
 					divElement = labelledBoxDivElement;
 				}
 				else if (divElem.Name == "titledBox") {
 					ShapeReferenceExpression<ITitledBox>? hrefExpr = href is not null ? new ShapeReferenceExpression<ITitledBox>(href) : null;
 
-					TitledBoxStyledDivElement titledBoxDivElement = new TitledBoxStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, divVariables);
+					TitledBoxStyledDivElement titledBoxDivElement = new TitledBoxStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, markupContext, divVariables);
 					divElement = titledBoxDivElement;
 				}
 				else if (divElem.Name == "bar") {
 					ShapeReferenceExpression<IBar>? hrefExpr = href is not null ? new ShapeReferenceExpression<IBar>(href) : null;
 
-					BarStyledDivElement barDivElement = new BarStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, divVariables);
+					BarStyledDivElement barDivElement = new BarStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, markupContext, divVariables);
 					divElement = barDivElement;
 				}
 				else if (divElem.Name == "usageBar") {
@@ -727,13 +738,13 @@ namespace SharpSheets.Markup.Parsing {
 					LabelledUsageBarStyledDivElement usageBarDivElement = new LabelledUsageBarStyledDivElement(
 						id, setup, shapeContext, hrefExpr, titleText,
 						label1, label2, labelDetails, note, noteDetails,
-						variables, divVariables);
+						variables, markupContext, divVariables);
 					divElement = usageBarDivElement;
 				}
 				else if (divElem.Name == "detail") {
 					ShapeReferenceExpression<IDetail>? hrefExpr = href is not null ? new ShapeReferenceExpression<IDetail>(href) : null;
 
-					DetailStyledDivElement detailDivElement = new DetailStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, divVariables);
+					DetailStyledDivElement detailDivElement = new DetailStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, markupContext, divVariables);
 					divElement = detailDivElement;
 				}
 				else {
@@ -743,7 +754,7 @@ namespace SharpSheets.Markup.Parsing {
 
 				foreach (XMLElement childElem in divElem.Elements) {
 					if (namedChildRegex.IsMatch(childElem.Name)) {
-						DivElement child = MakeDivElement(root, childElem, divElement.Variables, constructed, source);
+						DivElement child = MakeDivElement(root, childElem, divElement.Variables, markupContext, constructed, source);
 						if (child != null) {
 							divElement.AddNamedChild(childElem.Name, child);
 							LogOrigin(childElem, child);
@@ -763,33 +774,33 @@ namespace SharpSheets.Markup.Parsing {
 				return divElement;
 			}
 
-			private IIdentifiableMarkupElement? MakeElement(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, ISet<XMLElement> disallowed, IVariableBox initialVariables, DirectoryPath source) {
+			private IIdentifiableMarkupElement? MakeElement(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, ISet<XMLElement> disallowed, IVariableBox initialVariables, MarkupEvaluationContext markupContext, DirectoryPath source) {
 				// TODO Need to deal with errors in this method
 
 				if (constructed.TryGetValue(elem, out IIdentifiableMarkupElement? existing)) { return existing; }
 
 				IIdentifiableMarkupElement? finalElement = null;
 
-				StyleSheet styleSheet = GetStyleSheet(root, elem, constructed, new HashSet<XMLElement>(disallowed) { elem }, initialVariables, source, out IVariableBox variables);
+				StyleSheet styleSheet = GetStyleSheet(root, elem, constructed, new HashSet<XMLElement>(disallowed) { elem }, initialVariables, markupContext, source, out IVariableBox variables);
 				string? id = GetAttribute(elem, "id", false, s => s, null);
 				//string classname = GetAttribute(elem, "class", false, s => s, null);
 
 				if (elem.Name == "line") {
 					finalElement = new Line(
 						id, styleSheet,
-						GetAttribute(elem, "x1", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "y1", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-						GetAttribute(elem, "x2", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "y2", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f));
+						GetAttribute(elem, "x1", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "y1", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "x2", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "y2", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)));
 					AssertLeafNode(elem);
 				}
 				else if (elem.Name == "rect") {
 					finalElement = new Rect(
 						id, styleSheet,
-						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
+						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
 						GetAttribute(elem, "rx", false, s => FloatExpression.Parse(s, variables), null),
 						GetAttribute(elem, "ry", false, s => FloatExpression.Parse(s, variables), null));
 					AssertLeafNode(elem);
@@ -797,18 +808,18 @@ namespace SharpSheets.Markup.Parsing {
 				else if (elem.Name == "circle") {
 					finalElement = new Elements.Circle(
 						id, styleSheet,
-						GetAttribute(elem, "cx", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "cy", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-						GetAttribute(elem, "r", false, s => FloatExpression.Parse(s, variables), 0f));
+						GetAttribute(elem, "cx", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "cy", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "r", false, s => FloatExpression.Parse(s, variables), new FloatExpression(0f, variables.Context)));
 					AssertLeafNode(elem);
 				}
 				else if (elem.Name == "ellipse") {
 					finalElement = new Elements.Ellipse(
 						id, styleSheet,
-						GetAttribute(elem, "cx", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "cy", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-						GetAttribute(elem, "rx", false, s => FloatExpression.Parse(s, variables), 0f),
-						GetAttribute(elem, "ry", false, s => FloatExpression.Parse(s, variables), 0f));
+						GetAttribute(elem, "cx", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "cy", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "rx", false, s => FloatExpression.Parse(s, variables), new FloatExpression(0f, variables.Context)),
+						GetAttribute(elem, "ry", false, s => FloatExpression.Parse(s, variables), new FloatExpression(0f, variables.Context)));
 					AssertLeafNode(elem);
 				}
 				else if (elem.Name == "polyline") {
@@ -843,7 +854,7 @@ namespace SharpSheets.Markup.Parsing {
 					List<IDrawableElement> gElements = new List<IDrawableElement>();
 					foreach (XMLElement gElem in elem.Elements) {
 						try {
-							IIdentifiableMarkupElement? gBoxElem = MakeElement(root, gElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source); // TODO Deal with errors?
+							IIdentifiableMarkupElement? gBoxElem = MakeElement(root, gElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, markupContext, source); // TODO Deal with errors?
 							if (gBoxElem is IDrawableElement gShapeElem) {
 								gElements.Add(gShapeElem);
 								LogOrigin(gElem, gShapeElem);
@@ -867,7 +878,7 @@ namespace SharpSheets.Markup.Parsing {
 					foreach (XMLNode node in elem.Children) {
 						try {
 							if (node is XMLElement textPieceElem && (textPieceElem.Name == "tspan" || textPieceElem.Name == "textPath")) {
-								IIdentifiableMarkupElement? boxElem = MakeElement(root, textPieceElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source); // TODO Deal with errors?
+								IIdentifiableMarkupElement? boxElem = MakeElement(root, textPieceElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, markupContext, source); // TODO Deal with errors?
 								if (boxElem is ITextPiece textPiece) {
 									pieces.Add(textPiece);
 									LogOrigin(textPieceElem, boxElem);
@@ -895,17 +906,17 @@ namespace SharpSheets.Markup.Parsing {
 
 					if (elem.Name == "text") {
 						finalElement = new Elements.Text(id, styleSheet,
-							GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-							GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
+							GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+							GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
 							// Should dx and dy really be lengths?
-							GetAttribute(elem, "dx", false, s => MarkupValueParsing.ParseXLength(s, variables), null),
-							GetAttribute(elem, "dy", false, s => MarkupValueParsing.ParseYLength(s, variables), null),
+							GetAttribute(elem, "dx", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), null),
+							GetAttribute(elem, "dy", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), null),
 							pieces
 							);
 					}
 					else { // elem.Name.LocalName == "textPath"
 						string? pathUrl = GetAttribute(elem, "path", false, s => s, null);
-						IIdentifiableMarkupElement? path = EvaluateURL(root, pathUrl, true, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source);
+						IIdentifiableMarkupElement? path = EvaluateURL(root, pathUrl, true, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, markupContext, source);
 
 						if (!pieces.All(p => p is TSpan)) {
 							LogError(elem, "All child nodes of textPath must be tspan elements."); // Odd way of doing this. Shouldn't the error be on the child?
@@ -914,9 +925,9 @@ namespace SharpSheets.Markup.Parsing {
 						if (path is IShapeElement pathShape) {
 							finalElement = new TextPath(id, styleSheet,
 								pathShape,
-								GetAttribute(elem, "startOffset", false, s => MarkupValueParsing.ParsePercentOrLength(s, variables), Length.Zero),
-								GetAttribute(elem, "side", false, s => MarkupValueParsing.ParseEnum<PathSide>(s, variables), PathSide.LEFT),
-								GetAttribute(elem, "continue", false, s => MarkupValueParsing.ParseEnum<ContinueStyle>(s, variables), ContinueStyle.NONE),
+								GetAttribute(elem, "startOffset", false, s => MarkupValueParsing.ParsePercentOrLength(s, variables), new LengthExpression(Length.Zero, variables.Context)),
+								GetAttribute(elem, "side", false, s => MarkupValueParsing.ParseEnum<PathSide>(s, variables), new EnumExpression<PathSide>(PathSide.LEFT, variables.Context)),
+								GetAttribute(elem, "continue", false, s => MarkupValueParsing.ParseEnum<ContinueStyle>(s, variables), new EnumExpression<ContinueStyle>(ContinueStyle.NONE, variables.Context)),
 								pieces.OfType<TSpan>()
 								);
 						}
@@ -930,7 +941,7 @@ namespace SharpSheets.Markup.Parsing {
 					foreach (XMLNode node in elem.Children) {
 						try {
 							if (node is XMLElement textPieceElem && textPieceElem.Name == "tspan") {
-								IIdentifiableMarkupElement? boxElem = MakeElement(root, textPieceElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source); // TODO Deal with errors?
+								IIdentifiableMarkupElement? boxElem = MakeElement(root, textPieceElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, markupContext, source); // TODO Deal with errors?
 								if (boxElem is TSpan tspan) {
 									tspans.Add(tspan);
 									LogVisit(textPieceElem);
@@ -955,27 +966,27 @@ namespace SharpSheets.Markup.Parsing {
 						}
 					}
 					finalElement = new TextRect(id, styleSheet,
-						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables), MarkupEnvironments.WidthExpression),
-						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables), MarkupEnvironments.HeightExpression),
-						GetAttribute(elem, "fit-text", false, s => BoolExpression.Parse(s, variables), false),
+						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), markupContext.WidthExpression),
+						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), markupContext.HeightExpression),
+						GetAttribute(elem, "fit-text", false, s => BoolExpression.Parse(s, variables), new BoolExpression(false, variables.Context)),
 						GetAttribute(elem, "min-font-size", true, s => FloatExpression.Parse(s, variables), null),
 						GetAttribute(elem, "max-font-size", true, s => FloatExpression.Parse(s, variables), null),
-						GetAttribute(elem, "justification", true, s => MarkupValueParsing.ParseEnum<Justification>(s, variables), Justification.LEFT),
-						GetAttribute(elem, "alignment", true, s => MarkupValueParsing.ParseEnum<SharpSheets.Canvas.Text.Alignment>(s, variables), SharpSheets.Canvas.Text.Alignment.BOTTOM),
-						GetAttribute(elem, "height-strategy", true, s => MarkupValueParsing.ParseEnum<TextHeightStrategy>(s, variables), TextHeightStrategy.LineHeightBaseline),
-						GetAttribute(elem, "line-spacing", true, s => FloatExpression.Parse(s, variables), 1.0f),
-						GetAttribute(elem, "paragraph-spacing", true, s => FloatExpression.Parse(s, variables), 0.0f),
-						GetAttribute(elem, "single-line", false, s => BoolExpression.Parse(s, variables), false),
+						GetAttribute(elem, "justification", true, s => MarkupValueParsing.ParseEnum<Justification>(s, variables), new EnumExpression<Justification>(Justification.LEFT, variables.Context)),
+						GetAttribute(elem, "alignment", true, s => MarkupValueParsing.ParseEnum<SharpSheets.Canvas.Text.Alignment>(s, variables), new EnumExpression<SharpSheets.Canvas.Text.Alignment>(SharpSheets.Canvas.Text.Alignment.BOTTOM, variables.Context)),
+						GetAttribute(elem, "height-strategy", true, s => MarkupValueParsing.ParseEnum<TextHeightStrategy>(s, variables), new EnumExpression<TextHeightStrategy>(TextHeightStrategy.LineHeightBaseline, variables.Context)),
+						GetAttribute(elem, "line-spacing", true, s => FloatExpression.Parse(s, variables), new FloatExpression(1.0f, variables.Context)),
+						GetAttribute(elem, "paragraph-spacing", true, s => FloatExpression.Parse(s, variables), new FloatExpression(0.0f, variables.Context)),
+						GetAttribute(elem, "single-line", false, s => BoolExpression.Parse(s, variables), new BoolExpression(false, variables.Context)),
 						tspans
 						);
 				}
 				else if (elem.Name == "tspan") {
 					//string textContent = string.Join("", GetTextNodes(elem).Select(n => n.Value));
 					finalElement = new TSpan(id, styleSheet,
-						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables), null),
-						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables), null),
+						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), null),
+						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), null),
 						GetAttribute(elem, "dx", false, s => FloatExpression.Parse(s, variables), null),
 						GetAttribute(elem, "dy", false, s => FloatExpression.Parse(s, variables), null),
 						ParseText(GetTextNodes(elem), variables)
@@ -990,12 +1001,12 @@ namespace SharpSheets.Markup.Parsing {
 
 								finalElement = new Image(
 									id, styleSheet,
-									GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-									GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-									GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables), MarkupEnvironments.WidthExpression),
-									GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables), MarkupEnvironments.HeightExpression),
+									GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+									GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+									GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), markupContext.WidthExpression),
+									GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), markupContext.HeightExpression),
 									imagePath.Value,
-									GetAttribute(elem, "preserveAspectRatio", false, s => MarkupValueParsing.ParsePreserveAspectRatio(s, variables), PreserveAspectRatio.Default));
+									GetAttribute(elem, "preserveAspectRatio", false, s => MarkupValueParsing.ParsePreserveAspectRatio(s, variables), new PreserveAspectRatioExpression(PreserveAspectRatio.Default, variables.Context)));
 							}
 							catch (System.IO.FileNotFoundException e) {
 								LogError(imagePath, "Provided filepath not found.", e);
@@ -1014,7 +1025,7 @@ namespace SharpSheets.Markup.Parsing {
 					List<IShapeElement> clipElements = new List<IShapeElement>();
 					foreach (XMLElement clipElem in elem.Elements) {
 						try {
-							IIdentifiableMarkupElement? gBoxElem = MakeElement(root, clipElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source); // TODO Deal with errors?
+							IIdentifiableMarkupElement? gBoxElem = MakeElement(root, clipElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, markupContext, source); // TODO Deal with errors?
 							if (gBoxElem is IShapeElement gShapeElem) {
 								clipElements.Add(gShapeElem);
 							}
@@ -1036,7 +1047,7 @@ namespace SharpSheets.Markup.Parsing {
 					List<IShapeElement> symbolElements = new List<IShapeElement>();
 					foreach (XMLElement symbolElem in elem.Elements) {
 						try {
-							IIdentifiableMarkupElement? gBoxElem = MakeElement(root, symbolElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source); // TODO Deal with errors?
+							IIdentifiableMarkupElement? gBoxElem = MakeElement(root, symbolElem, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, markupContext, source); // TODO Deal with errors?
 							if (gBoxElem is IShapeElement gShapeElem) {
 								symbolElements.Add(gShapeElem);
 							}
@@ -1055,11 +1066,11 @@ namespace SharpSheets.Markup.Parsing {
 					finalElement = new Symbol(
 						id, styleSheet,
 						GetAttribute(elem, "viewBox", false, s => MarkupValueParsing.ParseRectangle(s, variables), null),
-						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-						GetAttribute(elem, "preserveAspectRatio", false, s => MarkupValueParsing.ParsePreserveAspectRatio(s, variables), PreserveAspectRatio.Default),
+						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "preserveAspectRatio", false, s => MarkupValueParsing.ParsePreserveAspectRatio(s, variables), new PreserveAspectRatioExpression(PreserveAspectRatio.Default, variables.Context)),
 						symbolElements);
 				}
 				else if (elem.Name == "use") {
@@ -1094,13 +1105,13 @@ namespace SharpSheets.Markup.Parsing {
 
 							XMLElement cloned = referenced.Clone(elem, replacementAttributes);
 
-							IIdentifiableMarkupElement? clonedElement = MakeElement(root, cloned, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, source);
+							IIdentifiableMarkupElement? clonedElement = MakeElement(root, cloned, constructed, new HashSet<XMLElement>(disallowed) { elem }, variables, markupContext, source);
 
 							if (clonedElement is IDrawableElement drawableHref) {
 								TransformExpression translation = TransformExpression.Translate(
-									GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-									GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f));
-								TransformExpression finalTransform = translation * (styleSheet.Transform ?? TransformExpression.Identity());
+									GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+									GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)));
+								TransformExpression finalTransform = translation * (styleSheet.Transform ?? TransformExpression.Identity(variables.Context));
 
 								StyleSheet finalStyleSheet = styleSheet.Update(transform: finalTransform);
 
@@ -1119,42 +1130,42 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				else if (elem.Name == "textField") {
 					finalElement = new TextField(id, styleSheet,
-						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables), MarkupEnvironments.WidthExpression),
-						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables), MarkupEnvironments.HeightExpression),
-						GetAttribute<IExpression<string>>(elem, "name", false, s => Interpolation.Parse(s, variables, false), new StringExpression("NAME")),
+						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), markupContext.WidthExpression),
+						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), markupContext.HeightExpression),
+						GetAttribute<IExpression<string>>(elem, "name", false, s => Interpolation.Parse(s, variables, false), new StringExpression("NAME", variables.Context)),
 						GetAttribute(elem, "tooltip", false, s => Interpolation.Parse(s, variables, false), null),
-						GetAttribute(elem, "field-type", false, s => MarkupValueParsing.ParseEnum<TextFieldType>(s, variables), TextFieldType.STRING),
+						GetAttribute(elem, "field-type", false, s => MarkupValueParsing.ParseEnum<TextFieldType>(s, variables), new EnumExpression<TextFieldType>(TextFieldType.STRING, variables.Context)),
 						GetAttribute(elem, "value", false, s => Interpolation.Parse(s, variables, false), null),
-						GetAttribute(elem, "multiline", false, s => BoolExpression.Parse(s, variables), false),
-						GetAttribute(elem, "rich", false, s => BoolExpression.Parse(s, variables), false),
-						GetAttribute(elem, "justification", false, s => MarkupValueParsing.ParseEnum<Justification>(s, variables), Justification.LEFT),
-						GetAttribute(elem, "max-len", false, s => IntExpression.Parse(s, variables), -1)
+						GetAttribute(elem, "multiline", false, s => BoolExpression.Parse(s, variables), new BoolExpression(false, variables.Context)),
+						GetAttribute(elem, "rich", false, s => BoolExpression.Parse(s, variables), new BoolExpression(false, variables.Context)),
+						GetAttribute(elem, "justification", false, s => MarkupValueParsing.ParseEnum<Justification>(s, variables), new EnumExpression<Justification>(Justification.LEFT, variables.Context)),
+						GetAttribute(elem, "max-len", false, s => IntExpression.Parse(s, variables), new IntExpression(-1, variables.Context))
 						);
 					AssertLeafNode(elem, true); // TODO Shouldn't we do something with text nodes here?
 				}
 				else if (elem.Name == "checkField") {
 					// TODO There should be some way of specifying whether the field should be checked by default
 					finalElement = new CheckField(id, styleSheet,
-						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables), MarkupEnvironments.WidthExpression),
-						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables), MarkupEnvironments.HeightExpression),
-						GetAttribute<IExpression<string>>(elem, "name", false, s => Interpolation.Parse(s, variables, false), new StringExpression("NAME")),
+						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), markupContext.WidthExpression),
+						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), markupContext.HeightExpression),
+						GetAttribute<IExpression<string>>(elem, "name", false, s => Interpolation.Parse(s, variables, false), new StringExpression("NAME", variables.Context)),
 						GetAttribute(elem, "tooltip", false, s => Interpolation.Parse(s, variables, false), null),
-						GetAttribute(elem, "check-type", false, s => MarkupValueParsing.ParseEnum<CheckType>(s, variables), CheckType.CROSS)
+						GetAttribute(elem, "check-type", false, s => MarkupValueParsing.ParseEnum<CheckType>(s, variables), new EnumExpression<CheckType>(CheckType.CROSS, variables.Context))
 						);
 					AssertLeafNode(elem);
 				}
 				else if (elem.Name == "imageField") {
 					// TODO Default image?
 					finalElement = new ImageField(id, styleSheet,
-						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables), MarkupEnvironments.WidthExpression),
-						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables), MarkupEnvironments.HeightExpression),
-						GetAttribute<IExpression<string>>(elem, "name", false, s => Interpolation.Parse(s, variables, false), new StringExpression("NAME")),
+						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), markupContext.WidthExpression),
+						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), markupContext.HeightExpression),
+						GetAttribute<IExpression<string>>(elem, "name", false, s => Interpolation.Parse(s, variables, false), new StringExpression("NAME", variables.Context)),
 						GetAttribute(elem, "tooltip", false, s => Interpolation.Parse(s, variables, false), null)
 						);
 					AssertLeafNode(elem);
@@ -1169,10 +1180,10 @@ namespace SharpSheets.Markup.Parsing {
 				return finalElement;
 			}
 
-			private static readonly SolidPaint defaultFillPaint = new SolidPaint(null, MarkupEnvironments.BackgroundExpression);
-			private static readonly SolidPaint defaultTextPaint = new SolidPaint(null, MarkupEnvironments.TextColorExpression);
+			//private static readonly SolidPaint defaultFillPaint = new SolidPaint(null, variables.MarkupContext.BackgroundExpression);
+			//private static readonly SolidPaint defaultTextPaint = new SolidPaint(null, variables.MarkupContext.TextColorExpression);
 
-			private StyleSheet GetStyleSheet(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, ISet<XMLElement> disallowed, IVariableBox initialVariables, DirectoryPath source, out IVariableBox finalVariables) {
+			private StyleSheet GetStyleSheet(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, ISet<XMLElement> disallowed, IVariableBox initialVariables, MarkupEvaluationContext markupContext, DirectoryPath source, out IVariableBox finalVariables) {
 
 				// Get foreach expression for this div, using outer context variables
 				ForEachExpression? forEach = GetAttribute(elem, "for-each", false, s => ForEachExpression.Parse(s, initialVariables), null);
@@ -1180,23 +1191,23 @@ namespace SharpSheets.Markup.Parsing {
 				IVariableBox variables;
 				if (forEach != null) {
 					// If for-each provided, add it's variable to the collection used for parsing
-					variables = initialVariables.AppendVariables(SimpleVariableBoxes.Single(forEach.Variable));
+					variables = initialVariables.AppendVariables(forEach.Variable);
 				}
 				else {
 					variables = initialVariables;
 				}
 
 				StyleSheet styleSheet = new StyleSheet(
-					_clip_path: GetClipPath(root, elem, constructed, disallowed, variables, source),
+					_clip_path: GetClipPath(root, elem, constructed, disallowed, variables, markupContext, source),
 					clip_rule: GetAttribute(elem, "clip-rule", true, s => MarkupValueParsing.ParseEnum<AreaRule>(s, variables), null),
 					//Color = GetAttribute(elem, "color", true, s => MarkupValueParsing.ParseColor(s, variables), null),
 					//Fill = GetAttribute(elem, "fill", true, s => GetPaint(root, s, variables), new SolidPaint(Color.Black)),
-					fill: GetPaint(root, elem, "fill", true, disallowed, variables, defaultFillPaint), // elem.GetAttribute("fill", true) is ContextProperty<string> fillAttr ? GetPaint(root, fillAttr, variables) : new SolidPaint(Color.Black),
+					fill: GetPaint(root, elem, "fill", true, disallowed, variables, markupContext, new SolidPaint(null, markupContext.BackgroundExpression)), // elem.GetAttribute("fill", true) is ContextProperty<string> fillAttr ? GetPaint(root, fillAttr, variables) : new SolidPaint(Color.Black),
 					fill_opacity: GetAttribute(elem, "fill-opacity", true, s => FloatExpression.Parse(s, variables), null),
 					fill_rule: GetAttribute(elem, "fill-rule", true, s => MarkupValueParsing.ParseEnum<AreaRule>(s, variables), null),
 					//FontFamily = null, // TODO How to get this?
 					font_size: GetAttribute(elem, "font-size", true, s => FloatExpression.Parse(s, variables), null), // TODO Special parsing? (e.g. em?)
-					font_style: GetAttribute(elem, "font-style", true, s => MarkupValueParsing.ParseEnum<TextFormat>(s, variables), TextFormat.REGULAR),
+					font_style: GetAttribute(elem, "font-style", true, s => MarkupValueParsing.ParseEnum<TextFormat>(s, variables), new EnumExpression<TextFormat>(TextFormat.REGULAR, variables.Context)),
 					//MarkerEnd = null,
 					//MarkerMid = null,
 					//MarkerStart = null,
@@ -1204,7 +1215,7 @@ namespace SharpSheets.Markup.Parsing {
 					//Overflow = GetAttribute(elem, "overflow", false, s => MarkupValueParsing.ParseEnum<Overflow>(s, variables), null),
 					//StopColor = GetAttribute(elem, "stop-color", false, s => ParseColor(s), null), // Not inherited
 					//StopOpacity = GetAttribute(elem, "stop-opacity", false, s => FloatExpression.Parse(s, variables), null), // Not inherited
-					stroke: GetPaint(root, elem, "stroke", true, disallowed, variables, null), // GetAttribute(elem, "stroke", true, s => MarkupValueParsing.ParseColor(s, variables), null),
+					stroke: GetPaint(root, elem, "stroke", true, disallowed, variables, markupContext, null), // GetAttribute(elem, "stroke", true, s => MarkupValueParsing.ParseColor(s, variables), null),
 					stroke_dasharray: GetAttribute(elem, "stroke-dasharray", true, s => MarkupValueParsing.ParseSVGNumbers(s, variables), null),
 					stroke_dashoffset: GetAttribute(elem, "stroke-dashoffset", true, s => FloatExpression.Parse(s, variables), null),
 					stroke_linecap: GetAttribute(elem, "stroke-linecap", true, s => MarkupValueParsing.ParseEnum<LineCapStyle>(s, variables), null), // Default: CanvasConstants.LineCapStyle.BUTT
@@ -1212,12 +1223,12 @@ namespace SharpSheets.Markup.Parsing {
 					stroke_miterlimit: GetAttribute(elem, "stroke-miterlimit", true, s => FloatExpression.Parse(s, variables), null),
 					stroke_opacity: GetAttribute(elem, "stroke-opacity", true, s => FloatExpression.Parse(s, variables), null),
 					stroke_width: GetAttribute(elem, "stroke-width", true, s => FloatExpression.Parse(s, variables), null),
-					text_anchor: GetAttribute(elem, "text-anchor", true, s => MarkupValueParsing.ParseEnum<TextAnchor>(s, variables), TextAnchor.Start),
+					text_anchor: GetAttribute(elem, "text-anchor", true, s => MarkupValueParsing.ParseEnum<TextAnchor>(s, variables), new EnumExpression<TextAnchor>(TextAnchor.Start, variables.Context)),
 					//TextBaseline = GetAttribute(elem, "text-baseline", true, s => MarkupValueParsing.ParseEnum<TextBaseline>(s, variables), TextBaseline.Bottom),
-					text_color: GetAttribute(elem, "text-color", true, s => MarkupValueParsing.ParseColor(s, variables), MarkupEnvironments.TextColorExpression),
+					text_color: GetAttribute(elem, "text-color", true, s => MarkupValueParsing.ParseColor(s, variables), markupContext.TextColorExpression),
 					_transform: GetAttribute(elem, "transform", false, s => MarkupValueParsing.ParseTransform(s, variables), null),
 					drawing_coords: GetAttribute(elem, "coords", true, s => MarkupValueParsing.ParseEnum<DrawingCoords>(s, variables), null),
-					_enabled: GetAttribute(elem, "enabled", false, s => BoolExpression.Parse(s, variables), true),
+					_enabled: GetAttribute(elem, "enabled", false, s => BoolExpression.Parse(s, variables), new BoolExpression(true, variables.Context)),
 					_for_each: forEach
 				);
 
@@ -1230,7 +1241,7 @@ namespace SharpSheets.Markup.Parsing {
 			#region IMarkupVariable
 
 			//private static readonly Regex variableRegex = new Regex(@"[a-z][a-z0-9]*", RegexOptions.IgnoreCase);
-			private bool ValidateVariableName(XMLElement element, bool isArg, out ContextProperty<EvaluationName> nameAttribute, out ContextProperty<EvaluationName>? variableNameAttribute) {
+			private bool ValidateVariableName(XMLElement element, IVariableBox variables, bool isArg, out ContextProperty<EvaluationName> nameAttribute, out ContextProperty<EvaluationName>? variableNameAttribute) {
 				string varType = isArg ? "argument" : "variable";
 
 				bool success = false;
@@ -1258,7 +1269,7 @@ namespace SharpSheets.Markup.Parsing {
 					string varName = varNameAttr.Value.Value;
 					if (EvaluationName.IsValid(varName)) {
 						EvaluationName evalVarName = new EvaluationName(varName);
-						if (!MarkupEnvironments.DrawingStateVariables.IsVariable(evalVarName)) {
+						if (!variables.IsVariable(evalVarName)) { //if (!MarkupEnvironments.DrawingStateVariables.IsVariable(evalVarName)) {
 							variableNameAttribute = MakeProperty(varNameAttr.Value, evalVarName);
 						}
 						else {
@@ -1283,17 +1294,75 @@ namespace SharpSheets.Markup.Parsing {
 				return null;
 			}
 
-			private IMarkupArgument? MakeArgument(XMLElement elem, out ContextProperty<EvaluationName> nameAttribute, out ContextProperty<EvaluationName>? varNameAttribute) {
+			private IEnumerable<EvaluationType> CollectArgumentTypes(XMLElement elem, EvaluationContext.Builder contextBuilder) {
+				if (elem.Name != "arg" && elem.Name != "grouparg") {
+					throw new InvalidOperationException("Invalid argument element tag."); // This should never happen
+				}
+
+				List<EvaluationType> collected = new List<EvaluationType>();
+
+				if (elem.Name == "arg" && GetAttribute(elem, "type", false) is ContextProperty<string> typeProp) {
+					List<XMLElement> options = new List<XMLElement>();
+					foreach (XMLElement opt in elem.FindElements("option")) {
+						if (RequiredAttribute(opt, "name", false, s => s, out ContextProperty<string> optNameAttr)) {
+							GetAttribute(opt, "desc", false);
+							options.Add(opt);
+						}
+						LogVisit(opt);
+					}
+
+					if (options.Count > 0) {
+						if (contextBuilder.IsDefined(typeProp.Value)) {
+							LogError(typeProp, "Cannot name a custom enum after an existing type.");
+							return collected; // Exit early
+						}
+
+						string? description = GetAttribute(elem, "desc", false, s => s, null);
+
+						Type customEnumType = MakeCustomEnumType(typeProp.Value, description, options.ToArray());
+
+						EnumEvaluationType evalType = contextBuilder.SetType(customEnumType, ctx => EnumEvaluationType.FromSystemType(ctx, customEnumType));
+
+						collected.Add(evalType);
+					}
+				}
+				else { // elem.Name == "grouparg"
+					foreach (XMLElement child in elem.Elements.Where(e => e.Name == "arg" || e.Name == "grouparg")) {
+						foreach (EvaluationType childType in CollectArgumentTypes(child, contextBuilder)) {
+							collected.Add(childType);
+						}
+
+						//LogVisit(child);
+					}
+				}
+
+				return collected;
+			}
+
+			private static MarkupEnumType MakeCustomEnumType(string typeName, string? description, XMLElement[] options) {
+				EnumValDoc[] enumVals = options.Select(opt => {
+					string? valName = opt.GetAttribute1("name", false)?.Value;
+					if (valName is null) { return null; }
+					string? valDoc = opt.GetAttribute1("desc", false)?.Value;
+					return new EnumValDoc(typeName, valName, !string.IsNullOrWhiteSpace(valDoc) ? new DocumentationString(valDoc) : null);
+				}).WhereNotNull().ToArray();
+
+				return new MarkupEnumType(typeName, description, enumVals);
+			}
+
+			private IMarkupArgument? MakeArgument(XMLElement elem, MarkupEvaluationContext context, out ContextProperty<EvaluationName> nameAttribute, out ContextProperty<EvaluationName>? varNameAttribute) {
 				if(elem.Name != "arg" && elem.Name != "grouparg") {
 					throw new InvalidOperationException("Invalid argument element tag."); // This should never happen
 				}
 
-				if(ValidateVariableName(elem, true, out nameAttribute, out varNameAttribute)) {
+				IVariableBox argExistingVariables = context.DrawingStateVariables();
+
+				if (ValidateVariableName(elem, argExistingVariables, true, out nameAttribute, out varNameAttribute)) {
 					if (elem.Name == "arg") {
-						return MakeSingleArgument(elem, nameAttribute, varNameAttribute, true);
+						return MakeSingleArgument(elem, context, nameAttribute, varNameAttribute, true);
 					}
 					else { // elem.Name == "grouparg"
-						return MakeGroupArgument(elem, nameAttribute, varNameAttribute);
+						return MakeGroupArgument(elem, context, nameAttribute, varNameAttribute);
 					}
 				}
 
@@ -1303,35 +1372,26 @@ namespace SharpSheets.Markup.Parsing {
 
 			private static IVariableBox MakeValidateVariables(ContextProperty<EvaluationName> name, ContextProperty<EvaluationName>? variableName, EvaluationType type) {
 				return VariableBoxes.Concat(
-					SimpleVariableBoxes.Single(
+					VariableBoxes.Single(
 						new EnvironmentVariableInfo(variableName?.Value ?? name.Value, type, null)
-						),
-					BasisEnvironment.Instance
+						, type.Context),
+					BasisEnvironment.MakeInstance(MarkupEvaluationTypes.BaseContext)
 					);
 			}
 			private static IEnvironment MakeValidateEnvironment(ContextProperty<EvaluationName> name, ContextProperty<EvaluationName>? variableName, EvaluationType type, object? exampleValue) {
 				return Environments.Concat(
-					SimpleEnvironments.Single(
+					Environments.Single(
 						new EnvironmentVariableInfo((variableName ?? name).Value.ToString(), type, null),
-						exampleValue
+						new EvaluationValue(exampleValue, type)
 						),
-					BasisEnvironment.Instance
+					BasisEnvironment.MakeInstance(MarkupEvaluationTypes.BaseContext)
 					);
 			}
 
-			private MarkupSingleArgument? MakeSingleArgument(XMLElement elem, ContextProperty<EvaluationName> name, ContextProperty<EvaluationName>? variableName, bool allowEntries) {
-
-				List<XMLElement> options = new List<XMLElement>();
-				foreach(XMLElement opt in elem.FindElements("option")) {
-					if(RequiredAttribute(opt, "name", false, s=>s, out ContextProperty<string> optNameAttr)) {
-						GetAttribute(opt, "desc", false);
-						options.Add(opt);
-					}
-					LogVisit(opt);
-				}
+			private MarkupSingleArgument? MakeSingleArgument(XMLElement elem, MarkupEvaluationContext context, ContextProperty<EvaluationName> name, ContextProperty<EvaluationName>? variableName, bool allowEntries) {
 
 				string? description = GetAttribute(elem, "desc", false, s => s, null);
-				if (RequiredAttribute(elem, "type", false, s => MarkupEvaluationTypes.ParseArgumentType(s, description, options.ToArray()), out ContextProperty<EvaluationType> typeAttr)) {
+				if (RequiredAttribute(elem, "type", false, s => MarkupEvaluationTypes.ParseArgumentType(s, description, context.TypeSystem), out ContextProperty<EvaluationType> typeAttr)) {
 					EvaluationType type = typeAttr.Value;
 					object? defaultValue = GetAttribute(elem, "default", false, s => EvaluateArgDefault(s, type), null);
 					bool isOptional = GetAttribute(elem, "optional", false, s => MarkupValueParsing.ParseConcreteBool(s), false) || elem.HasAttribute("default", false);
@@ -1368,7 +1428,7 @@ namespace SharpSheets.Markup.Parsing {
 						}
 					}
 
-					if((format == MarkupArgumentFormat.ENTRIES || format == MarkupArgumentFormat.NUMBERED) && !type.IsArray) {
+					if((format == MarkupArgumentFormat.ENTRIES || format == MarkupArgumentFormat.NUMBERED) && !(type is ArrayEvaluationType)) { // TODO Is this check right?
 						if (GetAttribute(elem, "format", false) is ContextProperty<string> attr) {
 							if (format == MarkupArgumentFormat.ENTRIES) {
 								LogError(attr, $"Values taken from context entries must be parsed into a variable length array, not {type.Name}.");
@@ -1399,7 +1459,7 @@ namespace SharpSheets.Markup.Parsing {
 				}
 			}
 
-			private MarkupGroupArgument? MakeGroupArgument(XMLElement elem, ContextProperty<EvaluationName> groupname, ContextProperty<EvaluationName>? variableName) {
+			private MarkupGroupArgument? MakeGroupArgument(XMLElement elem, MarkupEvaluationContext context, ContextProperty<EvaluationName> groupname, ContextProperty<EvaluationName>? variableName) {
 
 				string? description = GetAttribute(elem, "desc", false, s => s, null);
 
@@ -1408,28 +1468,17 @@ namespace SharpSheets.Markup.Parsing {
 				HashSet<EvaluationName> varNames = new HashSet<EvaluationName>();
 
 				foreach (XMLElement child in elem.Elements.Where(e => e.Name == "arg" || e.Name == "grouparg")) {
-
-					if (ValidateVariableName(child, true, out ContextProperty<EvaluationName> argName, out ContextProperty<EvaluationName>? argVarName)) {
-						IMarkupArgument? childArg;
-						if (child.Name == "grouparg") {
-							childArg = MakeGroupArgument(child, argName, argVarName);
+					if (MakeArgument(child, context, out ContextProperty<EvaluationName> argName, out ContextProperty<EvaluationName>? argVarName) is IMarkupArgument childArg) {
+						if (argNames.Contains(childArg.ArgumentName)) {
+							LogError(argName, "An argument with this name already exists in this grouping.");
 						}
-						else { // child.Name == "arg"
-							childArg = MakeSingleArgument(child, argName, argVarName, false);
+						else if (varNames.Contains(childArg.VariableName)) {
+							LogError(argName, "An argument with this variable name already exists in this grouping.");
 						}
-
-						if (childArg is not null) {
-							if (argNames.Contains(childArg.ArgumentName)) {
-								LogError(argName, "An argument with this name already exists in this grouping.");
-							}
-							else if (varNames.Contains(childArg.VariableName)) {
-								LogError(argName, "An argument with this variable name already exists in this grouping.");
-							}
-							else {
-								args.Add(childArg);
-								argNames.Add(childArg.ArgumentName);
-								varNames.Add(childArg.VariableName);
-							}
+						else {
+							args.Add(childArg);
+							argNames.Add(childArg.ArgumentName);
+							varNames.Add(childArg.VariableName);
 						}
 					}
 
@@ -1441,7 +1490,12 @@ namespace SharpSheets.Markup.Parsing {
 					return null;
 				}
 
-				return new MarkupGroupArgument(groupname.Value, variableName?.Value, description, args);
+				EvaluationType groupArgType = MarkupEvaluationTypes.MakeGroupType(
+					(variableName ?? groupname).Value.ToString(),
+					args,
+					context.TypeSystem);
+
+				return new MarkupGroupArgument(groupname.Value, groupArgType, variableName?.Value, description, args);
 			}
 
 			private object? EvaluateArgDefault(string text, EvaluationType argType) {
@@ -1451,7 +1505,7 @@ namespace SharpSheets.Markup.Parsing {
 				else if (typeof(IShape).IsAssignableFrom(argType.DataType)) {
 					return shapeFactory.MakeExample(argType.DataType, text, source, out _);
 				}
-				else if(argType.ElementType is EvaluationType elementType && typeof(IShape).IsAssignableFrom(elementType.DataType)) {
+				else if(argType.IterationResult() is EvaluationType elementType && typeof(IShape).IsAssignableFrom(elementType.DataType)) {
 					if(ValueParsing.Parse<string[]>(text, source) is string[] parts) {
 						return parts.Select(p=> shapeFactory.MakeExample(elementType.DataType, p, source, out _)).ToArray();
 					}
@@ -1460,18 +1514,20 @@ namespace SharpSheets.Markup.Parsing {
 					}
 				}
 				else {
-					return MarkupArgumentParsing.ParseValue(text, argType, source);
+					return MarkupArgumentParsing.ParseValue(text, argType, source).Value;
 				}
 			}
 
 			private class XElementVariables : IVariableBox {
 
-				public static MarkupVariable[] GetMarkupVariables(ParsedPatternDocument document, XMLElement elem, IVariableBox outerContext) {
+				public static MarkupVariable[] GetMarkupVariables(ParsedPatternDocument document, XMLElement elem, IVariableBox outerContext, MarkupEvaluationContext markupContext) {
 
 					Dictionary<EvaluationName, XMLElement> validElements = new Dictionary<EvaluationName, XMLElement>();
 
+					IVariableBox validationExistingVariables = markupContext.DrawingStateVariables();
+
 					foreach (XMLElement varElem in GetVariableElements(elem, VariableType.VARIABLE, true)) {
-						if(document.ValidateVariableName(varElem, false, out ContextProperty<EvaluationName> nameAttr, out _)) {
+						if(document.ValidateVariableName(varElem, validationExistingVariables, false, out ContextProperty<EvaluationName> nameAttr, out _)) {
 							if (validElements.ContainsKey(nameAttr.Value) || outerContext.IsVariable(nameAttr.Value)) {
 								document.LogError(varElem, "There already exists a variable with this name.");
 							}
@@ -1482,7 +1538,7 @@ namespace SharpSheets.Markup.Parsing {
 						}
 					}
 
-					XElementVariables elementVariables = new XElementVariables(document, validElements, outerContext);
+					XElementVariables elementVariables = new XElementVariables(document, validElements, outerContext, markupContext);
 					foreach(KeyValuePair<EvaluationName, XMLElement> validElem in validElements) {
 						try {
 							elementVariables.GetVariable(validElem.Key, out _);
@@ -1504,10 +1560,11 @@ namespace SharpSheets.Markup.Parsing {
 				private readonly Dictionary<EvaluationName, MarkupVariable> alreadyChecked;
 
 				public bool IsEmpty => variableElements.Count == 0 && existing.IsEmpty;
+				public EvaluationContext Context => existing.Context;
 
-				private XElementVariables(ParsedPatternDocument document, Dictionary<EvaluationName, XMLElement> variableElements, IVariableBox existing) {
+				private XElementVariables(ParsedPatternDocument document, Dictionary<EvaluationName, XMLElement> variableElements, IVariableBox existing, MarkupEvaluationContext markupContext) {
 					this.document = document;
-					this.existing = existing.AppendVariables(MarkupEnvironments.DrawingStateVariables);
+					this.existing = existing.AppendVariables(markupContext.DrawingStateVariables());
 					this.variableElements = variableElements;
 					this.checking = new HashSet<EvaluationName>();
 					alreadyChecked = new Dictionary<EvaluationName, MarkupVariable>();
@@ -1608,11 +1665,11 @@ namespace SharpSheets.Markup.Parsing {
 
 			#region SVG Elements
 
-			private ClipPath? GetClipPath(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, ISet<XMLElement> disallowed, IVariableBox variables, DirectoryPath source) {
+			private ClipPath? GetClipPath(XMLElement root, XMLElement elem, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, ISet<XMLElement> disallowed, IVariableBox variables, MarkupEvaluationContext markupContext, DirectoryPath source) {
 				ClipPath? clipPath = null;
 
 				if (GetAttribute(elem, "clip-path", false) is ContextProperty<string> clipPathAttr) {
-					if (EvaluateURL(root, clipPathAttr.Value, false, constructed, disallowed, variables, source) is IIdentifiableMarkupElement identified) {
+					if (EvaluateURL(root, clipPathAttr.Value, false, constructed, disallowed, variables, markupContext, source) is IIdentifiableMarkupElement identified) {
 						if (identified is ClipPath identifiedClipPath) {
 							clipPath = identifiedClipPath;
 						}
@@ -1632,7 +1689,7 @@ namespace SharpSheets.Markup.Parsing {
 				return clipPath;
 			}
 
-			private ICanvasPaint? GetPaint(XMLElement root, XMLElement element, string name, bool inheritable, ISet<XMLElement> disallowed, IVariableBox variables, ICanvasPaint? defaultPaint) {
+			private ICanvasPaint? GetPaint(XMLElement root, XMLElement element, string name, bool inheritable, ISet<XMLElement> disallowed, IVariableBox variables, MarkupEvaluationContext markupContext, ICanvasPaint? defaultPaint) {
 
 				if (GetAttribute(element, name, inheritable) is ContextProperty<string> paintAttr) {
 					if (EvalualteURLElement(root, paintAttr.Value, disallowed) is XMLElement elem) {
@@ -1653,30 +1710,30 @@ namespace SharpSheets.Markup.Parsing {
 								List<ColorStopExpression> stops = new List<ColorStopExpression>();
 								foreach (XMLElement stop in elem.FindElements("stop")) {
 									stops.Add(new ColorStopExpression(
-										GetAttribute(stop, "offset", false, s => MarkupValueParsing.ParsePercentage(s, variables), 0f),
-										GetAttribute(stop, "stop-color", false, s => MarkupValueParsing.ParseColor(s, variables), Color.Black)));
+										GetAttribute(stop, "offset", false, s => MarkupValueParsing.ParsePercentage(s, variables), new FloatExpression(0f, variables.Context)),
+										GetAttribute(stop, "stop-color", false, s => MarkupValueParsing.ParseColor(s, variables), new ColorExpression(Color.Black, variables.Context))));
 									LogVisit(stop);
 								}
 
 								if (elem.Name == "linearGradient") {
 									LogVisit(elem);
 									return new LinearGradient(id,
-										GetAttribute(elem, "x1", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-										GetAttribute(elem, "y1", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-										GetAttribute(elem, "x2", false, s => MarkupValueParsing.ParseXLength(s, variables), MarkupEnvironments.WidthExpression),
-										GetAttribute(elem, "y2", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
+										GetAttribute(elem, "x1", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+										GetAttribute(elem, "y1", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+										GetAttribute(elem, "x2", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), markupContext.WidthExpression),
+										GetAttribute(elem, "y2", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
 										stops.ToArray()
 										);
 								}
 								else if (elem.Name == "radialGradient") {
 									LogVisit(elem);
 									return new RadialGradient(id,
-										GetAttribute(elem, "cx", false, s => MarkupValueParsing.ParseXLength(s, variables), MarkupEnvironments.CentreXExpression),
-										GetAttribute(elem, "cy", false, s => MarkupValueParsing.ParseYLength(s, variables), MarkupEnvironments.CentreYExpression),
-										GetAttribute(elem, "r", false, s => MarkupValueParsing.ParseBoundingBoxLength(s, variables), new BoundingBoxLengthExpression(0.5f * MarkupEnvironments.BoundingBoxLengthNode)),
-										GetAttribute(elem, "fx", false, s => MarkupValueParsing.ParseXLength(s, variables), MarkupEnvironments.CentreXExpression),
-										GetAttribute(elem, "fy", false, s => MarkupValueParsing.ParseYLength(s, variables), MarkupEnvironments.CentreYExpression),
-										GetAttribute(elem, "fr", false, s => MarkupValueParsing.ParseBoundingBoxLength(s, variables), new BoundingBoxLengthExpression(0.0f)),
+										GetAttribute(elem, "cx", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), markupContext.CentreXExpression),
+										GetAttribute(elem, "cy", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), markupContext.CentreYExpression),
+										GetAttribute(elem, "r", false, s => MarkupValueParsing.ParseBoundingBoxLength(s, variables, markupContext), new BoundingBoxLengthExpression(variables.Context.MakeValue<FloatEvaluationType>(0.5f) * markupContext.BoundingBoxLengthNode)),
+										GetAttribute(elem, "fx", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), markupContext.CentreXExpression),
+										GetAttribute(elem, "fy", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), markupContext.CentreYExpression),
+										GetAttribute(elem, "fr", false, s => MarkupValueParsing.ParseBoundingBoxLength(s, variables, markupContext), new BoundingBoxLengthExpression(0.0f, variables.Context)),
 										stops.ToArray()
 										);
 								}
@@ -1721,7 +1778,7 @@ namespace SharpSheets.Markup.Parsing {
 				return null;
 			}
 
-			private IIdentifiableMarkupElement? EvaluateURL(XMLElement root, string? url, bool forceCopy, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, ISet<XMLElement> disallowed, IVariableBox variables, DirectoryPath source) {
+			private IIdentifiableMarkupElement? EvaluateURL(XMLElement root, string? url, bool forceCopy, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, ISet<XMLElement> disallowed, IVariableBox variables, MarkupEvaluationContext markupContext, DirectoryPath source) {
 
 				XMLElement? elem = EvalualteURLElement(root, url, disallowed);
 
@@ -1729,7 +1786,7 @@ namespace SharpSheets.Markup.Parsing {
 					return existing;
 				}
 				else if (elem != null) {
-					IIdentifiableMarkupElement? result = MakeElement(root, elem, constructed, disallowed, variables, source);
+					IIdentifiableMarkupElement? result = MakeElement(root, elem, constructed, disallowed, variables, markupContext, source);
 					LogVisit(elem);
 					return result;
 				}
@@ -1745,22 +1802,22 @@ namespace SharpSheets.Markup.Parsing {
 
 			/// <summary></summary>
 			/// <exception cref="EvaluationException"></exception>
-			private DrawPointExpression GetDrawPoint(XMLElement elem, string x, string y, IVariableBox variables, DrawPointExpression defaultValue) {
+			private DrawPointExpression GetDrawPoint(XMLElement elem, string x, string y, IVariableBox variables, MarkupEvaluationContext markupContext, DrawPointExpression defaultValue) {
 				return new DrawPointExpression(
-					GetAttribute(elem, x, false, s => MarkupValueParsing.ParseXLength(s, variables), defaultValue.X),
-					GetAttribute(elem, y, false, s => MarkupValueParsing.ParseYLength(s, variables), defaultValue.Y)
+					GetAttribute(elem, x, false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), defaultValue.X),
+					GetAttribute(elem, y, false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), defaultValue.Y)
 					);
 			}
 
 			/// <summary></summary>
 			/// <exception cref="EvaluationException"></exception>
-			private RectangleExpression? GetRectangle(XMLElement elem, bool allowNull, IVariableBox variables) {
+			private RectangleExpression? GetRectangle(XMLElement elem, bool allowNull, IVariableBox variables, MarkupEvaluationContext markupContext) {
 				if (!allowNull || elem.HasAttribute("x", false) || elem.HasAttribute("y", false) || elem.HasAttribute("width", false) || elem.HasAttribute("height", false)) {
 					return new RectangleExpression(
-						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables), 0f),
-						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables), 0f),
-						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables), MarkupEnvironments.WidthExpression),
-						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables), MarkupEnvironments.HeightExpression)
+						GetAttribute(elem, "x", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), new XLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "y", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), new YLengthExpression(0f, variables.Context)),
+						GetAttribute(elem, "width", false, s => MarkupValueParsing.ParseXLength(s, variables, markupContext), markupContext.WidthExpression),
+						GetAttribute(elem, "height", false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), markupContext.HeightExpression)
 						);
 				}
 				else {
@@ -1779,7 +1836,7 @@ namespace SharpSheets.Markup.Parsing {
 			private TextExpression ParseText(IEnumerable<XMLText> textNodes, IVariableBox variables) {
 				// TODO This needs improving and interfacing with MarkupValueParsing
 
-				TextExpression result = new TextExpression("");
+				TextExpression result = new TextExpression("", variables.Context);
 
 				foreach(XMLText node in textNodes) {
 					try {
@@ -1826,7 +1883,7 @@ namespace SharpSheets.Markup.Parsing {
 					return null;
 				}
 
-				StringExpression name = elem.Name;
+				StringExpression name = new StringExpression(elem.Name, variables.Context);
 
 				Dictionary<string, EvaluationNode> values = new Dictionary<string, EvaluationNode>();
 
@@ -1858,12 +1915,13 @@ namespace SharpSheets.Markup.Parsing {
 						GetAttribute(elem, labelName + "-font-style", false, s => EnumExpression<TextFormat>.Parse(s, variables), null),
 						GetAttribute(elem, labelName + "-justification", false, s => EnumExpression<Justification>.Parse(s, variables), null),
 						GetAttribute(elem, labelName + "-alignment", false, s => EnumExpression<SharpSheets.Canvas.Text.Alignment>.Parse(s, variables), null),
-						GetAttribute(elem, labelName + "-color", false, s => ColorExpression.Parse(s, variables), null));
+						GetAttribute(elem, labelName + "-color", false, s => ColorExpression.Parse(s, variables), null),
+						variables.Context);
 			}
 
 			#region Arrangement Properties
 
-			private SlicingValuesElement? MakeSlicingValuesElement(XMLElement slicingElem, IVariableBox parentVariables, IVariableBox fullDrawingVariables) {
+			private SlicingValuesElement? MakeSlicingValuesElement(XMLElement slicingElem, IVariableBox parentVariables, IVariableBox fullDrawingVariables, MarkupEvaluationContext markupContext) {
 				if (slicingElem == null) { return null; }
 
 				MarginsExpression? border = GetAttribute(slicingElem, "border", false, s => MarkupValueParsing.ParseMargins(s, fullDrawingVariables), null);
@@ -1872,12 +1930,12 @@ namespace SharpSheets.Markup.Parsing {
 				FloatExpression[]? ys = GetAttribute(slicingElem, "ys", false, s => MarkupValueParsing.ParseSVGNumbers(s, fullDrawingVariables), null);
 
 				string? id = GetAttribute(slicingElem, "id", false, s => s, null);
-				BoolExpression enabled = GetAttribute(slicingElem, "enabled", false, s => BoolExpression.Parse(s, parentVariables), true);
+				BoolExpression enabled = GetAttribute(slicingElem, "enabled", false, s => BoolExpression.Parse(s, parentVariables), new BoolExpression(true, parentVariables.Context));
 
-				return new SlicingValuesElement(id, xs, ys, border, enabled);
+				return new SlicingValuesElement(id, xs, ys, border, enabled, markupContext);
 			}
 
-			private AreaElement? MakeAreaElement(XMLElement areaElem, IVariableBox parentVariables, IVariableBox fullDrawingVariables) {
+			private AreaElement? MakeAreaElement(XMLElement areaElem, IVariableBox parentVariables, IVariableBox fullDrawingVariables, MarkupEvaluationContext markupContext) {
 				if (areaElem == null) {
 					return null;
 				}
@@ -1887,11 +1945,11 @@ namespace SharpSheets.Markup.Parsing {
 
 						TextExpression areaName = nameAttr.Value; // TODO Check against list of allowed area names? Will probaby need index adding to AreaElement (remaingRectElementNames)
 
-						RectangleExpression? rect = GetRectangle(areaElem, true, fullDrawingVariables);
-						MarginsExpression margins = GetAttribute(areaElem, "margin", false, s => MarkupValueParsing.ParseMargins(s, fullDrawingVariables), Margins.Zero);
-						BoolExpression enabled = GetAttribute(areaElem, "enabled", false, s => BoolExpression.Parse(s, parentVariables), true);
+						RectangleExpression? rect = GetRectangle(areaElem, true, fullDrawingVariables, markupContext);
+						MarginsExpression margins = GetAttribute(areaElem, "margin", false, s => MarkupValueParsing.ParseMargins(s, fullDrawingVariables), new MarginsExpression(Margins.Zero, fullDrawingVariables.Context));
+						BoolExpression enabled = GetAttribute(areaElem, "enabled", false, s => BoolExpression.Parse(s, parentVariables), new BoolExpression(true, parentVariables.Context));
 
-						return new AreaElement(childID, areaName, rect?.X, rect?.Y, rect?.Width, rect?.Height, margins, enabled);
+						return new AreaElement(childID, areaName, rect?.X, rect?.Y, rect?.Width, rect?.Height, margins, enabled, markupContext);
 					}
 					catch (EvaluationException e) {
 						LogError(areaElem, "Error parsing area element.", e);
@@ -1903,7 +1961,7 @@ namespace SharpSheets.Markup.Parsing {
 				}
 			}
 
-			private DiagnosticElement? MakeDiagnosticElement(XMLElement diagnosticElem, IVariableBox parentVariables, IVariableBox fullDrawingVariables) {
+			private DiagnosticElement? MakeDiagnosticElement(XMLElement diagnosticElem, IVariableBox parentVariables, IVariableBox fullDrawingVariables, MarkupEvaluationContext markupContext) {
 				if (diagnosticElem == null) {
 					return null;
 				}
@@ -1911,11 +1969,11 @@ namespace SharpSheets.Markup.Parsing {
 				try {
 					string? childID = GetAttribute(diagnosticElem, "id", false, s => s, null);
 
-					RectangleExpression? rect = GetRectangle(diagnosticElem, true, fullDrawingVariables);
-					BoolExpression enabled = GetAttribute(diagnosticElem, "enabled", false, s => BoolExpression.Parse(s, parentVariables), true);
+					RectangleExpression? rect = GetRectangle(diagnosticElem, true, fullDrawingVariables, markupContext);
+					BoolExpression enabled = GetAttribute(diagnosticElem, "enabled", false, s => BoolExpression.Parse(s, parentVariables), new BoolExpression(true, parentVariables.Context));
 
 					//Console.WriteLine("Diagnostic created");
-					return new DiagnosticElement(childID, rect?.X, rect?.Y, rect?.Width, rect?.Height, enabled);
+					return new DiagnosticElement(childID, rect?.X, rect?.Y, rect?.Width, rect?.Height, enabled, markupContext);
 				}
 				catch (EvaluationException e) {
 					LogError(diagnosticElem, "Error parsing diagnostic element.", e);
@@ -1942,6 +2000,18 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				else {
 					return defaultValue;
+				}
+			}
+
+			// TODO Is this practical?
+			private IExpression<V> GetAttribute<T,V>(XMLElement elem, string name, bool inheritable, Func<string, T> parser, V defaultValue, EvaluationContext context) where T : IExpression<V> {
+				ContextProperty<string>? attribute = GetAttribute(elem, name, inheritable);
+
+				if (attribute.HasValue && TryParseAttribute(name, attribute.Value, parser, out T? result)) {
+					return result;
+				}
+				else {
+					return new ConstantExpression<V>(defaultValue, context);
 				}
 			}
 

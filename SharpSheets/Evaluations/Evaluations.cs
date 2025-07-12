@@ -13,33 +13,33 @@ namespace SharpSheets.Evaluations {
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
-		private static OperatorNode GetOperator(string operatorStr) {
-			if (operatorStr == "**") { return new ExponentNode(); }
-			else if (operatorStr == "*") { return new MultiplicationNode(); }
-			else if(operatorStr == "/") { return new DivisionNode(); }
-			else if (operatorStr == "%") { return new RemainderNode(); }
-			else if (operatorStr == "+") { return new AdditionNode(); }
-			else if (operatorStr == "-") { return new SubtractNode(); }
-			else if (operatorStr == "<") { return new LessThanNode(); }
-			else if (operatorStr == ">") { return new GreaterThanNode(); }
-			else if (operatorStr == "<=") { return new LessThanEqualNode(); }
-			else if (operatorStr == ">=") { return new GreaterThanEqualNode(); }
-			else if (operatorStr == "==") { return new EqualityNode(); }
-			else if (operatorStr == "!=") { return new InequalityNode(); }
-			else if (operatorStr == "&" || operatorStr == "&&" || operatorStr.ToLowerInvariant() == "and") { return new ANDNode(); }
-			else if (operatorStr == "^") { return new XORNode(); }
-			else if (operatorStr == "|" || operatorStr == "||" || operatorStr.ToLowerInvariant() == "or") { return new ORNode(); }
-			else if (operatorStr == "!") { return new NegateOperator(); }
-			else if (operatorStr == "??") { return new NullCoalescingNode(); }
-			else if (operatorStr == "?") { return new ConditionalOperatorNode.ConditionalOpenNode(); }
-			else if (operatorStr == ":") { return new ConditionalOperatorNode(); }
+		private static OperatorNode GetOperator(string operatorStr, EvaluationContext context) {
+			if (operatorStr == "**") { return new ExponentNode(context); }
+			else if (operatorStr == "*") { return new MultiplicationNode(context); }
+			else if(operatorStr == "/") { return new DivisionNode(context); }
+			else if (operatorStr == "%") { return new RemainderNode(context); }
+			else if (operatorStr == "+") { return new AdditionNode(context); }
+			else if (operatorStr == "-") { return new SubtractNode(context); }
+			else if (operatorStr == "<") { return new LessThanNode(context); }
+			else if (operatorStr == ">") { return new GreaterThanNode(context); }
+			else if (operatorStr == "<=") { return new LessThanEqualNode(context); }
+			else if (operatorStr == ">=") { return new GreaterThanEqualNode(context); }
+			else if (operatorStr == "==") { return new EqualityNode(context); }
+			else if (operatorStr == "!=") { return new InequalityNode(context); }
+			else if (operatorStr == "&" || operatorStr == "&&" || operatorStr.ToLowerInvariant() == "and") { return new ANDNode(context); }
+			else if (operatorStr == "^") { return new XORNode(context); }
+			else if (operatorStr == "|" || operatorStr == "||" || operatorStr.ToLowerInvariant() == "or") { return new ORNode(context); }
+			else if (operatorStr == "!") { return new NegateOperator(context); }
+			else if (operatorStr == "??") { return new NullCoalescingNode(context); }
+			else if (operatorStr == "?") { return new ConditionalOperatorNode.ConditionalOpenNode(context); }
+			else if (operatorStr == ":") { return new ConditionalOperatorNode(context); }
 			else { throw new EvaluationSyntaxException($"Unrecognized operator: {operatorStr}"); }
 		}
 
-		private static bool TryGetUnaryOperator(string operatorStr, [MaybeNullWhen(false)] out UnaryOperatorNode node) {
+		private static bool TryGetUnaryOperator(string operatorStr, EvaluationContext context, [MaybeNullWhen(false)] out UnaryOperatorNode node) {
 			node = null;
-			if (operatorStr == "-") { node = new MinusOperator(); }
-			else if (operatorStr == "+") { node = new PlusOperator(); }
+			if (operatorStr == "-") { node = new MinusOperator(context); }
+			else if (operatorStr == "+") { node = new PlusOperator(context); }
 			return node is not null;
 		}
 
@@ -47,7 +47,7 @@ namespace SharpSheets.Evaluations {
 		/// <exception cref="UndefinedFunctionException"></exception>
 		private static EnvironmentFunctionNode GetFunction(EvaluationName name, IVariableBox variables) {
 			if (variables.TryGetFunctionInfo(name, out IEnvironmentFunctionInfo? functionInfo)) {
-				return new EnvironmentFunctionNode(functionInfo);
+				return new EnvironmentFunctionNode(functionInfo, variables.Context);
 			}
 			else {
 				throw new UndefinedFunctionException(name);
@@ -56,11 +56,11 @@ namespace SharpSheets.Evaluations {
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
-		private static EvaluationValue ParseFloat(string token) {
+		private static EvaluationValue ParseFloat(string token, EvaluationContext context) {
 			try {
 				float value = float.Parse(token);
-				if (value >= 0f) { return new EvaluationValue(new UFloat(value), EvaluationTypes.UFLOAT); }
-				else { return new EvaluationValue(value, EvaluationTypes.FLOAT); }
+				if (value >= 0f) { return new EvaluationValue(new UFloat(value), context.GetType<UFloatEvaluationType>()); }
+				else { return new EvaluationValue(value, context.GetType<FloatEvaluationType>()); }
 			}
 			catch(FormatException e) {
 				throw new EvaluationSyntaxException($"\"{token}\" is not a valid float value.", e);
@@ -68,11 +68,11 @@ namespace SharpSheets.Evaluations {
 		}
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
-		private static EvaluationValue ParseInt(string token) {
+		private static EvaluationValue ParseInt(string token, EvaluationContext context) {
 			try {
 				int value = int.Parse(token);
-				if (value >= 0) { return new EvaluationValue((uint)value, EvaluationTypes.UINT); }
-				else { return new EvaluationValue(value, EvaluationTypes.INT); }
+				if (value >= 0) { return new EvaluationValue((uint)value, context.GetType<UIntEvaluationType>()); }
+				else { return new EvaluationValue(value, context.GetType<IntEvaluationType>()); }
 			}
 			catch (FormatException e) {
 				throw new EvaluationSyntaxException($"\"{token}\" is not a valid int value.", e);
@@ -80,9 +80,9 @@ namespace SharpSheets.Evaluations {
 		}
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
-		private static EvaluationValue ParseBool(string token) {
+		private static EvaluationValue ParseBool(string token, EvaluationContext context) {
 			try {
-				return new EvaluationValue(bool.Parse(token), EvaluationTypes.BOOL);
+				return new EvaluationValue(bool.Parse(token), context.GetType<BoolEvaluationType>());
 			}
 			catch (FormatException e) {
 				throw new EvaluationSyntaxException($"\"{token}\" is not a valid bool value.", e);
@@ -90,9 +90,9 @@ namespace SharpSheets.Evaluations {
 		}
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
-		private static EvaluationValue ParseString(string token) {
+		private static EvaluationValue ParseString(string token, EvaluationContext context) {
 			try {
-				return new EvaluationValue(StringParsing.Parse(token), EvaluationTypes.STRING);
+				return new EvaluationValue(StringParsing.Parse(token), context.GetType<StringEvaluationType>());
 			}
 			catch (FormatException e) {
 				throw new EvaluationSyntaxException($"\"{token}\" is not a valid string value.", e);
@@ -152,6 +152,8 @@ namespace SharpSheets.Evaluations {
 		public static EvaluationNode Parse(string expression, IVariableBox variables) {
 			// With help from: https://blog.kallisti.net.nz/2008/02/extension-to-the-shunting-yard-algorithm-to-allow-variable-numbers-of-arguments-to-functions/
 
+			EvaluationContext context = variables.Context;
+
 			List<EvaluationNode> output = new List<EvaluationNode>();
 			Stack<OperatorNode> operators = new Stack<OperatorNode>();
 
@@ -206,16 +208,16 @@ namespace SharpSheets.Evaluations {
 
 					if (match.Groups["value"].Success || match.Groups["rawvariable"].Success) {
 						if (match.Groups["float"].Success) {
-							output.Add(new ConstantNode(ParseFloat(match.Value)));
+							output.Add(new ConstantNode(ParseFloat(match.Value, context)));
 						}
 						else if (match.Groups["int"].Success) {
-							output.Add(new ConstantNode(ParseInt(match.Value)));
+							output.Add(new ConstantNode(ParseInt(match.Value, context)));
 						}
 						else if (match.Groups["bool"].Success) {
-							output.Add(new ConstantNode(ParseBool(match.Value)));
+							output.Add(new ConstantNode(ParseBool(match.Value, context)));
 						}
 						else if (match.Groups["string"].Success) {
-							output.Add(new ConstantNode(ParseString(match.Groups["string"].Value)));
+							output.Add(new ConstantNode(ParseString(match.Groups["string"].Value, context)));
 						}
 						else if (match.Groups["variable"].Success || match.Groups["rawvariable"].Success) {
 							string key;
@@ -227,7 +229,7 @@ namespace SharpSheets.Evaluations {
 							}
 							//output.Add(new VariableNode(key, variables.GetReturnType(key)));
 							//output.Add(new WrapperNode(variables.GetNode(key)));
-							output.Add(new VariablePlaceholderNode(key));
+							output.Add(new VariablePlaceholderNode(key, context));
 						}
 
 						if (wereValues.Count > 0) {
@@ -262,7 +264,7 @@ namespace SharpSheets.Evaluations {
 
 						// Replace OpenIndexerNode with IndexerSlicePlaceholder
 						operators.Pop();
-						operators.Push(new IndexerSlicePlaceholder());
+						operators.Push(new IndexerSlicePlaceholder(context));
 
 						previousExpression = ParseExpressionState.START;
 					}
@@ -274,21 +276,21 @@ namespace SharpSheets.Evaluations {
 						OperatorNode operatorNode;
 						if (match.Groups["accessor"].Success) {
 							string fieldName = match.Groups["accessor"].Value;
-							operatorNode = new FieldAccessNode(fieldName);
+							operatorNode = new FieldAccessNode(fieldName, context);
 							nextState = ParseExpressionState.VALUE;
 						}
 						else if (match.Groups["comprehension"].Success) {
 							string loopVariable = match.Groups["compvar"].Value;
-							operatorNode = new ComprehensionNode(loopVariable);
+							operatorNode = new ComprehensionNode(loopVariable, context);
 						}
 						else if (match.Groups["if"].Success) {
-							operatorNode = new ComprehensionIfNode();
+							operatorNode = new ComprehensionIfNode(context);
 						}
-						else if (TryGetUnaryOperator(match.Value, out UnaryOperatorNode? opNode) && (previousExpression == ParseExpressionState.START || previousExpression == ParseExpressionState.OPERATOR)) {
+						else if (TryGetUnaryOperator(match.Value, context, out UnaryOperatorNode? opNode) && (previousExpression == ParseExpressionState.START || previousExpression == ParseExpressionState.OPERATOR)) {
 							operatorNode = opNode;
 						}
 						else { // This will cover "andor" group as well
-							operatorNode = GetOperator(match.Value);
+							operatorNode = GetOperator(match.Value, context);
 						}
 
 						if (operatorNode.Associativity == Associativity.LEFT) {
@@ -320,7 +322,7 @@ namespace SharpSheets.Evaluations {
 						previousExpression = nextState;
 					}
 					else if (match.Groups["openbrace"].Success) {
-						operators.Push(new OpenBraceNode());
+						operators.Push(new OpenBraceNode(context));
 
 						previousExpression = ParseExpressionState.START;
 					}
@@ -349,7 +351,7 @@ namespace SharpSheets.Evaluations {
 						previousExpression = ParseExpressionState.VALUE;
 					}
 					else if (match.Groups["openindexer"].Success) {
-						OperatorNode openIndexNode = new OpenIndexerNode();
+						OperatorNode openIndexNode = new OpenIndexerNode(context);
 
 						/*
 						while (operators.Count > 0 && operators.Peek().Precedence <= openIndexNode.Precedence && operators.Peek().GetType() != typeof(OpenBraceNode) && !(operators.Peek().GetType() == typeof(IndexerNode) || operators.Peek().GetType() == typeof(IndexerSliceNode))) {
@@ -375,11 +377,11 @@ namespace SharpSheets.Evaluations {
 
 						if (operators.Count > 0 && operators.Peek().GetType() == typeof(IndexerSlicePlaceholder)) {
 							operators.Pop();
-							output.Add(new IndexerSliceNode());
+							output.Add(new IndexerSliceNode(context));
 						}
 						else if (operators.Count > 0 && operators.Peek().GetType() == typeof(OpenIndexerNode)) {
 							operators.Pop();
-							output.Add(new IndexerNode());
+							output.Add(new IndexerNode(context));
 						}
 						else {
 							throw new EvaluationSyntaxException("Unbalanced square brackets.");
@@ -469,7 +471,7 @@ namespace SharpSheets.Evaluations {
 				}
 
 				if (node is VariablePlaceholderNode placeholderNode) {
-					Dictionary<EvaluationName, EvaluationType> definedVariables = providers.SelectMany(p => p.ProvidedVariables(variables.TypeSystem)).ToDictionary();
+					Dictionary<EvaluationName, EvaluationType> definedVariables = providers.SelectMany(p => p.ProvidedVariables(variables.Context)).ToDictionary();
 					
 					if(definedVariables.TryGetValue(placeholderNode.Key, out EvaluationType? returnType)) {
 						return new VariableNode(placeholderNode.Key, returnType);
@@ -509,10 +511,10 @@ namespace SharpSheets.Evaluations {
 
 			resultNode = ReplaceVariableNodes(resultNode, new List<IVariableProvider>());
 
-			_ = resultNode.GetReturnType(variables); // Run this to ensure that no errors are thrown from badly formed expressions later
+			_ = resultNode.GetReturnType(); // Run this to ensure that no errors are thrown from badly formed expressions later
 
 			try {
-				resultNode = resultNode.Simplify(variables.TypeSystem);
+				resultNode = resultNode.Simplify();
 			}
 			catch(EvaluationCalculationException e) {
 				throw new EvaluationProcessingException("Invalid expression.", e); // Better error message?
@@ -525,13 +527,14 @@ namespace SharpSheets.Evaluations {
 
 		private class OpenBraceNode : OperatorNode {
 			public override bool IsConstant => true;
-			public override EvaluationType GetReturnType(EvaluationTypeSystem _) => throw new NotImplementedException();
+			public override EvaluationType GetReturnType() => throw new NotImplementedException();
 			public sealed override int Operands { get { return 0; } }
 			public sealed override int Precedence => -2;
 			public sealed override Associativity Associativity => throw new NotImplementedException();
+			public OpenBraceNode(EvaluationContext context) : base(context) { }
 			public override EvaluationValue Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
-			public override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) { throw new NotImplementedException(); }
-			public override EvaluationNode Clone() { return new OpenBraceNode(); }
+			public override EvaluationNode Simplify() { throw new NotImplementedException(); }
+			public override EvaluationNode Clone() { return new OpenBraceNode(Context); }
 			public override IEnumerable<EvaluationName> GetVariables() { throw new NotImplementedException(); }
 			//public override void Print(int indent, IEnvironment environment) { throw new NotImplementedException(); }
 			protected override string GetRepresentation() { throw new NotImplementedException(); }
@@ -539,13 +542,14 @@ namespace SharpSheets.Evaluations {
 
 		private class OpenIndexerNode : OperatorNode {
 			public override bool IsConstant => true;
-			public override EvaluationType GetReturnType(EvaluationTypeSystem _) => throw new NotImplementedException();
+			public override EvaluationType GetReturnType() => throw new NotImplementedException();
 			public sealed override int Operands { get { return 0; } }
 			public sealed override int Precedence => -2;
 			public sealed override Associativity Associativity => throw new NotImplementedException();
+			public OpenIndexerNode(EvaluationContext context) : base(context) { }
 			public override EvaluationValue Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
-			public override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) { throw new NotImplementedException(); }
-			public override EvaluationNode Clone() { return new OpenIndexerNode(); }
+			public override EvaluationNode Simplify() { throw new NotImplementedException(); }
+			public override EvaluationNode Clone() { return new OpenIndexerNode(Context); }
 			public override IEnumerable<EvaluationName> GetVariables() { throw new NotImplementedException(); }
 			//public override void Print(int indent, IEnvironment environment) { throw new NotImplementedException(); }
 			protected override string GetRepresentation() { throw new NotImplementedException(); }
@@ -553,13 +557,14 @@ namespace SharpSheets.Evaluations {
 
 		private class IndexerSlicePlaceholder : OperatorNode {
 			public override bool IsConstant => true;
-			public override EvaluationType GetReturnType(EvaluationTypeSystem _) => throw new NotImplementedException();
+			public override EvaluationType GetReturnType() => throw new NotImplementedException();
 			public sealed override int Operands { get { return 2; } }
 			public sealed override int Precedence => 13;
 			public sealed override Associativity Associativity => throw new NotImplementedException();
+			public IndexerSlicePlaceholder(EvaluationContext context) : base(context) { }
 			public override EvaluationValue Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
-			public override EvaluationNode Simplify(EvaluationTypeSystem typeSystem) { throw new NotImplementedException(); }
-			public override EvaluationNode Clone() { return new IndexerSlicePlaceholder(); }
+			public override EvaluationNode Simplify() { throw new NotImplementedException(); }
+			public override EvaluationNode Clone() { return new IndexerSlicePlaceholder(Context); }
 			public override IEnumerable<EvaluationName> GetVariables() { throw new NotImplementedException(); }
 			//public override void Print(int indent, IEnvironment environment) { throw new NotImplementedException(); }
 			protected override string GetRepresentation() { throw new NotImplementedException(); }
@@ -567,15 +572,15 @@ namespace SharpSheets.Evaluations {
 
 		private class VariablePlaceholderNode : ValueNode {
 			public override bool IsConstant => throw new UndefinedVariableException(Key);
-			public override EvaluationType GetReturnType(EvaluationTypeSystem _) => throw new UndefinedVariableException(Key);
+			public override EvaluationType GetReturnType() => throw new UndefinedVariableException(Key);
 
 			public EvaluationName Key { get; }
 
-			public VariablePlaceholderNode(EvaluationName key) {
+			public VariablePlaceholderNode(EvaluationName key, EvaluationContext context) : base(context) {
 				this.Key = key;
 			}
 
-			public override EvaluationNode Clone() { return new VariablePlaceholderNode(Key); }
+			public override EvaluationNode Clone() { return new VariablePlaceholderNode(Key, Context); }
 
 			public override EvaluationValue Evaluate(IEnvironment environment) => throw new NotImplementedException();
 			public override IEnumerable<EvaluationName> GetVariables() => throw new NotImplementedException();

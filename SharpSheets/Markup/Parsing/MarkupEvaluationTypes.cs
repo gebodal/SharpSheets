@@ -10,65 +10,204 @@ using SharpSheets.Canvas;
 using SharpSheets.Documentation;
 using SharpSheets.Utilities;
 using SharpSheets.Widgets;
+using System.Diagnostics.CodeAnalysis;
+using SharpSheets.Markup.Patterns;
 
 namespace SharpSheets.Markup.Parsing {
 
 	public static class MarkupEvaluationTypes {
 
-		public static readonly EvaluationType DIMENSION = EvaluationType.FromSystemType(typeof(Dimension));
-		public static readonly EvaluationType MARGINS = EvaluationType.FromSystemType(typeof(Margins));
+		public static readonly EvaluationContext BaseContext;
 
-		public static readonly EvaluationType FILE_PATH = EvaluationType.FromSystemType(typeof(SharpSheets.Utilities.FilePath));
+		static MarkupEvaluationTypes() {
+			BaseContext = Create().Build();
+		}
+
+		/*
+		public static readonly FloatEvaluationType FLOAT;
+		public static readonly UFloatEvaluationType UFLOAT;
+		public static readonly IntEvaluationType INT;
+		public static readonly UIntEvaluationType UINT;
+		public static readonly BoolEvaluationType BOOL;
+		public static readonly StringEvaluationType STRING;
+
+		public static readonly ColorEvaluationType COLOR;
+
+		public static readonly DimensionEvaluationType DIMENSION;
+		public static readonly MarginsEvaluationType MARGINS;
+
+		public static readonly FilePathEvaluationType FILE_PATH;
 
 		// Enum types
-		public static readonly EvaluationType TEXT_FORMAT = EvaluationType.FromSystemType(typeof(TextFormat));
-		public static readonly EvaluationType TEXT_HEIGHT_STRATEGY = EvaluationType.FromSystemType(typeof(TextHeightStrategy));
-		public static readonly EvaluationType JUSTIFICATION = EvaluationType.FromSystemType(typeof(Justification));
-		public static readonly EvaluationType ALIGNMENT = EvaluationType.FromSystemType(typeof(Alignment));
-		public static readonly EvaluationType LAYOUT = EvaluationType.FromSystemType(typeof(Layout));
-		public static readonly EvaluationType CHECK_TYPE = EvaluationType.FromSystemType(typeof(CheckType));
+		public static readonly EnumEvaluationType TEXT_FORMAT;
+		public static readonly EnumEvaluationType TEXT_HEIGHT_STRATEGY;
+		public static readonly EnumEvaluationType JUSTIFICATION;
+		public static readonly EnumEvaluationType ALIGNMENT;
+		public static readonly EnumEvaluationType LAYOUT;
+		public static readonly EnumEvaluationType CHECK_TYPE;
+
+		public static readonly EvaluationType WIDGET;
+
+		private static readonly Dictionary<string, EvaluationType> typeRegistry;
+
+		public static readonly EvaluationType CONTAINER;
+		public static readonly EvaluationType BOX;
+		public static readonly EvaluationType LABELLED_BOX;
+		public static readonly EvaluationType BAR;
+		public static readonly EvaluationType USAGE_BAR;
+		public static readonly EvaluationType DETAIL;
+
+		static MarkupEvaluationTypes() {
+
+			BaseContext = EvaluationContext.Build(ctx => {
+				ctx.SetType<ColorEvaluationType>(new ColorEvaluationType(ctx));
+				ctx.SetType<DimensionEvaluationType>(new DimensionEvaluationType(ctx));
+				ctx.SetType<MarginsEvaluationType>(new MarginsEvaluationType(ctx));
+				ctx.SetType<FilePathEvaluationType>(new FilePathEvaluationType(ctx));
+			});
+
+			FLOAT = BaseContext.GetType<FloatEvaluationType>();
+			UFLOAT = BaseContext.GetType<UFloatEvaluationType>();
+			INT = BaseContext.GetType<IntEvaluationType>();
+			UINT = BaseContext.GetType<UIntEvaluationType>();
+			BOOL = BaseContext.GetType<BoolEvaluationType>();
+			STRING = BaseContext.GetType<StringEvaluationType>();
+
+			COLOR = BaseContext.GetType<ColorEvaluationType>();
+
+			DIMENSION = BaseContext.GetType<DimensionEvaluationType>();
+			MARGINS = BaseContext.GetType<MarginsEvaluationType>();
+
+			FILE_PATH = BaseContext.GetType<FilePathEvaluationType>();
+
+			// Enum types
+			TEXT_FORMAT = EnumEvaluationType.FromSystemType<TextFormat>(BaseContext);
+			TEXT_HEIGHT_STRATEGY = EnumEvaluationType.FromSystemType<TextHeightStrategy>(BaseContext);
+			JUSTIFICATION = EnumEvaluationType.FromSystemType<Justification>(BaseContext);
+			ALIGNMENT = EnumEvaluationType.FromSystemType<Alignment>(BaseContext);
+			LAYOUT = EnumEvaluationType.FromSystemType<Layout>(BaseContext);
+			CHECK_TYPE = EnumEvaluationType.FromSystemType<CheckType>(BaseContext);
+			
+			// TODO Is this right?
+			WIDGET = new CustomEvaluationType(BaseContext, "widget", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IWidget));
+
+			// TODO There are missing types here
+			CONTAINER = new CustomEvaluationType(BaseContext, "TitledBox", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IContainerShape));
+			BOX = new CustomEvaluationType(BaseContext, "Box", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IBox));
+			LABELLED_BOX = new CustomEvaluationType(BaseContext, "LabelledBox", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(ILabelledBox));
+			BAR = new CustomEvaluationType(BaseContext, "Bar", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IBar));
+			USAGE_BAR = new CustomEvaluationType(BaseContext, "UsageBar", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IUsageBar));
+			DETAIL = new CustomEvaluationType(BaseContext, "Detail", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IDetail));
+
+			typeRegistry = new Dictionary<string, EvaluationType> {
+				{ "float", BaseContext.GetType<FloatEvaluationType>() },
+				{ "ufloat", BaseContext.GetType<UFloatEvaluationType>() },
+				{ "int", BaseContext.GetType<IntEvaluationType>() },
+				{ "uint", BaseContext.GetType<UIntEvaluationType>() },
+				{ "bool", BaseContext.GetType<BoolEvaluationType>() },
+				{ "string", BaseContext.GetType<StringEvaluationType>() },
+				{ "color", BaseContext.GetType<ColorEvaluationType>() },
+				{ "dimension", DIMENSION },
+				{ "margins", MARGINS },
+				{ "filepath", FILE_PATH },
+				{ "textformat", TEXT_FORMAT },
+				{ "textheightstrategy", TEXT_HEIGHT_STRATEGY },
+				{ "justification", JUSTIFICATION },
+				{ "alignment", ALIGNMENT },
+				{ "checktype", CHECK_TYPE },
+				{ "widget", WIDGET },
+				{ "titledbox", CONTAINER }, // Confusing name, but makes more sense to user?
+				{ "box", BOX },
+				{ "labelledbox", LABELLED_BOX },
+				{ "bar", BAR },
+				{ "usagebar", USAGE_BAR },
+				{ "detail", DETAIL }
+				// TODO More types here?
+			};
+		}
+		*/
+
+		public static EvaluationContext.Builder Create() {
+			EvaluationContext.Builder builder = EvaluationContext.Create();
+
+			// Base data types
+			builder.SetDataType<ColorEvaluationType, SharpSheets.Colors.Color>(ctx => new ColorEvaluationType(ctx));
+			builder.SetDataType<DimensionEvaluationType, Dimension>(ctx => new DimensionEvaluationType(ctx));
+			builder.SetDataType<MarginsEvaluationType, Margins>(ctx => new MarginsEvaluationType(ctx));
+			builder.SetDataType<FilePathEvaluationType, SharpSheets.Utilities.FilePath>(ctx => new FilePathEvaluationType(ctx));
+
+			// Enum types
+			builder.SetSystemType<TextFormat, EnumEvaluationType>(ctx => EnumEvaluationType.FromSystemType<TextFormat>(ctx));
+			builder.SetSystemType<TextHeightStrategy, EnumEvaluationType>(ctx => EnumEvaluationType.FromSystemType<TextHeightStrategy>(ctx));
+			builder.SetSystemType<Justification, EnumEvaluationType>(ctx => EnumEvaluationType.FromSystemType<Justification>(ctx));
+			builder.SetSystemType<Alignment, EnumEvaluationType>(ctx => EnumEvaluationType.FromSystemType<Alignment>(ctx));
+			builder.SetSystemType<Layout, EnumEvaluationType>(ctx => EnumEvaluationType.FromSystemType<Layout>(ctx));
+			builder.SetSystemType<CheckType, EnumEvaluationType>(ctx => EnumEvaluationType.FromSystemType<CheckType>(ctx));
+
+			// Widget types
+			// TODO Is this right?
+			builder.SetSystemType<IWidget, EvaluationType>(ctx => new CustomEvaluationType(ctx, "widget", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IWidget)));
+
+			// Shape types
+			// TODO There are missing types here
+			builder.SetSystemType<IContainerShape, EvaluationType>(ctx => new CustomEvaluationType(ctx, "TitledBox", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IContainerShape)));
+			builder.SetSystemType<IBox, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Box", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IBox)));
+			builder.SetSystemType<ILabelledBox, EvaluationType>(ctx => new CustomEvaluationType(ctx, "LabelledBox", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(ILabelledBox)));
+			builder.SetSystemType<IBar, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Bar", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IBar)));
+			builder.SetSystemType<IUsageBar, EvaluationType>(ctx => new CustomEvaluationType(ctx, "UsageBar", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IUsageBar)));
+			builder.SetSystemType<IDetail, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Detail", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IDetail)));
+			
+			return builder;
+		}
+
+		private static bool TryGetType(string typeName, EvaluationContext context, [NotNullWhen(true)] out EvaluationType? result) {
+			switch (typeName) {
+				case "float":
+					result = context.GetType<FloatEvaluationType>();
+					return true;
+				case "ufloat":
+					result = context.GetType<UFloatEvaluationType>();
+					return true;
+				case "int":
+					result = context.GetType<IntEvaluationType>();
+					return true;
+				case "uint":
+					result = context.GetType<UIntEvaluationType>();
+					return true;
+				case "bool":
+					result = context.GetType<BoolEvaluationType>();
+					return true;
+				case "string":
+					result = context.GetType<StringEvaluationType>();
+					return true;
+				case "color":
+					result = context.GetType<ColorEvaluationType>();
+					return true;
+			}
+
+			return context.TryGetType(typeName, out result);
+		}
+
+		//public static readonly EvaluationType DIMENSION = EvaluationType.FromSystemType(typeof(Dimension));
+		//public static readonly EvaluationType MARGINS = EvaluationType.FromSystemType(typeof(Margins));
+
+		//public static readonly EvaluationType FILE_PATH = EvaluationType.FromSystemType(typeof(SharpSheets.Utilities.FilePath));
 
 		// TODO Is this right?
-		public static readonly EvaluationType WIDGET = EvaluationType.CustomType("Widget", Enumerable.Empty<TypeField>(), typeof(IWidget));
+		//public static readonly EvaluationType WIDGET = EvaluationType.CustomType("Widget", Enumerable.Empty<TypeField>(), typeof(IWidget));
 
 		// TODO There are missing types here
-		public static readonly EvaluationType CONTAINER = EvaluationType.CustomType("TitledBox", Enumerable.Empty<TypeField>(), typeof(IContainerShape));
-		public static readonly EvaluationType BOX = EvaluationType.CustomType("Box", Enumerable.Empty<TypeField>(), typeof(IBox));
-		public static readonly EvaluationType LABELLED_BOX = EvaluationType.CustomType("LabelledBox", Enumerable.Empty<TypeField>(), typeof(ILabelledBox));
-		public static readonly EvaluationType BAR = EvaluationType.CustomType("Bar", Enumerable.Empty<TypeField>(), typeof(IBar));
-		public static readonly EvaluationType USAGE_BAR = EvaluationType.CustomType("UsageBar", Enumerable.Empty<TypeField>(), typeof(IUsageBar));
-		public static readonly EvaluationType DETAIL = EvaluationType.CustomType("Detail", Enumerable.Empty<TypeField>(), typeof(IDetail));
-
-		private static readonly Dictionary<string, EvaluationType> typeRegistry = new Dictionary<string, EvaluationType> {
-			{ "float", EvaluationType.FLOAT },
-			{ "ufloat", EvaluationType.UFLOAT },
-			{ "int", EvaluationType.INT },
-			{ "uint", EvaluationType.UINT },
-			{ "bool", EvaluationType.BOOL },
-			{ "string", EvaluationType.STRING },
-			{ "color", EvaluationType.COLOR },
-			{ "dimension", DIMENSION },
-			{ "margins", MARGINS },
-			{ "filepath", FILE_PATH },
-			{ "textformat", TEXT_FORMAT },
-			{ "textheightstrategy", TEXT_HEIGHT_STRATEGY },
-			{ "justification", JUSTIFICATION },
-			{ "alignment", ALIGNMENT },
-			{ "checktype", CHECK_TYPE },
-			{ "widget", WIDGET },
-			{ "titledbox", CONTAINER }, // Confusing name, but makes more sense to user?
-			{ "box", BOX },
-			{ "labelledbox", LABELLED_BOX },
-			{ "bar", BAR },
-			{ "usagebar", USAGE_BAR },
-			{ "detail", DETAIL }
-			// TODO More types here?
-		};
+		//public static readonly EvaluationType CONTAINER = EvaluationType.CustomType("TitledBox", Enumerable.Empty<TypeField>(), typeof(IContainerShape));
+		//public static readonly EvaluationType BOX = EvaluationType.CustomType("Box", Enumerable.Empty<TypeField>(), typeof(IBox));
+		//public static readonly EvaluationType LABELLED_BOX = EvaluationType.CustomType("LabelledBox", Enumerable.Empty<TypeField>(), typeof(ILabelledBox));
+		//public static readonly EvaluationType BAR = EvaluationType.CustomType("Bar", Enumerable.Empty<TypeField>(), typeof(IBar));
+		//public static readonly EvaluationType USAGE_BAR = EvaluationType.CustomType("UsageBar", Enumerable.Empty<TypeField>(), typeof(IUsageBar));
+		//public static readonly EvaluationType DETAIL = EvaluationType.CustomType("Detail", Enumerable.Empty<TypeField>(), typeof(IDetail));
 
 		private static readonly Regex arrayTupleRegex = new Regex(@"\[(?<tuple>[0-9]+)?\]", RegexOptions.IgnoreCase);
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
-		public static EvaluationType ParseArgumentType(string text, string? description, XMLElement[] options) {
+		public static EvaluationType ParseArgumentType(string text, string? description, EvaluationContext context) {
 			text = Regex.Replace(text, @"\s+", "");
 			string textKey = text.ToLowerInvariant();
 			
@@ -77,7 +216,7 @@ namespace SharpSheets.Markup.Parsing {
 				// The "top level" array specification comes first, followed by descreasingly significant "[]"
 				string baseTypeStr = text.Substring(0, arrayMatch.Index) + text.Substring(arrayMatch.Index + arrayMatch.Length);
 				// A bit clunky, but it should work
-				EvaluationType baseType = ParseArgumentType(baseTypeStr, description, options);
+				EvaluationType baseType = ParseArgumentType(baseTypeStr, description, context);
 				if (arrayMatch.Groups["tuple"].Success) {
 					int tupleSize = int.Parse(arrayMatch.Groups["tuple"].Value);
 					return baseType.MakeTuple(tupleSize);
@@ -86,14 +225,7 @@ namespace SharpSheets.Markup.Parsing {
 					return baseType.MakeArray();
 				}
 			}
-			else if (options != null && options.Length > 0) {
-				if (typeRegistry.ContainsKey(textKey)) {
-					throw new FormatException("Cannot name a custom enum after a built-in type.");
-				}
-				
-				return EvaluationType.FromSystemType(MakeCustomEnumType(text, description, options)); // TODO Don't like this. Why should this class have to deal with XMLElements?
-			}
-			else if (typeRegistry.TryGetValue(textKey, out EvaluationType? argType)) {
+			else if (TryGetType(textKey, context, out EvaluationType? argType)) {
 				return argType;
 			}
 			else {
@@ -101,45 +233,341 @@ namespace SharpSheets.Markup.Parsing {
 			}
 		}
 
-		private static MarkupEnumType MakeCustomEnumType(string text, string? description, XMLElement[] options) {
-			EnumValDoc[] enumVals = options.Select(opt => {
-				string? valName = opt.GetAttribute1("name", false)?.Value;
-				if(valName is null) { return null; }
-				string? valDoc = opt.GetAttribute1("desc", false)?.Value;
-				return new EnumValDoc(text, valName, !string.IsNullOrWhiteSpace(valDoc) ? new DocumentationString(valDoc) : null);
-			}).WhereNotNull().ToArray();
+		public static EvaluationType MakeGroupType(string name, IEnumerable<IMarkupArgument> args, EvaluationContext context) {
+			List<TypeField> fields = new List<TypeField>();
 
-			return new MarkupEnumType(text, description, enumVals);
+			foreach (IMarkupArgument arg in args) {
+				TypeField field = new TypeField(arg.VariableName, arg.Type, obj => GroupFieldAccessor(obj, arg.VariableName));
+				fields.Add(field);
+			}
+
+			return new CustomEvaluationType(context, name, fields, Enumerable.Empty<TypeField>(), typeof(Dictionary<EvaluationName, EvaluationValue>));
 		}
+
+		/// <summary></summary>
+		/// <exception cref="UndefinedVariableException"></exception>
+		/// <exception cref="EvaluationTypeException"></exception>
+		private static EvaluationValue GroupFieldAccessor(EvaluationValue obj, EvaluationName name) {
+			// TODO Should this be "Dictionary<EvaluationName, object?>"? (Cf. With argument parsing)
+			if (obj.Value is Dictionary<EvaluationName, EvaluationValue> values) {
+				if (values.TryGetValue(name, out EvaluationValue result)) {
+					return result;
+				}
+				else {
+					throw new UndefinedVariableException("Cannot find field value.");
+				}
+			}
+			else {
+				throw new EvaluationTypeException("Cannot access group field from invalid object.");
+			}
+		}
+
 	}
 
 
-	public sealed class ColorEvaluationType : EvaluationType {
-
-		public static readonly EvaluationType Instance = new ColorEvaluationType();
+	public sealed class ColorEvaluationType : SingleDataType<SharpSheets.Colors.Color> {
 
 		public override string Name { get; } = "color";
 
-		public override Type DataType { get; } = typeof(SharpSheets.Colors.Color);
-		public override Type DisplayType => DataType;
-
-		private ColorEvaluationType() : base(Enumerable.Empty<TypeField>(), MakeNamedColorFields()) { }
-
-		private static IEnumerable<TypeField> MakeNamedColorFields() {
-			return SharpSheets.Colors.Color.NamedColors.Select(kv => new TypeField(kv.Key, Instance, t => new EvaluationValue(kv.Value, Instance)));
+		public ColorEvaluationType(EvaluationContext context) : base(context) {
+			foreach((string name, SharpSheets.Colors.Color color) in SharpSheets.Colors.Color.NamedColors) {
+				AddStaticField(new TypeField(name, this, t => new EvaluationValue(color, this)));
+			}
 		}
 
-		public override bool CanImplicitCastFrom(EvaluationType other) => false;
-		public override EvaluationValue? Cast(EvaluationValue other) => null;
-
-		protected override bool EqualTypeData(EvaluationType other) {
-			return Name == other.Name
-				&& DataType == other.DataType;
+		public static bool IsColor(EvaluationType type) {
+			return type is ColorEvaluationType;
 		}
 
-		protected override int GetTypeHashCode() {
-			return HashCode.Combine(Name, DataType);
+		public static bool TryGetColor(EvaluationValue value, out SharpSheets.Colors.Color color) {
+			if (value.Value is SharpSheets.Colors.Color colorValue) {
+				color = colorValue;
+				return true;
+			}
+			else {
+				color = default;
+				return false;
+			}
 		}
+
+		public override EvaluationType? EqualResult(EvaluationType other) {
+			return this == other ? Context.GetType<BoolEvaluationType>() : null;
+		}
+		public override EvaluationValue? Equal(EvaluationValue left, EvaluationValue right) {
+			if (TryGetColor(left, out SharpSheets.Colors.Color leftColor) && TryGetColor(right, out SharpSheets.Colors.Color rightColor)) {
+				return new EvaluationValue(leftColor == rightColor, Context.GetType<BoolEvaluationType>());
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? NotEqualResult(EvaluationType other) {
+			return this == other ? Context.GetType<BoolEvaluationType>() : null;
+		}
+		public override EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) {
+			if (TryGetColor(left, out SharpSheets.Colors.Color leftColor) && TryGetColor(right, out SharpSheets.Colors.Color rightColor)) {
+				return new EvaluationValue(leftColor != rightColor, Context.GetType<BoolEvaluationType>());
+			}
+			else {
+				return null;
+			}
+		}
+
+	}
+
+	public sealed class DimensionEvaluationType : SingleDataType<Dimension> {
+
+		public override string Name { get; } = "dimension";
+
+		public DimensionEvaluationType(EvaluationContext context) : base(context) {
+			AddStaticField(new TypeField("auto", this, t => new EvaluationValue(Dimension.Automatic, this)));
+
+			FloatEvaluationType floatType = context.GetType<FloatEvaluationType>();
+			BoolEvaluationType boolType = context.GetType<BoolEvaluationType>();
+
+			AddField(new TypeField("absolute", floatType, v => new EvaluationValue(((Dimension)v.Value!).Absolute, floatType)));
+			AddField(new TypeField("relative", floatType, v => new EvaluationValue(((Dimension)v.Value!).Relative, floatType)));
+			AddField(new TypeField("percent", floatType, v => new EvaluationValue(((Dimension)v.Value!).Percent, floatType)));
+			AddField(new TypeField("auto", boolType, v => new EvaluationValue(((Dimension)v.Value!).Auto, boolType)));
+
+			// Should be some static methods in here
+		}
+
+		public static bool IsDimension(EvaluationType type) {
+			return type is DimensionEvaluationType;
+		}
+
+		public static bool TryGetDimension(EvaluationValue value, out Dimension dimension) {
+			if (value.Value is Dimension dimensionValue) {
+				dimension = dimensionValue;
+				return true;
+			}
+			else {
+				dimension = default;
+				return false;
+			}
+		}
+
+		private EvaluationType? AddResultAny(EvaluationType other) {
+			return this == other ? this : null;
+		}
+		private EvaluationValue? AddAny(EvaluationValue left, EvaluationValue right) {
+			if (TryGetDimension(left, out Dimension leftDimension) && TryGetDimension(right, out Dimension rightDimension)) {
+				return new EvaluationValue(leftDimension + rightDimension, this);
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? AddResult(EvaluationType right) => AddResultAny(right);
+		public override EvaluationValue? Add(EvaluationValue left, EvaluationValue right) => AddAny(left, right);
+		public override EvaluationType? RAddResult(EvaluationType left) => AddResultAny(left);
+		public override EvaluationValue? RAdd(EvaluationValue left, EvaluationValue right) => AddAny(left, right);
+
+		private EvaluationType? MulResultAny(EvaluationType other) {
+			return FloatEvaluationType.IsReal(other) ? this : null;
+		}
+		private EvaluationValue? MulAny(EvaluationValue dimension, EvaluationValue factor) {
+			if (TryGetDimension(dimension, out Dimension dimensionVal) && FloatEvaluationType.TryGetFloat(factor, out float factorVal)) {
+				return new EvaluationValue(dimensionVal * factorVal, this);
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? MulResult(EvaluationType right) => MulResultAny(right);
+		public override EvaluationValue? Mul(EvaluationValue left, EvaluationValue right) => MulAny(left, right);
+		public override EvaluationType? RMulResult(EvaluationType left) => MulResultAny(left);
+		public override EvaluationValue? RMul(EvaluationValue left, EvaluationValue right) => MulAny(right, left);
+
+		public override EvaluationType? DivResult(EvaluationType right) {
+			return FloatEvaluationType.IsReal(right) ? this : null;
+		}
+		public override EvaluationValue? Div(EvaluationValue left, EvaluationValue right) {
+			if(TryGetDimension(left, out Dimension dimension) && FloatEvaluationType.TryGetFloat(right, out float divisor)) {
+				return new EvaluationValue(dimension / divisor, this);
+			}
+			else {
+				return null;
+			}
+		}
+		// Only know how to divide with a float on the RHS
+
+		public override EvaluationType? EqualResult(EvaluationType other) {
+			return this == other ? Context.GetType<BoolEvaluationType>() : null;
+		}
+		public override EvaluationValue? Equal(EvaluationValue left, EvaluationValue right) {
+			if (TryGetDimension(left, out Dimension a) && TryGetDimension(right, out Dimension b)) {
+				return new EvaluationValue(a == b, Context.GetType<BoolEvaluationType>());
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? NotEqualResult(EvaluationType other) {
+			return this == other ? Context.GetType<BoolEvaluationType>() : null;
+		}
+		public override EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) {
+			if (TryGetDimension(left, out Dimension a) && TryGetDimension(right, out Dimension b)) {
+				return new EvaluationValue(a != b, Context.GetType<BoolEvaluationType>());
+			}
+			else {
+				return null;
+			}
+		}
+
+	}
+
+	public sealed class MarginsEvaluationType : SingleDataType<Margins> {
+
+		public override string Name { get; } = "margins";
+
+		public MarginsEvaluationType(EvaluationContext context) : base(context) {
+			AddField(new TypeField("top", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Top, value.Type.Context.GetType<FloatEvaluationType>())));
+			AddField(new TypeField("right", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Right, value.Type.Context.GetType<FloatEvaluationType>())));
+			AddField(new TypeField("bottom", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Bottom, value.Type.Context.GetType<FloatEvaluationType>())));
+			AddField(new TypeField("left", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Left, value.Type.Context.GetType<FloatEvaluationType>())));
+		}
+
+		public static bool IsMargins(EvaluationType type) {
+			return type is MarginsEvaluationType;
+		}
+
+		public static bool TryGetMargins(EvaluationValue value, out Margins margins) {
+			if(value.Value is Margins marginsValue) {
+				margins = marginsValue;
+				return true;
+			}
+			else {
+				margins = default;
+				return false;
+			}
+		}
+
+		private EvaluationType? AddResultAny(EvaluationType other) {
+			return this == other ? this : null;
+		}
+		private EvaluationValue? AddAny(EvaluationValue left, EvaluationValue right) {
+			if(TryGetMargins(left, out Margins leftMargins) && TryGetMargins(right, out Margins rightMargins)) {
+				return new EvaluationValue(leftMargins + rightMargins, this);
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? AddResult(EvaluationType right) => AddResultAny(right);
+		public override EvaluationValue? Add(EvaluationValue left, EvaluationValue right) => AddAny(left, right);
+		public override EvaluationType? RAddResult(EvaluationType left) => AddResultAny(left);
+		public override EvaluationValue? RAdd(EvaluationValue left, EvaluationValue right) => AddAny(left, right);
+
+		private EvaluationType? MulResultAny(EvaluationType other) {
+			return FloatEvaluationType.IsReal(other) ? this : null;
+		}
+		private EvaluationValue? MulAny(EvaluationValue margins, EvaluationValue factor) {
+			if (TryGetMargins(margins, out Margins marginsVal) && FloatEvaluationType.TryGetFloat(factor, out float factorVal)) {
+				return new EvaluationValue(marginsVal * factorVal, this);
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? MulResult(EvaluationType right) => MulResultAny(right);
+		public override EvaluationValue? Mul(EvaluationValue left, EvaluationValue right) => MulAny(left, right);
+		public override EvaluationType? RMulResult(EvaluationType left) => MulResultAny(left);
+		public override EvaluationValue? RMul(EvaluationValue left, EvaluationValue right) => MulAny(right, left);
+
+		public override EvaluationType? DivResult(EvaluationType right) {
+			return FloatEvaluationType.IsReal(right) ? this : null;
+		}
+		public override EvaluationValue? Div(EvaluationValue left, EvaluationValue right) {
+			if(TryGetMargins(left, out Margins margins) && FloatEvaluationType.TryGetFloat(right, out float divisor)) {
+				return new EvaluationValue(margins / divisor, this);
+			}
+			else {
+				return null;
+			}
+		}
+		// Only know how to divide with a float on the RHS
+
+		public override EvaluationType? EqualResult(EvaluationType other) {
+			return this == other ? Context.GetType<BoolEvaluationType>() : null;
+		}
+		public override EvaluationValue? Equal(EvaluationValue left, EvaluationValue right) {
+			if (TryGetMargins(left, out Margins leftMargins) && TryGetMargins(right, out Margins rightMargins)) {
+				return new EvaluationValue(leftMargins == rightMargins, Context.GetType<BoolEvaluationType>());
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? NotEqualResult(EvaluationType other) {
+			return this == other ? Context.GetType<BoolEvaluationType>() : null;
+		}
+		public override EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) {
+			if (TryGetMargins(left, out Margins leftMargins) && TryGetMargins(right, out Margins rightMargins)) {
+				return new EvaluationValue(leftMargins != rightMargins, Context.GetType<BoolEvaluationType>());
+			}
+			else {
+				return null;
+			}
+		}
+
+	}
+
+	public sealed class FilePathEvaluationType : SingleDataType<SharpSheets.Utilities.FilePath> {
+
+		public override string Name { get; } = "filepath";
+
+		public FilePathEvaluationType(EvaluationContext context) : base(context) {
+			
+		}
+
+		public static bool IsFilePath(EvaluationType type) {
+			return type is FilePathEvaluationType;
+		}
+
+		public static bool TryGetFilePath(EvaluationValue value, [NotNullWhen(true)] out SharpSheets.Utilities.FilePath? filePath) {
+			if (value.Value is SharpSheets.Utilities.FilePath filePathValue) {
+				filePath = filePathValue;
+				return true;
+			}
+			else {
+				filePath = null;
+				return false;
+			}
+		}
+
+		public override EvaluationType? EqualResult(EvaluationType other) {
+			return this == other ? Context.GetType<BoolEvaluationType>() : null;
+		}
+		public override EvaluationValue? Equal(EvaluationValue left, EvaluationValue right) {
+			if (TryGetFilePath(left, out SharpSheets.Utilities.FilePath? leftPath) && TryGetFilePath(right, out SharpSheets.Utilities.FilePath? rightPath)) {
+				return new EvaluationValue(leftPath == rightPath, Context.GetType<BoolEvaluationType>());
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? NotEqualResult(EvaluationType other) {
+			return this == other ? Context.GetType<BoolEvaluationType>() : null;
+		}
+		public override EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) {
+			if (TryGetFilePath(left, out SharpSheets.Utilities.FilePath? leftPath) && TryGetFilePath(right, out SharpSheets.Utilities.FilePath? rightPath)) {
+				return new EvaluationValue(leftPath != rightPath, Context.GetType<BoolEvaluationType>());
+			}
+			else {
+				return null;
+			}
+		}
+
 	}
 
 }

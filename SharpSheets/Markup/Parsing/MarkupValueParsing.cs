@@ -36,7 +36,7 @@ namespace SharpSheets.Markup.Parsing {
 				return FloatExpression.Parse(match.Groups["expression"].Value.Trim(), variables);
 			}
 			else {
-				return new FloatExpression(float.Parse(match.Groups["number"].Value.Trim()));
+				return new FloatExpression(float.Parse(match.Groups["number"].Value.Trim()), variables.Context);
 			}
 		}
 		/// <summary></summary>
@@ -68,20 +68,20 @@ namespace SharpSheets.Markup.Parsing {
 			Match percentMatch = percentRegex.Match(text);
 			if (percentMatch.Success) {
 				float percent = GetPercentValue(percentMatch);
-				return new FloatExpression(percent);
+				return new FloatExpression(percent, variables.Context);
 			}
 			else {
 				return FloatExpression.Parse(text, variables);
 			}
 		}
 
-		public static XLengthExpression ParseXLength(string text, IVariableBox variables) {
+		public static XLengthExpression ParseXLength(string text, IVariableBox variables, MarkupEvaluationContext markupContext) {
 			text = text.Trim();
 			Match percentMatch = percentRegex.Match(text);
 			if (percentMatch.Success) {
 				float percent = GetPercentValue(percentMatch);
-				if (MarkupEnvironments.IsWidthDefined(variables)) {
-					return new XLengthExpression(MarkupEnvironments.WidthNode * percent);
+				if (MarkupEvaluationContext.IsWidthDefined(variables)) {
+					return new XLengthExpression(markupContext.WidthNode * variables.Context.MakeValue<FloatEvaluationType>(percent));
 				}
 				else {
 					throw new FormatException("\"width\" variable is not defined.");
@@ -92,13 +92,13 @@ namespace SharpSheets.Markup.Parsing {
 			}
 		}
 
-		public static YLengthExpression ParseYLength(string text, IVariableBox variables) {
+		public static YLengthExpression ParseYLength(string text, IVariableBox variables, MarkupEvaluationContext markupContext) {
 			text = text.Trim();
 			Match percentMatch = percentRegex.Match(text);
 			if (percentMatch.Success) {
 				float percent = GetPercentValue(percentMatch);
-				if (MarkupEnvironments.IsHeightDefined(variables)) {
-					return new YLengthExpression(MarkupEnvironments.HeightNode * percent);
+				if (MarkupEvaluationContext.IsHeightDefined(variables)) {
+					return new YLengthExpression(markupContext.HeightNode * variables.Context.MakeValue<FloatEvaluationType>(percent));
 				}
 				else {
 					throw new FormatException("\"height\" variable is not defined.");
@@ -109,13 +109,13 @@ namespace SharpSheets.Markup.Parsing {
 			}
 		}
 
-		public static BoundingBoxLengthExpression ParseBoundingBoxLength(string text, IVariableBox variables) {
+		public static BoundingBoxLengthExpression ParseBoundingBoxLength(string text, IVariableBox variables, MarkupEvaluationContext markupContext) {
 			text = text.Trim();
 			Match percentMatch = percentRegex.Match(text);
 			if (percentMatch.Success) {
 				float percent = GetPercentValue(percentMatch);
-				if (MarkupEnvironments.IsBoundingBoxDefined(variables)) {
-					return new BoundingBoxLengthExpression(MarkupEnvironments.BoundingBoxLengthNode * percent);
+				if (MarkupEvaluationContext.IsBoundingBoxDefined(variables)) {
+					return new BoundingBoxLengthExpression(markupContext.BoundingBoxLengthNode * variables.Context.MakeValue<FloatEvaluationType>(percent));
 				}
 				else {
 					throw new FormatException("The bounding box variables (\"width\", \"height\") are not defined.");
@@ -135,7 +135,7 @@ namespace SharpSheets.Markup.Parsing {
 			if (percentMatch.Success) {
 				float percent = GetPercentValue(percentMatch);
 				Length length = Length.FromPercentage(percent);
-				return new LengthExpression(length);
+				return new LengthExpression(length, variables.Context);
 			}
 			else {
 				return new LengthExpression(FloatExpression.Parse(text, variables));
@@ -146,7 +146,7 @@ namespace SharpSheets.Markup.Parsing {
 		/// <exception cref="EvaluationException"></exception>
 		public static ColorExpression ParseColor(string text, IVariableBox variables) {
 			if (string.Equals(text, "none")) {
-				return Colors.Color.None; // TODO Is this right? (This was "null" at one point, is that better in any way?)
+				return new ColorExpression(Colors.Color.None, variables.Context); // TODO Is this right? (This was "null" at one point, is that better in any way?)
 				//return null;
 			}
 			else {
@@ -176,10 +176,10 @@ namespace SharpSheets.Markup.Parsing {
 			//Console.WriteLine($"ParseFilePath, source = {source.Path}, text = {text}");
 			FilePath concretePath = new FilePath(source.Path, text);
 			if (concretePath.Exists) {
-				return concretePath;
+				return new FilePathExpression(concretePath, variables.Context);
 			}
 			else {
-				return new FilePathExpression(source.Path, Evaluation.Parse(text, variables));
+				return new FilePathExpression(variables.Context.MakeValue<StringEvaluationType>(source.Path), Evaluation.Parse(text, variables));
 			}
 		}
 
@@ -233,10 +233,10 @@ namespace SharpSheets.Markup.Parsing {
 		public static MarginsExpression ParseMargins(string text, IVariableBox variables) {
 			try {
 				EvaluationNode node = Evaluation.Parse(text, variables);
-				if (node.ReturnType == MarkupEvaluationTypes.MARGINS) {
+				if (MarginsEvaluationType.IsMargins(node.GetReturnType())) {
 					return new MarginsExpression(node);
 				}
-				else if (node.ReturnType == EvaluationType.FLOAT) {
+				else if (FloatEvaluationType.IsReal(node.GetReturnType())) {
 					return new MarginsExpression(new FloatExpression(node));
 				}
 			}
@@ -262,7 +262,7 @@ namespace SharpSheets.Markup.Parsing {
 		/// <exception cref="FormatException"></exception>
 		public static DimensionExpression ParseDimension(string text, IVariableBox variables) {
 			try {
-				return Dimension.Parse(text);
+				return new DimensionExpression(Dimension.Parse(text), variables.Context);
 			}
 			catch (FormatException) { }
 			return new DimensionExpression(Evaluation.Parse(text, variables));
@@ -305,7 +305,7 @@ namespace SharpSheets.Markup.Parsing {
 		/// <exception cref="FormatException"></exception>
 		public static TransformExpression ParseTransform(string text, IVariableBox variables) {
 
-			TransformExpression transform = TransformExpression.Identity();
+			TransformExpression transform = TransformExpression.Identity(variables.Context);
 
 			foreach (Match match in transformRegex.Matches(text)) {
 				TransformExpression next;
@@ -323,7 +323,7 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				else if (type == "translate") {
 					FloatExpression x;
-					FloatExpression y = 0;
+					FloatExpression y = new FloatExpression(0f, variables.Context);
 					if (values.Length == 1) {
 						x = values[0];
 					}
@@ -354,8 +354,8 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				else if (type == "rotate") {
 					FloatExpression a;
-					FloatExpression x = 0;
-					FloatExpression y = 0;
+					FloatExpression x = new FloatExpression(0f, variables.Context);
+					FloatExpression y = new FloatExpression(0f, variables.Context);
 					if (values.Length == 1) {
 						a = values[0];
 					}
@@ -367,11 +367,11 @@ namespace SharpSheets.Markup.Parsing {
 					else {
 						throw new FormatException("A rotate transform must be of the form \"rotate(<a> [<x> <y>])\".");
 					}
-					next = TransformExpression.Rotate(a * ((float)Math.PI / 180f), x, y);
+					next = TransformExpression.Rotate(a * MathF.PI / 180f, x, y);
 				}
 				else if (type == "skewX") {
 					if (values.Length == 1) {
-						next = TransformExpression.SkewX(values[0] * ((float)Math.PI / 180f));
+						next = TransformExpression.SkewX(values[0] * MathF.PI / 180f);
 					}
 					else {
 						throw new FormatException("A skewX transform must be of the form \"skewX(<a>)\".");
@@ -379,7 +379,7 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				else if (type == "skewY") {
 					if (values.Length == 1) {
-						next = TransformExpression.SkewY(values[0] * ((float)Math.PI / 180f));
+						next = TransformExpression.SkewY(values[0] * MathF.PI / 180f);
 					}
 					else {
 						throw new FormatException("A skewY transform must be of the form \"skewY(<a>)\".");
@@ -404,7 +404,7 @@ namespace SharpSheets.Markup.Parsing {
 			// TODO Should this be an expression? Or does that break something?
 
 			if (PreserveAspectRatio.TryParse(value, out PreserveAspectRatio preserveAspectRatio)) {
-				return preserveAspectRatio;
+				return new PreserveAspectRatioExpression(preserveAspectRatio, variables.Context);
 			}
 			else {
 				EvaluationNode node = Evaluation.Parse(value, variables);

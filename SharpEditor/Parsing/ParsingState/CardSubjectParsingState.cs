@@ -144,17 +144,17 @@ namespace SharpEditor.Parsing.ParsingState {
 		private static readonly Regex entryRegex = new Regex(@"^(?<entryname>[^\#\=]([^\(\)\{:]|(?<=\\)\{)+)(\s*\((?<entrynote>([^\(\)\{:]|(?<=\\)\{)*)\))?:\s*(?<entrytext>.+)$");
 		*/
 
-		private static IEnumerable<KeyValuePair<Definition, ContextProperty<object>>> GetAllProperties(DefinitionEnvironment environment) {
-			foreach (KeyValuePair<Definition, ContextProperty<object>> i in environment.GetPropertyValues()) {
-				yield return i;
+		private static IEnumerable<KeyValuePair<Definition, ContextProperty<object?>>> GetAllProperties(DefinitionEnvironment environment) {
+			foreach (KeyValuePair<Definition, ContextProperty<EvaluationValue>> i in environment.GetPropertyValues()) {
+				yield return new KeyValuePair<Definition, ContextProperty<object?>>(i.Key, i.Value.Apply<object?>(v=>v.Value)); // TODO Is this safe?
 			}
 			foreach(KeyValuePair<Definition, ContextProperty<EvaluationNode>> i in environment.GetPropertyNodes()) {
-				yield return new KeyValuePair<Definition, ContextProperty<object>>(i.Key, i.Value.Apply<object>(n => n));
+				yield return new KeyValuePair<Definition, ContextProperty<object?>>(i.Key, i.Value.Apply<object?>(n => n));
 			}
 		}
 
 		private void AddEnvironmentSpans(CardSubjectSpan? parentSpan, DefinitionEnvironment environment) {
-			foreach (KeyValuePair<Definition, ContextProperty<object>> definedProperty in GetAllProperties(environment)) {
+			foreach (KeyValuePair<Definition, ContextProperty<object?>> definedProperty in GetAllProperties(environment)) {
 				DocumentSpan propertyNameLocation = definedProperty.Value.Location;
 				//DocumentSpan propertyValueLocation = definedProperty.Value.ValueLocation;
 

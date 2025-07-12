@@ -131,48 +131,21 @@ namespace SharpSheets.Markup.Patterns {
 		/// <param name="_name">The name for this argument group. This name will be visible to
 		/// the user, and by default will also be the variable name for this argument group
 		/// in the Markup, unless the <paramref name="_variable"/> attribute is specified.</param>
+		/// <param name="type" exclude="True"></param>
 		/// <param name="_variable">An optional variable name, which (if provided) will be used
 		/// in place of the <paramref name="_name"/> as the variable handle for this argument group
 		/// in the Markup.</param>
 		/// <param name="_desc">A description for this argument, which will be presented to
 		/// the user.</param>
 		/// <param name="args">The arguments inside this grouping.</param>
-		public MarkupGroupArgument(EvaluationName _name, EvaluationName? _variable = null, string? _desc = null, IEnumerable<IMarkupArgument>? args = null) {
+		public MarkupGroupArgument(EvaluationName _name, EvaluationType type, EvaluationName? _variable = null, string? _desc = null, IEnumerable<IMarkupArgument>? args = null) {
 			ArgumentName = _name;
 			variableName = _variable;
 			Description = _desc;
 			Args = (args ?? Enumerable.Empty<IMarkupArgument>()).ToArray(); ;
-			Type = MakeGroupType(VariableName.ToString(), Args);
+			Type = type; // MakeGroupType(VariableName.ToString(), Args);
 		}
 
-		public static EvaluationType MakeGroupType(string name, IEnumerable<IMarkupArgument> args) {
-			List<TypeField> fields = new List<TypeField>();
-
-			foreach(IMarkupArgument arg in args) {
-				TypeField field = new TypeField(arg.VariableName, arg.Type, obj => GroupFieldAccessor(obj, arg.VariableName));
-				fields.Add(field);
-			}
-
-			return EvaluationType.CustomType(name, fields, typeof(Dictionary<EvaluationName, object>));
-		}
-
-		/// <summary></summary>
-		/// <exception cref="UndefinedVariableException"></exception>
-		/// <exception cref="EvaluationTypeException"></exception>
-		private static object GroupFieldAccessor(object obj, EvaluationName name) {
-			// TODO Should this be "Dictionary<EvaluationName, object?>"? (Cf. With argument parsing)
-			if (obj is Dictionary<EvaluationName, object> values) {
-				if(values.TryGetValue(name, out object? result)) {
-					return result;
-				}
-				else {
-					throw new UndefinedVariableException("Cannot find field value.");
-				}
-			}
-			else {
-				throw new EvaluationTypeException("Cannot access group field from invalid object.");
-			}
-		}
 	}
 
 	/// <summary>

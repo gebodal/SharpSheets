@@ -9,7 +9,7 @@ namespace SharpSheets.Evaluations {
 
 	public class InterpolatedContext {
 
-		public static readonly InterpolatedContext Empty = new InterpolatedContext(Context.Empty, true, null, true, Enumerable.Empty<ContextProperty<string>>(), Enumerable.Empty<ContextProperty<TextExpression>>(), Array.Empty<ContextValue<TextExpression>>());
+		public static readonly InterpolatedContext Empty = new InterpolatedContext(Context.Empty, true, null, null, Enumerable.Empty<ContextProperty<string>>(), Enumerable.Empty<ContextProperty<TextExpression>>(), Array.Empty<ContextValue<TextExpression>>());
 
 		public static InterpolatedContext Parse(IContext originalContext, IVariableBox variables, bool pruneChildren, out SharpParsingException[] contextErrors, out IReadOnlyLineOwnership knownLineOwners) {
 			LineOwnership lineOwners = new LineOwnership();
@@ -51,7 +51,7 @@ namespace SharpSheets.Evaluations {
 			IVariableBox fullContextVariables = forEach is not null ? forEach.GetVariables(variables) : variables;
 
 			string? conditionStr = originalContext.GetProperty("condition", true, originalContext, null, out DocumentSpan? conditionLocation);
-			BoolExpression condition;
+			BoolExpression? condition;
 			if (conditionStr is not null) {
 				if (conditionLocation.HasValue) { lineOwners.Add(conditionLocation.Value.Line, originalContext.Location.Line); }
 				try {
@@ -59,11 +59,11 @@ namespace SharpSheets.Evaluations {
 				}
 				catch (EvaluationException e) {
 					errors.Add(new SharpParsingException(conditionLocation, "Error parsing condition: " + e.Message, e));
-					condition = true;
+					condition = null; // true;
 				}
 			}
 			else {
-				condition = true;
+				condition = null; // true;
 			}
 
 
@@ -76,7 +76,7 @@ namespace SharpSheets.Evaluations {
 				try {
 					TextExpression expr = Interpolation.Parse(property.Value, fullContextVariables, true);
 					if (expr.IsConstant) {
-						simpleProperties.Add(new ContextProperty<string>(property.Location, property.Name, property.ValueLocation, expr.Evaluate(Environments.Empty)));
+						simpleProperties.Add(new ContextProperty<string>(property.Location, property.Name, property.ValueLocation, expr.Evaluate(Environments.Empty(expr.Context))));
 					}
 					else {
 						exprProperties.Add(new ContextProperty<TextExpression>(property.Location, property.Name, property.ValueLocation, expr));
@@ -126,7 +126,7 @@ namespace SharpSheets.Evaluations {
 		public bool PruneChildren { get; }
 
 		public ContextForEach? ForEach { get; }
-		public BoolExpression Condition { get; }
+		public BoolExpression? Condition { get; } // true if null
 		private readonly Dictionary<string, ContextProperty<string>> simpleProperties;
 		private readonly Dictionary<string, ContextProperty<TextExpression>> exprProperties;
 		private readonly List<ContextValue<TextExpression>> entries;
@@ -134,7 +134,7 @@ namespace SharpSheets.Evaluations {
 		private readonly List<InterpolatedContext> children;
 		private readonly Dictionary<string, InterpolatedContext> namedChildren;
 
-		private InterpolatedContext(IContext originalContext, bool pruneChildren, ContextForEach? forEach, BoolExpression condition, IEnumerable<ContextProperty<string>> simpleProperties, IEnumerable<ContextProperty<TextExpression>> exprProperties, IList<ContextValue<TextExpression>> exprEntries) {
+		private InterpolatedContext(IContext originalContext, bool pruneChildren, ContextForEach? forEach, BoolExpression? condition, IEnumerable<ContextProperty<string>> simpleProperties, IEnumerable<ContextProperty<TextExpression>> exprProperties, IList<ContextValue<TextExpression>> exprEntries) {
 			OriginalContext = originalContext;
 			//Variables = variables;
 			PruneChildren = pruneChildren;
@@ -200,13 +200,13 @@ namespace SharpSheets.Evaluations {
 
 			foreach (InterpolatedContext child in children) {
 				foreach ((int childIdx, IEnvironment childEnv) in (child.ForEach?.GetEnvironments(environment) ?? environment.Yield()).Enumerate()) {
-					if (!PruneChildren || child.Condition.Evaluate(childEnv)) {
+					if (!PruneChildren || (child.Condition?.Evaluate(childEnv) ?? true)) {
 						context.children.Add(child.EvaluateContext(childEnv, errors, childIdx > 0 ? $"##{childIdx}" : null));
 					}
 				}
 			}
 			foreach (KeyValuePair<string, InterpolatedContext> namedChild in namedChildren) {
-				if (!PruneChildren || namedChild.Value.Condition.Evaluate(environment)) {
+				if (!PruneChildren || (namedChild.Value.Condition?.Evaluate(environment) ?? true)) {
 					context.namedChildren.Add(namedChild.Key, namedChild.Value.EvaluateContext(environment, errors, null));
 				}
 			}
@@ -291,26 +291,26 @@ namespace SharpSheets.Evaluations {
 		private readonly EvaluationNode array;
 
 		public ContextForEach(EvaluationName loopVariable, EvaluationNode array) {
-			if (!(array.ReturnType.IsArray || array.ReturnType.IsTuple)) {
-				throw new EvaluationTypeException("For-each expression must produce an array or tuple.");
+			if (array.GetReturnType().IterationResult() is not EvaluationType iterationType) {
+				throw new EvaluationTypeException("For-each expression must produce an iterable type.");
 			}
 
-			LoopVariable = new EnvironmentVariableInfo(loopVariable, array.ReturnType.ElementType, null);
+			LoopVariable = new EnvironmentVariableInfo(loopVariable, iterationType, null);
 			this.array = array;
 		}
 
 		public IVariableBox GetVariables(IVariableBox variables) {
 			return VariableBoxes.Concat(
 				variables,
-				SimpleVariableBoxes.Single(LoopVariable)
+				VariableBoxes.Single(LoopVariable, variables.Context)
 				);
 		}
 
 		public IEnumerable<IEnvironment> GetEnvironments(IEnvironment environment) {
-			object? value = array.Evaluate(environment);
-			if (EvaluationTypes.TryGetArray(value, out Array? arrayValue)) {
-				foreach (object entry in arrayValue) {
-					IEnvironment loopVarEnv = SimpleEnvironments.Single(LoopVariable, entry);
+			EvaluationValue value = array.Evaluate(environment);
+			if (value.Type.Iteration(value) is IEnumerable<EvaluationValue> enumerable) {
+				foreach (EvaluationValue entry in enumerable) {
+					IEnvironment loopVarEnv = Environments.Single(LoopVariable, entry);
 					yield return loopVarEnv.AppendEnvironment(environment);
 				}
 			}

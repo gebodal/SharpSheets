@@ -5,19 +5,21 @@
 		protected abstract string OperatorName { get; }
 		public override int[] CalculationOrder { get; } = new int[] { 1, 0 };
 
-		public sealed override EvaluationType GetReturnType(EvaluationTypeSystem typeSystem) {
-			EvaluationType firstType = First.GetReturnType(typeSystem);
-			EvaluationType secondType = Second.GetReturnType(typeSystem);
+		public BooleanBinaryOperatorNode(EvaluationContext context) : base(context) { }
+
+		public sealed override EvaluationType GetReturnType() {
+			EvaluationType firstType = First.GetReturnType();
+			EvaluationType secondType = Second.GetReturnType();
 			if (BoolEvaluationType.IsBool(firstType) && BoolEvaluationType.IsBool(secondType)) {
-				return EvaluationTypes.BOOL;
+				return Context.GetType<BoolEvaluationType>();
 			}
 			else {
 				throw new EvaluationTypeException($"Cannot evaluate logical {OperatorName} for operands of type {firstType} and {secondType}.");
 			}
 		}
 
-		protected static EvaluationValue MakeResult(bool result) {
-			return new EvaluationValue(result, EvaluationTypes.BOOL);
+		protected static EvaluationValue MakeResult(IEnvironment environment, bool result) {
+			return new EvaluationValue(result, environment.Context.GetType<BoolEvaluationType>());
 		}
 
 		protected EvaluationTypeException MakeCalculationError(EvaluationValue a) {
@@ -33,6 +35,8 @@
 		public override string Symbol { get; } = "&";
 		protected override string OperatorName { get; } = "AND";
 
+		public ANDNode(EvaluationContext context) : base(context) { }
+
 		public override EvaluationValue Evaluate(IEnvironment environment) {
 			EvaluationValue a = First.Evaluate(environment);
 
@@ -40,14 +44,14 @@
 				if (aBool) {
 					EvaluationValue b = Second.Evaluate(environment);
 					if (BoolEvaluationType.TryGetBool(b, out bool bBool)) {
-						return MakeResult(aBool && bBool);
+						return MakeResult(environment, aBool && bBool);
 					}
 					else {
 						throw MakeCalculationError(a, b);
 					}
 				}
 				else {
-					return MakeResult(false);
+					return MakeResult(environment, false);
 				}
 			}
 			else {
@@ -56,7 +60,7 @@
 		}
 
 		protected override BinaryOperatorNode Empty() {
-			return new ANDNode();
+			return new ANDNode(Context);
 		}
 	}
 
@@ -65,12 +69,14 @@
 		public override string Symbol { get; } = "^";
 		protected override string OperatorName { get; } = "XOR";
 
+		public XORNode(EvaluationContext context) : base(context) { }
+
 		public override EvaluationValue Evaluate(IEnvironment environment) {
 			EvaluationValue a = First.Evaluate(environment);
 			EvaluationValue b = Second.Evaluate(environment);
 
 			if (BoolEvaluationType.TryGetBool(a, out bool aBool) && BoolEvaluationType.TryGetBool(b, out bool bBool)) {
-				return new EvaluationValue(aBool ^ bBool, EvaluationTypes.BOOL);
+				return MakeResult(environment, aBool ^ bBool);
 			}
 			else {
 				throw MakeCalculationError(a, b);
@@ -78,7 +84,7 @@
 		}
 
 		protected override BinaryOperatorNode Empty() {
-			return new XORNode();
+			return new XORNode(Context);
 		}
 	}
 
@@ -87,18 +93,20 @@
 		public override string Symbol { get; } = "|";
 		protected override string OperatorName { get; } = "OR";
 
+		public ORNode(EvaluationContext context) : base(context) { }
+
 		public override EvaluationValue Evaluate(IEnvironment environment) {
 			EvaluationValue a = First.Evaluate(environment);
 
 			if (BoolEvaluationType.TryGetBool(a, out bool aBool)) {
 				if (aBool) {
-					return MakeResult(true);
+					return MakeResult(environment, true);
 					
 				}
 				else {
 					EvaluationValue b = Second.Evaluate(environment);
 					if (BoolEvaluationType.TryGetBool(b, out bool bBool)) {
-						return MakeResult(bBool);
+						return MakeResult(environment, bBool);
 					}
 					else {
 						throw MakeCalculationError(a, b);
@@ -111,7 +119,7 @@
 		}
 
 		protected override BinaryOperatorNode Empty() {
-			return new ORNode();
+			return new ORNode(Context);
 		}
 	}
 
