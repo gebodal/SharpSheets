@@ -16,6 +16,44 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace SharpSheets.Parsing {
 
+	[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+	public class FactoryBuilderAttribute : Attribute {
+
+		public string? Name { get; set; } = null;
+
+		public Type BuildType { get; }
+
+		public FactoryBuilderAttribute(Type buildType) {
+			this.BuildType = buildType;
+		}
+
+	}
+
+	[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+	public class PropertyAttribute : Attribute {
+
+		public bool Local { get; }
+		public string? Default { get; set; } = null;
+		public string? Example { get; set; } = null;
+
+		protected PropertyAttribute(bool local) {
+			Local = local;
+		}
+		
+		public PropertyAttribute() : this(false) { }
+
+	}
+
+	[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+	public class LocalPropertyAttribute : PropertyAttribute {
+
+		public LocalPropertyAttribute() : base(true) { }
+
+	}
+
+	[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+	public class BuildErrorsAttribute : Attribute { }
+
 	public static class SharpFactory {
 
 		/// <summary></summary>
@@ -28,6 +66,51 @@ namespace SharpSheets.Parsing {
 				.Where(c => c != null && c.DeclaringType != null)
 				.ToDictionary(c => c!.DeclaringType!, c => c!);
 			return types;
+		}
+
+		public static Dictionary<Type, MethodInfo> GetBuilders(Type supertype, params Type[] requiredConstructorArguments) {
+			MethodInfo[] builderMethods = typeof(SharpFactory).Assembly.GetTypes() // Look in current assembly
+				.SelectMany(t => t.GetMethods()) // Find all methods of all types
+				.Where(m => m.IsStatic) // Only look at static methods
+				.Where(m => { // Where the factory is building the correct type
+					FactoryBuilderAttribute? factoryAttr = m.GetCustomAttribute<FactoryBuilderAttribute>();
+					if (factoryAttr is null) { return false; }
+					else { return factoryAttr.BuildType.IsAssignableTo(supertype); }
+				})
+				.Where(m => m.GetParameters().Where(p => p.GetCustomAttribute<BuildErrorsAttribute>() is null).Zip(requiredConstructorArguments, (p, a) => p.ParameterType == a).All())
+				.ToArray();
+
+			return builderMethods.ToDictionary(m => {
+				if (Nullable.GetUnderlyingType(m.ReturnType) is Type underlying && underlying.IsAssignableTo(supertype)) {
+					return underlying;
+				}
+				else if (m.ReturnType.IsAssignableTo(supertype)) {
+					return m.ReturnType;
+				}
+				else {
+					throw new InvalidOperationException($"Builder method (return type {m.ReturnType}) does not return an instance of the stated supertype {supertype}.");
+				}
+			});
+		}
+
+		public static MethodInfo GetBuilder(Type type, params Type[] requiredConstructorArguments) {
+			return typeof(SharpFactory).Assembly.GetTypes() // Look in current assembly
+				.SelectMany(t => t.GetMethods()) // Find all methods of all types
+				.Where(m => m.IsStatic) // Only look at static methods
+				.Where(m => { // Where there is a factory builder
+					FactoryBuilderAttribute? factoryAttr = m.GetCustomAttribute<FactoryBuilderAttribute>();
+					return factoryAttr is not null;
+				})
+				.Where(m => { // Where the builder is constructing the desired type
+					if (Nullable.GetUnderlyingType(m.ReturnType) is Type underlying) {
+						return underlying == type;
+					}
+					else {
+						return m.ReturnType == type;
+					}
+				})
+				.Where(m => m.GetParameters().Where(p => p.GetCustomAttribute<BuildErrorsAttribute>() is null).Zip(requiredConstructorArguments, (p, a) => p.ParameterType == a).All())
+				.First();
 		}
 
 		public static bool IsParsableStruct(Type type) {

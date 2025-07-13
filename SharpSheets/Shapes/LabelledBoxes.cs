@@ -5,6 +5,7 @@ using SharpSheets.Colors;
 using System.Linq;
 using SharpSheets.Canvas;
 using SharpSheets.Exceptions;
+using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {
 
@@ -35,6 +36,18 @@ namespace SharpSheets.Shapes {
 			this.labelSize = labelSize;
 			this.labelTrim = labelTrim;
 			this.boxTrim = boxTrim;
+		}
+
+		/// <param name="aspect">Aspect ratio for this box.</param>
+		/// <param name="placement">The placement of the label area around the shape area,
+		/// as a cardinal direction.</param>
+		/// <param name="labelSize">The size of the label area, measured from the edge of the
+		/// shape area, in points.</param>
+		/// <param name="labelTrim">Padding for the inside of the label area.</param>
+		/// <param name="boxTrim">Padding for the inside of the remaining area.</param>
+		[FactoryBuilder(typeof(ILabelledBox))]
+		public static SimpleLabelledBox Build(float aspect, Direction placement = Direction.SOUTH, float labelSize = 10f, Margins labelTrim = default, Margins boxTrim = default) {
+			return new SimpleLabelledBox(aspect, placement, labelSize, labelTrim, boxTrim);
 		}
 
 		private Size ProxyLabelSize() {
@@ -142,6 +155,15 @@ namespace SharpSheets.Shapes {
 		/// <size>50 65</size>
 		public StatBoxSimple(float aspect, float bevel = 5f) : base(aspect) {
 			this.bevel = bevel;
+		}
+
+		/// <param name="aspect">Aspect ratio for this box.</param>
+		/// <param name="bevel">A scaling for the details of the outline. This
+		/// also affects the size of the remaining and label areas.</param>
+		/// <size>50 65</size>
+		[FactoryBuilder(typeof(ILabelledBox))]
+		public static StatBoxSimple Build(float aspect, float bevel = 5f) {
+			return new StatBoxSimple(aspect, bevel);
 		}
 
 		protected static void Measurements(float rectWidth, out float ellipseWidth, out float ellipseHeight, out float ellipseOffset, out float boxBaseOffset) {

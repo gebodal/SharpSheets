@@ -30,6 +30,12 @@ namespace SharpSheets.Widgets {
 		/// </summary>
 		/// <param name="setup"> Widget setup object. </param>
 		public Div(WidgetSetup setup) : base(setup) { }
+
+		/// <param name="setup"> Widget setup object. </param>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Div Build(WidgetSetup setup) {
+			return new Div(setup);
+		}
 	}
 	/// <summary>
 	/// This widget functions identically to the <see cref="Div"/> widget, and is simply included to allow more
@@ -37,6 +43,12 @@ namespace SharpSheets.Widgets {
 	/// </summary>
 	public class Row : DivisionWidget {
 		public Row(WidgetSetup setup) : base(setup) { }
+
+		/// <param name="setup"> Widget setup object. </param>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Row Build(WidgetSetup setup) {
+			return new Row(setup);
+		}
 	}
 	/// <summary>
 	/// This widget functions identically to the <see cref="Div"/> widget, and is simply included to allow more
@@ -44,6 +56,12 @@ namespace SharpSheets.Widgets {
 	/// </summary>
 	public class Column : DivisionWidget {
 		public Column(WidgetSetup setup) : base(setup) { }
+
+		/// <param name="setup"> Widget setup object. </param>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Column Build(WidgetSetup setup) {
+			return new Column(setup);
+		}
 	}
 
 	/// <summary>
@@ -54,6 +72,12 @@ namespace SharpSheets.Widgets {
 	/// </summary>
 	public sealed class Empty : SharpWidget {
 		public Empty(WidgetSetup setup) : base(setup) { }
+
+		/// <param name="setup"> Widget setup object. </param>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Empty Build(WidgetSetup setup) {
+			return new Empty(setup);
+		}
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) { }
 		protected override Rectangle? GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) { return null; }
@@ -141,6 +165,29 @@ namespace SharpSheets.Widgets {
 			fieldName = name;
 
 			this.fieldDetails = field ?? new FieldDetails();
+		}
+
+		/// <summary>
+		/// Factory build method for <see cref="Section"/>.
+		/// </summary>
+		/// <param name="setup"> Widget setup object. </param>
+		/// <param name="name"> The name for this section, used for titles and field names. </param>
+		/// <param name="outline"> Outline style to place around this widget,
+		/// which will be drawn before any child widgets are drawn. </param>
+		/// <param name="frame"> Margins to apply to the remaining area after the outline is drawn.
+		/// This can be used to separate the children from the outline, if desired. This extra spacing will
+		/// be factored into any autosizing calculations.</param>
+		/// <param name="field">Field details for this widget.</param>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Section Build(
+				WidgetSetup setup,
+				string? name = null,
+				[Property(Example = "Simple")] IContainerShape? outline = null,
+				[LocalProperty] Margins frame = default,
+				FieldDetails? field = null
+			) {
+
+			return new Section(setup, name, outline, frame, field);
 		}
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
@@ -264,6 +311,26 @@ namespace SharpSheets.Widgets {
 			this.frame = _frame;
 
 			this.fieldDetails = field ?? new FieldDetails();
+		}
+
+		/// <param name="setup"> Widget setup object. </param>
+		/// <param name="name"> The name for this box, used for titles and field names. </param>
+		/// <param name="outline"> Outline style to place around this widget,
+		/// which will be drawn before any child widgets are drawn. </param>
+		/// <param name="frame"> Margins to apply to the remaining area after the outline is drawn.
+		/// This can be used to separate the children from the outline, if desired. This extra spacing will
+		/// be factored into any autosizing calculations.</param>
+		/// <param name="field">Field details for this widget.</param>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Box Build(
+				WidgetSetup setup,
+				string? name = null,
+				[Property(Example = "Simple")] IContainerShape? outline = null,
+				[LocalProperty] Margins frame = default,
+				FieldDetails? field = null
+			) {
+
+			return new Box(setup, name, outline, frame, field);
 		}
 
 		/// <summary></summary>
@@ -436,6 +503,34 @@ namespace SharpSheets.Widgets {
 			this.fieldDetails = field ?? new FieldDetails();
 
 			this.content = content?.Child;
+		}
+
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="outline">LabelledBox style to draw for this widget.
+		/// This shape will be used to calculate the remaining and label areas.
+		/// It will also be drawn before any content or label is drawn.</param>
+		/// <param name="frame">Margins to apply to the remaining area after the labelled box is drawn.
+		/// This can be used to separate the field, or any children, from the outline if desired.
+		/// This extra spacing will be factored into any autosizing calculations.</param>
+		/// <param name="label">The text label to be drawn in the label area of the
+		/// labelled box. This positioning and style of this label can be adjusted using
+		/// the other settings.</param>
+		/// <param name="label_">Label details for this widget.</param>
+		/// <param name="field">Field details for this widget.</param>
+		/// <param name="content">If provided, this child content will be drawn in place
+		/// of the label text in the label area of the labelled box.</param>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Labelled Build(
+				WidgetSetup setup,
+				ILabelledBox? outline = null,
+				[LocalProperty] Margins frame = default,
+				string? label = null, // TODO RichString?
+				LabelParams? label_ = null,
+				FieldDetails? field = null,
+				ChildHolder? content = null
+			) {
+
+			return new Labelled(setup, outline, frame, label, label_, field, content);
 		}
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
@@ -619,6 +714,67 @@ namespace SharpSheets.Widgets {
 			this.singleline = singleline;
 		}
 
+		/// <param name="setup"></param>
+		/// <param name="text">The text to be displayed in this widget, which can be formatted as rich text.
+		/// The provided entries will be treated as separate lines of text.
+		/// </param>
+		/// <param name="fontSize">The fontsize at which to draw the provided text.
+		/// A fontsize of 0 indicates that the fontsize should be adjusted such that
+		/// the text fit the available area (this can also be achieved by setting the <paramref name="fit"/> flag).
+		/// This parameter is ignored if <paramref name="fit"/> is true.</param>
+		/// <param name="format">This parameter can be used to set the default format
+		/// for the text, to be used in conjuction with any rich text formatting. For example, if this parameter
+		/// is set to <see cref="TextFormat.BOLD"/>, then the text "Testing _Testing_" would be interpreted as "*Testing _Testing_*" </param>
+		/// <param name="lineSpacing">This parameter sets the line spacing, which is the distance between successive
+		/// text baselines, measured in multiples of the current fontsize.</param>
+		/// <param name="paragraph">Paragraph data for this widget.</param>
+		/// <param name="minfontsize">This is the minimum fontsize to be used when fitting the text
+		/// to the available area. It must have a value greater than zero. This parameter is ignored when <paramref name="fit"/>
+		/// is false and <paramref name="fontSize"/> is greater than zero.</param>
+		/// <param name="maxfontsize">This is the maximum fontsize to be used when fitting the
+		/// text to the available area. It must have a value greater than zero. If not provided, the maximum fontsize will
+		/// be the maximum of <paramref name="fontSize"/> and <paramref name="minfontsize"/>. This parameter is ignored when
+		/// <paramref name="fit"/> is false and <paramref name="fontSize"/> is greater than zero.</param>
+		/// <param name="epsilon">This is the smallest change in fontsize to be considered when fitting the text size
+		/// to the available area. This parameter is ignored when <paramref name="fit"/> is false and <paramref name="fontSize"/>
+		/// is greater than zero.</param>
+		/// <param name="justification">The horizontal justification to use for the text within the available area.</param>
+		/// <param name="alignment">The vertical alignment to use for the text within the available area.</param>
+		/// <param name="orientation">Orientation for the text, which will control the "up" direction
+		/// when the text is drawn.</param>
+		/// <param name="heightStrategy">The height calculation strategy to use when arranging the text within the available area.</param>
+		/// <param name="fit">Flag to indicate that the font size should be adjusted to fit the text to the
+		/// available area.</param>
+		/// <param name="offset">An offset for the text, after positioning using <paramref name="justification"/> and
+		/// <paramref name="alignment"/>. This is provided as an x,y pair of numbers, measured in points. The positive directions
+		/// are rightwards and upwards. This can be used to make specific adjustments, to accomodate quirks of specific fonts.</param>
+		/// <param name="singleline">Flag to indicate that the text should be written on a single line. No line breaks will
+		/// be added, regardless of the fontsize.</param>
+		/// <size>50 50</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Text Build(
+				WidgetSetup setup,
+				[Property(Example = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")]
+				List<RichString>? text = null,
+				float fontSize = -1f,
+				TextFormat? format = null,
+				float lineSpacing = 1.35f,
+				ParagraphDataArgs? paragraph = null,
+				[Property(Example = "1")] float minfontsize = 1f,
+				[Property(Example = "400")] float? maxfontsize = null,
+				float epsilon = 0.25f,
+				Justification justification = Justification.LEFT,
+				Alignment alignment = Alignment.TOP,
+				Direction orientation = Direction.NORTH,
+				TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline,
+				[Property(Example = "true")] bool fit = false,
+				(float x, float y) offset = default,
+				bool singleline = false
+			) {
+
+			return new Text(setup, text, fontSize, format, lineSpacing, paragraph, minfontsize, maxfontsize, epsilon, justification, alignment, orientation, heightStrategy, fit, offset, singleline);
+		}
+
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 
 			rect = new Rectangle(rect.X + offset.x, rect.Y + offset.y, rect.Width, rect.Height);
@@ -674,6 +830,15 @@ namespace SharpSheets.Widgets {
 
 		public Entried(WidgetSetup setup, IEntriedShape outline) : base(setup) {
 			this.outline = outline;
+		}
+
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="outline">EntriedShape style to draw for this widget.
+		/// This shape will be used to calculate the available areas.
+		/// It will also be drawn before (i.e. under) any content is drawn.</param>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Entried Build(WidgetSetup setup, IEntriedShape outline) {
+			return new Entried(setup, outline);
 		}
 
 		protected override Rectangle?[] GetChildRects(ISharpGraphicsState graphicsState, Rectangle rect, out Rectangle availableRect, out Rectangle? childrenRectArea, out Rectangle?[] gutters) {
@@ -882,6 +1047,67 @@ namespace SharpSheets.Widgets {
 			this.entry = entry?.Child;
 		}
 
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="bar">Bar style to draw for this widget.
+		/// This shape will be used to calculate the label and entry areas.
+		/// It will also be drawn before any label or entry is drawn.</param>
+		/// <param name="name">The names to use for the bars.
+		/// The number of names will determine the number of bars drawn in the document.
+		/// These names will be used in the bar labels (unless a <paramref name="content"/> child is given)
+		/// and for field names.</param>
+		/// <param name="tooltip">Tooltip strings to use for the bar fields. If the number
+		/// of tooltip strings does not match the number of bars, some tooltips will be ignored,
+		/// or some fields will have no tooltip, as appropriate.</param>
+		/// <param name="height">The height that each bar is to be drawn at. This is used
+		/// in auto-sizing calculations. The default is 1 relative unit.</param>
+		/// <param name="label">A label to be drawn by the bar entry area.
+		/// By default this will only be drawn for the first bar, but will be drawn by each
+		/// bar if <paramref name="allLabelled"/> is specified.</param>
+		/// <param name="note">A note to be drawn by the bar label area.
+		/// By default this will only be drawn for the first bar, but will be drawn by each
+		/// bar if <paramref name="allLabelled"/> is specified.</param>
+		/// <param name="allLabelled">Flag to indicate that the note and label should be drawn
+		/// for each bar, not just the first one.</param>
+		/// <param name="name_">Name details data for this widget.</param>
+		/// <param name="label_">Label details data for this widget.</param>
+		/// <param name="note_">Note details data for this widget.</param>
+		/// <param name="checkMarks">A flag to indicate that the bar entry fields should be
+		/// check fields, rather than text fields. This flag is unnecessary if a value is provided
+		/// for <paramref name="check"/>.</param>
+		/// <param name="check">The check mark to use for the bar fields (the fields will be check
+		/// fields if a value is given for this parameter). Check marks can be specified for each
+		/// bar separately. If the number of bars does not match the number of checkmarks, then the
+		/// last checkmark will be used for any remaining bars, or remaining checkmarks will be ignored,
+		/// as appropriate.</param>
+		/// <param name="rich">Flag to indicate that any text field should have rich text features enabled.</param>
+		/// <param name="content">If provided, this child will be drawn in place
+		/// of the name text in the label area of the bar.</param>
+		/// <param name="entry">If provided, this child will be drawn in place
+		/// of the field in the remaining area of the bar.</param>
+		/// <size>100 50</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Bars Build(
+				WidgetSetup setup,
+				IBar? bar = null,
+				[LocalProperty(Example = "Bar 1,Bar 2")] string[]? name = null, // TODO RichString?
+				[LocalProperty] string[]? tooltip = null,
+				Dimension? height = default,
+				[Property(Example = "Label")] string? label = null, // TODO RichString?
+				[Property(Example = "Note")] string? note = null, // TODO RichString?
+				bool allLabelled = false,
+				BarNameDetails? name_ = null,
+				LabelDetails? label_ = null,
+				LabelDetails? note_ = null,
+				bool checkMarks = false,
+				CheckType[]? check = null,
+				bool rich = false,
+				ChildHolder? content = null,
+				ChildHolder? entry = null
+			) {
+
+			return new Bars(setup, bar, name, tooltip, height, label, note, allLabelled, name_, label_, note_, checkMarks, check, rich, content, entry);
+		}
+
 		protected void DrawContent(ISharpCanvas canvas, int barIdx, Rectangle labelRect, CancellationToken cancellationToken) {
 			if (content != null) {
 				content.Draw(canvas, labelRect, cancellationToken);
@@ -1070,6 +1296,56 @@ namespace SharpSheets.Widgets {
 			this.entry2 = entry2?.Child;
 		}
 
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="bar">UsageBar style to draw for this widget.
+		/// This shape will be used to calculate the label and entry areas.
+		/// It will also be drawn before any label or entry is drawn.</param>
+		/// <param name="name">The names to use for the bars.
+		/// The number of names will determine the number of bars drawn in the document.
+		/// These names will be used in the bar labels (unless a <paramref name="content"/> child is given)
+		/// and for field names.</param>
+		/// <param name="height">The height that each bar is to be drawn at. This is used
+		/// in auto-sizing calculations. The default is 1 relative unit.</param>
+		/// <param name="labels">A pair of labels to be drawn by the bar entry areas.
+		/// By default these will only be drawn for the first bar, but will be drawn by each
+		/// bar if <paramref name="allLabelled"/> is specified.</param>
+		/// <param name="note">A note to be drawn by the bar label area.
+		/// By default this will only be drawn for the first bar, but will be drawn by each
+		/// bar if <paramref name="allLabelled"/> is specified.</param>
+		/// <param name="allLabelled">Flag to indicate that the note and labels should be drawn
+		/// for each bar, not just the first one.</param>
+		/// <param name="name_">Name details data for this widget.</param>
+		/// <param name="labels_">Label details data for this widget.</param>
+		/// <param name="note_">Note details data for this widget.</param>
+		/// <param name="rich">Flag to indicate that any text fields should have rich text features enabled.</param>
+		/// <param name="content">If provided, this child will be drawn in place
+		/// of the name text in the label area of the bar.</param>
+		/// <param name="entry1">If provided, this child will be drawn in place
+		/// of the field in the first entry area of the bar.</param>
+		/// <param name="entry2">If provided, this child will be drawn in place
+		/// of the field in the second entry area of the bar.</param>
+		/// /// <size>100 50</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static SlotsBars Build(
+				WidgetSetup setup,
+				IUsageBar? bar = null,
+				[LocalProperty(Example = "Bar 1,Bar 2")] string[]? name = null,
+				Dimension? height = default,
+				[Property(Example = "Label 1, Label 2")] (string label1, string label2)? labels = null, // TODO RichString?
+				[Property(Example = "Note")] string? note = null, // TODO RichString?
+				bool allLabelled = false,
+				BarNameDetails? name_ = null,
+				LabelDetails? labels_ = null,
+				LabelDetails? note_ = null,
+				bool rich = false,
+				ChildHolder? content = null,
+				ChildHolder? entry1 = null,
+				ChildHolder? entry2 = null
+			) {
+
+			return new SlotsBars(setup, bar, name, height, labels, note, allLabelled, name_, labels_, note_, rich, content, entry1, entry2);
+		}
+
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 
 			Rectangle?[] barRects = Divisions.Rows(rect, barHeights, Gutter, false, Arrangement, LayoutOrder.FORWARD, DivisionStrategy.RELATIVE_RECTANGLES);
@@ -1240,6 +1516,54 @@ namespace SharpSheets.Widgets {
 			this.checkColor = checkColor;
 		}
 
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="list">The list of text entries to be included.
+		/// The number of entries dictates the number of lines, and number of check fields.
+		/// Each entry will be drawn as a single line of text.</param>
+		/// <param name="name">A name to prepend to the check fields.</param>
+		/// <param name="height">The height of each row. The default is 1 relative unit.</param>
+		/// <param name="fontsize">The fontsize for the text entries, measured in points.</param>
+		/// <param name="textOffset">A vertical offset for the text entries, after positioning using <paramref name="alignment"/>
+		/// and <paramref name="heightStrategy"/>. This can be useful for fine-tuning positioning, and to account for the specific
+		/// of certain fonts.</param>
+		/// <param name="separation">The separation between the check field outlines and the text entries.
+		/// Measured in points.</param>
+		/// <param name="spacing">The spacing between the rows, measured in points.</param>
+		/// <param name="justification">The horizonta; justification for the text entries in the row area.</param>
+		/// <param name="alignment">The vertical alignment of the text entries within the row area.</param>
+		/// <param name="heightStrategy">The height strategy to use when determing the vertical placement
+		/// of the text entries.</param>
+		/// <param name="checkSize">The size of the check mark outlines, measured in points. If no value is provided,
+		/// this will default to the row height. Each check mark outline will be positioned vertically centred in each row.</param>
+		/// <param name="check">The outline to use for the check marks.</param>
+		/// <param name="checkPosition">Indicates on which side the check mark should be drawn, left or right.</param>
+		/// <param name="checkType">The check symbol to use when the check fields are in the "On" state.</param>
+		/// <param name="checkColor">An optional color for the check field symbol. If no value is provided,
+		/// the current text color will be used.</param>
+		/// <size>60 80</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static CheckList Build(
+				WidgetSetup setup,
+				[Property(Example = "Item 1, Item 2, Item 3")] List<RichString>? list = null,
+				string? name = null,
+				[Property(Example = "10pt")] Dimension? height = null,
+				[Property(Example = "8")] float fontsize = 6f,
+				float textOffset = 0f,
+				[Property(Example = "10")] float separation = 3f,
+				float spacing = 3f,
+				Justification justification = Justification.LEFT,
+				[Property(Example = "CENTRE")] Alignment alignment = Alignment.BOTTOM,
+				[Property(Example = "AscentBaseline")] TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline,
+				[Property(Example = "6")] float? checkSize = null,
+				[Property(Example = "Circle")] IBox? check = null,
+				CheckPosition checkPosition = CheckPosition.LEFT,
+				CheckType checkType = CheckType.CIRCLE,
+				Color? checkColor = null
+			) {
+
+			return new CheckList(setup, list, name, height, fontsize, textOffset, separation, spacing, justification, alignment, heightStrategy, checkSize, check, checkPosition, checkType, checkColor);
+		}
+
 		protected Rectangle?[] GetRows(Rectangle rect, out Rectangle? remainingRect) {
 			return Divisions.Rows(rect, height, list.Length, spacing, Gutter, out remainingRect, out _, out _, false, Arrangement, LayoutOrder.FORWARD);
 		}
@@ -1367,6 +1691,47 @@ namespace SharpSheets.Widgets {
 			this.type = type;
 		}
 
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="name">The name for this text field.</param>
+		/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
+		/// information in the final document for accesibility and usability purposes.</param>
+		/// <param name="aspect">The aspect ratio for this field. If none is provided, the field will conform
+		/// the the size and aspect ratio of the provided area. If provided, the final field area will be the
+		/// largest rectangle of that aspect ratio that can fit inside the provided area.</param>
+		/// <param name="value">The default text value for this field.</param>
+		/// <param name="fontsize">Font size for this text field.
+		/// A value of 0 or less indicates that the field in the final document should autosize the text.</param>
+		/// <param name="format">Font format to use for the text field. This will use the appropriate font format from
+		/// the current font selection.</param>
+		/// <param name="singleline">Flag to indicate that the field should be a single line field.</param>
+		/// <param name="rich">Flag to indicate that the text field should have rich text features enabled.</param>
+		/// <param name="lined">Flag to indicate that the field should not be an interactive field, but should instead
+		/// be drawn as a lined area, with line spacing equal to the fontsize. If the fontsize is zero, a line
+		/// spacing of 15 points.</param>
+		/// <param name="justification">Justification for the field, indicating if the field should be left, right,
+		/// or centre justified.</param>
+		/// <param name="type">The content type of this field, indicating if the field should constrain
+		/// it's value to a floating point or integer number.</param>
+		/// <size>0 0</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Field Build(
+				WidgetSetup setup,
+				string? name = null,
+				string? tooltip = null,
+				float? aspect = null,
+				string value = "",
+				float fontsize = 0f,
+				TextFormat format = TextFormat.REGULAR,
+				bool singleline = false,
+				bool rich = false,
+				bool lined = false,
+				Justification justification = Justification.LEFT,
+				TextFieldType type = TextFieldType.STRING
+			) {
+
+			return new Field(setup, name, tooltip, aspect, value, fontsize, format, singleline, rich, lined, justification, type);
+		}
+
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 			if (aspect.HasValue) { rect = rect.Aspect(aspect.Value); }
 			if (lined) {
@@ -1439,6 +1804,30 @@ namespace SharpSheets.Widgets {
 			this.color = color;
 		}
 
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="name">The name for this check field.</param>
+		/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
+		/// information in the final document for accesibility and usability purposes.</param>
+		/// <param name="aspect">The aspect ratio for this field. If none is provided, the field will conform
+		/// the the size and aspect ratio of the provided area. If provided, the final field area will be the
+		/// largest rectangle of that aspect ratio that can fit inside the provided area.</param>
+		/// <param name="check">The check symbol to use when this field is in the "On" state.</param>
+		/// <param name="color">An optional color for the check field symbol. If no value is provided,
+		/// the current text color will be used.</param>
+		/// <size>0 0</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static CheckField Build(
+				WidgetSetup setup,
+				string? name = null,
+				string? tooltip = null,
+				float? aspect = null,
+				CheckType check = CheckType.CROSS,
+				Color? color = null
+			) {
+
+			return new CheckField(setup, name, tooltip, aspect, check, color);
+		}
+
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 			if (aspect.HasValue) { rect = rect.Aspect(aspect.Value); }
 			canvas.CheckField(rect, name ?? "CheckBox", tooltip, check, color ?? canvas.GetTextColor());
@@ -1486,6 +1875,28 @@ namespace SharpSheets.Widgets {
 			this.tooltip = tooltip;
 			this.placeholder = placeholder;
 			this.aspect = aspect;
+		}
+
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="name">The name for this image field.</param>
+		/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
+		/// information in the final document for accesibility and usability purposes.</param>
+		/// <param name="placeholder">A path to a placeholder image to use for this image field (which will
+		/// be visible in the document before any other image is selected).</param>
+		/// <param name="aspect">The aspect ratio for this field. If none is provided, the field will conform
+		/// the the size and aspect ratio of the provided area. If provided, the final field area will be the
+		/// largest rectangle of that aspect ratio that can fit inside the provided area.</param>
+		/// <size>0 0</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static ImageField Build(
+				WidgetSetup setup,
+				string? name = null,
+				string? tooltip = null,
+				CanvasImageData? placeholder = null,
+				float aspect = -1
+			) {
+
+			return new ImageField(setup, name, tooltip, placeholder, aspect);
 		}
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
@@ -1558,6 +1969,40 @@ namespace SharpSheets.Widgets {
 
 			this.headerHeight = height ?? (fontSize * 1.5f);
 			this.headerSpacing = spacing ?? (fontSize * 0.5f);
+		}
+
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="name">The name for this widget, which will be used as
+		/// the basis of the field names (but will not be drawn).</param>
+		/// <param name="text">The text to draw as the annotation
+		/// for the top field. If no text is provided, the top text will be left
+		/// blank, but the field will still be added.</param>
+		/// <param name="format">The format for the annotation text and the
+		/// field text.</param>
+		/// <param name="fontSize">The fontsize for the annotation text and field
+		/// text.</param>
+		/// <param name="height">A height for the top annotation and field. Defaults
+		/// to 1.5 times <paramref name="fontSize"/>.</param>
+		/// <param name="spacing">The spacing between the top annotation and the
+		/// remaining area for the widget. Defaults to 0.5 times
+		/// <paramref name="fontSize"/>.</param>
+		/// <param name="textOffset">An offset for the annotation text.</param>
+		/// <param name="rich">Flag to indicate that the fields should use
+		/// rich text features.</param>
+		[FactoryBuilder(typeof(IWidget))]
+		public static TopEntry Build(
+				WidgetSetup setup,
+				[Property(Example = "Text")] string? name = null,
+				string? text = null, // TODO RichString?
+				[LocalProperty] TextFormat format = TextFormat.REGULAR,
+				float fontSize = 6.5f,
+				float? height = null,
+				float? spacing = null,
+				(float x, float y) textOffset = default,
+				bool rich = false
+			) {
+
+			return new TopEntry(setup, name, text, format, fontSize, height, spacing, textOffset, rich);
 		}
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
@@ -1716,6 +2161,39 @@ namespace SharpSheets.Widgets {
 			this.rich = rich;
 
 			this.boxStyle = division ?? new NoOutline(-1f, trim: Margins.Zero);
+		}
+
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="name">A base name to use when naming the subdivision text fields.</param>
+		/// <param name="columns">A list of names for the columns.</param>
+		/// <param name="headerFontSize">The font size for the column headers.</param>
+		/// <param name="headerSpacing">The spacing between the column headers and the top of the subdivisions.</param>
+		/// <param name="widths">The widths of the columns.</param>
+		/// <param name="justification">The justifcations for the column, which will be used for column headers and fields.</param>
+		/// <param name="spacing">The spacing between the subdivisions, as a pair of numbers,
+		/// for column and row spacing, respectively. Measured in points.</param>
+		/// <param name="height">The height of each row (not including the spacing). The default is 1 relative unit.
+		/// If an absolute value is specified, then the widget size may be calculated for auto-sizing.</param>
+		/// <param name="rows">The number of rows to draw.</param>
+		/// <param name="division">The outline style for each division.</param>
+		/// <param name="rich">Flag to indicate that the subdivision fields should have rich text features enabled.</param>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Subdivided Build(
+				WidgetSetup setup,
+				string? name = null,
+				[Property(Example = "Column 1,Column 2")] string[]? columns = null, // TODO RichString?
+				float headerFontSize = 5f,
+				float headerSpacing = 3f,
+				[Property(Example = "2,1")] Dimension[]? widths = null,
+				[Property(Default = "LEFT")] Justification[]? justification = null,
+				[LocalProperty(Default = "5,5")] (float x, float y)? spacing = null,
+				[LocalProperty(Default = "1")] Dimension? height = default,
+				[LocalProperty(Example = "5")] int rows = -1,
+				[Property(Example = "Simple")] IBox? division = null,
+				bool rich = false
+			) {
+
+			return new Subdivided(setup, name, columns, headerFontSize, headerSpacing, widths, justification, spacing, height, rows, division, rich);
 		}
 
 		//private float HeaderFontSize { get { return 5f; } }
@@ -1905,6 +2383,31 @@ namespace SharpSheets.Widgets {
 			this.gutterLayout = gutterLayout;
 		}
 
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="name">A name to be appended to all child form fields, to distinguish between repeated fields.</param>
+		/// <param name="rows">The number of repeated rows to draw.</param>
+		/// <param name="columns">The number of repeated columns to draw.</param>
+		/// <param name="spacing">The default spacing to use for the repeated elements, measured in points.</param>
+		/// <param name="spacing_">Spacing data for this widget.</param>
+		/// <param name="content">The content to be repeated in each grid element.</param>
+		/// <param name="gutterLayout">The gutter layout to use when drawing gutter details between the grid elements.
+		/// The details can either be drawn between rows, between columns, or not be drawn at all.</param>
+		/// <size>0 0</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Repeat Build(
+				WidgetSetup setup,
+				string? name = null,
+				[LocalProperty] int rows = 1,
+				[LocalProperty] int columns = 1,
+				float? spacing = null,
+				Spacing spacing_ = default,
+				ChildHolder? content = null,
+				GutterLayout gutterLayout = Widgets.GutterLayout.NONE
+			) {
+
+			return new Repeat(setup, name, rows, columns, spacing, spacing_, content, gutterLayout);
+		}
+
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 
 			Rectangle[] rects = Divisions.Grid(rect, rows, columns, horizontalSpacing, verticalSpacing, out Rectangle[] rowGutters, out Rectangle[] columnGutters).Flatten().ToArray();
@@ -2043,6 +2546,31 @@ namespace SharpSheets.Widgets {
 			this.gutterLayout = gutterLayout;
 		}
 
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="rows">The number of grid rows for this widget's children.</param>
+		/// <param name="columns">The number of grid columns for this widget's children.</param>
+		/// <param name="flow">The layout direction for children within the grid, by rows first
+		/// or columns first. This will always begin in the top-left corner of the grid.</param>
+		/// <param name="spacing">The default spacing to use for the widget's children, measured in
+		/// points (defaults to current gutter size).</param>
+		/// <param name="spacing_">Spacing data for this widget.</param>
+		/// <param name="gutterLayout">The gutter layout to use when drawing gutter details between the grid elements.
+		/// The details can either be drawn between rows, between columns, or not be drawn at all.</param>
+		/// <size>0 0</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static Grid Build(
+				WidgetSetup setup,
+				[LocalProperty] uint rows = 1,
+				[LocalProperty] uint columns = 1,
+				[LocalProperty] GridFlow flow = GridFlow.Rows,
+				float? spacing = null,
+				Spacing spacing_ = default,
+				GutterLayout gutterLayout = Widgets.GutterLayout.NONE
+			) {
+
+			return new Grid(setup, rows, columns, flow, spacing, spacing_, gutterLayout);
+		}
+
 		protected override Rectangle?[] GetChildRects(ISharpGraphicsState graphicsState, Rectangle rect, out Rectangle availableRect, out Rectangle? childrenRectArea, out Rectangle?[] gutters) {
 			availableRect = rect.Margins(setup.margins, false);
 			Rectangle[] gridRects = Divisions.Grid(availableRect, (int)rows, (int)columns, Gutter, Gutter, out Rectangle[] rowGutters, out Rectangle[] columnGutters).Flatten(flow == GridFlow.Rows).ToArray();
@@ -2096,6 +2624,31 @@ namespace SharpSheets.Widgets {
 
 			filename = _file ?? throw new ArgumentNullException(nameof(_file), "No image provided.");
 			imageAspect = _aspect;
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="buildErrors">Build error list.</param>
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="file">The image file path, relative to the current configuration file.</param>
+		/// <param name="aspect">An optional aspect ratio to use for the image when drawing to the document.
+		/// If this is not specified, the images intrinsic aspect ratio will be used.</param>
+		/// <size>0 0</size>
+		[FactoryBuilder(typeof(IWidget), Name = "Image")]
+		public static Image? Build(
+				[BuildErrors] IList<Exception> buildErrors,
+				WidgetSetup setup,
+				[LocalProperty] CanvasImageData? file = null, // Should be requirement?
+				[LocalProperty] float? aspect = null
+			) {
+
+			if(file is null) {
+				buildErrors.Add(new ArgumentNullException(nameof(file), "No image source file provided."));
+				return null;
+			}
+
+			return new Image(setup, file, aspect);
 		}
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {

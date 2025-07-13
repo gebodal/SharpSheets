@@ -108,6 +108,35 @@ namespace SharpSheets.Cards.Card {
 			this.bullet = bullet ?? new BulletArg();
 		}
 
+		/// <param name="setup"></param>
+		/// <param name="text">The text to be displayed in this widget, which can be formatted as rich text.
+		/// The provided entries will be treated as separate lines of text.</param>
+		/// <param name="justification">The horizontal justification to use for the text within the available area.</param>
+		/// <param name="alignment">The vertical alignment to use for the text within the available area.</param>
+		/// <param name="heightStrategy">The height calculation strategy to use when arranging the text within the available area.</param>
+		/// <param name="lineSpacing">This parameter sets the line spacing, which is the distance between successive
+		/// text baselines, as amultiple of the drawing fontsize.</param>
+		/// <param name="paragraph">Paragraph data for this widget.</param>
+		/// <param name="multiplier">A multiplier for the font size, which will adjust the font size determined
+		/// by the card layout algorithm when drawing the text for this widget.</param>
+		/// <param name="bullet">Bullet data for this widget.</param>
+		/// <size>0 0</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static CardText Build(
+				WidgetSetup setup,
+				List<RichString>? text = null,
+				Justification justification = Justification.LEFT,
+				Alignment alignment = Alignment.TOP,
+				TextHeightStrategy heightStrategy = TextHeightStrategy.LineHeightBaseline,
+				float lineSpacing = 1.35f,
+				ParagraphDataArg? paragraph = null,
+				float multiplier = 1f,
+				BulletArg? bullet = null
+			) {
+
+			return new CardText(setup, text, justification, alignment, heightStrategy, lineSpacing, paragraph, multiplier, bullet);
+		}
+
 		private float GetFontSize(ISharpGraphicsState graphicsState) {
 			return multiplier * graphicsState.GetTextSize();
 		}

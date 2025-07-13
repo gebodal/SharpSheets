@@ -1,6 +1,7 @@
 ﻿using SharpSheets.Canvas;
 using SharpSheets.Exceptions;
 using SharpSheets.Layouts;
+using SharpSheets.Parsing;
 using SharpSheets.Utilities;
 using System;
 using System.Linq;
@@ -90,7 +91,22 @@ namespace SharpSheets.Shapes {
 		/// <param name="includeEmphasis">Flag to indicate that the emphasis should be included
 		/// in calculations of the bar height.</param>
 		public SimpleBar(float aspect, bool flip = false, UnitInterval? entryFraction = null, UFloat emphasis = default, bool includeEmphasis = true) : base(aspect, flip, entryFraction, emphasis, includeEmphasis) { }
-		
+
+		/// <param name="aspect">The aspect ratio for this bar.</param>
+		/// <param name="flip">Flag to indicate that the bar should be flipped horizontally.
+		/// By default, the label will be drawn on the right.</param>
+		/// <param name="entryFraction">Fraction of the bar width which should be given to the
+		/// entry.</param>
+		/// <param name="emphasis">The amount by which the entry outline should extend beyond the
+		/// label area outline, above and below. Depending on the <paramref name="includeEmphasis"/>
+		/// flag, this may or may not be included in height calculations for the bar.</param>
+		/// <param name="includeEmphasis">Flag to indicate that the emphasis should be included
+		/// in calculations of the bar height.</param>
+		[FactoryBuilder(typeof(IBar))]
+		public static SimpleBar Build(float aspect, bool flip = false, UnitInterval? entryFraction = null, UFloat emphasis = default, bool includeEmphasis = true) {
+			return new SimpleBar(aspect, flip, entryFraction, emphasis, includeEmphasis);
+		}
+
 		protected override void DrawEntryRect(ISharpCanvas canvas, Rectangle entryRect) {
 			canvas.Rectangle(entryRect).FillStroke();
 		}
@@ -118,7 +134,22 @@ namespace SharpSheets.Shapes {
 		/// <param name="includeEmphasis">Flag to indicate that the emphasis should be included
 		/// in calculations of the bar height.</param>
 		public EllipseBar(float aspect, bool flip = false, UnitInterval? entryFraction = null, UFloat emphasis = default, bool includeEmphasis = true) : base(aspect, flip, entryFraction, emphasis, includeEmphasis) { }
-		
+
+		/// <param name="aspect">The aspect ratio for this bar.</param>
+		/// <param name="flip">Flag to indicate that the bar should be flipped horizontally.
+		/// By default, the label will be drawn on the right.</param>
+		/// <param name="entryFraction">Fraction of the bar width which should be given to the
+		/// entry.</param>
+		/// <param name="emphasis">The amount by which the entry outline should extend beyond the
+		/// label area outline, above and below. Depending on the <paramref name="includeEmphasis"/>
+		/// flag, this may or may not be included in height calculations for the bar.</param>
+		/// <param name="includeEmphasis">Flag to indicate that the emphasis should be included
+		/// in calculations of the bar height.</param>
+		[FactoryBuilder(typeof(IBar))]
+		public static EllipseBar Build(float aspect, bool flip = false, UnitInterval? entryFraction = null, UFloat emphasis = default, bool includeEmphasis = true) {
+			return new EllipseBar(aspect, flip, entryFraction, emphasis, includeEmphasis);
+		}
+
 		protected override void DrawEntryRect(ISharpCanvas canvas, Rectangle entryRect) {
 			canvas.EllipseFrom(entryRect).FillStroke();
 		}
@@ -164,6 +195,25 @@ namespace SharpSheets.Shapes {
 			this.emphasis = emphasis;
 			this.includeEmphasis = includeEmphasis;
 			this.flip = flip;
+		}
+
+		/// <param name="aspect">The aspect ratio for this bar.</param>
+		/// <param name="barBox">Box style to use for the label area outline. This outline will
+		/// extend past the edge of the entry area, with the intention that it appears to protrude
+		/// from the entry outline.</param>
+		/// <param name="entryBox">Box style to use for the entry are outline.</param>
+		/// <param name="entryfraction">Fraction of the bar width which should be given to the
+		/// entry.</param>
+		/// <param name="emphasis">The amount by which the entry outline should extend beyond the
+		/// label area outline, above and below. Depending on the <paramref name="includeEmphasis"/>
+		/// flag, this may or may not be included in height calculations for the bar.</param>
+		/// <param name="includeEmphasis">Flag to indicate that the emphasis should be included
+		/// in calculations of the bar height.</param>
+		/// <param name="flip">Flag to indicate that the bar should be flipped horizontally.
+		/// By default, the label will be drawn on the right.</param>
+		[FactoryBuilder((typeof(IBar)))]
+		public static BoxBar Build(float aspect, IBox? barBox = null, IBox? entryBox = null, float? entryfraction = null, float emphasis = 0f, bool includeEmphasis = false, bool flip = false) {
+			return new BoxBar(aspect, barBox, entryBox, entryfraction, emphasis, includeEmphasis, flip);
 		}
 
 		protected void GetRects(Rectangle rect, out Rectangle barRect, out Rectangle entryRect) {

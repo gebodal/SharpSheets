@@ -4,6 +4,7 @@ using SharpSheets.Exceptions;
 using SharpSheets.Layouts;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Utilities;
+using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {
 
@@ -35,6 +36,19 @@ namespace SharpSheets.Shapes {
 			this.flip = flip;
 			this.emphasis = emphasis;
 			this.includeEmphasis = includeEmphasis;
+		}
+
+		/// <param name="aspect">Aspect ratio for this bar.</param>
+		/// <param name="flip">Flag to indicate that the bar should be flipped horizontally.
+		/// By default, the label will be drawn on the right.</param>
+		/// <param name="emphasis">The amount by which the entry outlines should extend beyond the
+		/// label area outline, above and below. Depending on the <paramref name="includeEmphasis"/>
+		/// flag, this may or may not be included in height calculations for the bar.</param>
+		/// <param name="includeEmphasis">Flag to indicate that the emphasis should be included
+		/// in calculations of the bar height.</param>
+		[FactoryBuilder(typeof(IUsageBar))]
+		public static SimpleUsageBar Build(float aspect, bool flip = false, UFloat emphasis = default, bool includeEmphasis = true) {
+			return new SimpleUsageBar(aspect, flip, emphasis, includeEmphasis);
 		}
 
 		protected void GetRects(Rectangle rect, out Rectangle barRect, out Rectangle firstEntry, out Rectangle secondEntry) {

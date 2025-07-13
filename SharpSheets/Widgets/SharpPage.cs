@@ -148,6 +148,39 @@ namespace SharpSheets.Widgets {
 			this.Repeat = repeat; // TODO Should really throw an error if zero
 		}
 
+		/// <param name="setup">Widget setup for SharpPage.</param>
+		/// <param name="paper">Paper size to use for the page. A variety of common paper size options are available,
+		/// such as "A4" or "letter", or alternatively a size may be specified explicitly (as in "20 x 20 cm").</param>
+		/// <param name="pageMargins">Margins to use for the page area, separating the document
+		/// content from the edge of the paper.</param>
+		/// <param name="landscape">Flag to indicate that the page should be landscape (i.e. rotated 90 degree).</param>
+		/// <param name="backgroundimage">An image path to use for a page background (relative to the current file).
+		/// If no image path is provided, then the current background color will be used as the page background.</param>
+		/// <param name="backgroundLayout">Layout for background image, allowing you to specify how the image should be sized
+		/// on the page (stretched, contained, or covering).</param>
+		/// <param name="header">If provided, this child will be drawn in the header area of the page -- i.e. the
+		/// area at the top of the page that lies within the <paramref name="pageMargins"/>.</param>
+		/// <param name="footer">If provided, this child will be drawn in the footer area of the page -- i.e. the
+		/// area at the bottom of the page that lies within the <paramref name="pageMargins"/>.</param>
+		/// <param name="repeat">A number of times to include this page in the document. Repeated pages will
+		/// be included sequentially.</param>
+		/// <size>0 0</size>
+		[FactoryBuilder(typeof(IWidget), Name = "Page")]
+		public static Page Build(
+				WidgetSetup setup,
+				PageSize? paper = null,
+				[Property(Default = "(28,28,28,28)")] Margins? pageMargins = null,
+				bool landscape = false,
+				CanvasImageData? backgroundimage = null,
+				ImageLayout? backgroundLayout = null,
+				ChildHolder? header = null,
+				ChildHolder? footer = null,
+				uint repeat = 1
+			) {
+
+			return new Page(setup, paper, pageMargins, landscape, backgroundimage, backgroundLayout, header, footer, repeat);
+		}
+
 		protected override void RegisterAreas(ISharpCanvas canvas, Rectangle fullRect, Rectangle availableRect) { }
 
 		public override void Draw(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {

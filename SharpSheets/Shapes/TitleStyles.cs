@@ -4,6 +4,7 @@ using SharpSheets.Canvas.Text;
 using SharpSheets.Utilities;
 using System;
 using System.Linq;
+using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {
 
@@ -19,6 +20,13 @@ namespace SharpSheets.Shapes {
 		/// <param name="box">Base shape.</param>
 		/// <param name="name">Title text.</param>
 		public Untitled(IContainerShape box, string name) : base(box, name, TextFormat.REGULAR, 0f, default, 0f, null) { }
+
+		/// <param name="box">Base shape.</param>
+		/// <param name="name">Title text.</param>
+		[FactoryBuilder(typeof(ITitleStyledBox))]
+		public static Untitled Build(IContainerShape box, string name) {
+			return new Untitled(box, name);
+		}
 
 		protected override void DrawFrame(ISharpCanvas canvas, Rectangle aspectRect) {
 			box.Draw(canvas, aspectRect);
@@ -138,6 +146,43 @@ namespace SharpSheets.Shapes {
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
 		public Named(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 3f), spacing, color, justification, lineSpacing, heightStrategy) { }
 
+		/// <param name="box">Base shape.</param>
+		/// <param name="name">Title text.</param>
+		/// <param name="position">The position of the title text around the inside of the shape
+		/// area. This will control the starting location of the text, which may then be adjusted
+		/// using <paramref name="offset"/>.</param>
+		/// <param name="layout">The layout of the remaining area relative to the title text.
+		/// The title text will be considered to be taking up either a row or a column inside the shape
+		/// area, and the remaining area will take up the remaining row or column, as appropriate.
+		/// This is ignored when a non-corner value is provided (e.g. <see cref="TitlePosition.TOPLEFT"/>),
+		/// where the arrangement of the remaining area is controlled solely by the <paramref name="position"/>.
+		/// </param>
+		/// <param name="orientation">Orientation for the title text, which will control the "up" direction
+		/// when the text is drawn. Note that any adjustment from <paramref name="justification"/> will be
+		/// relative to the internal text direction, not the direction relative to the page.</param>
+		/// <param name="format">Font format to use for the title text. This will use the appropriate font
+		/// format from the current font selection.</param>
+		/// <param name="fontSize">The fontsize to use for the title text.</param>
+		/// <param name="offset">The offset for the title text, relative to its initial
+		/// layout based on <paramref name="position"/>. This can be used to move the title away from
+		/// the shape outline, and for making design adjustments. This offset is directed "away" from the
+		/// edge, meaning that for top-aligned titles, positive offsets will move the title downwards,
+		/// whereas bottom-aligned titles will be offset upwards - and vice versa for left and right.</param>
+		/// <param name="spacing">The spacing between the title text and the remaining area, if the remaining
+		/// area requires adjustment after the title has been drawn.</param>
+		/// <param name="color">An optional color for the title text. If no value is provided, the current
+		/// text color will be used.</param>
+		/// <param name="justification">The justification for the title text, relative to the widest line
+		/// of the title text. Note this this will not move the position of the title relative to the outline,
+		/// but only within the bounding box created by the text height and maximum line width.</param>
+		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
+		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
+		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
+		[FactoryBuilder(typeof(ITitleStyledBox))]
+		public static Named Build(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, [Property(Default = "(0,3)")] Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) {
+			return new Named(box, name, position, layout, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
+		}
+
 		protected override void DrawFrame(ISharpCanvas canvas, Rectangle rect) {
 			box.Draw(canvas, rect);
 			DrawTitle(canvas, rect);
@@ -207,6 +252,42 @@ namespace SharpSheets.Shapes {
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
 		public Titled(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 0f), spacing, color, justification, lineSpacing, heightStrategy) { }
+
+		/// <param name="box">Base shape.</param>
+		/// <param name="name">Title text.</param>
+		/// <param name="position">The position of the title text around the outside of the shape
+		/// area. This will control the starting location of the text, which may then be adjusted
+		/// using <paramref name="offset"/>.</param>
+		/// <param name="layout">The layout of the shape area relative to the title text. The title text
+		/// will be considered to be taking up either a row or a column inside the full shape area, and
+		/// the outline shape area will take up the remaining row or column, as appropriate.
+		/// This is ignored when a non-corner value is provided (e.g. <see cref="TitlePosition.TOPLEFT"/>),
+		/// where the arrangement of the outline shape area is controlled solely by the <paramref name="position"/>.
+		/// </param>
+		/// <param name="orientation">Orientation for the title text, which will control the "up" direction
+		/// when the text is drawn. Note that any adjustment from <paramref name="justification"/> will be
+		/// relative to the internal text direction, not the direction relative to the page.</param>
+		/// <param name="format">Font format to use for the title text. This will use the appropriate font
+		/// format from the current font selection.</param>
+		/// <param name="fontSize">The fontsize to use for the title text.</param>
+		/// <param name="offset">The offset for the title text, relative to its initial
+		/// layout based on <paramref name="position"/>. This can be used to move the title away from
+		/// the full area edge, and for making design adjustments. This offset is directed "away" from the
+		/// edge, meaning that for top-aligned titles, positive offsets will move the title downwards,
+		/// whereas bottom-aligned titles will be offset upwards - and vice versa for left and right.</param>
+		/// <param name="spacing">The spacing between the title text and the outline shape area.</param>
+		/// <param name="color">An optional color for the title text. If no value is provided, the current
+		/// text color will be used.</param>
+		/// <param name="justification">The justification for the title text, relative to the widest line
+		/// of the title text. Note this this will not move the position of the title relative to the outline,
+		/// but only within the bounding box created by the text height and maximum line width.</param>
+		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
+		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
+		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
+		[FactoryBuilder(typeof(ITitleStyledBox))]
+		public static Titled Build(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, [Property(Default = "(0,0)")] Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) {
+			return new Titled(box, name, position, layout, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
+		}
 
 		protected Rectangle BoxRect(ISharpGraphicsState graphicsState, Rectangle rect) {
 			return box.AspectRect(graphicsState, rect.Margins(GetNameMargins(graphicsState), false));
@@ -296,6 +377,46 @@ namespace SharpSheets.Shapes {
 		public BoxedTitle(IContainerShape box, string name, IBox box_, Margins trim = default, TitlePosition position = TitlePosition.TOP, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 11f, Vector offset = default, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy) {
 			this.outline = box_ ?? new NoOutline(-1f);
 			this.trim = trim;
+		}
+
+		/// <param name="box">Base shape.</param>
+		/// <param name="name">Title text.</param>
+		/// <param name="box_">The box style to draw around the title text. This style must support
+		/// inferring the full area from a content area.</param>
+		/// <param name="trim">Spacing to use around the title text inside the title box.</param>
+		/// <param name="position">The position of the title box around the outside of the shape
+		/// area. This will control the starting location of the title box, which may then be adjusted
+		/// using <paramref name="offset"/>.</param>
+		/// <param name="layout">The layout of the outline area relative to the title box. The title box
+		/// will be considered to be taking up either a row or a column inside the full shape area, and
+		/// the outline shape area will take up the remaining row or column, as appropriate.
+		/// This is ignored when a non-corner value is provided (e.g. <see cref="TitlePosition.TOPLEFT"/>),
+		/// where the arrangement of the outline shape area is controlled solely by the <paramref name="position"/>.
+		/// </param>
+		/// <param name="orientation">Orientation for the title text, which will control the "up" direction
+		/// when the text is drawn. Note that any adjustment from <paramref name="justification"/> will be
+		/// relative to the internal text direction, not the direction relative to the page.</param>
+		/// <param name="format">Font format to use for the title text. This will use the appropriate font
+		/// format from the current font selection.</param>
+		/// <param name="fontSize">The fontsize to use for the title text.</param>
+		/// <param name="offset">The offset for the title box, relative to its initial
+		/// layout based on <paramref name="position"/>. This can be used to move the title box away from
+		/// the full area edge, and for making design adjustments. This offset is directed "away" from the
+		/// edge, meaning that for top-aligned titles, positive offsets will move the title downwards,
+		/// whereas bottom-aligned titles will be offset upwards - and vice versa for left and right.</param>
+		/// <param name="spacing">The spacing between the title box and the outline shape area.</param>
+		/// <param name="color">An optional color for the title text. If no value is provided, the current
+		/// text color will be used.</param>
+		/// <param name="justification">The justification for the title text, relative to the widest line
+		/// of the title text. Note this this will not move the position of the title text or box relative to
+		/// the outline, but only within the bounding box created by the text height and maximum line width.
+		/// </param>
+		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
+		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
+		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
+		[FactoryBuilder(typeof(ITitleStyledBox))]
+		public static BoxedTitle Build(IContainerShape box, string name, IBox box_, Margins trim = default, TitlePosition position = TitlePosition.TOP, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 11f, Vector offset = default, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline) {
+			return new BoxedTitle(box, name, box_, trim, position, layout, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
 		}
 
 		protected Rectangle BoxRect(ISharpGraphicsState graphicsState, Rectangle rect) {
@@ -448,6 +569,69 @@ namespace SharpSheets.Shapes {
 
 			this.paragraphSpec = new ParagraphSpecification(lineSpacing, 0f, 0f, 0f);
 			this.richParts = this.parts.Select(p => RichString.Create(p, format)).ToArray();
+		}
+
+		/// <param name="box">Base shape.</param>
+		/// <param name="name">Title text.</param>
+		/// <param name="tabBox">The box style to draw around the title tab.
+		/// This style must support inferring the full area from a content area.</param>
+		/// <param name="trim">Spacing to use around the title text inside the title
+		/// tab box.</param>
+		/// <param name="position">The position of the title tab box around the outside of the shape
+		/// area. This will control the starting location of the title box, which may then be adjusted
+		/// using <paramref name="offset"/>.</param>
+		/// <param name="protrusion">A specific length for the tab protrusion. If no value is provided,
+		/// the protrusion is calculated from the title text size and other parameters. Percentage values
+		/// are calculated based on the total area (width or height, according to the value of
+		/// <paramref name="position"/>), and relative values are considered to be fractions of the total
+		/// area (and hence should be between 0 and 1). Note that percentage or relative values do not
+		/// allow for inferring the full shape size.</param>
+		/// <param name="tabBreadth">A specific length for the tab breadth, i.e. it's size perpendicular
+		/// to the protrusion. If no value is provided, the breadth is calculated from the title text size
+		/// and other parameters. Percentage values are calculated based on the total area (width or height,
+		/// according to the value of <paramref name="position"/>), and relative values are considered to
+		/// be fractions of the total area (and hence should be between 0 and 1). Note that percentage or
+		/// relative values do not allow for inferring the full shape size.</param>
+		/// <param name="includeProtrusion">Flag to indicate if the tab protrusion should
+		/// be included in the width of the shape. If true, the outline area will be shortened to allow
+		/// the protrusion to be contained in the full area. If false, the outline area will take up the
+		/// full area, and the title tab will protrude outside the shape area.</param>
+		/// <param name="orientation">Orientation for the title text, which will control the "up" direction
+		/// when the text is drawn. Note that any adjustment from <paramref name="justification"/> will be
+		/// relative to the internal text direction, not the direction relative to the page.</param>
+		/// <param name="format">Font format to use for the title text. This will use the appropriate font
+		/// format from the current font selection.</param>
+		/// <param name="fontSize">The fontsize to use for the title text.</param>
+		/// <param name="offset">The offset for the title tab, relative to its initial layout based on
+		/// <paramref name="position"/>. This can be used to fine-tune the position of the title relative to
+		/// the main outline. This offset is directed "away" from the edge of the full area, meaning that for
+		/// <see cref="Direction.WEST"/> the offset will increase rightwards, and for <see cref="Direction.EAST"/>
+		/// it will increase leftwards (and vica versa for vertical arrangements).</param>
+		/// <param name="spacing">The spacing between the title text and the main outline inside the tab
+		/// area.</param>
+		/// <param name="color">An optional color for the title text. If no value is provided, the current
+		/// text color will be used.</param>
+		/// <param name="justification">The justfication for the title text inside the tab label area. Note
+		/// that this justification includes the entire tab area, and is not just relative to the widest
+		/// title line. This means that if <paramref name="protrusion"/> or <paramref name="tabBreadth"/>
+		/// have been set, the justification may reposition the title within the tab area.</param>
+		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
+		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
+		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
+		/// <canvas>120 60</canvas>
+		[FactoryBuilder(typeof(ITitleStyledBox))]
+		public static TabTitle Build([Property(Example = "Simple")] IContainerShape box, string name,
+				[Property(Example = "Simple")] IBox tabBox, [Property(Example = "2")] Margins trim = default,
+				Direction position = Direction.WEST,
+				Dimension? protrusion = null, Dimension? tabBreadth = null, [Property(Example = "true")] bool includeProtrusion = true,
+				Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f,
+				Vector offset = default, float spacing = 3f,
+				Colors.Color? color = null,
+				Justification justification = Justification.CENTRE,
+				float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentDescent
+			) {
+
+			return new TabTitle(box, name, tabBox, trim, position, protrusion, tabBreadth, includeProtrusion, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
 		}
 
 		protected Size GetTitleSize(ISharpGraphicsState graphicsState) {

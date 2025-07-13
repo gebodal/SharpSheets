@@ -1,6 +1,7 @@
 ﻿using SharpSheets.Canvas;
 using SharpSheets.Layouts;
 using SharpSheets.Colors;
+using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {
 
@@ -13,6 +14,9 @@ namespace SharpSheets.Shapes {
 		/// Constructor for Blank.
 		/// </summary>
 		public Blank() { }
+
+		[FactoryBuilder(typeof(IDetail))]
+		public static Blank Build() { return new Blank(); }
 
 		public override void Draw(ISharpCanvas canvas, Rectangle rect) { }
 	}
@@ -41,6 +45,17 @@ namespace SharpSheets.Shapes {
 			this.offset = offset;
 			this.width = width;
 			this.color = color;
+		}
+
+		/// <param name="offset">An offset for the start and end of the line from the ends
+		/// of the detail area.</param>
+		/// <param name="width">The linewidth for the detail line. If no value is provided,
+		/// the current linewidth will be used.</param>
+		/// <param name="color">A color for the detail line. If no value is provided, the
+		/// current foreground color will be used.</param>
+		[FactoryBuilder(typeof(IDetail))]
+		public static LineDetail Build(float offset = 5f, float? width = null, Color? color = null) {
+			return new LineDetail(offset, width, color);
 		}
 
 		public override void Draw(ISharpCanvas canvas, Rectangle rect) {
@@ -80,6 +95,13 @@ namespace SharpSheets.Shapes {
 		/// value is provided, the current midtone color will be used.</param>
 		public FilledDetail(Color? color = null) {
 			this.color = color;
+		}
+
+		/// <param name="color">The color to fill the detail area with. If no
+		/// value is provided, the current midtone color will be used.</param>
+		[FactoryBuilder(typeof(IDetail))]
+		public static FilledDetail Build(Color? color = null) {
+			return new FilledDetail(color);
 		}
 
 		public override void Draw(ISharpCanvas canvas, Rectangle rect) {

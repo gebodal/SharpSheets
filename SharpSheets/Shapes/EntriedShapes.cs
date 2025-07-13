@@ -1,6 +1,7 @@
 ﻿using SharpSheets.Canvas;
 using SharpSheets.Colors;
 using SharpSheets.Layouts;
+using SharpSheets.Parsing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -42,6 +43,19 @@ namespace SharpSheets.Shapes {
 			this.dashes = dashes;
 			this.dashOffset = dashOffset ?? 0f;
 			this.trim = trim ?? Margins.Zero;
+		}
+
+		/// <param name="aspect"></param>
+		/// <param name="sizes"></param>
+		/// <param name="layout"></param>
+		/// <param name="stroke"></param>
+		/// <param name="fill"></param>
+		/// <param name="dashes"></param>
+		/// <param name="dashOffset"></param>
+		/// <param name="trim"></param>
+		[FactoryBuilder(typeof(IEntriedShape))]
+		public static SimpleEntried Build(float aspect, [Property(Default = "1", Example = "2,2,3")] Dimension[]? sizes = null, Layout layout = Layout.ROWS, Color? stroke = null, Color? fill = null, float[]? dashes = null, float? dashOffset = null, [Property(Default = "0", Example = "2")] Margins? trim = null) {
+			return new SimpleEntried(aspect, sizes, layout, stroke, fill, dashes, dashOffset, trim);
 		}
 
 		protected Rectangle?[] GetEntryRects(ISharpGraphicsState graphicsState, Rectangle rect, out Rectangle?[] gutters) {

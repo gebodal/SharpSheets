@@ -225,6 +225,62 @@ namespace SharpSheets.Widgets {
 			this.labelAlignment = labelAlignment;
 		}
 
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="name">The name for this widget, used for field names (not drawn to the document).</param>
+		/// <param name="details">
+		/// The labels to be used for each line. A line may comprise of 1 or more components. Each component
+		/// may contain 1 or 2 parts. The first part will come before the field, and the second part (if present)
+		/// will come after. Each entry will be a separate line. Addiitonally, each part may have up to one field
+		/// contained within its text, by enclosing an absolute width in question marks ("?"). For example, the entry
+		/// "Label (?40pt?)" would produce the text label "Label (", followed by a field with width 45pt, and then
+		/// the text label ")". This field is in addition to the normal line field.
+		/// </param>
+		/// <param name="widths">The widths to use for each component. Each sub-array gives a list of n Dimensions,
+		/// where each sub-array should have a different value for n (i.e. a different number of Dimension values).
+		/// When a row is drawn to the document, the set of widths with a corresponding number of values will be
+		/// used to determine the widths of the components. If there is not corresponding entry, then each component
+		/// will be given an equal amount of space.</param>
+		/// <param name="height">The height to use for each line (which will determine the field
+		/// heights). This value is only meaningful if an absolute or percentage value is provided.</param>
+		/// <param name="extra">A number of unlabelled lines to append to the end of the provided details.
+		/// These lines will contain a single field, with no text labels.</param>
+		/// <param name="spacing">The column and row spacing for this widget. The column spacing is used
+		/// to horizontally separate components in a line, and the row spacing is used to vertically separate the lines.</param>
+		/// <param name="detailSpacing">The horizontal spacing used to separate the parts of a component. If no
+		/// value is provided, the width of a space at the current font size will be used.</param>
+		/// <param name="fontsize">The fontsize to use for the text labels.</param>
+		/// <param name="field">FieldDetails data for this widget.</param>
+		/// <param name="underline">Flag to indicate whether the fields should be underlined. This line will
+		/// use the current foreground color and linewidth.</param>
+		/// <param name="alignFields">Indicates how the horizontal start of the fields should be aligned
+		/// between lines.</param>
+		/// <param name="labelAlignment">Indicates how the text labels should be aligned within the line areas.</param>
+		/// <param name="labelOffset">A vertical offset to use for the text labels, after positioning with
+		/// <paramref name="labelAlignment"/>, allowing for finer control of text positioning to account for font
+		/// quirks.</param>
+		/// <size>200 150</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static LinedDetails Build(
+				WidgetSetup setup,
+				string? name = null,
+				[Property(Example = "First (?30pt?);Second|Third,Comment|Fourth;Fifth;Sixth|Seventh|Eighth (?30pt?)")]
+				List<RichString[][]>? details = null,
+				Dimension[][]? widths = null,
+				[Property(Example = "16pt")] Dimension? height = default,
+				uint extra = 0,
+				[Property(Default = "3,3")] (float column, float row)? spacing = null,
+				float? detailSpacing = null,
+				[Property(Example = "12")] float fontsize = 6f,
+				FieldDetails? field = null,
+				bool underline = true,
+				AlignFields alignFields = AlignFields.NONE,
+				Alignment labelAlignment = Alignment.BOTTOM,
+				float labelOffset = 0f
+			) {
+
+			return new LinedDetails(setup, name, details, widths, height, extra, spacing, detailSpacing, fontsize, field, underline, alignFields, labelAlignment, labelOffset);
+		}
+
 		private class DetailPart {
 			public Rectangle rect;
 			public readonly RichString? text;
@@ -478,6 +534,37 @@ namespace SharpSheets.Widgets {
 				bool underline = true
 			) : base(setup, name ?? nameof(LinedField), height, rows, spacing ?? (3f, 3f), 0f, field, underline, 0f) { }
 
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="name">The name for this widget, used for field names (not drawn to the document).</param>
+		/// <param name="height">The height to use for each line (which will determine the field
+		/// heights). This value is only meaningful if an absolute or percentage value is provided.
+		/// If no value is provided for <paramref name="rows"/>, when the area will be filled with lines of this height.
+		/// If no <paramref name="height"/> or <paramref name="rows"/> value is provided, then there will be a single
+		/// row.</param>
+		/// <param name="rows">The number of lines to draw. If no value is provided, then the available
+		/// area will be filled with rows of the specified <paramref name="height"/>. If no <paramref name="height"/>
+		/// or <paramref name="rows"/> is specified, then there will be a single row.</param>
+		/// <param name="spacing">The column and row spacing for this widget. The column spacing is
+		/// unused for this widget type (and is included for compatibility with other lined widgets), with the row
+		/// spacing being used to vertically separate the lines.</param>
+		/// <param name="field">FieldDetails data for this widget.</param>
+		/// <param name="underline">Flag to indicate whether the fields should be underlined. This line will
+		/// use the current foreground color and linewidth.</param>
+		/// <size>200 150</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static LinedField Build(
+				WidgetSetup setup, // gutter = 5f?
+				string? name = null,
+				Dimension? height = default,
+				[Property(Example = "6")] int? rows = null,
+				[Property(Default = "3, 3")] (float column, float row)? spacing = null,
+				FieldDetails? field = null,
+				bool underline = true
+			) {
+
+			return new LinedField(setup, name, height, rows, spacing, field, underline);
+		}
+
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 
 			canvas.SaveState();
@@ -575,6 +662,48 @@ namespace SharpSheets.Widgets {
 			this.titlespacing = titlespacing ?? this.spacing.row;
 			this.titlefontsize = titlefontsize;
 			this.titleJustification = titleJustification;
+		}
+
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="name">The name for this widget, used for field names (not drawn to the document).</param>
+		/// <param name="columns">The column headings to draw at the top of the
+		/// area.</param>
+		/// <param name="widths">The widths to use when drawing the columns.
+		/// If fewer widths than column names are provided, then the excess will be ignored. If no columns
+		/// are provided, then all widths will be used, and no column headings drawn.</param>
+		/// <param name="height">The height to use for each line (which will determine the field
+		/// heights). This value is only meaningful if an absolute or percentage value is provided.</param>
+		/// <param name="rows">The number of lines to draw. If no value is provided, then the available
+		/// area will be filled with rows of the specified <paramref name="height"/>. If no <paramref name="height"/>
+		/// or <paramref name="rows"/> is specified, then there will be a single row.</param>
+		/// <param name="spacing">The column and row spacing for this widget. The column spacing is used
+		/// to horizontally separate the columns, and the row spacing is used to vertically separate the lines.</param>
+		/// <param name="titlespacing">The vertical spacing between the header text and the first line. If no value
+		/// is provided, this will default to the row spacing.</param>
+		/// <param name="titlefontsize">The fontsize to use for the header text.</param>
+		/// <param name="titleJustification">The justification to use for the header text. If no value is provided,
+		/// this will default to the field justification.</param>
+		/// <param name="field">FieldDetails data for this widget.</param>
+		/// <param name="underline">Flag to indicate whether the fields should be underlined. This line will
+		/// use the current foreground color and linewidth.</param>
+		/// <size>200 150</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static LinedList Build(
+				WidgetSetup setup, // gutter = 5f?
+				string? name = null,
+				[Property(Example = "First,Second,Third")] RichString[]? columns = null,
+				[Property(Default = "1", Example = "2,1,1")] Dimension[]? widths = null,
+				Dimension? height = default,
+				[Property(Example = "6")] int? rows = null,
+				[Property(Default = "3, 3")] (float column, float row)? spacing = null,
+				float? titlespacing = null,
+				[Property(Example = "13")] float titlefontsize = 6f,
+				Justification? titleJustification = null,
+				FieldDetails? field = null,
+				bool underline = true
+			) {
+
+			return new LinedList(setup, name, columns, widths, height, rows, spacing, titlespacing, titlefontsize, titleJustification, field, underline);
 		}
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
@@ -723,6 +852,55 @@ namespace SharpSheets.Widgets {
 
 			checkBoxStyle = check ?? new NoOutline(-1f, trim: Margins.Zero); // BoxFactory.GetBox(new NamedContext(config, "check"), 1, "shadowedbox");
 			this.checkType = checkType;
+		}
+
+		/// <param name="setup">Widget setup data.</param>
+		/// <param name="name">The name for this widget, used for field names (not drawn to the document).</param>
+		/// <param name="entries">
+		/// A list of labels for each line in the widget. Each label may have up to one field contained within its text,
+		/// by enclosing an absolute width in question marks ("?"). For example, the entry "Label (?40pt?)" would produce
+		/// the text label "Label (", followed by a field with width 45pt, and then the text label ")". This field is in
+		/// addition to the normal text and check fields for each line.
+		/// </param>
+		/// <param name="height">The height to use for each line (which will determine the field and check
+		/// heights). This value is only meaningful if an absolute or percentage value is provided.</param>
+		/// <param name="extra">A number of unlabelled lines to append to the end of the provided list.
+		/// These lines will contain a text field in place of the label, in addition to the usual fields.</param>
+		/// <param name="spacing">The column and row spacing for this widget. The column
+		/// spacing is used to horizontally separate components in a line, and the row spacing is used to vertically
+		/// separate the lines.</param>
+		/// <param name="fontsize">The fontsize to use for the text labels.</param>
+		/// <param name="field">FieldDetails data for this widget.</param>
+		/// <param name="check">The outline to draw around the check fields in each line.</param>
+		/// <param name="checkType">The check mark to use in the check fields.</param>
+		/// <param name="width">The width for the text labels for each row. If no value is provided, the maximum width
+		/// among the labels (including any additional field widths) will be used.</param>
+		/// <param name="underline">Flag to indicate whether the fields should be underlined. This line will
+		/// use the current foreground color and linewidth.</param>
+		/// <param name="labelAlignment">Indicates how the text labels should be aligned within the line areas.</param>
+		/// <param name="labelOffset">A vertical offset to use for the text labels, after positioning with
+		/// <paramref name="labelAlignment"/>, allowing for finer control of text positioning to account for font
+		/// quirks.</param>
+		/// <size>200 100</size>
+		[FactoryBuilder(typeof(IWidget))]
+		public static LinedCheckList Build(
+				WidgetSetup setup,
+				string? name = null,
+				[Property(Example = "First,Second,Third,Fourth (?25pt?)")] List<RichString>? entries = null,
+				[Property(Example = "15pt")] Dimension? height = default,
+				uint extra = 0,
+				[Property(Default = "3, 3", Example = "5,5")] (float column, float row)? spacing = null,
+				[Property(Example = "12")] float fontsize = 6f,
+				FieldDetails? field = null,
+				[Property(Example = "Simple")] Shapes.IBox? check = null,
+				CheckType checkType = CheckType.CHECK,
+				Dimension? width = null,
+				bool underline = true,
+				Alignment labelAlignment = Alignment.BOTTOM,
+				float labelOffset = 0f
+			) {
+
+			return new LinedCheckList(setup, name, entries, height, extra, spacing, fontsize, field, check, checkType, width, underline, labelAlignment, labelOffset);
 		}
 
 		readonly RichRegex spaceRegex = new RichRegex(new Regex("(?<!\\\\)\\?(?<width>[^\\?]+)\\?"));
