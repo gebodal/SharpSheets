@@ -240,6 +240,22 @@ namespace SharpSheets.Markup.Elements {
 			this.MarkupContext = markupContext;
 		}
 
+		/// <param name="id" default="null">A unique name for this element.</param>
+		/// <param name="setup"> The DivSetup values for this element. </param>
+		/// <param name="outerContext"> The variables inherited from this Divs parents (not including canvas variables). </param>
+		/// <param name="markupContext"></param>
+		/// <param name="variables"> The variables declared with this Div. </param>
+		[FactoryBuilder(typeof(DivElement), Name = "div")]
+		public static DivElement Build(
+				[LocalProperty(Default = "null")] string? id, DivSetup setup,
+				[Property(Exclude = true)] IVariableBox outerContext,
+				[Property(Exclude = true)] MarkupEvaluationContext markupContext,
+				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
+			) {
+
+			return new DivElement(id, setup, outerContext, markupContext, variables);
+		}
+
 		public virtual void AddElement(IIdentifiableMarkupElement element) {
 			this.elements.Add(element);
 		}

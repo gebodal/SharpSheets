@@ -383,17 +383,22 @@ namespace SharpSheets.Documentation {
 						}
 					}
 					else if (fullName.StartsWith("F")) {
-						// Enum
+						// "F" for Field
 						string[] nameParts = name.Split('.');
-						string enumValue = nameParts[^1];
-						string enumType = nameParts[^2];
-						string enumFullType = string.Join(".", nameParts.Take(nameParts.Length - 1));
-						DocumentationString? summary = GetDocumentationString(member.Descendants("summary").FirstOrDefault());
+						string owningTypeName = string.Join('.', nameParts[..^1]);
 
-						if (!enumValues.ContainsKey(enumFullType)) {
-							enumValues.Add(enumFullType, new List<EnumValDoc>());
+						if (GetTypeFromXmlName(owningTypeName) is Type owningType && owningType.IsEnum) {
+							// Enum
+							string enumValue = nameParts[^1];
+							string enumType = nameParts[^2];
+							string enumFullType = owningTypeName;
+							DocumentationString? summary = GetDocumentationString(member.Descendants("summary").FirstOrDefault());
+
+							if (!enumValues.ContainsKey(enumFullType)) {
+								enumValues.Add(enumFullType, new List<EnumValDoc>());
+							}
+							enumValues.GetValueOrFallback(enumFullType, null)?.Add(new EnumValDoc(enumType, enumValue, summary));
 						}
-						enumValues.GetValueOrFallback(enumFullType, null)?.Add(new EnumValDoc(enumType, enumValue, summary));
 					}
 					//Console.WriteLine();
 				}
