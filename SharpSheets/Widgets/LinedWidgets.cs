@@ -40,6 +40,20 @@ namespace SharpSheets.Widgets {
 				this.rich = rich;
 				this.color = color;
 			}
+
+			/// <param name="fontsize">The font size to use for field contents.
+			/// A value of 0 indicates that the fields should autosize the contents to fit the available space.</param>
+			/// <param name="font">Font format to use for the fields. This will use the appropriate font format from
+			/// the current font selection.</param>
+			/// <param name="justification">The horizontal justification for the fields, indicating if the field
+			/// should be left, right, or centre justified.</param>
+			/// <param name="rich">Flag to indicate that the fields should have rich text features enabled.</param>
+			/// <param name="color">Color value for the field contents. Defaults to the current text color.</param>
+			[FactoryBuilder(typeof(FieldDetails))]
+			public static FieldDetails Build(float? fontsize = null, TextFormat font = TextFormat.REGULAR, Justification justification = Justification.LEFT, bool rich = false, Color? color = null) {
+				return new FieldDetails(fontsize, font, justification, rich, color);
+			}
+
 		}
 
 		protected readonly string name;

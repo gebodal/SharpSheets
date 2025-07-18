@@ -7,6 +7,7 @@ using System.Linq;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Markup.Canvas;
+using SharpSheets.Parsing;
 
 namespace SharpSheets.Markup.Elements {
 
@@ -30,6 +31,14 @@ namespace SharpSheets.Markup.Elements {
 			this.elements = elements.ToArray();
 		}
 
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="elements">Child graphical elements of this grouping.</param>
+		[FactoryBuilder(typeof(Grouping), Name = "g")]
+		public static Grouping Build([LocalProperty(Default = "null")] string? id, StyleSheet styleSheet, [Property(Exclude = true)] IEnumerable<IDrawableElement> elements) {
+			return new Grouping(id, styleSheet, elements);
+		}
+
 		public override void Draw(MarkupCanvas canvas) {
 			if (StyleSheet.IsEnabled(canvas.Environment)) {
 				canvas.SaveState();
@@ -45,7 +54,7 @@ namespace SharpSheets.Markup.Elements {
 				}
 
 				foreach (IDrawableElement elem in elements) {
-					foreach(IEnvironment forEachEnv in elem.StyleSheet.GetForEachEnvironments(canvas.Environment)) {
+					foreach (IEnvironment forEachEnv in elem.StyleSheet.GetForEachEnvironments(canvas.Environment)) {
 						canvas.SaveEnvironment();
 						canvas.ApplyEnvironment(forEachEnv);
 						elem.Draw(canvas);
@@ -136,6 +145,14 @@ namespace SharpSheets.Markup.Elements {
 			this.StyleSheet = styleSheet;
 
 			this.elements = elements.ToArray();
+		}
+
+		/// <param name="id" default="null">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="elements">Child shape elements which make up this clipping path.</param>
+		[FactoryBuilder(typeof(ClipPath), Name = "clipPath")]
+		public static ClipPath Build([LocalProperty(Default = "null")] string? id, StyleSheet styleSheet, [Property(Exclude = true)] IEnumerable<IShapeElement> elements) {
+			return new ClipPath(id, styleSheet, elements);
 		}
 
 		/*
@@ -245,6 +262,34 @@ namespace SharpSheets.Markup.Elements {
 			this.preserveAspectRatio = _preserveAspectRatio;
 
 			this.elements = elements.ToArray();
+		}
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="viewBox">The view box for this symbol, which determines the
+		/// available canvas on which child graphical elements can be drawn.</param>
+		/// <param name="x">The x coordinate of the symbol. Note that this may be
+		/// overriden by a &lt;use&gt; element.</param>
+		/// <param name="y">The y coordinate of the symbol. Note that this may be
+		/// overriden by a &lt;use&gt; element.</param>
+		/// <param name="width">The width of the symbol. Note that this may be
+		/// overriden by a &lt;use&gt; element. The view box will be scaled to this size.</param>
+		/// <param name="height">The height of the symbol. Note that this may be
+		/// overriden by a &lt;use&gt; element. The view box will be scaled to this size.</param>
+		/// <param name="preserveAspectRatio">Determines how the viewbox will
+		/// be deformed if it is used in a container with a different aspect ratio.</param>
+		/// <param name="elements">Child graphical elements of this symbol.</param>
+		[FactoryBuilder(typeof(Symbol), Name = "symbol")]
+		public static Symbol Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				[LocalProperty(Default = "null")] RectangleExpression? viewBox,
+				[LocalProperty(Default = "0")] XLengthExpression x, [LocalProperty(Default = "0")] YLengthExpression y,
+				[LocalProperty(Default = "0")] XLengthExpression width, [LocalProperty(Default = "0")] YLengthExpression height,
+				[LocalProperty(Default = "null")] PreserveAspectRatioExpression preserveAspectRatio,
+				[Property(Exclude = true)] IEnumerable<IDrawableElement> elements
+			) {
+
+			return new Symbol(id, styleSheet, viewBox, x, y, width, height, preserveAspectRatio, elements);
 		}
 
 		public void Draw(MarkupCanvas canvas) {
@@ -360,6 +405,27 @@ namespace SharpSheets.Markup.Elements {
 			this.preserveAspectRatio = _preserveAspectRatio;
 		}
 
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="x">The x coordinate for the image.</param>
+		/// <param name="y">The y coordinate for the image.</param>
+		/// <param name="width">The width for the image.</param>
+		/// <param name="height">The height for the image.</param>
+		/// <param name="file">The filepath for the image to draw.</param>
+		/// <param name="preserveAspectRatio">Determines how the image will
+		/// be deformed/cropped if it is used in an area with a different aspect ratio.</param>
+		[FactoryBuilder(typeof(Image), Name = "image")]
+		public static Image Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				[LocalProperty(Default = "0")] XLengthExpression x, [LocalProperty(Default = "0")] YLengthExpression y,
+				[LocalProperty(Default = "$width")] XLengthExpression width, [LocalProperty(Default = "$height")] YLengthExpression height,
+				FilePathExpression file,
+				[LocalProperty(Default = "null")] PreserveAspectRatioExpression preserveAspectRatio
+			) {
+
+			return new Image(id, styleSheet, x, y, width, height, file, preserveAspectRatio);
+		}
+
 		public void Draw(MarkupCanvas canvas) {
 			if (!StyleSheet.IsEnabled(canvas.Environment)) {
 				return;
@@ -368,7 +434,7 @@ namespace SharpSheets.Markup.Elements {
 			FilePath? filepath = canvas.Evaluate(this.filepath, null);
 			//Console.WriteLine("Image filepath: " + (filepath?.Path ?? "null"));
 
-			if(filepath is null) {
+			if (filepath is null) {
 				canvas.LogError(this, "No image file provided.", new InvalidOperationException());
 				return;
 			}
@@ -462,6 +528,32 @@ namespace SharpSheets.Markup.Elements {
 			finalYs = _ys ?? finalYs;
 
 			this.NSliceValues = new NSliceValuesExpression(finalXs, finalYs, markupContext.TypeSystem);
+		}
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="xs">A series of x-coordinates for the dividing lines
+		/// for the slices. These will override the x-coordinates of any margins given for
+		/// <paramref name="border"/>.</param>
+		/// <param name="ys">A series of y-coordinates for the dividing lines
+		/// for the slices. These will override the y-coordinates of any margins given for
+		/// <paramref name="border"/>.</param>
+		/// <param name="border">These values will produce a 9-sliced
+		/// canvas based on the margins provided. These values will be overriden by any
+		/// values provided for <paramref name="xs"/> and <paramref name="ys"/>.</param>
+		/// <param name="enabled">A flag to indicate whether this element should be
+		/// enabled and included in layout calculations.</param>
+		/// <param name="markupContext"></param>
+		[FactoryBuilder(typeof(SlicingValuesElement), Name = "slicing")]
+		public static SlicingValuesElement Build(
+				[LocalProperty(Default = "null")] string? id,
+				[LocalProperty(Default = "null")] FloatExpression[]? xs,
+				[LocalProperty(Default = "null")] FloatExpression[]? ys,
+				[LocalProperty(Default = "null")] MarginsExpression? border,
+				[LocalProperty(Default = "true")] BoolExpression enabled,
+				[Property(Exclude = true)] MarkupEvaluationContext markupContext
+			) {
+
+			return new SlicingValuesElement(id, xs, ys, border, enabled, markupContext);
 		}
 	}
 

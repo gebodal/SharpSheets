@@ -7,6 +7,7 @@ using System.Linq;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Markup.Canvas;
+using SharpSheets.Parsing;
 
 namespace SharpSheets.Markup.Elements {
 
@@ -38,6 +39,14 @@ namespace SharpSheets.Markup.Elements {
 				canvas.SetStrokeColor(Color);
 			}
 		}
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="color">The color for this paint.</param>
+		[FactoryBuilder(typeof(SolidPaint), Name = "solidPaint")]
+		public static SolidPaint Build([LocalProperty] string? id, [LocalProperty] ColorExpression color) {
+			return new SolidPaint(id, color);
+		}
+
 	}
 
 	//public enum SpreadMethod { Pad, Reflect, Repeat }
@@ -47,7 +56,7 @@ namespace SharpSheets.Markup.Elements {
 	/// that changes linearly between two specified points.
 	/// </summary>
 	public class LinearGradient : ICanvasPaint, IIdentifiableMarkupElement {
-		
+
 		public string? ID { get; }
 
 		// gradientUnits // Worth implementing?
@@ -72,7 +81,7 @@ namespace SharpSheets.Markup.Elements {
 			XLengthExpression _x1, YLengthExpression _y1,
 			XLengthExpression _x2, YLengthExpression _y2,
 			IEnumerable<ColorStopExpression> stops) {
-			
+
 			this.ID = _id;
 			this.p1 = new DrawPointExpression(_x1, _y1);
 			this.p2 = new DrawPointExpression(_x2, _y2);
@@ -87,6 +96,24 @@ namespace SharpSheets.Markup.Elements {
 				canvas.SetStrokeLinearGradient(p1, p2, stops);
 			}
 		}
+
+		/// <param name="_id">A unique name for this element.</param>
+		/// <param name="_x1">The x coordinate of the start point.</param>
+		/// <param name="_y1">The y coordinate of the start point.</param>
+		/// <param name="_x2">The x coordinate of the end point.</param>
+		/// <param name="_y2">The y coordinate of the end point.</param>
+		/// <param name="stops">The color stops for this gradient.</param>
+		[FactoryBuilder(typeof(LinearGradient), Name = "linearGradient")]
+		public static LinearGradient Build(
+				[LocalProperty] string? _id,
+				[LocalProperty(Default = "0")] XLengthExpression _x1, [LocalProperty(Default = "0")] YLengthExpression _y1,
+				[LocalProperty(Default = "$width")] XLengthExpression _x2, [LocalProperty(Default = "0")] YLengthExpression _y2,
+				[Property(Exclude = true)] IEnumerable<ColorStopExpression> stops
+			) {
+
+			return new LinearGradient(_id, _x1, _y1, _x2, _y2, stops);
+		}
+
 	}
 
 	/// <summary>
@@ -125,7 +152,7 @@ namespace SharpSheets.Markup.Elements {
 			XLengthExpression _fx, YLengthExpression _fy,
 			BoundingBoxLengthExpression _fr,
 			IEnumerable<ColorStopExpression> stops) {
-			
+
 			this.ID = _id;
 			this.c = new DrawPointExpression(_cx, _cy); ;
 			this.r = _r;
@@ -142,6 +169,27 @@ namespace SharpSheets.Markup.Elements {
 				canvas.SetStrokeRadialGradient(c, r, f, fr, stops);
 			}
 		}
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="cx">The x coordinate of the end circle.</param>
+		/// <param name="cy">The y coordinate of the end circle.</param>
+		/// <param name="r">The radius of the end circle.</param>
+		/// <param name="fx">The x coordinate of the start circle.</param>
+		/// <param name="fy">The y coordinate of the start circle.</param>
+		/// <param name="fr">The radius of the start circle.</param>
+		/// <param name="stops">The color stops for this gradient.</param>
+		[FactoryBuilder(typeof(RadialGradient), Name = "radialGradient")]
+		public static RadialGradient Build(
+				[LocalProperty] string? id,
+				[LocalProperty(Default = "$width / 2")] XLengthExpression cx, [LocalProperty(Default = "$height / 2")] YLengthExpression cy,
+				[LocalProperty(Default = "min($width, $height) / 2")] BoundingBoxLengthExpression r,
+				[LocalProperty(Default = "$width / 2")] XLengthExpression fx, [LocalProperty(Default = "$height / 2")] YLengthExpression fy,
+				[LocalProperty(Default = "0")] BoundingBoxLengthExpression fr,
+				[Property(Exclude = true)] IEnumerable<ColorStopExpression> stops
+			) {
+			return new RadialGradient(id, cx, cy, r, fx, fy, fr, stops);
+		}
+
 	}
 
 	/*

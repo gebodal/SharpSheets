@@ -21,27 +21,32 @@ namespace SharpSheets.Documentation {
 			SharpDocumentation.LoadEmbeddedDocumentation(typeof(SharpWidget).Assembly);
 		}
 
-		private static IEnumerable<ArgumentDetails> GetArguments(ConstructorInfo constructor, ConstructorDoc? constructorDoc, string prefix = "", bool ignoreWidgetSetup = false) {
+		private static IEnumerable<ArgumentDetails> GetArguments(MethodInfo builder, ConstructorDoc? constructorDoc, string prefix = "", bool ignoreWidgetSetup = false) {
 			bool addWidgetSetupArgs = false;
+
+			Type builderType = FactoryBuilderAttribute.GetBuilderType(builder);
 
 			int skip = 0;
 			// TODO These hard codings are not ideal. Better to have a general registry of types and required arguments? (would that even work?)
-			if (typeof(IShape).IsAssignableFrom(constructor.DeclaringType)) {
-				skip = ShapeFactory.GetRequiredArguments(constructor.DeclaringType)?.Length ?? 0; // TODO This feels iffy now we're using interfaces
+			if (typeof(IShape).IsAssignableFrom(builderType)) {
+				skip = ShapeFactory.GetRequiredArguments(builderType)?.Length ?? 0; // TODO This feels iffy now we're using interfaces
 
 				// This is ugly.
-				if (!typeof(ITitleStyledBox).IsAssignableFrom(constructor.DeclaringType) && !typeof(IDetail).IsAssignableFrom(constructor.DeclaringType)) {
+				if (!typeof(ITitleStyledBox).IsAssignableFrom(builderType) && !typeof(IDetail).IsAssignableFrom(builderType)) {
 					yield return aspectRatioArg;
 				}
 			}
 
-			ParameterInfo[] parameters = constructor.GetParameters().Skip(skip).ToArray();
+			// Get parameters, ignoring any BuildErrors parameter, and skipping any already-dealt-with from above
+			ParameterInfo[] parameters = builder.GetParameters().Where(p => p.GetCustomAttribute<BuildErrorsAttribute>() is null).Skip(skip).ToArray();
 			foreach (ParameterInfo param in parameters) {
 
 				if (param.Name is null) { continue; }
 
+				PropertyAttribute? propAttr = param.GetCustomAttribute<PropertyAttribute>();
+
 				string parameterName = SharpFactory.NormaliseParameterName(param.Name);
-				bool useLocal = param.Name[0] == '_';
+				bool useLocal = propAttr?.Local ?? false; // param.Name[0] == '_';
 
 				ArgumentDoc? argDoc = constructorDoc?.GetArgument(param.Name);
 
@@ -50,12 +55,12 @@ namespace SharpSheets.Documentation {
 					// This clause is here to ignore certain arguments in the CardConfig/etc classes
 					// Is there a better way of doing this?
 				}
-				else if (param.ParameterType == typeof(WidgetSetup) && typeof(SharpWidget).IsAssignableFrom(constructor.DeclaringType)) {
+				else if (param.ParameterType == typeof(WidgetSetup) && typeof(SharpWidget).IsAssignableFrom(builderType)) {
 					addWidgetSetupArgs = true; // Save these until last
 				}
 				else if (typeof(SharpWidget).IsAssignableFrom(param.ParameterType)) {
 
-					ConstructorInfo nestedConstructor = WidgetFactory.GetConstructorInfo(param.ParameterType) ?? throw new ArgumentException($"Could not find {nameof(ConstructorInfo)} for parameter type.");
+					MethodInfo nestedConstructor = WidgetFactory.GetConstructorInfo(param.ParameterType) ?? throw new ArgumentException($"Could not find {nameof(ConstructorInfo)} for parameter type.");
 					ConstructorDoc? nestedConstructorDoc = SharpDocumentation.GetConstructorDoc(nestedConstructor);
 
 					string nestedPrefix = (prefix.Length > 0 ? prefix + "." : "") + parameterName;
@@ -75,7 +80,7 @@ namespace SharpSheets.Documentation {
 					}
 				}
 				else if (typeof(ISharpArgsGrouping).IsAssignableFrom(param.ParameterType) || SharpFactory.IsParsableStruct(param.ParameterType)) {
-					ConstructorInfo nestedConstructor = ValueParsing.GetSimpleConstructor(param.ParameterType);
+					MethodInfo nestedConstructor = ValueParsing.GetSimpleConstructor(param.ParameterType);
 					ConstructorDoc? nestedConstructorDoc = SharpDocumentation.GetConstructorDoc(nestedConstructor);
 
 					//Console.WriteLine($"Arguments for {param.ParameterType.FullName}");
@@ -87,7 +92,7 @@ namespace SharpSheets.Documentation {
 					}
 				}
 				else if (typeof(ISharpArgSupplemented).IsAssignableFrom(param.ParameterType)) {
-					ConstructorInfo nestedConstructor = ValueParsing.GetSimpleConstructor(param.ParameterType);
+					MethodInfo nestedConstructor = ValueParsing.GetSimpleConstructor(param.ParameterType);
 					ConstructorDoc? nestedConstructorDoc = SharpDocumentation.GetConstructorDoc(nestedConstructor);
 
 					ArgumentDoc? firstArgDoc = nestedConstructorDoc?.arguments[0];
@@ -230,18 +235,19 @@ namespace SharpSheets.Documentation {
 
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
-		public static ConstructorDetails GetConstructorDetails(Type displayType, ConstructorInfo constructor, string name) {
+		public static ConstructorDetails GetConstructorDetails(Type displayType, MethodInfo constructor, string name) {
+			Type builderType = FactoryBuilderAttribute.GetBuilderType(constructor);
 			ConstructorDoc? constructorDoc = SharpDocumentation.GetConstructorDoc(constructor);
-			if(constructor.DeclaringType is null) {
-				throw new InvalidOperationException("Provided constructor has no declaring type.");
+			if(builderType == typeof(void)) {
+				throw new InvalidOperationException("Provided builder does not have a valid return type.");
 			}
 			return new ConstructorDetails(
 					displayType,
-					constructor.DeclaringType,
+					builderType,
 					name, // constructor.DeclaringType.Name,
 					name,
 					GetArguments(constructor, constructorDoc).ToArray(),
-					NormaliseDescription(SharpDocumentation.GetTypeDescription(constructor.DeclaringType)),
+					NormaliseDescription(SharpDocumentation.GetTypeDescription(builderType)),
 					GetExampleSize(constructorDoc),
 					GetExampleCanvas(constructorDoc));
 		}

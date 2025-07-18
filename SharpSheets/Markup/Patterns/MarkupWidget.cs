@@ -59,7 +59,7 @@ namespace SharpSheets.Markup.Patterns {
 					useExamples = true;
 				}
 				else {
-					setup = (WidgetSetup)SharpFactory.Construct(WidgetFactory.widgetSetupConstructor, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out SharpParsingException[] setupErrors);
+					setup = (WidgetSetup?)SharpFactory.Build(WidgetFactory.widgetSetupConstructor, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out SharpParsingException[] setupErrors) ?? new WidgetSetup();
 					errors.AddRange(setupErrors);
 					useExamples = false;
 				}

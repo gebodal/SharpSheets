@@ -20,8 +20,17 @@ namespace SharpSheets.Fonts {
 			Tags = tags;
 		}
 
+		/// <param name="path">Font path to use for this font setting.</param>
+		/// <param name="tags">Font tags to use for this font. This can include script,
+		/// language system, and feature tags (if they are supported by the font
+		/// specified).</param>
+		[FactoryBuilder(typeof(FontSetting))]
+		public static FontSetting Build(FontPath path, FontTags? tags = null) {
+			return new FontSetting(path, tags);
+		}
+
 		public static bool Equals(FontSetting? a, FontSetting? b) {
-			if(a is null) { return b is null; }
+			if (a is null) { return b is null; }
 			return FontPath.Equals(a.Path, b?.Path) && FontTags.Equals(a.Tags, b?.Tags);
 		}
 

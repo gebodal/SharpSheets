@@ -7,6 +7,7 @@ using System.Linq;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Markup.Canvas;
+using SharpSheets.Parsing;
 
 namespace SharpSheets.Markup.Elements {
 
@@ -76,6 +77,42 @@ namespace SharpSheets.Markup.Elements {
 			this.maxLen = _max_len;
 		}
 
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="x">The x-coordinate for the lower-left corner of the text field.</param>
+		/// <param name="y">The y-coordinate for the lower-left corner of the text field.</param>
+		/// <param name="width">The width for the text field.</param>
+		/// <param name="height">The height for the text field.</param>
+		/// <param name="name">The name to use for the field in the document.</param>
+		/// <param name="tooltip">The tooltip to use for the field in the document.</param>
+		/// <param name="field_type">The field type, which constrains the format of strings
+		/// which may be entered into the text field.</param>
+		/// <param name="value">The default string value for the text field when first
+		/// displayed in the document..</param>
+		/// <param name="multiline">A flag to indicate that the field should allow
+		/// multiple lines of text. If true, the text will be top-aligned, and will allow multiple lines.
+		/// If false, all text will be on a single, vertically-centered line.</param>
+		/// <param name="rich">A flag to indicate that the field should use rich text features.</param>
+		/// <param name="justification">The justification for the text field.</param>
+		/// <param name="max_len">The maximum allowed length for the text field contents, in characters.</param>
+		[FactoryBuilder(typeof(TextField), Name = "textField")]
+		public static TextField Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				[LocalProperty(Default = "0")] XLengthExpression x, [LocalProperty(Default = "0")] YLengthExpression y,
+				[LocalProperty(Default = "$width")] XLengthExpression width, [LocalProperty(Default = "$height")] YLengthExpression height,
+				[LocalProperty(Default = "NAME")] IExpression<string> name,
+				[LocalProperty(Default = "null")] IExpression<string>? tooltip,
+				[LocalProperty(Default = "STRING")] EnumExpression<TextFieldType> field_type,
+				[LocalProperty(Default = "null")] IExpression<string>? value,
+				[LocalProperty(Default = "false")] BoolExpression multiline,
+				[LocalProperty(Default = "false")] BoolExpression rich,
+				[LocalProperty(Default = "LEFT")] EnumExpression<Justification> justification,
+				[LocalProperty(Default = "-1")] IntExpression max_len
+			) {
+
+			return new TextField(id, styleSheet, x, y, width, height, name, tooltip, field_type, value, multiline, rich, justification, max_len);
+		}
+
 		public void Draw(MarkupCanvas canvas) {
 			if (!StyleSheet.IsEnabled(canvas.Environment)) {
 				return;
@@ -127,7 +164,7 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="_y" default="0">The y-coordinate for the lower-left corner of the check field.</param>
 		/// <param name="_width" default="$width">The width for the check field.</param>
 		/// <param name="_height" default="$height">The height for the check field.</param>
-		/// <param name="_name" default="null">The name to use for the field in the document.</param>
+		/// <param name="_name" default="NAME">The name to use for the field in the document.</param>
 		/// <param name="_tooltip" default="null">The tooltip to use for the field in the document.</param>
 		/// <param name="_check_type" default="CROSS">The check type to use for the check field, which will
 		/// determine the symbol displayed when the field is in the "On" state.</param>
@@ -145,6 +182,29 @@ namespace SharpSheets.Markup.Elements {
 			this.name = _name;
 			this.tooltip = _tooltip;
 			this.checkType = _check_type;
+		}
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="x">The x-coordinate for the lower-left corner of the check field.</param>
+		/// <param name="y">The y-coordinate for the lower-left corner of the check field.</param>
+		/// <param name="width">The width for the check field.</param>
+		/// <param name="height">The height for the check field.</param>
+		/// <param name="name">The name to use for the field in the document.</param>
+		/// <param name="tooltip">The tooltip to use for the field in the document.</param>
+		/// <param name="check_type">The check type to use for the check field, which will
+		/// determine the symbol displayed when the field is in the "On" state.</param>
+		[FactoryBuilder(typeof(CheckField), Name = "checkField")]
+		public static CheckField Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				[LocalProperty(Default = "0")] XLengthExpression x, [LocalProperty(Default = "0")] YLengthExpression y,
+				[LocalProperty(Default = "v")] XLengthExpression width, [LocalProperty(Default = "$height")] YLengthExpression height,
+				[LocalProperty(Default = "NAME")] IExpression<string> name,
+				[LocalProperty(Default = "null")] IExpression<string>? tooltip,
+				[LocalProperty(Default = "CROSS")] EnumExpression<CheckType> check_type
+			) {
+
+			return new CheckField(id, styleSheet, x, y, width, height, name, tooltip, check_type);
 		}
 
 		public void Draw(MarkupCanvas canvas) {
@@ -199,6 +259,26 @@ namespace SharpSheets.Markup.Elements {
 			this.rect = new RectangleExpression(_x, _y, _width, _height);
 			this.name = _name;
 			this.tooltip = _tooltip;
+		}
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="x">The x-coordinate for the lower-left corner of the image field.</param>
+		/// <param name="y">The y-coordinate for the lower-left corner of the image field.</param>
+		/// <param name="width">The width for the image field.</param>
+		/// <param name="height">The height for the image field.</param>
+		/// <param name="name">The name to use for the field in the document.</param>
+		/// <param name="tooltip">The tooltip to use for the field in the document.</param>
+		[FactoryBuilder(typeof(ImageField), Name = "imageField")]
+		public static ImageField Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				[LocalProperty(Default = "0")] XLengthExpression x, [LocalProperty(Default = "0")] YLengthExpression y,
+				[LocalProperty(Default = "$width")] XLengthExpression width, [LocalProperty(Default = "$height")] YLengthExpression height,
+				[LocalProperty(Default = "NAME")] IExpression<string> name,
+				[LocalProperty(Default = "null")] IExpression<string>? tooltip
+			) {
+
+			return new ImageField(id, styleSheet, x, y, width, height, name, tooltip);
 		}
 
 		public void Draw(MarkupCanvas canvas) {

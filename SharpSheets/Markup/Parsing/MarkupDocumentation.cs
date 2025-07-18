@@ -23,19 +23,19 @@ namespace SharpSheets.Markup.Parsing {
 		public static readonly ITypeDetailsCollection MarkupConstructors;
 
 		// DivSetup
-		private static readonly ConstructorInfo divSetupConstructorInfo;
+		private static readonly MethodInfo divSetupConstructorInfo;
 		private static readonly ConstructorDoc divSetupConstructorDoc;
 		// StyleSheet
-		private static readonly ConstructorInfo styleSheetConstructorInfo;
+		private static readonly MethodInfo styleSheetConstructorInfo;
 		private static readonly ConstructorDoc styleSheetConstructorDoc;
 		// PositionExpression
-		private static readonly ConstructorInfo positionExpressionConstructorInfo;
+		private static readonly MethodInfo positionExpressionConstructorInfo;
 		private static readonly ConstructorDoc positionExpressionConstructorDoc;
 		// LabelDetailsExpression
-		private static readonly ConstructorInfo labelDetailsExpressionConstructorInfo;
+		private static readonly MethodInfo labelDetailsExpressionConstructorInfo;
 		private static readonly ConstructorDoc labelDetailsExpressionConstructorDoc;
 		// RectangleExpression
-		private static readonly ConstructorInfo rectangleExpressionConstructorInfo;
+		private static readonly MethodInfo rectangleExpressionConstructorInfo;
 		private static readonly ConstructorDoc rectangleExpressionConstructorDoc;
 
 		/// <summary></summary>
@@ -47,19 +47,19 @@ namespace SharpSheets.Markup.Parsing {
 			MarkupEvaluationContext markupContext = new MarkupEvaluationContext(MarkupEvaluationTypes.BaseContext);
 
 			// Initialize Constructor Infos
-			divSetupConstructorInfo = typeof(DivSetup).GetConstructors().First();
+			divSetupConstructorInfo = SharpFactory.GetBuilder(typeof(DivSetup)) ?? throw new InvalidOperationException($"Cannot access {nameof(DivSetup)} builder.");
 			divSetupConstructorDoc = SharpDocumentation.GetConstructorDoc(divSetupConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(DivSetup)} documentation.");
 			
-			styleSheetConstructorInfo = typeof(StyleSheet).GetConstructors().First(c => c.GetParameters().Length > 0);
+			styleSheetConstructorInfo = SharpFactory.GetBuilder(typeof(StyleSheet)) ?? throw new InvalidOperationException($"Cannot access {nameof(StyleSheet)} builder.");
 			styleSheetConstructorDoc = SharpDocumentation.GetConstructorDoc(styleSheetConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(StyleSheet)} documentation.");
 
-			positionExpressionConstructorInfo = typeof(PositionExpression).GetConstructors().First(c => c.GetParameters().Length == 5);
+			positionExpressionConstructorInfo = SharpFactory.GetBuilder(typeof(PositionExpression)) ?? throw new InvalidOperationException($"Cannot access {nameof(PositionExpression)} builder.");
 			positionExpressionConstructorDoc = SharpDocumentation.GetConstructorDoc(positionExpressionConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(PositionExpression)} documentation.");
 
-			labelDetailsExpressionConstructorInfo = typeof(LabelDetailsExpression).GetConstructors().First(c => c.GetParameters().Length == 8);
+			labelDetailsExpressionConstructorInfo = SharpFactory.GetBuilder(typeof(LabelDetailsExpression))?? throw new InvalidOperationException($"Cannot access {nameof(LabelDetailsExpression)} builder.");
 			labelDetailsExpressionConstructorDoc = SharpDocumentation.GetConstructorDoc(positionExpressionConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(LabelDetailsExpression)} documentation.");
 
-			rectangleExpressionConstructorInfo = typeof(RectangleExpression).GetConstructors().First(c => c.GetParameters().Length == 4);
+			rectangleExpressionConstructorInfo = SharpFactory.GetBuilder(typeof(RectangleExpression)) ?? throw new InvalidOperationException($"Cannot access {nameof(RectangleExpression)} builder.");
 			rectangleExpressionConstructorDoc = SharpDocumentation.GetConstructorDoc(rectangleExpressionConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(RectangleExpression)} documentation.");
 			// Constructor Infos Initialized
 
@@ -267,7 +267,7 @@ namespace SharpSheets.Markup.Parsing {
 		/// <summary></summary>
 		/// <exception cref="SystemException"></exception>
 		/// <exception cref="TargetInvocationException"></exception>
-		private static ArgumentDetails[] GetArgumentDetails(ConstructorInfo constructorInfo, ConstructorDoc? constructorDoc, bool forceOptional = false, string? prefix = null) {
+		private static ArgumentDetails[] GetArgumentDetails(MethodInfo constructorInfo, ConstructorDoc? constructorDoc, bool forceOptional = false, string? prefix = null) {
 			List<ArgumentDetails> arguments = new List<ArgumentDetails>();
 
 			bool addStyleSheetArgs = false;
@@ -350,7 +350,7 @@ namespace SharpSheets.Markup.Parsing {
 		/// <summary></summary>
 		/// <exception cref="SystemException"></exception>
 		/// <exception cref="TargetInvocationException"></exception>
-		private static ConstructorDetails MakeConstructorDetails(string name, ConstructorInfo constructorInfo, Type declaringType, ConstructorDoc? constructorDoc, DocumentationString? typeDescription) {
+		private static ConstructorDetails MakeConstructorDetails(string name, MethodInfo constructorInfo, Type declaringType, ConstructorDoc? constructorDoc, DocumentationString? typeDescription) {
 			return new ConstructorDetails(
 				declaringType, declaringType,
 				name, name,
@@ -366,23 +366,27 @@ namespace SharpSheets.Markup.Parsing {
 		/// <exception cref="SystemException"></exception>
 		/// <exception cref="TargetInvocationException"></exception>
 		private static ConstructorDetails GetConstructorDetails(Type type, string name) {
-			ConstructorInfo constructorInfo = type.GetConstructors().FirstOrDefault() ?? throw new ArgumentException($"Could not find {nameof(ConstructorInfo)} for {nameof(type)}.");
-			if (constructorInfo.DeclaringType is null) {
-				throw new InvalidOperationException($"Cannot get valid {nameof(ConstructorInfo)} for {type.Name}.");
-			}
+			//ConstructorInfo constructorInfo = type.GetConstructors().FirstOrDefault() ?? throw new ArgumentException($"Could not find {nameof(ConstructorInfo)} for {type.Name}.");
+			MethodInfo constructorInfo = SharpFactory.GetBuilder(type) ?? throw new ArgumentException($"Could not find builder for {type.Name}.");
+			// if (constructorInfo.DeclaringType is null) {
+			// 	throw new InvalidOperationException($"Cannot get valid {nameof(ConstructorInfo)} for {type.Name}.");
+			// }
 
-			ConstructorDoc? constructorDoc;
-			if (type.TryGetGenericTypeDefinition() is Type genericType && genericType.GetConstructors().FirstOrDefault() is ConstructorInfo genericConstructorInfo) {
-				// TODO Is this supposed to be for Expressions...?
-				constructorDoc = SharpDocumentation.GetConstructorDoc(genericConstructorInfo);
-			}
-			else {
-				constructorDoc = SharpDocumentation.GetConstructorDoc(constructorInfo);
-			}
+			// ConstructorDoc? constructorDoc;
+			// if (type.TryGetGenericTypeDefinition() is Type genericType && genericType.GetConstructors().FirstOrDefault() is ConstructorInfo genericConstructorInfo) {
+			// 	// TODO Is this supposed to be for Expressions...?
+			// 	constructorDoc = SharpDocumentation.GetConstructorDoc(genericConstructorInfo);
+			// }
+			// else {
+			// 	constructorDoc = SharpDocumentation.GetConstructorDoc(constructorInfo);
+			// }
+			ConstructorDoc? constructorDoc = SharpDocumentation.GetConstructorDoc(constructorInfo);
 
-			DocumentationString? typeDescription = SharpDocumentation.GetTypeDescription(constructorInfo.DeclaringType);
+			Type builderType = FactoryBuilderAttribute.GetBuilderType(constructorInfo);
 
-			return MakeConstructorDetails(name, constructorInfo, constructorInfo.DeclaringType, constructorDoc, typeDescription);
+			DocumentationString? typeDescription = SharpDocumentation.GetTypeDescription(builderType);
+
+			return MakeConstructorDetails(name, constructorInfo, builderType, constructorDoc, typeDescription);
 		}
 
 	}

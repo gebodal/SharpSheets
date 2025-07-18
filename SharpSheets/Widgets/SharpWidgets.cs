@@ -129,6 +129,28 @@ namespace SharpSheets.Widgets {
 				this.fontsize = Math.Max(0f, fontsize);
 				this.rich = rich;
 			}
+
+			/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
+			/// information in the final document for accesibility and usability purposes.</param>
+			/// <param name="lined">If provided, the text field in this widget will not be interactive in the final document,
+			/// and will instead be drawn as a lined area, with a line spacing equal to the value given
+			/// (measured in points). The lines will be drawn at the default line width, unless the field linewidth parameter
+			/// is set.</param>
+			/// <param name="linewidth">The line width to use if a <paramref name="lined"/> parameter is specified. If not
+			/// specified, the current line width will be used.</param>
+			/// <param name="justification">Justification for the field, indicating if the field should be left, right,
+			/// or centre justified.</param>
+			/// <param name="singleline">Flag to indicate that the field for this widget should be a single line field.</param>
+			/// <param name="font">Font format to use for the text field. This will use the appropriate font format from
+			/// the current font selection.</param>
+			/// <param name="fontsize">Font size for the text field.
+			/// A value of 0 or less indicates that the field in the final document should autosize the text.</param>
+			/// <param name="rich">Flag to indicate that the text field should have rich text features enabled.</param>
+			[FactoryBuilder(typeof(FieldDetails))]
+			public static FieldDetails Build(string? tooltip = null, float? lined = null, float? linewidth = null, Justification justification = Justification.LEFT, bool singleline = false, TextFormat font = TextFormat.REGULAR, float fontsize = 0f, bool rich = false) {
+				return new FieldDetails(tooltip, lined, linewidth, justification, singleline, font, fontsize, rich);
+			}
+
 		}
 
 		protected readonly IContainerShape outline;
@@ -277,6 +299,23 @@ namespace SharpSheets.Widgets {
 				this.fontsize = fontsize;
 				this.rich = rich;
 			}
+
+			/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
+			/// information in the final document for accesibility and usability purposes.</param>
+			/// <param name="justification">Justification for the field, indicating if the field should be left, right,
+			/// or centre justified.</param>
+			/// <param name="check">If a check mark type is provided, the field will be a check field, rather than
+			/// a text field, with the appropriate check mark used to indicate the "On" state.</param>
+			/// <param name="font">Font format to use for the text field. This will use the appropriate font format from
+			/// the current font selection.</param>
+			/// <param name="fontsize">Font size for the text field.
+			/// A value of 0 or less indicates that the field in the final document should autosize the text.</param>
+			/// <param name="rich">Flag to indicate that the text field should have rich text features enabled.</param>
+			[FactoryBuilder(typeof(FieldDetails))]
+			public static FieldDetails Build(string? tooltip = null, Justification justification = Justification.CENTRE, CheckType? check = null, TextFormat font = TextFormat.REGULAR, float fontsize = 0f, bool rich = false) {
+				return new FieldDetails(tooltip, justification, check, font, fontsize, rich);
+			}
+
 		}
 
 		protected readonly string? name;
@@ -416,6 +455,23 @@ namespace SharpSheets.Widgets {
 				this.heightStrategy = heightStrategy;
 				this.offset = offset;
 			}
+
+			/// <param name="fontSize">Font size to use for the label text.</param>
+			/// <param name="lineSpacing">Line spacing to use for multiline label text, as a factor of <paramref name="fontSize"/>.</param>
+			/// <param name="format">Font format to use for the label text. This will use the appropriate font
+			/// format from the current font selection.</param>
+			/// <param name="justification">The horizontal justification to use for the label text, relative to the label area.</param>
+			/// <param name="alignment">The vertical alignment to use for the label text, relative to the label area.</param>
+			/// <param name="heightStrategy">The height calculation strategy to use when arranging the label text within the label area.</param>
+			/// <param name="offset">An offset for the label text, after positioning using <paramref name="justification"/> and
+			/// <paramref name="alignment"/> This is provided as an x,y pair of numbers, measured in points. The positive
+			/// directions are rightwards and upwards. This can be used to make specific adjustments, to accomodate quirks of
+			/// specific fonts.</param>
+			[FactoryBuilder(typeof(LabelParams))]
+			public static LabelParams Build(float fontSize = 6f, float lineSpacing = 1f, TextFormat format = TextFormat.REGULAR, Justification justification = Justification.CENTRE, Alignment alignment = Alignment.CENTRE, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline, (float x, float y) offset = default) {
+				return new LabelParams(fontSize, lineSpacing, format, justification, alignment, heightStrategy, offset);
+			}
+
 		}
 
 		public class FieldDetails : ISharpArgsGrouping {
@@ -451,6 +507,24 @@ namespace SharpSheets.Widgets {
 				this.multiline = multiline;
 				this.rich = rich;
 			}
+
+			/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
+			/// information in the final document for accesibility and usability purposes.</param>
+			/// <param name="justification">Justification for the field, indicating if the field should be left, right,
+			/// or centre justified.</param>
+			/// <param name="check">If a check mark type is provided, the field will be a check field, rather than
+			/// a text field, with the appropriate check mark used to indicate the "On" state.</param>
+			/// <param name="font">Font format to use for the text field. This will use the appropriate font format from
+			/// the current font selection.</param>
+			/// <param name="fontsize">Font size for the text field.
+			/// A value of 0 or less indicates that the field in the final document should autosize the text.</param>
+			/// <param name="multiline">Flag to indicate that the field for this widget should be a multiline field.</param>
+			/// <param name="rich">Flag to indicate that the text field should have rich text features enabled.</param>
+			[FactoryBuilder(typeof(FieldDetails))]
+			public static FieldDetails Build(string? tooltip = null, Justification justification = Justification.CENTRE, CheckType? check = null, TextFormat font = TextFormat.REGULAR, float fontsize = 0f, bool multiline = false, bool rich = false) {
+				return new FieldDetails(tooltip, justification, check, font, fontsize, multiline, rich);
+			}
+
 		}
 
 		protected readonly ILabelledBox outline;
@@ -602,6 +676,18 @@ namespace SharpSheets.Widgets {
 				this.Spacing = spacing;
 				this.Indent = new ParagraphIndent(indent, hanging);
 			}
+
+			/// <param name="spacing">The spacing to be used between paragraphs of text, measured in points.
+			/// This spacing is in addition to any line spacing.</param>
+			/// <param name="indent">The indentation length for the first line of text in a paragraph,
+			/// measured in points.</param>
+			/// <param name="hanging">The indentation length for each line after the first (whose indentation
+			/// is controlled using <paramref name="indent"/>), measured in points.</param>
+			[FactoryBuilder(typeof(ParagraphDataArgs))]
+			public static ParagraphDataArgs Build(float spacing = 0f, float indent = 0f, float hanging = 0f) {
+				return new ParagraphDataArgs(spacing, indent, hanging);
+			}
+
 		}
 
 		protected readonly RichString text;
@@ -754,7 +840,7 @@ namespace SharpSheets.Widgets {
 		[FactoryBuilder(typeof(IWidget))]
 		public static Text Build(
 				WidgetSetup setup,
-				[Property(Example = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")]
+				[Property(Example = "Lorem ipsum dolor sit amet\\, consectetur adipiscing elit\\, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")]
 				List<RichString>? text = null,
 				float fontSize = -1f,
 				TextFormat? format = null,
@@ -776,6 +862,8 @@ namespace SharpSheets.Widgets {
 		}
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
+
+			Console.WriteLine($"Draw ({fontSize} ({minfontsize} < s < {maxfontsize}, {epsilon}), fit {fit || fontSize <= 0}): \"{text.Formatted}\"");
 
 			rect = new Rectangle(rect.X + offset.x, rect.Y + offset.y, rect.Width, rect.Height);
 
@@ -907,6 +995,22 @@ namespace SharpSheets.Widgets {
 			this.heightStrategy = heightStrategy;
 			this.color = color;
 		}
+
+		/// <param name="fontSize">The fontsize for the bar names, measured in points.</param>
+		/// <param name="offset">An offset for the name text, after positioning using <paramref name="justification"/> and
+		/// <paramref name="alignment"/>. This is provided as an x,y pair of numbers, measured in points. The positive directions
+		/// are rightwards and upwards. This can be used to make specific adjustments, to accomodate quirks of specific fonts.</param>
+		/// <param name="format">Font format to use for the name text. This will use the appropriate font
+		/// format from the current font selection.</param>
+		/// <param name="justification">The horizontal justification to use for the name text, relative to the bar label area.</param>
+		/// <param name="alignment">The vertical alignment to use for the name text, relative to the bar label area.</param>
+		/// <param name="heightStrategy">The height calculation strategy to use when arranging the label text within the label area.</param>
+		/// <param name="color">The color to use for the bar name text. The default is the current text color.</param>
+		[FactoryBuilder(typeof(BarNameDetails))]
+		public static BarNameDetails Build(float fontSize = 6f, (float x, float y) offset = default, TextFormat format = TextFormat.REGULAR, Justification justification = Justification.CENTRE, Alignment alignment = Alignment.CENTRE, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline, Color? color = null) {
+			return new BarNameDetails(fontSize, offset, format, justification, alignment, heightStrategy, color);
+		}
+
 	}
 
 	/// <summary>
@@ -1992,13 +2096,13 @@ namespace SharpSheets.Widgets {
 		[FactoryBuilder(typeof(IWidget))]
 		public static TopEntry Build(
 				WidgetSetup setup,
-				[Property(Example = "Text")] string? name = null,
-				string? text = null, // TODO RichString?
+				string? name = null,
+				[Property(Example = "Text")] string? text = null, // TODO RichString?
 				[LocalProperty] TextFormat format = TextFormat.REGULAR,
 				float fontSize = 6.5f,
 				float? height = null,
 				float? spacing = null,
-				(float x, float y) textOffset = default,
+				[Property(Example = "0,1")] (float x, float y) textOffset = default,
 				bool rich = false
 			) {
 
@@ -2313,7 +2417,7 @@ namespace SharpSheets.Widgets {
 		ROWS
 	}
 
-	public readonly struct Spacing {
+	public readonly struct Spacing : ISharpArgsGrouping {
 		public readonly float? horizontal;
 		public readonly float? vertical;
 		/// <summary>
@@ -2324,6 +2428,13 @@ namespace SharpSheets.Widgets {
 		public Spacing(float? horizontal = null, float? vertical = null) {
 			this.horizontal = horizontal;
 			this.vertical = vertical;
+		}
+
+		/// <param name="horizontal">Horizontal spacing between elements, measured in points.</param>
+		/// <param name="vertical">Vertical spacing between elements, measured in points.</param>
+		[FactoryBuilder(typeof(Spacing))]
+		public static Spacing Build(float? horizontal = null, float? vertical = null) {
+			return new Spacing(horizontal, vertical);
 		}
 	}
 

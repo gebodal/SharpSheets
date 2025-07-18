@@ -319,6 +319,21 @@ namespace SharpSheets.Markup.Canvas {
 		}
 		*/
 
+		/// <param name="x"></param>
+		/// <param name="y"></param>
+		/// <param name="width"></param>
+		/// <param name="height"></param>
+		[FactoryBuilder(typeof(RectangleExpression))]
+		public static RectangleExpression Build(
+				[LocalProperty(Default = "0")] FloatExpression x,
+				[LocalProperty(Default = "0")] FloatExpression y,
+				[LocalProperty(Default = "$width")] FloatExpression width,
+				[LocalProperty(Default = "$height")] FloatExpression height
+			) {
+
+			return new RectangleExpression(x, y, width, height);
+		}
+
 		public IEnumerable<EvaluationName> GetVariables() {
 			return Expressions.GetVariables(X, Y, Width, Height);
 		}
@@ -963,6 +978,25 @@ namespace SharpSheets.Markup.Canvas {
 			return new PositionExpression(value);
 		}
 		*/
+
+		/// <param name="anchor">The anchor point for the position, which
+		/// will determine the origin of the coordinates when determining the extend of
+		/// the area.</param>
+		/// <param name="x">The x-coordinate of the position.</param>
+		/// <param name="y">The y-coordinate of the position.</param>
+		/// <param name="width">The width for the position area.</param>
+		/// <param name="height">The height for the position area.</param>
+		[FactoryBuilder(typeof(PositionExpression))]
+		public static PositionExpression Build(
+				[LocalProperty(Default = "null")] EnumExpression<Anchor>? anchor,
+				[LocalProperty(Default = "null")] DimensionExpression? x,
+				[LocalProperty(Default = "null")] DimensionExpression? y,
+				[LocalProperty(Default = "null")] DimensionExpression? width,
+				[LocalProperty(Default = "null")] DimensionExpression? height
+			) {
+
+			return new PositionExpression(anchor, x, y, width, height);
+		}
 
 		public IEnumerable<EvaluationName> GetVariables() {
 			return IsConstant ? Enumerable.Empty<EvaluationName>() :

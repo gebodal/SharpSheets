@@ -2,6 +2,7 @@
 using SharpSheets.Evaluations;
 using SharpSheets.Exceptions;
 using SharpSheets.Markup.Canvas;
+using SharpSheets.Parsing;
 using SharpSheets.Utilities;
 using System;
 using System.Collections.Generic;
@@ -32,8 +33,21 @@ namespace SharpSheets.Markup.Elements {
 			this.data = _d ?? Array.Empty<DrawOperation>();
 		}
 
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="d">The path data, as a series of drawing instructions
+		/// and arguments.</param>
+		[FactoryBuilder(typeof(Path), Name = "path")]
+		public static Path Build(StyleSheet styleSheet,
+				[LocalProperty(Default = "null")] string? id = null,
+				[LocalProperty(Default = "null")] DrawOperation[]? d = null
+			) {
+
+			return new Path(styleSheet, id, d);
+		}
+
 		protected override void DoAssignGeometry(MarkupCanvas canvas) {
-			foreach(DrawOperation operation in data) {
+			foreach (DrawOperation operation in data) {
 				if (operation is MoveOperation move) {
 					canvas.MoveTo(move.startPoint);
 				}

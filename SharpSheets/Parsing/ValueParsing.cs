@@ -166,7 +166,7 @@ namespace SharpSheets.Parsing {
 					return new Regex(value);
 				}
 			}
-			else if (TryGetSimpleConstructor(type, out ConstructorInfo? constructor)) {
+			else if (TryGetSimpleConstructor(type, out MethodInfo? constructor)) {
 				return ParseValueDict(value, constructor, source);
 			}
 			else {
@@ -289,16 +289,17 @@ namespace SharpSheets.Parsing {
 			throw new NotSupportedException($"String format for values of type {value.GetType().Name} not supported.");
 		}
 
-		public static bool TryGetSimpleConstructor(Type type, [MaybeNullWhen(false)] out ConstructorInfo constructor) {
-			constructor = type.GetConstructors().FirstOrDefault(c => c.IsPublic && c.GetParameters().Length > 0);
+		public static bool TryGetSimpleConstructor(Type type, [MaybeNullWhen(false)] out MethodInfo constructor) {
+			// TODO This is very slow! This needs improving, but will be a moot point with source generator approach
+			constructor = SharpFactory.GetBuilder(type); // type.GetConstructors().FirstOrDefault(c => c.IsPublic && c.GetParameters().Length > 0);
 			return constructor != null;
 		}
-		public static ConstructorInfo GetSimpleConstructor(Type type) {
-			if (TryGetSimpleConstructor(type, out ConstructorInfo? constructor)) {
+		public static MethodInfo GetSimpleConstructor(Type type) {
+			if (TryGetSimpleConstructor(type, out MethodInfo? constructor)) {
 				return constructor;
 			}
 			else {
-				throw new InvalidOperationException($"No simple constructor implemented for {type.Name}");
+				throw new InvalidOperationException($"No simple builder implemented for {type.Name}");
 			}
 		}
 
@@ -314,13 +315,13 @@ namespace SharpSheets.Parsing {
 
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
-		public static object ParseValueDict(string value, ConstructorInfo constructor, DirectoryPath source) {
+		public static object? ParseValueDict(string value, MethodInfo constructor, DirectoryPath source) {
 			Match dictMatch = dictRegex.Match(value);
 			if (dictMatch.Success) {
 				value = dictMatch.Groups["dict"].Value;
 			}
 			else {
-				throw new FormatException($"Badly formatted dictionary string for {constructor.DeclaringType?.Name ?? "Unknown Type"}.");
+				throw new FormatException($"Badly formatted dictionary string for {FactoryBuilderAttribute.GetBuilderType(constructor).Name ?? "Unknown Type"}.");
 			}
 
 			//ConstructorInfo constructor = GetSimpleConstructor(type);
@@ -382,10 +383,10 @@ namespace SharpSheets.Parsing {
 			}
 
 			try {
-				return constructor.Invoke(parameters);
+				return constructor.Invoke(null, parameters);
 			}
 			catch (TargetInvocationException e) {
-				throw new InvalidOperationException($"Error found while constructing {constructor.DeclaringType?.Name ?? "UNKNOWN"} from dictionary.", e);
+				throw new InvalidOperationException($"Error found while constructing {FactoryBuilderAttribute.GetBuilderType(constructor).Name ?? "UNKNOWN"} from dictionary.", e);
 			}
 		}
 

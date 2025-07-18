@@ -1,4 +1,5 @@
 ﻿using SharpSheets.Markup.Parsing;
+using SharpSheets.Parsing;
 using SharpSheets.Utilities;
 using System;
 using System.Collections.Generic;
@@ -250,10 +251,11 @@ namespace SharpSheets.Documentation {
 			}
 		}
 
-		public static ConstructorDoc? GetConstructorDoc(ConstructorInfo constructor) {
-			List<ConstructorDoc>? constructors = typeConstructors.GetValueOrFallback((constructor.DeclaringType?.FullName ?? "").Replace("+", "."), null);
+		public static ConstructorDoc? GetConstructorDoc(MethodInfo builder) {
+			Type builderType = FactoryBuilderAttribute.GetBuilderType(builder);
+			List<ConstructorDoc>? constructors = typeConstructors.GetValueOrFallback((builderType.FullName ?? "").Replace("+", "."), null);
 			if (constructors != null) {
-				HashSet<string> paramNameSet = new HashSet<string>(constructor.GetParameters().Select(p => p.Name).WhereNotNull());
+				HashSet<string> paramNameSet = new HashSet<string>(builder.GetParameters().Select(p => p.Name).WhereNotNull());
 				return constructors.FirstOrDefault(c => paramNameSet.SetEquals(c.arguments.Select(a => a.name)));
 			}
 
@@ -333,31 +335,37 @@ namespace SharpSheets.Documentation {
 						//Console.WriteLine($"Type: {typeName}");
 						//Console.WriteLine($"Summary: {summary}");
 					}
-					else if (fullName.StartsWith("M")) {
-						GetMethodNameSections(name, out string methodFullName, out _);
-						string[] methodNameParts = methodFullName.Split('.');
+					else if (fullName.StartsWith("M") && GetMethodInfoFromXmlName(fullName) is MethodInfo methodInfo) {
+						//Console.WriteLine($"Found: {methodInfo}");
+						if (methodInfo.GetCustomAttribute<FactoryBuilderAttribute>() is FactoryBuilderAttribute builderAttr) {
+							//Console.WriteLine("Has FactoryBuilderAttribute");
 
-						string typeFullName = string.Join(".", methodNameParts.Take(methodNameParts.Length - 1));
-						string methodName = methodNameParts[^1];
+							Type builderType = FactoryBuilderAttribute.GetBuilderType(methodInfo);
 
-						if (methodName == "#ctor") {
-							string typeName = methodNameParts[^2];
+							Dictionary<string, ParameterInfo> paramsDict = methodInfo.GetParameters().Where(p => p.Name is not null).ToDictionary(p => p.Name!);
+
+							string typeFullName = builderType.FullName ?? builderType.Name;
+							string typeName = builderType.Name;
+
 							//Console.WriteLine($"Constructor for {typeName} ({typeFullName} -> {GetTypeByName(assembly, typeFullName)?.FullName ?? "None"})");
 
 							List<ArgumentDoc> argumentDocs = new List<ArgumentDoc>();
 							foreach (XElement param in member.Descendants("param")) {
 								string? paramName = param.Attribute("name")?.Value;
-								if(paramName is null) { continue; }
+								if (paramName is null) { continue; }
+								ParameterInfo paramInfo = paramsDict[paramName];
+								PropertyAttribute? propAttr = paramInfo?.GetCustomAttribute<PropertyAttribute>();
+								//if(propAttr is not null) { Console.WriteLine($"Got attr for {methodInfo} {paramInfo}"); }
 
 								DocumentationString? description = GetDocumentationString(param);
 								//Console.WriteLine($"Parameter {paramName}: {description}");
 
 								//XElement defaultValue = param.Descendants("default").FirstOrDefault();
 								//string defaultStr = defaultValue != null ? defaultValue.Attribute("value")?.Value : null;
-								string? defaultStr = param.Attribute("default")?.Value;
-								string? exampleStr = param.Attribute("example")?.Value;
+								string? defaultStr = propAttr?.Default; // param.Attribute("default")?.Value;
+								string? exampleStr = propAttr?.Example; // param.Attribute("example")?.Value;
 								//Console.WriteLine($"Default value: {defaultValue} => {defaultStr}");
-								bool exclude = string.Equals("true", param.Attribute("exclude")?.Value ?? "false", StringComparison.OrdinalIgnoreCase);
+								bool exclude = propAttr?.Exclude ?? false;  //string.Equals("true", param.Attribute("exclude")?.Value ?? "false", StringComparison.OrdinalIgnoreCase);
 
 								argumentDocs.Add(new ArgumentDoc(paramName, description, defaultStr, exampleStr, exclude));
 							}
@@ -403,6 +411,129 @@ namespace SharpSheets.Documentation {
 				}
 			}
 
+		}
+
+		private static readonly Regex genericXmlTypeNameRegex = new Regex(@"^(?<baseType>[A-Za-z0-9_\.]+)\{(?<innerType>.+)\}$");
+
+		private static Type? GetTypeFromXmlName(string xmlName) {
+			// try GetType first; if that fails, search loaded assemblies
+			//Console.WriteLine($"Try get type: {xmlName}");
+			Type? result;
+			Match genericMatch = genericXmlTypeNameRegex.Match(xmlName);
+			if (genericMatch.Success) {
+				string baseTypeName = genericMatch.Groups["baseType"].Value;
+				string[] innerTypeNames = SplitXmlTypes(genericMatch.Groups["innerType"].Value).ToArray();
+
+				Type? baseType = GetTypeFromXmlName($"{baseTypeName}`{innerTypeNames.Length}");
+				if (baseType is null) { return null; }
+
+				Type?[] innerTypes = innerTypeNames.Select(n => GetTypeFromXmlName(n)).ToArray();
+				if (innerTypes.Any(t => t is null)) { return null; }
+
+				result = baseType.MakeGenericType(innerTypes!);
+			}
+			else {
+				string[] parts = xmlName.Split('.');
+				int nestedTypeLevel = 0;
+				do {
+					string tryName = string.Join('.', parts[..^nestedTypeLevel]) + (nestedTypeLevel > 0 ? ("+" + string.Join('+', parts[^nestedTypeLevel..])) : "");
+
+					result = Type.GetType(tryName, throwOnError: false)
+						?? AppDomain.CurrentDomain
+							.GetAssemblies()
+							.Select(a => a.GetType(tryName, throwOnError: false))
+							.FirstOrDefault(t => t != null);
+					
+					nestedTypeLevel++;
+				} while (result is null && nestedTypeLevel < parts.Length - 1);
+			}
+			//Console.WriteLine($"Got: {result?.ToString() ?? "null"}");
+			return result;
+		}
+
+		private static IEnumerable<string> SplitXmlTypes(string paramsList) {
+			int nesting = 0;
+			int head = 0;
+
+			for (int i = 0; i < paramsList.Length; i++) {
+				if (paramsList[i] == '{') {
+					nesting++;
+				}
+				else if (paramsList[i] == '}') {
+					nesting--;
+				}
+				else if (paramsList[i] == ',' && nesting == 0) {
+					yield return paramsList[head..i];
+					head = i + 1;
+				}
+			}
+
+			yield return paramsList[head..];
+		}
+
+		/// <summary>
+		/// Given an XML-doc “member name” string like
+		///     M:MyNamespace.MyType.MyMethod(System.String,System.Int32)
+		/// returns the corresponding MethodInfo (or null).
+		/// </summary>
+		private static MethodInfo? GetMethodInfoFromXmlName(string xmlName) {
+			// Thanks ChatGPT https://chatgpt.com/s/t_6873b49cf4748191b7416345bce7b54d
+
+			//Console.WriteLine($"Asking for MethodInfo for {xmlName}");
+
+			// strip the leading "M:"
+			string sig = xmlName[2..];
+
+			// split off parameters if any
+			int paramsStart = sig.IndexOf('(');
+
+			if (paramsStart < 0) {
+				return null;
+			}
+
+			string typeAndMethod = sig[..paramsStart];
+			string paramsList = sig.Substring(paramsStart + 1, sig.Length - paramsStart - 2);
+
+			// split namespace.type from method name
+			int lastDot = typeAndMethod.LastIndexOf('.');
+			if (lastDot < 0) return null;
+
+			string typeFullName = typeAndMethod[..lastDot];
+			string methodName = typeAndMethod[(lastDot + 1)..];
+
+			// locate the Type in any loaded assembly
+			// Type? targetType = AppDomain.CurrentDomain
+			// 	.GetAssemblies()
+			// 	.Select(a => a.GetType(typeFullName, throwOnError: false))
+			// 	.FirstOrDefault(t => t != null);
+			Type? targetType = GetTypeFromXmlName(typeFullName);
+
+			if (targetType == null)
+				return null;
+
+			//Console.WriteLine($"Got target type: {targetType}");
+
+			// parse parameter type names
+			Type?[] paramTypes = paramsList == ""
+				? Type.EmptyTypes
+				: SplitXmlTypes(paramsList)
+					.Select(pn => GetTypeFromXmlName(pn))
+					.ToArray();
+
+			if (paramTypes.Any(p => p is null)) {
+				return null;
+			}
+
+			//Console.WriteLine($"Got params list: {paramTypes.Length}");
+
+			// finally get the MethodInfo
+			return targetType.GetMethod(
+				methodName,
+				BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static,
+				binder: null,
+				types: paramTypes!,
+				modifiers: null
+			);
 		}
 
 	}

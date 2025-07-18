@@ -7,6 +7,7 @@ using System.Linq;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Markup.Canvas;
+using SharpSheets.Parsing;
 
 namespace SharpSheets.Markup.Elements {
 
@@ -29,6 +30,21 @@ namespace SharpSheets.Markup.Elements {
 		public Circle(string? _id, StyleSheet styleSheet, XLengthExpression _cx, YLengthExpression _cy, FloatExpression _r) : base(_id, styleSheet) {
 			this.centre = new DrawPointExpression(_cx, _cy);
 			this.radius = _r;
+		}
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="cx">The x coordinate of the circle centre.</param>
+		/// <param name="cy">The y coordinate of the circle centre.</param>
+		/// <param name="r">The radius of the circle.</param>
+		[FactoryBuilder(typeof(Circle), Name = "circle")]
+		public static Circle Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				[LocalProperty(Default = "0")] XLengthExpression cx, [LocalProperty(Default = "0")] YLengthExpression cy,
+				[LocalProperty(Default = "0")] FloatExpression r
+			) {
+
+			return new Circle(id, styleSheet, cx, cy, r);
 		}
 
 		protected override void DoAssignGeometry(MarkupCanvas canvas) {
@@ -64,6 +80,22 @@ namespace SharpSheets.Markup.Elements {
 			this.centre = new DrawPointExpression(_cx, _cy);
 			this.rx = _rx;
 			this.ry = _ry;
+		}
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="cx">The x coordinate of the ellipse centre.</param>
+		/// <param name="cy">The y coordinate of the ellipse centre.</param>
+		/// <param name="rx">The radius of the ellipse on the x axis.</param>
+		/// <param name="ry">The radius of the ellipse on the y axis</param>
+		[FactoryBuilder(typeof(Ellipse), Name = "ellipse")]
+		public static Ellipse Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				[LocalProperty(Default = "0")] XLengthExpression cx, [LocalProperty(Default = "0")] YLengthExpression cy,
+				[LocalProperty(Default = "0")] FloatExpression rx, [LocalProperty(Default = "0")] FloatExpression ry
+			) {
+
+			return new Ellipse(id, styleSheet, cx, cy, rx, ry);
 		}
 
 		protected override void DoAssignGeometry(MarkupCanvas canvas) {
@@ -111,6 +143,22 @@ namespace SharpSheets.Markup.Elements {
 			this.point2 = new DrawPointExpression(_x2, _y2);
 		}
 
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="x1">The x coordinate of the start point.</param>
+		/// <param name="y1">The y coordinate of the start point.</param>
+		/// <param name="x2">The x coordinate of the end point.</param>
+		/// <param name="y2">The y coordinate of the end point.</param>
+		[FactoryBuilder(typeof(Line), Name = "line")]
+		public static Line Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				[LocalProperty(Default = "0")] XLengthExpression x1, [LocalProperty(Default = "0")] YLengthExpression y1,
+				[LocalProperty(Default = "0")] XLengthExpression x2, [LocalProperty(Default = "0")] YLengthExpression y2
+			) {
+
+			return new Line(id, styleSheet, x1, y1, x2, y2);
+		}
+
 		protected override void DoAssignGeometry(MarkupCanvas canvas) {
 			canvas.MoveTo(point1)
 				.LineTo(point2);
@@ -141,6 +189,21 @@ namespace SharpSheets.Markup.Elements {
 		/// point also having a straight line connecting them.</param>
 		public Polygon(string? _id, StyleSheet styleSheet, DrawPointExpression[] _points) : base(_id, styleSheet) {
 			this.points = _points;
+		}
+
+		/// <param name="_id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="points">A series of x,y coordinates for the
+		/// points for the polygon shape. Each point will be connected to the previous
+		/// and subsequent point by straight line segments, with the first and last
+		/// point also having a straight line connecting them.</param>
+		[FactoryBuilder(typeof(Polygon), Name = "polygon")]
+		public static Polygon Build(
+				[LocalProperty(Default = "null")] string? _id, StyleSheet styleSheet,
+				[LocalProperty(Default = "null")] DrawPointExpression[] points
+			) {
+
+			return new Polygon(_id, styleSheet, points);
 		}
 
 		protected override void DoAssignGeometry(MarkupCanvas canvas) {
@@ -175,6 +238,21 @@ namespace SharpSheets.Markup.Elements {
 		/// the first and last point).</param>
 		public Polyline(string? _id, StyleSheet styleSheet, DrawPointExpression[] _points) : base(_id, styleSheet) {
 			this.points = _points;
+		}
+
+		/// <param name="_id" default="null">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="points" default="null">A series of x,y coordinates for the
+		/// point for the line segments. Each point will be connected to the previous
+		/// subsequent point by straight line segments (with no connection between
+		/// the first and last point).</param>
+		[FactoryBuilder(typeof(Polyline), Name = "polyline")]
+		public static Polyline Build(
+				[LocalProperty(Default = "null")] string? _id, StyleSheet styleSheet,
+				[LocalProperty(Default = "null")] DrawPointExpression[] points
+			) {
+
+			return new Polyline(_id, styleSheet, points);
 		}
 
 		protected override void DoAssignGeometry(MarkupCanvas canvas) {
@@ -220,6 +298,25 @@ namespace SharpSheets.Markup.Elements {
 			this.height = _height;
 			this.rx = _rx;
 			this.ry = _ry;
+		}
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="x">The x-coordinate of the lower-left corner of the rectangle.</param>
+		/// <param name="y">The y-coordinate of the lower-left corner of the rectangle.</param>
+		/// <param name="width">The width of the rectangle.</param>
+		/// <param name="height">The height of the rectangle.</param>
+		/// <param name="rx">The horizontal corner radius for rounded corners.</param>
+		/// <param name="ry">The vertical corner radius for rounded corners.</param>
+		[FactoryBuilder(typeof(Rect), Name = "rect")]
+		public static Rect Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				[LocalProperty(Default = "0")] XLengthExpression x, [LocalProperty(Default = "0")] YLengthExpression y,
+				[LocalProperty(Default = "0")] XLengthExpression width, [LocalProperty(Default = "0")] YLengthExpression height,
+				[LocalProperty(Default = "null")] FloatExpression? rx, [LocalProperty(Default = "null")] FloatExpression? ry
+			) {
+
+			return new Rect(id, styleSheet, x, y, width, height, rx, ry);
 		}
 
 		protected override void DoAssignGeometry(MarkupCanvas canvas) {

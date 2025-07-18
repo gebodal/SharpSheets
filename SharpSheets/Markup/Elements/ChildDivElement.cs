@@ -40,6 +40,25 @@ namespace SharpSheets.Markup.Elements {
 			this.href = _href;
 		}
 
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="setup">The DivSetup values for this element.</param>
+		/// <param name="href">The widget to use as the content for this element.</param>
+		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
+		/// <param name="markupContext"></param>
+		/// <param name="variables">The variables declared with this Div.</param>
+		[FactoryBuilder(typeof(ChildDivElement), Name = "child")]
+		public static ChildDivElement Build(
+				[LocalProperty(Default = "null")] string? id,
+				DivSetup setup,
+				[LocalProperty(Default = "null")] IExpression<IWidget?>? href,
+				IVariableBox outerContext,
+				[Property(Exclude = true)] MarkupEvaluationContext markupContext,
+				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
+			) {
+
+			return new ChildDivElement(id, setup, href, outerContext, markupContext, variables);
+		}
+
 		public override sealed void AddElement(IIdentifiableMarkupElement element) {
 			// Does nothing, as this Div cannot have children
 			throw new InvalidOperationException($"{nameof(ChildDivElement)} cannot accept any child elements.");

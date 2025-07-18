@@ -6,6 +6,7 @@ using System.Linq;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Markup.Canvas;
+using SharpSheets.Parsing;
 
 namespace SharpSheets.Markup.Elements {
 
@@ -93,6 +94,24 @@ namespace SharpSheets.Markup.Elements {
 			this.dx = _dx;
 			this.dy = _dy;
 			this.textContent = textContent.ToArray();
+		}
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="x">The x coordinate for the starting point of the text baseline.</param>
+		/// <param name="y">The y coordinate for the starting point of the text baseline.</param>
+		/// <param name="dx">An optional horizontal offset for the text start position.</param>
+		/// <param name="dy">An optional vertical offset for the text start position.</param>
+		/// <param name="textContent">Child textual elements of this text element.</param>
+		[FactoryBuilder(typeof(Text), Name = "text")]
+		public static Text Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				[LocalProperty(Default = "0")] XLengthExpression x, [LocalProperty(Default = "0")] YLengthExpression y,
+				[LocalProperty(Default = "null")] XLengthExpression? dx, [LocalProperty(Default = "null")] YLengthExpression? dy,
+				[Property(Exclude = true)] IEnumerable<ITextPiece> textContent
+			) {
+
+			return new Text(id, styleSheet, x, y, dx, dy, textContent);
 		}
 
 		public void Draw(MarkupCanvas canvas) {
@@ -307,6 +326,52 @@ namespace SharpSheets.Markup.Elements {
 			this.singleLine = _single_line;
 		}
 
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="x">The x coordinate for the text area, corresponding
+		/// to the left edge of the rectangle.</param>
+		/// <param name="y">The y coordinate for the text area, corresponding
+		/// to the bottom edge of the rectangle.</param>
+		/// <param name="width">The width of the text area rectangle.</param>
+		/// <param name="height">The height of the text area rectangle.</param>
+		/// <param name="fit_text">A flag to indicate that the text should be
+		/// dynamically resized to fit the available area, within the minimum and maximum
+		/// font sizes specified.</param>
+		/// <param name="min_font_size">The minimum font size to use if the
+		/// text is to be dynamically resized.</param>
+		/// <param name="max_font_size">The maximum font size to use if the
+		/// text is to be dynamically resized.</param>
+		/// <param name="justification">The horizontal justification for the
+		/// text within the text area rectangle.</param>
+		/// <param name="alignment">The vertical alignment for the
+		/// text within the text area rectangle.</param>
+		/// <param name="height_strategy">The height calculation
+		/// strategy to use when arranging the text within the text area.</param>
+		/// <param name="line_spacing">The line spacing, which is the distance
+		/// between successive text baselines, measured in multiples of the current fontsize.</param>
+		/// <param name="paragraph_spacing">The spacing to be used between paragraphs
+		/// of text, measured in points. This spacing is in addition to any line spacing.</param>
+		/// <param name="single_line">A flag to indicate that the text should
+		/// be drawn all on one line.</param>
+		/// <param name="textContent">Child tspan elements of this text element.</param>
+		[FactoryBuilder(typeof(TextRect), Name = "textRect")]
+		public static TextRect Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				[LocalProperty(Default = "0")] XLengthExpression x, [LocalProperty(Default = "0")] YLengthExpression y,
+				[LocalProperty(Default = "$width")] XLengthExpression width, [LocalProperty(Default = "$height")] YLengthExpression height,
+				[LocalProperty(Default = "false")] BoolExpression fit_text,
+				[Property(Default = "null")] FloatExpression? min_font_size, [Property(Default = "null")] FloatExpression? max_font_size,
+				[Property(Default = "LEFT")] EnumExpression<Justification> justification,
+				[Property(Default = "BOTTOM")] EnumExpression<SharpSheets.Canvas.Text.Alignment> alignment,
+				[Property(Default = "LineHeightBaseline")] EnumExpression<TextHeightStrategy> height_strategy,
+				[Property(Default = "1.0")] FloatExpression line_spacing, [Property(Default = "0.0")] FloatExpression paragraph_spacing,
+				[LocalProperty(Default = "false")] BoolExpression single_line,
+				IEnumerable<TSpan> textContent
+			) {
+
+			return new TextRect(id, styleSheet, x, y, width, height, fit_text, min_font_size, max_font_size, justification, alignment, height_strategy, line_spacing, paragraph_spacing, single_line, textContent);
+		}
+
 		public void Draw(MarkupCanvas canvas) {
 			canvas.SaveState();
 
@@ -427,6 +492,25 @@ namespace SharpSheets.Markup.Elements {
 			this.dy = _dy;
 			this.text = text;
 		}
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// /// <param name="x">The x coordinate for the starting point of the text baseline.</param>
+		/// <param name="y">The y coordinate for the starting point of the text baseline.</param>
+		/// <param name="dx">Shifts the text position horizontally from the previous text element.</param>
+		/// <param name="dy">Shifts the text position vertically from the previous text element.</param>
+		/// <param name="text">The text content of this tspan.</param>
+		[FactoryBuilder(typeof(TSpan), Name = "tspan")]
+		public static TSpan Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				[LocalProperty(Default = "null")] XLengthExpression? x, [LocalProperty(Default = "null")] YLengthExpression? y,
+				[LocalProperty(Default = "null")] FloatExpression? dx, [LocalProperty(Default = "null")] FloatExpression? dy,
+				[Property(Exclude = true)] TextExpression text
+			) {
+
+			return new TSpan(id, styleSheet, x, y, dx, dy, text);
+		}
+
 	}
 
 	/// <summary>
@@ -506,6 +590,31 @@ namespace SharpSheets.Markup.Elements {
 			this.side = _side;
 			this.continuePastEnd = _continue;
 			this.spans = spans.ToArray();
+		}
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="styleSheet">StyleSheet for this element.</param>
+		/// <param name="path">A path along which the text should be rendered.</param>
+		/// <param name="startOffset">An offset from the start of the path,
+		/// at which the text contents should begin rendering. This may be expressed as
+		/// either an absolute value, or as a percentage.</param>
+		/// <param name="side">The side of the path on which the text
+		/// should be rendered.</param>
+		/// <param name="continue_">The strategy to use when the text length
+		/// is greater than the path length. The text may be continued, such that it is
+		/// all rendered.</param>
+		/// <param name="spans">Child tspan elements of this text path element.</param>
+		[FactoryBuilder(typeof(TextPath), Name = "textPath")]
+		public static TextPath Build(
+				[LocalProperty(Default = "null")] string? id, StyleSheet styleSheet,
+				IShapeElement path,
+				[LocalProperty(Default = "0")] LengthExpression startOffset,
+				[LocalProperty(Default = "LEFT")] EnumExpression<PathSide> side,
+				[LocalProperty(Default = "NONE")] EnumExpression<ContinueStyle> continue_,
+				[Property(Exclude = true)] IEnumerable<TSpan> spans
+			) {
+
+			return new TextPath(id, styleSheet, path, startOffset, side, continue_, spans);
 		}
 
 		private static Vector GetDirection(Vector normal, PathSide side) {

@@ -24,7 +24,7 @@ namespace SharpSheets.Shapes {
 
 		#region Static Initialisation
 
-		private static readonly Dictionary<Type, Dictionary<Type, ConstructorInfo>> shapeConstructors;
+		private static readonly Dictionary<Type, Dictionary<Type, MethodInfo>> shapeConstructors;
 		private static readonly Dictionary<Type, Dictionary<string, Type>> shapeNames;
 		//private static readonly Dictionary<Type, HashSet<string>> staticShapeNames;
 		private static readonly HashSet<string> allStaticShapeNames;
@@ -58,12 +58,12 @@ namespace SharpSheets.Shapes {
 			shapeConstructors = requiredArgumentsByType
 				.ToDictionary(
 					kv => kv.Key,
-					kv => SharpFactory.GetConstructors(kv.Key, kv.Value)
+					kv => SharpFactory.GetBuilders(kv.Key, kv.Value)
 						.Where(kv => !typeof(MarkupShape).IsAssignableFrom(kv.Key)) // Ignore MarkupDetail
 						.ToDictionary()
 					);
 
-			shapeNames = shapeConstructors.ToDictionary(kv => kv.Key, kv => kv.Value.ToDictionary(kvc => kvc.Key.Name, kvc => kvc.Value.DeclaringType!, SharpDocuments.StringComparer));
+			shapeNames = shapeConstructors.ToDictionary(kv => kv.Key, kv => kv.Value.ToDictionary(kvc => kvc.Key.Name, kvc => FactoryBuilderAttribute.GetBuilderType(kvc.Value), SharpDocuments.StringComparer));
 
 			//staticShapeNames = shapeNames.ToDictionary(kv => kv.Key, kv => new HashSet<string>(kv.Value.Keys, SharpDocuments.StringComparer));
 			allStaticShapeNames = new HashSet<string>(shapeNames.SelectMany(kv => kv.Value.Keys), SharpDocuments.StringComparer);
@@ -77,16 +77,16 @@ namespace SharpSheets.Shapes {
 				if (_allStaticConstructorDetails == null) {
 					//List<ConstructorDetails> constructors = new List<ConstructorDetails>();
 					Dictionary<Type, ConstructorDetails> constructors = new Dictionary<Type, ConstructorDetails>();
-					foreach (KeyValuePair<Type, Dictionary<Type, ConstructorInfo>> entry in shapeConstructors) {
-						foreach (KeyValuePair<Type, ConstructorInfo> constructor in entry.Value) {
-							ConstructorDetails constructorDetails = DocumentationGenerator.GetConstructorDetails(entry.Key, constructor.Value, constructor.Value.DeclaringType!.Name);
-							if (constructors.TryGetValue(constructor.Value.DeclaringType, out ConstructorDetails? existing)) {
-								if (existing.DisplayType == typeof(IBox) && entry.Key == typeof(ITitledBox)) {
-									constructors[constructor.Value.DeclaringType] = constructorDetails;
+					foreach ((Type super, Dictionary<Type, MethodInfo> builderDict) in shapeConstructors) {
+						foreach ((Type builderType, MethodInfo builder) in builderDict) {
+							ConstructorDetails constructorDetails = DocumentationGenerator.GetConstructorDetails(super, builder, builderType.Name);
+							if (constructors.TryGetValue(builderType, out ConstructorDetails? existing)) {
+								if (existing.DisplayType == typeof(IBox) && super == typeof(ITitledBox)) {
+									constructors[builderType] = constructorDetails;
 								}
 							}
 							else {
-								constructors.Add(constructor.Value.DeclaringType, constructorDetails);
+								constructors.Add(builderType, constructorDetails);
 							}
 						}
 					}
@@ -118,7 +118,7 @@ namespace SharpSheets.Shapes {
 
 		private static IShape? BuildExample(Type shapeType, Type styleType, out SharpParsingException[] buildErrors) {
 
-			ConstructorInfo constructor = shapeConstructors[shapeType == typeof(IContainerShape) ? typeof(IBox) : shapeType][styleType];
+			MethodInfo constructor = shapeConstructors[shapeType == typeof(IContainerShape) ? typeof(IBox) : shapeType][styleType];
 
 			object[] defaultArgs;
 
@@ -154,7 +154,7 @@ namespace SharpSheets.Shapes {
 				return null;
 			}
 
-			return (IShape)SharpFactory.Construct(constructor, Context.Empty, new DirectoryPath(Directory.GetCurrentDirectory()), null, null, defaultArgs, out buildErrors);
+			return (IShape?)SharpFactory.Build(constructor, Context.Empty, new DirectoryPath(Directory.GetCurrentDirectory()), null, null, defaultArgs, out buildErrors);
 		}
 
 		public IShape MakeExample(Type type, string style, DirectoryPath source, out List<SharpParsingException> errors) {
@@ -167,7 +167,7 @@ namespace SharpSheets.Shapes {
 					throw new SharpParsingException(DocumentSpan.Imaginary, $"No shape type provided.");
 				}
 				else if (shapeNames[type].TryGetValue(style, out Type? styleType)) {
-					ConstructorInfo constructor = shapeConstructors[type][styleType];
+					MethodInfo constructor = shapeConstructors[type][styleType];
 					Type? shapeType = shapeNames[type == typeof(IContainerShape) ? typeof(IBox) : type].GetValueOrFallback(style, null);
 
 					if (shapeType != null && AllStaticConstructorDetails.TryGetValue(shapeType, out ConstructorDetails? constructorDoc)) {
@@ -224,8 +224,8 @@ namespace SharpSheets.Shapes {
 			return context.GetProperty("style", false, context, null, out location);
 		}
 
-		private static ConstructorInfo GetDefaultConstructor(Type baseType, Type defaultStyle) {
-			if (defaultStyle != null && shapeConstructors[baseType].TryGetValue(defaultStyle, out ConstructorInfo? constructor)) {
+		private static MethodInfo GetDefaultConstructor(Type baseType, Type defaultStyle) {
+			if (defaultStyle != null && shapeConstructors[baseType].TryGetValue(defaultStyle, out MethodInfo? constructor)) {
 				return constructor;
 			}
 			else {
@@ -233,11 +233,11 @@ namespace SharpSheets.Shapes {
 			}
 		}
 
-		private static bool TryGetConstructor(string styleName, Type baseType, [MaybeNullWhen(false)] out ConstructorInfo result) {
+		private static bool TryGetConstructor(string styleName, Type baseType, [MaybeNullWhen(false)] out MethodInfo result) {
 			Type? style = shapeNames[baseType].GetValueOrFallback(styleName, null);
 
 			if (style != null) {
-				if (shapeConstructors[baseType].TryGetValue(style, out ConstructorInfo? constructor)) {
+				if (shapeConstructors[baseType].TryGetValue(style, out MethodInfo? constructor)) {
 					result = constructor;
 					return true;
 				}
@@ -251,17 +251,22 @@ namespace SharpSheets.Shapes {
 			}
 		}
 
-		private T Construct<T>(ConstructorInfo constructor, IContext context, object[] shapeParams, DirectoryPath source, out SharpParsingException[] buildErrors) where T : IShape {
-			return (T)SharpFactory.Construct(constructor, context, source, null, this, shapeParams, out buildErrors);
+		private T? Construct<T>(MethodInfo constructor, IContext context, object[] shapeParams, DirectoryPath source, out SharpParsingException[] buildErrors) where T : IShape {
+			return (T?)SharpFactory.Build(constructor, context, source, null, this, shapeParams, out buildErrors);
 		}
 
 		private T MakeShape<T>(IContext context, string name, float aspect, object[] shapeParams, Type defaultStyle, DirectoryPath source, out SharpParsingException[] buildErrors) where T : IShape {
 			Type baseType = typeof(T);
 			string? styleName = GetStyleNameFromContext(context, out DocumentSpan? location);
 
+			buildErrors = null!;
+
 			if (styleName is not null) {
-				if (TryGetConstructor(styleName, baseType, out ConstructorInfo? constructor)) {
-					return Construct<T>(constructor, context, shapeParams, source, out buildErrors);
+				if (TryGetConstructor(styleName, baseType, out MethodInfo? constructor)) {
+					T? constructed = Construct<T>(constructor, context, shapeParams, source, out buildErrors);
+					if (constructed is not null) {
+						return constructed;
+					}
 				}
 				else if (GetCustomStylePattern<MarkupShapePattern<T>>(styleName) is MarkupShapePattern<T> customPattern) {
 					return customPattern.MakeShape(context, name, aspect, source, this, false, out buildErrors);
@@ -270,10 +275,13 @@ namespace SharpSheets.Shapes {
 					throw new SharpParsingException(location, $"Unrecognized style \"{styleName}\" for {baseType.Name}.");
 				}
 			}
-			else {
-				ConstructorInfo defaultConstructor = GetDefaultConstructor(baseType, defaultStyle);
-				return Construct<T>(defaultConstructor, context, shapeParams, source, out buildErrors);
-			}
+
+			// If all else fails
+			MethodInfo defaultConstructor = GetDefaultConstructor(baseType, defaultStyle);
+			T fallback = Construct<T>(defaultConstructor, context, shapeParams, source, out SharpParsingException[] defaultBuildErrors) ?? throw new InvalidOperationException($"Could not build default shape for {typeof(T)}");
+			// If we haven't got any build errors, then just use those from the fallback build. (Should the fallback errors be included even if we already tried a build?)
+			buildErrors = buildErrors is null ? defaultBuildErrors : buildErrors; //buildErrors.Concat(defaultBuildErrors).ToArray();
+			return fallback;
 		}
 
 		public IBox MakeBox(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
@@ -329,12 +337,12 @@ namespace SharpSheets.Shapes {
 					}
 					else {
 						List<SharpParsingException> containerErrors = new List<SharpParsingException>();
-						IBox outline = this.MakeBox(context, aspect, source, out SharpParsingException[] boxBuildErrors);
+						IBox? outline = this.MakeBox(context, aspect, source, out SharpParsingException[] boxBuildErrors);
 						containerErrors.AddRange(boxBuildErrors);
 						if (!string.IsNullOrEmpty(name)) { // context.HasProperty("name", true, context)
 							new NamedContext(context, "title").HasProperty("style", false, context, out DocumentSpan? titleStyleLocation);
 							//return this.MakeTitleStyle(new NamedContext(context, "title", line: titleStyleLine), (IBox)outline, context.GetProperty("name", true, context, "NAME"));
-							ITitleStyledBox titleStyledBox = this.MakeTitleStyle(new NamedContext(context, "title", location: titleStyleLocation), (IBox)outline, name ?? "NAME", source, out SharpParsingException[] titleStyleBuildErrors);
+							ITitleStyledBox? titleStyledBox = this.MakeTitleStyle(new NamedContext(context, "title", location: titleStyleLocation), ((IBox?)outline) ?? new NoOutline(-1), name ?? "NAME", source, out SharpParsingException[] titleStyleBuildErrors);
 							containerErrors.AddRange(titleStyleBuildErrors);
 							buildErrors = containerErrors.ToArray();
 							return titleStyledBox;
@@ -361,9 +369,9 @@ namespace SharpSheets.Shapes {
 					return this.MakeBar(context, aspect, source, out buildErrors);
 				}
 				else if (shapeType == typeof(IUsageBar)) {
-					IUsageBar bar;
+					IUsageBar? bar;
 					if (this.IsPattern<IBar>(context.GetProperty("style", false, context, ""))) {
-						bar = new SlashedUsageBar(this.MakeBar(context, -1, source, out buildErrors), aspect);
+						bar = new SlashedUsageBar(this.MakeBar(context, -1, source, out buildErrors) ?? new SimpleBar(-1), aspect);
 					}
 					else {
 						bar = this.MakeUsageBar(context, aspect, source, out buildErrors);

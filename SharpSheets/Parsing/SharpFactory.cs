@@ -27,12 +27,22 @@ namespace SharpSheets.Parsing {
 			this.BuildType = buildType;
 		}
 
+		public static Type GetBuilderType(MethodInfo method) {
+			if (Nullable.GetUnderlyingType(method.ReturnType) is Type underlying) {
+				return underlying;
+			}
+			else {
+				return method.ReturnType;
+			}
+		}
+
 	}
 
 	[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
 	public class PropertyAttribute : Attribute {
 
 		public bool Local { get; }
+		public bool Exclude { get; set; } = false;
 		public string? Default { get; set; } = null;
 		public string? Example { get; set; } = null;
 
@@ -56,22 +66,36 @@ namespace SharpSheets.Parsing {
 
 	public static class SharpFactory {
 
-		/// <summary></summary>
-		/// <exception cref="ReflectionTypeLoadException"></exception>
-		public static Dictionary<Type, ConstructorInfo> GetConstructors(Type supertype, params Type[] requiredConstructorArguments) {
-			Dictionary<Type, ConstructorInfo> types = typeof(SharpFactory).Assembly // AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
-				.GetTypes()
-				.Where(t => t.IsClass && !t.IsAbstract && supertype.IsAssignableFrom(t)) // t.IsSubclassOf(supertype)
-				.Select(t => t.GetConstructors().Where(c => c.GetParameters().Zip(requiredConstructorArguments, (p, a) => p.ParameterType == a).All()).FirstOrDefault())
-				.Where(c => c != null && c.DeclaringType != null)
-				.ToDictionary(c => c!.DeclaringType!, c => c!);
-			return types;
+		private static readonly Dictionary<Type, (FactoryBuilderAttribute attr, MethodInfo builder)> allBuilders;
+
+		static SharpFactory() {
+			allBuilders = typeof(SharpFactory).Assembly.GetTypes() // Look in current assembly
+				.SelectMany(t => t.GetMethods()) // Find all methods of all types
+				.Where(m => m.IsStatic && m.ReturnType != typeof(void)) // Only look at static methods with non-void return types
+				.Select(m => (m.GetCustomAttribute<FactoryBuilderAttribute>(), m))
+				.Where(am => am.Item1 is not null) // Where the method is marked as a FactoryBuilder
+				//.ToDictionary(am => FactoryBuilderAttribute.GetBuilderType(am.m), am => (am.Item1!, am.m));
+				.ToDictionary(am => {
+					Type builderType = FactoryBuilderAttribute.GetBuilderType(am.m);
+					if (builderType.IsAssignableTo(am.Item1!.BuildType)) {
+						return builderType;
+					}
+					else {
+						throw new InvalidOperationException($"Builder method (return type {am.m.ReturnType}) does not return an instance of the stated factory build type {am.Item1.BuildType}.");
+					}
+				}, am => (am.Item1!, am.m));
 		}
 
 		public static Dictionary<Type, MethodInfo> GetBuilders(Type supertype, params Type[] requiredConstructorArguments) {
+			return allBuilders
+				.Where(kv => kv.Value.attr.BuildType.IsAssignableTo(supertype))
+				.Where(kv => kv.Value.builder.GetParameters().Where(p => p.GetCustomAttribute<BuildErrorsAttribute>() is null).Zip(requiredConstructorArguments, (p, a) => p.ParameterType == a).All())
+				.ToDictionary(kv => kv.Key, kv => kv.Value.builder);
+			
+			/*
 			MethodInfo[] builderMethods = typeof(SharpFactory).Assembly.GetTypes() // Look in current assembly
 				.SelectMany(t => t.GetMethods()) // Find all methods of all types
-				.Where(m => m.IsStatic) // Only look at static methods
+				.Where(m => m.IsStatic && m.ReturnType != typeof(void)) // Only look at static methods with non-void return types
 				.Where(m => { // Where the factory is building the correct type
 					FactoryBuilderAttribute? factoryAttr = m.GetCustomAttribute<FactoryBuilderAttribute>();
 					if (factoryAttr is null) { return false; }
@@ -81,36 +105,40 @@ namespace SharpSheets.Parsing {
 				.ToArray();
 
 			return builderMethods.ToDictionary(m => {
-				if (Nullable.GetUnderlyingType(m.ReturnType) is Type underlying && underlying.IsAssignableTo(supertype)) {
-					return underlying;
-				}
-				else if (m.ReturnType.IsAssignableTo(supertype)) {
-					return m.ReturnType;
+				Type builderType = FactoryBuilderAttribute.GetBuilderType(m);
+				if (builderType.IsAssignableTo(supertype)) {
+					return builderType;
 				}
 				else {
 					throw new InvalidOperationException($"Builder method (return type {m.ReturnType}) does not return an instance of the stated supertype {supertype}.");
 				}
 			});
+			*/
 		}
 
-		public static MethodInfo GetBuilder(Type type, params Type[] requiredConstructorArguments) {
+		public static MethodInfo? GetBuilder(Type type, params Type[] requiredConstructorArguments) {
+			/*
 			return typeof(SharpFactory).Assembly.GetTypes() // Look in current assembly
 				.SelectMany(t => t.GetMethods()) // Find all methods of all types
-				.Where(m => m.IsStatic) // Only look at static methods
+				.Where(m => m.IsStatic && m.ReturnType != typeof(void)) // Only look at static methods with non-void return types
 				.Where(m => { // Where there is a factory builder
 					FactoryBuilderAttribute? factoryAttr = m.GetCustomAttribute<FactoryBuilderAttribute>();
 					return factoryAttr is not null;
 				})
 				.Where(m => { // Where the builder is constructing the desired type
-					if (Nullable.GetUnderlyingType(m.ReturnType) is Type underlying) {
-						return underlying == type;
-					}
-					else {
-						return m.ReturnType == type;
-					}
+					return FactoryBuilderAttribute.GetBuilderType(m) == type;
 				})
 				.Where(m => m.GetParameters().Where(p => p.GetCustomAttribute<BuildErrorsAttribute>() is null).Zip(requiredConstructorArguments, (p, a) => p.ParameterType == a).All())
-				.First();
+				.FirstOrDefault();
+			*/
+
+			if (allBuilders.TryGetValue(type, out (FactoryBuilderAttribute attr, MethodInfo builder) existing)) {
+				if (existing.builder.GetParameters().Where(p => p.GetCustomAttribute<BuildErrorsAttribute>() is null).Zip(requiredConstructorArguments, (p, a) => p.ParameterType == a).All()) {
+					return existing.builder;
+				}
+			}
+
+			return null;
 		}
 
 		public static bool IsParsableStruct(Type type) {
@@ -136,7 +164,7 @@ namespace SharpSheets.Parsing {
 			if (parameterType == typeof(WidgetSetup)) {
 				//IContext setupContext = typeof(IWidget).IsAssignableFrom(declaringType) ? context : new NamedContext(context, parameterName, forceLocal: useLocal);
 				defaultUsed = false;
-				return (WidgetSetup)Construct(WidgetFactory.widgetSetupConstructor, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out buildErrors);
+				return (WidgetSetup)(Build(WidgetFactory.widgetSetupConstructor, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out buildErrors) ?? throw new InvalidOperationException($"{nameof(WidgetSetup)} parameter cannot be null."));
 			}
 			else if (parameterType == typeof(ChildHolder)) {
 				if (widgetFactory == null) { throw new SharpParsingException(context.Location, $"No WidgetFactory provided for constructing \"{parameterName}\"."); }
@@ -161,7 +189,7 @@ namespace SharpSheets.Parsing {
 				// For widgets created as parameters, the setup is taken from the parent, not a unique context for the parameter
 				if (widgetFactory == null) { throw new SharpParsingException(context.Location, $"No WidgetFactory provided for constructing \"{parameterName}\"."); }
 				List<SharpParsingException> widgetErrors = new List<SharpParsingException>();
-				WidgetSetup setup = (WidgetSetup)Construct(WidgetFactory.widgetSetupConstructor, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out SharpParsingException[] setupBuildErrors);
+				WidgetSetup setup = (WidgetSetup)(Build(WidgetFactory.widgetSetupConstructor, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out SharpParsingException[] setupBuildErrors) ?? throw new InvalidOperationException($"{nameof(WidgetSetup)} parameter cannot be null."));
 				widgetErrors.AddRange(setupBuildErrors);
 				IContext widgetContext = new NamedContext(context, parameterName, forceLocal: useLocal);
 				IWidget widget = widgetFactory.MakeWidget(parameterType, widgetContext, source, out SharpParsingException[] widgetBuildErrors, setup);
@@ -269,16 +297,16 @@ namespace SharpSheets.Parsing {
 					throw new SharpParsingException(context.Location, $"Error instantiating entries parameter \"{parameterName}\".", e);
 				}
 			}
-			else if (typeof(ISharpArgsGrouping).IsAssignableFrom(parameterType) || IsParsableStruct(parameterType)) {
+			else if (typeof(ISharpArgsGrouping).IsAssignableFrom(parameterType)) { // || IsParsableStruct(parameterType)
 				// We are dealing with a struct or class not covered by Parse
 				// TODO Do we still want to accept structs here? Classes are probably a better way to go...
-				ConstructorInfo constructor = ValueParsing.GetSimpleConstructor(parameterType);
+				MethodInfo constructor = ValueParsing.GetSimpleConstructor(parameterType);
 				IContext argContext = new NamedContext(context, parameterName, forceLocal: useLocal);
 				defaultUsed = false;
-				return Construct(constructor, argContext, source, widgetFactory, shapeFactory, Array.Empty<object>(), out buildErrors);
+				return Build(constructor, argContext, source, widgetFactory, shapeFactory, Array.Empty<object>(), out buildErrors);
 			}
 			else if (typeof(ISharpArgSupplemented).IsAssignableFrom(parameterType)) {
-				ConstructorInfo constructor = ValueParsing.GetSimpleConstructor(parameterType);
+				MethodInfo constructor = ValueParsing.GetSimpleConstructor(parameterType);
 				ParameterInfo[] parameterList = constructor.GetParameters();
 				List<SharpParsingException> errors = new List<SharpParsingException>();
 
@@ -297,7 +325,7 @@ namespace SharpSheets.Parsing {
 
 				if(!defaultUsedForFirst || parameterList[0].IsOptional) {
 					IContext supplementaryContext = new NamedContext(context, parameterName, forceLocal: useLocal);
-					object result = Construct(
+					object? result = Build(
 						constructor, supplementaryContext,
 						source, widgetFactory, shapeFactory,
 						new object[] { firstParam! },
@@ -335,7 +363,7 @@ namespace SharpSheets.Parsing {
 
 							object? parsed;
 							if (typeof(ISharpDictArg).IsAssignableFrom(parameterType)) {
-								ConstructorInfo dictConstructor = ValueParsing.GetSimpleConstructor(parameterType);
+								MethodInfo dictConstructor = ValueParsing.GetSimpleConstructor(parameterType);
 								parsed = ValueParsing.ParseValueDict(value, dictConstructor, source);
 							}
 							else {
@@ -380,7 +408,7 @@ namespace SharpSheets.Parsing {
 
 			string parameterName = NormaliseParameterName(baseParamName);
 			Type parameterType = parameter.ParameterType;
-			bool useLocal = baseParamName[0] == '_';
+			bool useLocal = parameter.GetCustomAttribute<PropertyAttribute>()?.Local ?? false; // baseParamName[0] == '_';
 
 			try {
 				object? result = CreateParameter(
@@ -427,42 +455,61 @@ namespace SharpSheets.Parsing {
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
 		/// <exception cref="SharpFactoryException"></exception>
-		private static object?[] GatherParameters(ConstructorInfo constructor, ParameterInfo[] parameterList, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, object[] firstParameters, out SharpParsingException[] buildErrors) {
+		private static object?[] GatherParameters(MethodInfo builder, ParameterInfo[] parameterList, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, object[] firstParameters, IList<Exception> buildErrorsParamValue, out SharpParsingException[] buildErrors) {
 			//ParameterInfo[] parameterList = constructor.GetParameters();
 			object?[] parameters = new object?[parameterList.Length];
 
-			for (int i = 0; i < firstParameters.Length; i++) {
-				if (firstParameters[i] == null && (!parameterList[i].ParameterType.IsValueType || Nullable.GetUnderlyingType(parameterList[i].ParameterType) != null)) {
-					// If the first parameter is null, check that it can be null
-					parameters[i] = firstParameters[i];
+			int paramIdx = 0;
+
+			int firstParamsEnd = firstParameters.Length; // Separate here in case of BuildErrors param
+			int firstParamsIdx = 0;
+			for (; paramIdx < firstParamsEnd; paramIdx++) {
+				if (parameterList[paramIdx].GetCustomAttribute<BuildErrorsAttribute>() is not null) {
+					if (parameterList[paramIdx].ParameterType != typeof(IList<Exception>)) { throw new InvalidOperationException($"BuildErrors paramater must have a type of {typeof(IList<Exception>)}, not {parameterList[paramIdx].ParameterType}."); }
+					firstParamsEnd++;
+					parameters[paramIdx] = buildErrorsParamValue;
 				}
-				else if (parameterList[i].ParameterType.IsAssignableFrom(firstParameters[i].GetType())) {
-					parameters[i] = firstParameters[i];
+				else if (firstParameters[firstParamsIdx] == null && (!parameterList[paramIdx].ParameterType.IsValueType || Nullable.GetUnderlyingType(parameterList[paramIdx].ParameterType) != null)) {
+					// If the first parameter is null, check that it can be null
+					parameters[paramIdx] = firstParameters[firstParamsIdx];
+					firstParamsIdx++;
+				}
+				else if (parameterList[paramIdx].ParameterType.IsAssignableFrom(firstParameters[firstParamsIdx].GetType())) {
+					parameters[paramIdx] = firstParameters[firstParamsIdx];
+					firstParamsIdx++;
 				}
 				else {
-					throw new InvalidOperationException($"Provided parameter {i} ({firstParameters[i].GetType().Name}) does not match expected type {parameterList[i].ParameterType.Name}.");
+					throw new InvalidOperationException($"Provided parameter {firstParamsIdx} ({firstParameters[firstParamsIdx].GetType().Name}) does not match expected type {parameterList[paramIdx].ParameterType.Name}.");
 				}
 			}
 
 			List<SharpParsingException> errors = new List<SharpParsingException>();
 
 			bool nonOptionalFailed = false;
-			for (int i = firstParameters.Length; i < parameterList.Length; i++) {
-				if (parameterList[i].Name is null) { continue; }
+			for (; paramIdx < parameterList.Length; paramIdx++) {
+				if (parameterList[paramIdx].GetCustomAttribute<BuildErrorsAttribute>() is not null) {
+					if (parameterList[paramIdx].ParameterType != typeof(IList<Exception>)) { throw new InvalidOperationException($"BuildErrors paramater must have a type of {typeof(IList<Exception>)}, not {parameterList[paramIdx].ParameterType}."); }
+					firstParamsEnd++;
+					parameters[paramIdx] = buildErrorsParamValue;
+				}
+				else if (parameterList[paramIdx].Name is null) {
+					continue; // When can this happen here...?
+				}
+				else {
+					parameters[paramIdx] = GatherParameter(
+						parameterList[paramIdx],
+						context, source,
+						widgetFactory, shapeFactory,
+						errors,
+						out bool nonOptionalParamFailed);
 
-				parameters[parameterList[i].Position] = GatherParameter(
-					parameterList[i],
-					context, source,
-					widgetFactory, shapeFactory,
-					errors,
-					out bool nonOptionalParamFailed);
-
-				nonOptionalFailed |= nonOptionalParamFailed;
+					nonOptionalFailed |= nonOptionalParamFailed;
+				}
 			}
 
 			if (nonOptionalFailed) {
 				// There must be errors (errors.Count > 0) for us to be in this state
-				throw new SharpFactoryException(errors, $"Errors found while parsing {constructor.DeclaringType?.Name ?? "UNKNOWN"} at line {context.Location.Line}.\n" + string.Join("\n", errors.Select(e => e.Message)));
+				throw new SharpFactoryException(errors, $"Errors found while parsing {FactoryBuilderAttribute.GetBuilderType(builder).Name} at line {context.Location.Line}.\n" + string.Join("\n", errors.Select(e => e.Message)));
 			}
 
 			buildErrors = errors.ToArray();
@@ -472,39 +519,45 @@ namespace SharpSheets.Parsing {
 		/// <summary></summary>
 		/// <exception cref="SharpParsingException"></exception>
 		/// <exception cref="SharpFactoryException"></exception>
-		public static object Construct(ConstructorInfo constructor, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, object[] firstParameters, out SharpParsingException[] buildErrors) {
+		public static object? Build(MethodInfo builder, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, object[] firstParameters, out SharpParsingException[] buildErrors) {
 			try {
-				object?[] parameters = GatherParameters(constructor, constructor.GetParameters(), context, source, widgetFactory, shapeFactory, firstParameters, out buildErrors);
+				IList<Exception> buildErrorsParamValue = new List<Exception>();
 
-				return constructor.Invoke(parameters);
+				object?[] parameters = GatherParameters(builder, builder.GetParameters(), context, source, widgetFactory, shapeFactory, firstParameters, buildErrorsParamValue, out SharpParsingException[] parametersBuildErrors);
+
+				object? result = builder.Invoke(null, parameters);
+
+				buildErrors = parametersBuildErrors.Concat(buildErrorsParamValue.Select(e => new SharpParsingException(context.Location, e.Message, e))).ToArray();
+
+				return result;
 			}
 			catch (TargetInvocationException e) {
 				if (e.InnerException is SharpInitializationException sharpInitializationException) {
-					throw MakeFactoryException(sharpInitializationException, context, constructor); 
+					throw MakeFactoryException(sharpInitializationException, context, builder);
 				}
-				else if (e.InnerException != null) { 
-					throw new SharpParsingException(context.Location, e.InnerException.Message, e); 
+				else if (e.InnerException != null) {
+					throw new SharpParsingException(context.Location, e.InnerException.Message, e);
 				}
-				else { 
-					throw new SharpParsingException(context.Location, $"Error found while constructing {constructor.DeclaringType?.Name ?? "UNKNOWN"} at line {context.Location.Line}.");
+				else {
+					throw new SharpParsingException(context.Location, $"Error found while building {FactoryBuilderAttribute.GetBuilderType(builder).Name} at line {context.Location.Line}.");
 				}
 			}
-			catch(InvalidOperationException e) {
+			catch (InvalidOperationException e) {
 				throw new SharpParsingException(context.Location, e.Message, e);
 			}
-			catch(SystemException e) {
+			catch (SystemException e) {
 				throw new SharpParsingException(context.Location, e.Message, e);
 			}
-			catch(TargetParameterCountException e) {
+			catch (TargetParameterCountException e) {
 				throw new SharpParsingException(context.Location, e.Message, e); // TODO Should we catch this here, or let it bubble up? (As it's really an application error, not a parsing one)
 			}
 		}
 
-		private static SharpFactoryException MakeFactoryException(SharpInitializationException exception, IContext context, ConstructorInfo constructor) {
+		private static SharpFactoryException MakeFactoryException(SharpInitializationException exception, IContext context, MethodInfo builder) {
 			List<SharpParsingException> initializationErrors = new List<SharpParsingException>();
 			foreach (string arg in exception.Arguments) {
 				Match match = Regex.Match(arg, @"(?<parameter>[A-Za-z_][A-Za-z0-9_]+)(\<(?<index>[0-9]+)\>)?");
-				if (match.Success && constructor.GetParameters().Where(p => p.Name == match.Groups["parameter"].Value).FirstOrDefault() is ParameterInfo param) {
+				if (match.Success && builder.GetParameters().Where(p => p.Name == match.Groups["parameter"].Value).FirstOrDefault() is ParameterInfo param) {
 					if(param.Name is null) { continue; }
 					string parameterName = NormaliseParameterName(param.Name);
 					bool useLocal = param.Name[0] == '_';

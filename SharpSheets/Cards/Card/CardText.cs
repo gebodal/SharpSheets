@@ -33,6 +33,17 @@ namespace SharpSheets.Cards.Card {
 				this.Spacing = spacing;
 				this.Indent = new ParagraphIndent(indent, hanging);
 			}
+
+			/// <param name="spacing">The spacing to be used between paragraphs of text, measured in points.
+			/// This spacing is in addition to any line spacing.</param>
+			/// <param name="indent">The indentation length for the first line of text in a paragraph,
+			/// measured in points.</param>
+			/// <param name="hanging">The indentation length for each line after the first (whose indentation
+			/// is controlled using <paramref name="indent"/>), measured in points.</param>
+			[FactoryBuilder(typeof(ParagraphDataArg))]
+			public static ParagraphDataArg Build(float spacing = 0f, float indent = 0f, float hanging = 0f) {
+				return new ParagraphDataArg(spacing, indent, hanging);
+			}
 		}
 
 		public class BulletArg : ISharpArgsGrouping {
@@ -57,6 +68,17 @@ namespace SharpSheets.Cards.Card {
 				Indent = indent;
 				Offset = offset;
 			}
+
+			/// <param name="symbol">The text character(s) to use for the bullet point symbol.</param>
+			/// <param name="font">The font with which the symbol character(s) will be drawn.</param>
+			/// <param name="size">The font size for the symbol, as a factor of the main text font size.</param>
+			/// <param name="indent">The indentation, in points, to use for the symbol.</param>
+			/// <param name="offset">The offset for the symbol from the text baseline, as a factor of the text font size.</param>
+			[FactoryBuilder(typeof(BulletArg))]
+			public static BulletArg Build(string? symbol = null, FontSetting? font = null, float size = 1f, float indent = 0f, float offset = 0f) {
+				return new BulletArg(symbol, font, size, indent, offset);
+			}
+
 		}
 
 		private readonly RichString text;

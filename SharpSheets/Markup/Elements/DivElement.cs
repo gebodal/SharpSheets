@@ -5,6 +5,7 @@ using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Exceptions;
 using SharpSheets.Layouts;
 using SharpSheets.Markup.Canvas;
+using SharpSheets.Parsing;
 using SharpSheets.Shapes;
 using SharpSheets.Utilities;
 using System;
@@ -103,6 +104,62 @@ namespace SharpSheets.Markup.Elements {
 			this.repeat = _repeat;
 			this.forEach = _for_each;
 			this.source = source;
+		}
+
+		/// <param name="source">The source file for this Div element.</param>
+		/// <param name="gutter">The spacing between the child div elements,
+		/// measured in points.</param>
+		/// <param name="size">Size of the div, either as a absolute dimension (e.g. pt, cm, in),
+		/// a relative size (in percent or arbitrary units), or auto-sized (with "auto"). Note that if
+		/// specific positioning is provided, <paramref name="size"/> will be ignored.</param>
+		/// <param name="position">The position for the <see cref="DivElement"/>. Note that if
+		/// <paramref name="position"/> is provided, then <paramref name="size"/> will be
+		/// ignored.</param>
+		/// <param name="margins">The margins for the div area, which will
+		/// be applied after the element has been positioned using the grid layout. These margins
+		/// will be factored into the minimum size of the element if autosizing is used.</param>
+		/// <param name="layout">Specifies the arrangement of child elements within
+		/// the div area, either as rows or columns.</param>
+		/// <param name="arrangement">Specifies the arrangement of the elements
+		/// children in the available space, indicating whether the children should be arranged
+		/// centrally, or to one end of, the available space.</param>
+		/// <param name="order">Specifies the order that the elements children
+		/// should be drawn in across the available space, allowing children to be drawn in reverse
+		/// document order.</param>
+		/// <param name="provide_remaining">Indicates that this element provides some
+		/// remaining area for use with the grid layout system.</param>
+		/// <param name="canvas">[EXPERIMENTAL] Specifies a size for a canvas that will represent the element area.</param>
+		/// <param name="aspect_ratio">Specifies an aspect ratio for the element area.
+		/// This aspect ratio will be applied after the element area has been determined using the
+		/// grid layout system.</param>
+		/// <param name="enabled">A flag to indicate whether this element and its children
+		/// should be rendered in the pattern.</param>
+		/// <param name="repeat">Indicates the number of times this element should be repeated in
+		/// the pattern. Note that such repetitions will each individually repeat any <paramref name="for_each"/>
+		/// attributes which may be specified.</param>
+		/// <param name="for_each">Specifies that the element should be repeated a number of times
+		/// based on some collection of elements, with one repetition for each element in that collection.
+		/// Note that if a value is specified for <paramref name="repeat"/>, then this for-each statement
+		/// will be repeated as a whole <paramref name="repeat"/> times.</param>
+		[FactoryBuilder(typeof(DivSetup))]
+		public static DivSetup Build(
+				FilePath source,
+				[Property(Default = "0")] FloatExpression? gutter = null,
+				[LocalProperty(Default = "1")] DimensionExpression? size = null,
+				[LocalProperty] PositionExpression? position = null,
+				[LocalProperty(Default = "0,0,0,0")] MarginsExpression? margins = null,
+				[Property(Default = "rows")] EnumExpression<Layout>? layout = null,
+				[Property(Default = "FRONT")] EnumExpression<Arrangement>? arrangement = null,
+				[Property(Default = "FORWARD")] EnumExpression<LayoutOrder>? order = null,
+				[LocalProperty(Default = "false")] BoolExpression? provide_remaining = null,
+				[LocalProperty] Size? canvas = null,
+				[LocalProperty(Default = "-1")] FloatExpression? aspect_ratio = null,
+				[LocalProperty(Default = "true")] BoolExpression? enabled = null,
+				[LocalProperty] IntExpression? repeat = null,
+				[LocalProperty] ForEachExpression? for_each = null
+			) {
+
+			return new DivSetup(source, gutter, size, position, margins, layout, arrangement, order, provide_remaining, canvas, aspect_ratio, enabled, repeat, for_each);
 		}
 
 		/// <summary></summary>
@@ -756,6 +813,37 @@ namespace SharpSheets.Markup.Elements {
 			this.Enabled = enabled;
 		}
 
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="name">The name for this area, identifying its
+		/// function in the pattern. The available names depend on the pattern type.</param>
+		/// <param name="x">The x-coordinate of this area.</param>
+		/// <param name="y">The y-coordinate of this area.</param>
+		/// <param name="width">The width of this area.</param>
+		/// <param name="height">The height of this area.</param>
+		/// <param name="margin">A margin to be applied to this area,
+		/// after the initial layout using <paramref name="x"/>, <paramref name="y"/>,
+		/// <paramref name="width"/>, and <paramref name="height"/>. This will likely
+		/// mean that the final width and height are not equal to <paramref name="width"/>
+		/// and <paramref name="height"/>.</param>
+		/// <param name="enabled">A flag to indicate whether this area should
+		/// be available in the pattern.</param>
+		/// <param name="markupContext"></param>
+		[FactoryBuilder(typeof(AreaElement), Name = "area")]
+		public static AreaElement Build(
+				[Property(Default = "null")] string? id,
+				[LocalProperty(Default = "null")] IExpression<string> name,
+				[LocalProperty(Default = "0")] FloatExpression? x,
+				[LocalProperty(Default = "0")] FloatExpression? y,
+				[LocalProperty(Default = "$width")] FloatExpression? width,
+				[LocalProperty(Default = "$height")] FloatExpression? height,
+				[Property(Default = "0,0,0,0")] MarginsExpression? margin,
+				[Property(Default = "true")] BoolExpression enabled,
+				[Property(Exclude = true)] MarkupEvaluationContext markupContext
+			) {
+
+			return new AreaElement(id, name, x, y, width, height, margin, enabled, markupContext);
+		}
+
 	}
 
 	/// <summary>
@@ -796,5 +884,26 @@ namespace SharpSheets.Markup.Elements {
 			this.Enabled = enabled;
 		}
 
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="x">The x-coordinate of this area.</param>
+		/// <param name="y">The y-coordinate of this area.</param>
+		/// <param name="width">The width of this area.</param>
+		/// <param name="height">The height of this area.</param>
+		/// <param name="enabled">A flag to indicate whether this area should
+		/// be shown with the pattern.</param>
+		/// <param name="markupContext" exclude="True"></param>
+		[FactoryBuilder(typeof(DiagnosticElement), Name = "diagnostic")]
+		public static DiagnosticElement Build(
+				[Property(Default = "null")] string? id,
+				[Property(Default = "0")] FloatExpression? x,
+				[Property(Default = "0")] FloatExpression? y,
+				[Property(Default = "$width")] FloatExpression? width,
+				[Property(Default = "$height")] FloatExpression? height,
+				[Property(Default = "true")] BoolExpression enabled,
+				[Property(Exclude = true)] MarkupEvaluationContext markupContext
+			) {
+
+			return new DiagnosticElement(id, x, y, width, height, enabled, markupContext);
+		}
 	}
 }

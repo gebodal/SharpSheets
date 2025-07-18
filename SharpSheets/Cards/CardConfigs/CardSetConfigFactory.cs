@@ -31,17 +31,17 @@ namespace SharpSheets.Cards.CardConfigs {
 
 		#region Static Initialisation and Accessors
 
-		private static readonly ConstructorInfo cardSetConfigConstructorInfo;
-		private static readonly ConstructorInfo cardConfigConstructorInfo;
+		private static readonly MethodInfo cardSetConfigConstructorInfo;
+		private static readonly MethodInfo cardConfigConstructorInfo;
 		//private static readonly ConstructorInfo segmentConfigConstructorInfo;
-		private static readonly ConstructorInfo dynamicSegmentConfigConstructorInfo;
-		private static readonly ConstructorInfo textSegmentConfigConstructorInfo;
-		private static readonly ConstructorInfo paragraphSegmentConfigConstructorInfo;
-		private static readonly ConstructorInfo tableSegmentConfigConstructorInfo;
-		private static readonly ConstructorInfo featureConfigConstructorInfo;
+		private static readonly MethodInfo dynamicSegmentConfigConstructorInfo;
+		private static readonly MethodInfo textSegmentConfigConstructorInfo;
+		private static readonly MethodInfo paragraphSegmentConfigConstructorInfo;
+		private static readonly MethodInfo tableSegmentConfigConstructorInfo;
+		private static readonly MethodInfo featureConfigConstructorInfo;
 
-		private static readonly Dictionary<Type, ConstructorInfo> segmentConstructorsByType;
-		private static readonly Dictionary<string, ConstructorInfo> segmentConstructorsByName;
+		private static readonly Dictionary<Type, MethodInfo> segmentConstructorsByType;
+		private static readonly Dictionary<string, MethodInfo> segmentConstructorsByName;
 
 		public static readonly ConstructorDetails CardSetConfigConstructor;
 		public static readonly ConstructorDetails CardConfigConstructor;
@@ -65,13 +65,13 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <summary></summary>
 		/// <exception cref="TypeInitializationException"></exception>
 		static CardSetConfigFactory() {
-			cardSetConfigConstructorInfo = typeof(CardSetConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(CardSetConfig)} constructor.", null);
-			cardConfigConstructorInfo = typeof(CardConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(CardConfig)} constructor.", null);
-			dynamicSegmentConfigConstructorInfo = typeof(DynamicCardSegmentConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(DynamicCardSegmentConfig)} constructor.", null);
-			textSegmentConfigConstructorInfo = typeof(TextCardSegmentConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(TextCardSegmentConfig)} constructor.", null);
-			paragraphSegmentConfigConstructorInfo = typeof(ParagraphCardSegmentConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(ParagraphCardSegmentConfig)} constructor.", null);
-			tableSegmentConfigConstructorInfo = typeof(TableCardSegmentConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(TableCardSegmentConfig)} constructor.", null);
-			featureConfigConstructorInfo = typeof(CardFeatureConfig).GetConstructors().FirstOrDefault() ?? throw new TypeInitializationException($"Cannot find {nameof(CardFeatureConfig)} constructor.", null);
+			cardSetConfigConstructorInfo = SharpFactory.GetBuilder(typeof(CardSetConfig)) ?? throw new TypeInitializationException($"Cannot find {nameof(CardSetConfig)} constructor.", null);
+			cardConfigConstructorInfo = SharpFactory.GetBuilder(typeof(CardConfig)) ?? throw new TypeInitializationException($"Cannot find {nameof(CardConfig)} constructor.", null);
+			dynamicSegmentConfigConstructorInfo = SharpFactory.GetBuilder(typeof(DynamicCardSegmentConfig)) ?? throw new TypeInitializationException($"Cannot find {nameof(DynamicCardSegmentConfig)} constructor.", null);
+			textSegmentConfigConstructorInfo = SharpFactory.GetBuilder(typeof(TextCardSegmentConfig)) ?? throw new TypeInitializationException($"Cannot find {nameof(TextCardSegmentConfig)} constructor.", null);
+			paragraphSegmentConfigConstructorInfo = SharpFactory.GetBuilder(typeof(ParagraphCardSegmentConfig)) ?? throw new TypeInitializationException($"Cannot find {nameof(ParagraphCardSegmentConfig)} constructor.", null);
+			tableSegmentConfigConstructorInfo = SharpFactory.GetBuilder(typeof(TableCardSegmentConfig)) ?? throw new TypeInitializationException($"Cannot find {nameof(TableCardSegmentConfig)} constructor.", null);
+			featureConfigConstructorInfo = SharpFactory.GetBuilder(typeof(CardFeatureConfig)) ?? throw new TypeInitializationException($"Cannot find {nameof(CardFeatureConfig)} constructor.", null);
 
 			ConstructorDetails baselineCardConfigConstructor = DocumentationGenerator.GetConstructorDetails(typeof(CardConfig), cardConfigConstructorInfo, "Card");
 
@@ -86,13 +86,13 @@ namespace SharpSheets.Cards.CardConfigs {
 			// Append non-conflicting card config arguments to card set config constructor, for clearer documentation
 			CardSetConfigConstructor = CardSetConfigConstructor.WithAdditionalArguments(baselineCardConfigConstructor.Arguments.Where(cardArg => !cardArg.UseLocal && !CardSetConfigConstructor.Arguments.Any(cardSetArg => SharpDocuments.StringEquals(cardArg.Name, cardSetArg.Name))));
 
-			segmentConstructorsByType = new Dictionary<Type, ConstructorInfo>() {
+			segmentConstructorsByType = new Dictionary<Type, MethodInfo>() {
 				{ typeof(DynamicCardSegmentConfig), dynamicSegmentConfigConstructorInfo },
 				{ typeof(TextCardSegmentConfig), textSegmentConfigConstructorInfo },
 				{ typeof(ParagraphCardSegmentConfig), paragraphSegmentConfigConstructorInfo },
 				{ typeof(TableCardSegmentConfig), tableSegmentConfigConstructorInfo }
 			};
-			segmentConstructorsByName = new Dictionary<string, ConstructorInfo>(SharpDocuments.StringComparer) {
+			segmentConstructorsByName = new Dictionary<string, MethodInfo>(SharpDocuments.StringComparer) {
 				{ DynamicSegmentConfigConstructor.Name, dynamicSegmentConfigConstructorInfo },
 				{ TextSegmentConfigConstructor.Name, textSegmentConfigConstructorInfo },
 				{ ParagraphSegmentConfigConstructor.Name, paragraphSegmentConfigConstructorInfo },
@@ -160,7 +160,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			errors = new List<SharpParsingException>();
 
 			try {
-				cardSetConfig = (CardSetConfig)SharpFactory.Construct(cardSetConfigConstructorInfo, context, source, widgetFactory, shapeFactory, new object[] { configName, origin, source }, out SharpParsingException[] cardSetDefBuildErrors);
+				cardSetConfig = (CardSetConfig?)SharpFactory.Build(cardSetConfigConstructorInfo, context, source, widgetFactory, shapeFactory, new object[] { configName, origin, source }, out SharpParsingException[] cardSetDefBuildErrors);
 				errors.AddRange(cardSetDefBuildErrors);
 			}
 			catch (SharpParsingException e) {
@@ -283,7 +283,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			CardConfig? cardConfig;
 
 			try {
-				cardConfig = (CardConfig)SharpFactory.Construct(cardConfigConstructorInfo, context, cardSetConfig.Source, widgetFactory, shapeFactory, new object[] { cardSetConfig }, out SharpParsingException[] cardDefBuildErrors);
+				cardConfig = (CardConfig?)SharpFactory.Build(cardConfigConstructorInfo, context, cardSetConfig.Source, widgetFactory, shapeFactory, new object[] { cardSetConfig }, out SharpParsingException[] cardDefBuildErrors);
 				errors.AddRange(cardDefBuildErrors);
 			}
 			catch (SharpParsingException e) {
@@ -345,8 +345,8 @@ namespace SharpSheets.Cards.CardConfigs {
 		/// <exception cref="InvalidOperationException"></exception>
 		private AbstractCardSegmentConfig? MakeSegment(IContext context, ICardSegmentParent parent, ParseOrigins<IDocumentEntity>? origins, List<SharpParsingException> errors) {
 			//ConstructorInfo constructorInfo = segmentConstructorsByType[typeof(T)];
-			ConstructorInfo constructorInfo = segmentConstructorsByName.GetValueOrFallback(context.SimpleName, null) ?? throw new InvalidOperationException($"Could not find segment constructor for \"{context.SimpleName}\"");
-			Type segmentType = constructorInfo.DeclaringType ?? throw new InvalidOperationException("Could not resolve corresponding card segment constructor.");
+			MethodInfo constructorInfo = segmentConstructorsByName.GetValueOrFallback(context.SimpleName, null) ?? throw new InvalidOperationException($"Could not find segment constructor for \"{context.SimpleName}\"");
+			Type segmentType = FactoryBuilderAttribute.GetBuilderType(constructorInfo); // constructorInfo.DeclaringType ?? throw new InvalidOperationException("Could not resolve corresponding card segment constructor.");
 
 			AbstractCardSegmentConfig? cardSegment;
 
@@ -366,7 +366,7 @@ namespace SharpSheets.Cards.CardConfigs {
 					TextExpression? tail = MakeTextProperty("tail", context, segmentVariables, errors);
 					requiredArgs.Add(tail ?? new TextExpression("", CardEnvironments.Context));
 				}
-				cardSegment = (AbstractCardSegmentConfig)SharpFactory.Construct(constructorInfo, context, parent.Source, widgetFactory, shapeFactory, requiredArgs.ToArray(), out SharpParsingException[] cardSegmentBuildErrors);
+				cardSegment = (AbstractCardSegmentConfig?)SharpFactory.Build(constructorInfo, context, parent.Source, widgetFactory, shapeFactory, requiredArgs.ToArray(), out SharpParsingException[] cardSegmentBuildErrors);
 				errors.AddRange(cardSegmentBuildErrors);
 			}
 			catch (SharpParsingException e) {
@@ -433,7 +433,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			CardFeatureConfig? cardFeature;
 			
 			try {
-				cardFeature = (CardFeatureConfig)SharpFactory.Construct(featureConfigConstructorInfo, context, source, widgetFactory, shapeFactory, new object[] { segmentConfig }, out SharpParsingException[] cardFeatureBuildErrors);
+				cardFeature = (CardFeatureConfig?)SharpFactory.Build(featureConfigConstructorInfo, context, source, widgetFactory, shapeFactory, new object[] { segmentConfig }, out SharpParsingException[] cardFeatureBuildErrors);
 				errors.AddRange(cardFeatureBuildErrors);
 			}
 			catch (SharpParsingException e) {

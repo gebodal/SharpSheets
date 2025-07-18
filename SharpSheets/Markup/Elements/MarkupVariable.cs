@@ -1,5 +1,6 @@
 ﻿using SharpSheets.Evaluations;
 using SharpSheets.Evaluations.Nodes;
+using SharpSheets.Parsing;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -26,6 +27,15 @@ namespace SharpSheets.Markup.Elements {
 			Name = name;
 			Evaluation = value;
 			Type = Evaluation.GetReturnType();
+		}
+
+		/// <param name="name">The name for this variable, which will be used as its variable
+		/// handle in the Markup.</param>
+		/// <param name="value">An expression for the value of this variable. The type of the
+		/// variable will be inferred from the type of this expression.</param>
+		[FactoryBuilder(typeof(MarkupVariable), Name = "var")]
+		public static MarkupVariable Build([LocalProperty] EvaluationName name, [LocalProperty] EvaluationNode value) {
+			return new MarkupVariable(name, value);
 		}
 
 		public static IVariableBox MakeVariableBox(IEnumerable<MarkupVariable> variables, EvaluationContext context) {

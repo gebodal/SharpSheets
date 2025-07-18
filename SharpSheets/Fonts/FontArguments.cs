@@ -26,6 +26,15 @@ namespace SharpSheets.Fonts {
 				Path = path;
 				Tags = tags;
 			}
+
+			/// <param name="path">Font path to use for this font setting.</param>
+			/// <param name="tags">Font tags to use for this font. This can include script,
+			/// language system, and feature tags (if they are supported by the font
+			/// specified).</param>
+			[FactoryBuilder(typeof(FontSettingArg))]
+			public static FontSettingArg Build(FontPath? path = null, FontTags? tags = null) {
+				return new FontSettingArg(path, tags);
+			}
 		}
 
 		/// <summary>
@@ -59,6 +68,28 @@ namespace SharpSheets.Fonts {
 			FontSetting? bolditalicFont = bolditalicPath is not null ? new FontSetting(bolditalicPath, bolditalic?.Tags ?? tags) : null;
 
 			Fonts = new FontSettingGrouping(regularFont, boldFont, italicFont, bolditalicFont);
+		}
+
+		/// <param name="fonts"></param>
+		/// <param name="tags">Font tags to use as defaults for this font grouping. This can
+		/// include script, language system, and feature tags (if they are supported by the font
+		/// specified).</param>
+		/// <param name="regular">Standard font to use for text without formatting.</param>
+		/// <param name="bold">Font to use for bold text.</param>
+		/// <param name="italic">Font to use for italic text.</param>
+		/// <param name="bolditalic">Font to use for bold-italic text.</param>
+		[FactoryBuilder(typeof(FontArgument))]
+		public static FontArgument Build(
+				FontPathGrouping? fonts = null,
+				FontTags? tags = null,
+				FontSettingArg? regular = null,
+				FontSettingArg? bold = null,
+				FontSettingArg? italic = null,
+				FontSettingArg? bolditalic = null
+			) {
+			// TODO Is this class still needed, with the FactoryBuilder setup? Can't this just be a Build method on FontSettingGrouping?
+
+			return new FontArgument(fonts, tags, regular, bold, italic, bolditalic);
 		}
 
 	}
