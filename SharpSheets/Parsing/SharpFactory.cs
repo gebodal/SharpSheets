@@ -86,10 +86,10 @@ namespace SharpSheets.Parsing {
 				}, am => (am.Item1!, am.m));
 		}
 
-		public static Dictionary<Type, MethodInfo> GetBuilders(Type supertype, params Type[] requiredConstructorArguments) {
+		public static Dictionary<Type, MethodInfo> GetBuilders(Type supertype, params Type[] requiredBuilderArguments) {
 			return allBuilders
 				.Where(kv => kv.Value.attr.BuildType.IsAssignableTo(supertype))
-				.Where(kv => kv.Value.builder.GetParameters().Where(p => p.GetCustomAttribute<BuildErrorsAttribute>() is null).Zip(requiredConstructorArguments, (p, a) => p.ParameterType == a).All())
+				.Where(kv => kv.Value.builder.GetParameters().Where(p => p.GetCustomAttribute<BuildErrorsAttribute>() is null).Zip(requiredBuilderArguments, (p, a) => p.ParameterType == a).All())
 				.ToDictionary(kv => kv.Key, kv => kv.Value.builder);
 			
 			/*
@@ -116,7 +116,7 @@ namespace SharpSheets.Parsing {
 			*/
 		}
 
-		public static MethodInfo? GetBuilder(Type type, params Type[] requiredConstructorArguments) {
+		public static MethodInfo? GetBuilder(Type type, params Type[] requiredBuilderArguments) {
 			/*
 			return typeof(SharpFactory).Assembly.GetTypes() // Look in current assembly
 				.SelectMany(t => t.GetMethods()) // Find all methods of all types
@@ -133,7 +133,7 @@ namespace SharpSheets.Parsing {
 			*/
 
 			if (allBuilders.TryGetValue(type, out (FactoryBuilderAttribute attr, MethodInfo builder) existing)) {
-				if (existing.builder.GetParameters().Where(p => p.GetCustomAttribute<BuildErrorsAttribute>() is null).Zip(requiredConstructorArguments, (p, a) => p.ParameterType == a).All()) {
+				if (existing.builder.GetParameters().Where(p => p.GetCustomAttribute<BuildErrorsAttribute>() is null).Zip(requiredBuilderArguments, (p, a) => p.ParameterType == a).All()) {
 					return existing.builder;
 				}
 			}
@@ -164,7 +164,7 @@ namespace SharpSheets.Parsing {
 			if (parameterType == typeof(WidgetSetup)) {
 				//IContext setupContext = typeof(IWidget).IsAssignableFrom(declaringType) ? context : new NamedContext(context, parameterName, forceLocal: useLocal);
 				defaultUsed = false;
-				return (WidgetSetup)(Build(WidgetFactory.widgetSetupConstructor, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out buildErrors) ?? throw new InvalidOperationException($"{nameof(WidgetSetup)} parameter cannot be null."));
+				return (WidgetSetup)(Build(WidgetFactory.widgetSetupBuilder, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out buildErrors) ?? throw new InvalidOperationException($"{nameof(WidgetSetup)} parameter cannot be null."));
 			}
 			else if (parameterType == typeof(ChildHolder)) {
 				if (widgetFactory == null) { throw new SharpParsingException(context.Location, $"No WidgetFactory provided for constructing \"{parameterName}\"."); }
@@ -189,7 +189,7 @@ namespace SharpSheets.Parsing {
 				// For widgets created as parameters, the setup is taken from the parent, not a unique context for the parameter
 				if (widgetFactory == null) { throw new SharpParsingException(context.Location, $"No WidgetFactory provided for constructing \"{parameterName}\"."); }
 				List<SharpParsingException> widgetErrors = new List<SharpParsingException>();
-				WidgetSetup setup = (WidgetSetup)(Build(WidgetFactory.widgetSetupConstructor, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out SharpParsingException[] setupBuildErrors) ?? throw new InvalidOperationException($"{nameof(WidgetSetup)} parameter cannot be null."));
+				WidgetSetup setup = (WidgetSetup)(Build(WidgetFactory.widgetSetupBuilder, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out SharpParsingException[] setupBuildErrors) ?? throw new InvalidOperationException($"{nameof(WidgetSetup)} parameter cannot be null."));
 				widgetErrors.AddRange(setupBuildErrors);
 				IContext widgetContext = new NamedContext(context, parameterName, forceLocal: useLocal);
 				IWidget widget = widgetFactory.MakeWidget(parameterType, widgetContext, source, out SharpParsingException[] widgetBuildErrors, setup);
@@ -300,14 +300,14 @@ namespace SharpSheets.Parsing {
 			else if (typeof(ISharpArgsGrouping).IsAssignableFrom(parameterType)) { // || IsParsableStruct(parameterType)
 				// We are dealing with a struct or class not covered by Parse
 				// TODO Do we still want to accept structs here? Classes are probably a better way to go...
-				MethodInfo constructor = ValueParsing.GetSimpleConstructor(parameterType);
+				MethodInfo builder = ValueParsing.GetSimpleBuilder(parameterType);
 				IContext argContext = new NamedContext(context, parameterName, forceLocal: useLocal);
 				defaultUsed = false;
-				return Build(constructor, argContext, source, widgetFactory, shapeFactory, Array.Empty<object>(), out buildErrors);
+				return Build(builder, argContext, source, widgetFactory, shapeFactory, Array.Empty<object>(), out buildErrors);
 			}
 			else if (typeof(ISharpArgSupplemented).IsAssignableFrom(parameterType)) {
-				MethodInfo constructor = ValueParsing.GetSimpleConstructor(parameterType);
-				ParameterInfo[] parameterList = constructor.GetParameters();
+				MethodInfo builder = ValueParsing.GetSimpleBuilder(parameterType);
+				ParameterInfo[] parameterList = builder.GetParameters();
 				List<SharpParsingException> errors = new List<SharpParsingException>();
 
 				object?[] paramValues = new object?[parameterList.Length];
@@ -326,7 +326,7 @@ namespace SharpSheets.Parsing {
 				if(!defaultUsedForFirst || parameterList[0].IsOptional) {
 					IContext supplementaryContext = new NamedContext(context, parameterName, forceLocal: useLocal);
 					object? result = Build(
-						constructor, supplementaryContext,
+						builder, supplementaryContext,
 						source, widgetFactory, shapeFactory,
 						new object[] { firstParam! },
 						out SharpParsingException[] constructionErrors);
@@ -363,8 +363,8 @@ namespace SharpSheets.Parsing {
 
 							object? parsed;
 							if (typeof(ISharpDictArg).IsAssignableFrom(parameterType)) {
-								MethodInfo dictConstructor = ValueParsing.GetSimpleConstructor(parameterType);
-								parsed = ValueParsing.ParseValueDict(value, dictConstructor, source);
+								MethodInfo dictBuilder = ValueParsing.GetSimpleBuilder(parameterType);
+								parsed = ValueParsing.ParseValueDict(value, dictBuilder, source);
 							}
 							else {
 								parsed = ValueParsing.Parse(value, parameterType, source);

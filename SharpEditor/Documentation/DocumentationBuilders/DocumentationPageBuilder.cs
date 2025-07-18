@@ -142,22 +142,22 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			else if (documentationSegment is DocumentationContents contents) {
 				return contents.contents switch {
 					// Widgets
-					DocumentationSectionContents.Widgets => GetConstructorLinks(SharpEditorRegistries.WidgetFactoryInstance, SharpEditorRegistries.WidgetFactoryInstance.Get, window),
+					DocumentationSectionContents.Widgets => GetBuilderLinks(SharpEditorRegistries.WidgetFactoryInstance, SharpEditorRegistries.WidgetFactoryInstance.Get, window),
 					// Shapes
-					DocumentationSectionContents.Shapes => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance, SharpEditorRegistries.ShapeFactoryInstance.Get, window),
-					DocumentationSectionContents.Boxes => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
-					DocumentationSectionContents.LabelledBoxes => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<ILabelledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
-					DocumentationSectionContents.TitledBoxes => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<ITitledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
-					DocumentationSectionContents.TitleStyles => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<ITitleStyledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
-					DocumentationSectionContents.EntriedShapes => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IEntriedShape>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
-					DocumentationSectionContents.Bars => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IBar>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
-					DocumentationSectionContents.UsageBars => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IUsageBar>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
-					DocumentationSectionContents.Details => GetConstructorLinks(SharpEditorRegistries.ShapeFactoryInstance.FindConstructors<IDetail>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
+					DocumentationSectionContents.Shapes => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance, SharpEditorRegistries.ShapeFactoryInstance.Get, window),
+					DocumentationSectionContents.Boxes => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<IBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
+					DocumentationSectionContents.LabelledBoxes => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<ILabelledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
+					DocumentationSectionContents.TitledBoxes => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<ITitledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
+					DocumentationSectionContents.TitleStyles => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<ITitleStyledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
+					DocumentationSectionContents.EntriedShapes => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<IEntriedShape>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
+					DocumentationSectionContents.Bars => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<IBar>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
+					DocumentationSectionContents.UsageBars => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<IUsageBar>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
+					DocumentationSectionContents.Details => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<IDetail>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
 					// Markup Elements
-					DocumentationSectionContents.MarkupElements => GetConstructorLinks(MarkupDocumentation.MarkupConstructors, MarkupDocumentation.MarkupConstructors.Get, window),
+					DocumentationSectionContents.MarkupElements => GetBuilderLinks(MarkupDocumentation.MarkupBuilders, MarkupDocumentation.MarkupBuilders.Get, window),
 					// Card configurations
-					DocumentationSectionContents.CardConfigs => GetConstructorLinks(SharpEditorRegistries.CardSetConfigRegistryInstance, s => null, window), // TODO Can we improve the refreshAction here?
-					DocumentationSectionContents.CardStructures => GetConstructorLinks(CardSetConfigFactory.ConfigConstructors, CardSetConfigFactory.ConfigConstructors.Get, window),
+					DocumentationSectionContents.CardConfigs => GetBuilderLinks(SharpEditorRegistries.CardSetConfigRegistryInstance, s => null, window), // TODO Can we improve the refreshAction here?
+					DocumentationSectionContents.CardStructures => GetBuilderLinks(CardSetConfigFactory.ConfigBuilders, CardSetConfigFactory.ConfigBuilders.Get, window),
 					// Environments
 					DocumentationSectionContents.BasisEnvironmentVariables => EnvironmentPageBuilder.GetEnvironmentVariablesContents(SharpSheets.Evaluations.BasisEnvironment.MakeInstance(SharpSheets.Evaluations.EvaluationContext.BasisContext), window),
 					DocumentationSectionContents.BasisEnvironmentFunctions => EnvironmentPageBuilder.GetEnvironmentFunctionsContents(SharpSheets.Evaluations.BasisEnvironment.MakeInstance(SharpSheets.Evaluations.EvaluationContext.BasisContext), window),
@@ -228,21 +228,21 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return text;
 		}
 
-		private static Control GetConstructorLinks(IEnumerable<ConstructorDetails> details, Func<string, ConstructorDetails?>? refreshAction, DocumentationWindow window) {
+		private static Control GetBuilderLinks(IEnumerable<BuilderDetails> details, Func<string, BuilderDetails?>? refreshAction, DocumentationWindow window) {
 			StackPanel contentsStack = new StackPanel() { Margin = ParagraphMargin };
 
-			foreach (IGrouping<string, ConstructorDetails> constructorGroup in details.GroupBy(c => c is MarkupConstructorDetails markupConstructor && !string.IsNullOrEmpty(markupConstructor.Pattern.Library) ? markupConstructor.Pattern.Library : "").OrderBy(g => g.Key)) {
+			foreach (IGrouping<string, BuilderDetails> builderGroup in details.GroupBy(c => c is MarkupBuilderDetails markupBuilder && !string.IsNullOrEmpty(markupBuilder.Pattern.Library) ? markupBuilder.Pattern.Library : "").OrderBy(g => g.Key)) {
 				StackPanel groupStack = new StackPanel() { Margin = ParagraphMargin };
-				if (!string.IsNullOrWhiteSpace(constructorGroup.Key)) {
-					contentsStack.Children.Add(new TextBlock() { Text = constructorGroup.Key, Margin = TextBlockMargin });
+				if (!string.IsNullOrWhiteSpace(builderGroup.Key)) {
+					contentsStack.Children.Add(new TextBlock() { Text = builderGroup.Key, Margin = TextBlockMargin });
 					groupStack.AddIndent(10);
 				}
-				foreach (ConstructorDetails constructor in constructorGroup.OrderBy(c => c.Name)) {
-					ClickableRun constructorClickable = new ClickableRun(GetConstructorPrintedName(constructor));
-					constructorClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(constructor, () => refreshAction?.Invoke(constructor.FullName));
+				foreach (BuilderDetails builder in builderGroup.OrderBy(c => c.Name)) {
+					ClickableRun builderClickable = new ClickableRun(GetBuilderPrintedName(builder));
+					builderClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(builder, () => refreshAction?.Invoke(builder.FullName));
 					groupStack.Children.Add(new TextBlock() {
 						Margin = new Thickness(0, 1, 0, 1),
-						Inlines = new InlineCollection() { constructorClickable }
+						Inlines = new InlineCollection() { builderClickable }
 					});
 				}
 				contentsStack.Children.Add(groupStack);
@@ -250,26 +250,26 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return contentsStack;
 		}
 
-		private static Control GetConstructorLinks(IEnumerable<CardSetConfig> configs, Func<string, CardSetConfig?>? refreshAction, DocumentationWindow window) {
+		private static Control GetBuilderLinks(IEnumerable<CardSetConfig> configs, Func<string, CardSetConfig?>? refreshAction, DocumentationWindow window) {
 			StackPanel contentsStack = new StackPanel() { Margin = ParagraphMargin };
 
 			foreach (CardSetConfig config in configs.OrderBy(d => d.Name)) {
-				ClickableRun constructorClickable = new ClickableRun(config.Name);
-				constructorClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(config, () => refreshAction?.Invoke(config.Name));
+				ClickableRun builderClickable = new ClickableRun(config.Name);
+				builderClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(config, () => refreshAction?.Invoke(config.Name));
 				contentsStack.Children.Add(new TextBlock() {
 					Margin = new Thickness(0, 1, 0, 1),
-					Inlines = new InlineCollection() { constructorClickable }
+					Inlines = new InlineCollection() { builderClickable }
 				});
 			}
 			return contentsStack;
 		}
 
-		private static string GetConstructorPrintedName(ConstructorDetails constructor) {
-			if (typeof(IMarkupElement).IsAssignableFrom(constructor.DeclaringType)) {
-				return "<" + constructor.Name + ">";
+		private static string GetBuilderPrintedName(BuilderDetails builder) {
+			if (typeof(IMarkupElement).IsAssignableFrom(builder.DeclaringType)) {
+				return "<" + builder.Name + ">";
 			}
 			else {
-				return constructor.Name;
+				return builder.Name;
 			}
 		}
 

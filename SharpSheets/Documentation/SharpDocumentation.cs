@@ -27,8 +27,8 @@ namespace SharpSheets.Documentation {
 		}
 	}
 
-	public class ConstructorDoc {
-		public readonly string declaringType;
+	public class BuilderDoc {
+		public readonly string builderType;
 		public readonly ArgumentDoc[] arguments;
 		public readonly DocumentationString? description;
 		public readonly string? size;
@@ -36,8 +36,8 @@ namespace SharpSheets.Documentation {
 
 		private readonly Dictionary<string, ArgumentDoc> argDict;
 
-		public ConstructorDoc(string declaringType, ArgumentDoc[] arguments, DocumentationString? description, string? size, string? canvas) {
-			this.declaringType = declaringType;
+		public BuilderDoc(string builderType, ArgumentDoc[] arguments, DocumentationString? description, string? size, string? canvas) {
+			this.builderType = builderType;
 			this.arguments = arguments;
 			this.description = description;
 			this.size = size;
@@ -90,7 +90,7 @@ namespace SharpSheets.Documentation {
 		private static readonly HashSet<Assembly> loadedAssemblies = new HashSet<Assembly>();
 
 		private static readonly Dictionary<string, TypeDoc> typeSummaries = new Dictionary<string, TypeDoc>();
-		private static readonly Dictionary<string, List<ConstructorDoc>> typeConstructors = new Dictionary<string, List<ConstructorDoc>>();
+		private static readonly Dictionary<string, List<BuilderDoc>> typeBuilders = new Dictionary<string, List<BuilderDoc>>();
 
 		private static readonly Dictionary<string, EnumDoc> enumSummaries = new Dictionary<string, EnumDoc>();
 
@@ -251,12 +251,12 @@ namespace SharpSheets.Documentation {
 			}
 		}
 
-		public static ConstructorDoc? GetConstructorDoc(MethodInfo builder) {
+		public static BuilderDoc? GetBuilderDoc(MethodInfo builder) {
 			Type builderType = FactoryBuilderAttribute.GetBuilderType(builder);
-			List<ConstructorDoc>? constructors = typeConstructors.GetValueOrFallback((builderType.FullName ?? "").Replace("+", "."), null);
-			if (constructors != null) {
+			List<BuilderDoc>? builders = typeBuilders.GetValueOrFallback((builderType.FullName ?? "").Replace("+", "."), null);
+			if (builders != null) {
 				HashSet<string> paramNameSet = new HashSet<string>(builder.GetParameters().Select(p => p.Name).WhereNotNull());
-				return constructors.FirstOrDefault(c => paramNameSet.SetEquals(c.arguments.Select(a => a.name)));
+				return builders.FirstOrDefault(c => paramNameSet.SetEquals(c.arguments.Select(a => a.name)));
 			}
 
 			return null;
@@ -374,10 +374,10 @@ namespace SharpSheets.Documentation {
 							string? size = member.Descendants("size").FirstOrDefault() is XElement sizeElem ? GetElementValue(sizeElem) : null;
 							string? canvas = member.Descendants("canvas").FirstOrDefault() is XElement canvasElem ? GetElementValue(canvasElem) : null;
 
-							if (!typeConstructors.ContainsKey(typeFullName)) {
-								typeConstructors.Add(typeFullName, new List<ConstructorDoc>());
+							if (!typeBuilders.ContainsKey(typeFullName)) {
+								typeBuilders.Add(typeFullName, new List<BuilderDoc>());
 							}
-							typeConstructors.GetValueOrFallback(typeFullName, null)?.Add(new ConstructorDoc(typeFullName, argumentDocs.ToArray(), summary, size, canvas));
+							typeBuilders.GetValueOrFallback(typeFullName, null)?.Add(new BuilderDoc(typeFullName, argumentDocs.ToArray(), summary, size, canvas));
 
 							//typeConstructors.Add(typeFullName, new ConstructorDoc(typeFullName, argumentDocs.ToArray(), summary));
 						}

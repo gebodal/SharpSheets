@@ -80,7 +80,7 @@ namespace SharpSheets.Markup.Patterns {
 			return result;
 		}
 
-		public abstract MarkupConstructorDetails GetConstructorDetails();
+		public abstract MarkupBuilderDetails GetBuilderDetails();
 
 		protected virtual IEnumerable<ArgumentDetails> GetArgumentDetails() {
 			return GetArgumentDetails(patternArguments);
@@ -287,16 +287,16 @@ namespace SharpSheets.Markup.Patterns {
 		//Size ExampleSize { get; }
 	}
 
-	public class MarkupConstructorDetails : ConstructorDetails {
+	public class MarkupBuilderDetails : BuilderDetails {
 
 		public MarkupPattern Pattern { get; }
 
-		public MarkupConstructorDetails(MarkupPattern pattern, Type displayType, Type declaringType, ArgumentDetails[] arguments, DocumentationString? description) : base(displayType, declaringType, pattern.Name, pattern.FullName, arguments, description, pattern.exampleRect, pattern.exampleCanvas) {
+		public MarkupBuilderDetails(MarkupPattern pattern, Type displayType, Type declaringType, ArgumentDetails[] arguments, DocumentationString? description) : base(displayType, declaringType, pattern.Name, pattern.FullName, arguments, description, pattern.exampleRect, pattern.exampleCanvas) {
 			this.Pattern = pattern;
 		}
 
-		protected override ConstructorDetails WithArguments(ArgumentDetails[] arguments) {
-			return new MarkupConstructorDetails(Pattern, DisplayType, DeclaringType, arguments, Description);
+		protected override BuilderDetails WithArguments(ArgumentDetails[] arguments) {
+			return new MarkupBuilderDetails(Pattern, DisplayType, DeclaringType, arguments, Description);
 		}
 
 	}

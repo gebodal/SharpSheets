@@ -39,16 +39,16 @@ namespace SharpEditor.CodeHelpers {
 				TextEditor textEditor,
 				SharpConfigParsingState<TSpan> parsingState,
 				ITypeDetailsCollection divTypes,
-				ITypeDetailsCollection impliedConstructors,
-				ConstructorDetails fallbackType,
-				ConstructorArgumentDetails[] fallbackArguments
+				ITypeDetailsCollection impliedBuilders,
+				BuilderDetails fallbackType,
+				BuilderArgumentDetails[] fallbackArguments
 			) {
 
 			this.textEditor = textEditor;
 			this.parsingState = parsingState;
 
 			this.divTypes = divTypes;
-			this.impliedConstructors = impliedConstructors;
+			this.impliedBuilders = impliedBuilders;
 			this.fallbackType = fallbackType;
 			this.fallbackArguments = fallbackArguments;
 		}
@@ -58,22 +58,22 @@ namespace SharpEditor.CodeHelpers {
 			//return string.Equals(a, b, StringComparison.InvariantCultureIgnoreCase);
 		}
 
-		#region Constructor Details
+		#region Builder Details
 
 		private readonly ITypeDetailsCollection divTypes;
-		private readonly ITypeDetailsCollection impliedConstructors; // Constructors which can appear inside property values
-		private readonly ConstructorDetails fallbackType;
-		private readonly ConstructorArgumentDetails[] fallbackArguments; // rectSetupConstructor.Arguments
+		private readonly ITypeDetailsCollection impliedBuilders; // Builders which can appear inside property values
+		private readonly BuilderDetails fallbackType;
+		private readonly BuilderArgumentDetails[] fallbackArguments;
 
-		protected ConstructorDetails? GetConstructor(Type? type) {
+		protected BuilderDetails? GetBuilder(Type? type) {
 			if(type is null) {
 				return null;
 			}
-			else if(divTypes.TryGetValue(type, out ConstructorDetails? divConstructor)) {
-				return divConstructor;
+			else if(divTypes.TryGetValue(type, out BuilderDetails? divBuilder)) {
+				return divBuilder;
 			}
-			else if(impliedConstructors.TryGetValue(type, out ConstructorDetails? impliedConstructor)) {
-				return impliedConstructor;
+			else if(impliedBuilders.TryGetValue(type, out BuilderDetails? impliedBuilder)) {
+				return impliedBuilder;
 			}
 			else if(fallbackType.DeclaringType == type) {
 				return fallbackType;
@@ -82,12 +82,12 @@ namespace SharpEditor.CodeHelpers {
 				return null;
 			}
 		}
-		protected ConstructorDetails? GetConstructor(string name) {
-			if (divTypes.TryGetValue(name, out ConstructorDetails? divConstructor)) {
-				return divConstructor;
+		protected BuilderDetails? GetBuilder(string name) {
+			if (divTypes.TryGetValue(name, out BuilderDetails? divBuilder)) {
+				return divBuilder;
 			}
-			else if (impliedConstructors.TryGetValue(name, out ConstructorDetails? impliedConstructor)) {
-				return impliedConstructor;
+			else if (impliedBuilders.TryGetValue(name, out BuilderDetails? impliedBuilder)) {
+				return impliedBuilder;
 			}
 			else if (string.Equals(fallbackType.Name, name, StringComparison.InvariantCultureIgnoreCase)) {
 				return fallbackType;
@@ -98,21 +98,21 @@ namespace SharpEditor.CodeHelpers {
 		}
 
 		// TODO Do these need to be reset occasionally?
-		private readonly Dictionary<string, ConstructorDetails> _registeredConstructorDetails = new Dictionary<string, ConstructorDetails>(StringComparer.InvariantCultureIgnoreCase);
-		private readonly Dictionary<ConstructorDetails, Control[]> _constructorDescriptions = new Dictionary<ConstructorDetails, Control[]>();
-		protected Control[]? GetConstructorDescription(ConstructorDetails constructorDetails) {
-			if(constructorDetails == null) { return null; }
-			else if(ReferenceEquals(_registeredConstructorDetails.GetValueOrFallback(constructorDetails.FullName, null), constructorDetails)) {
-				return _constructorDescriptions.GetValueOrFallback(constructorDetails, null);
+		private readonly Dictionary<string, BuilderDetails> _registeredBuilderDetails = new Dictionary<string, BuilderDetails>(StringComparer.InvariantCultureIgnoreCase);
+		private readonly Dictionary<BuilderDetails, Control[]> _builderDescriptions = new Dictionary<BuilderDetails, Control[]>();
+		protected Control[]? GetBuilderDescription(BuilderDetails builderDetails) {
+			if(builderDetails == null) { return null; }
+			else if(ReferenceEquals(_registeredBuilderDetails.GetValueOrFallback(builderDetails.FullName, null), builderDetails)) {
+				return _builderDescriptions.GetValueOrFallback(builderDetails, null);
 			}
 			else {
-				if (_registeredConstructorDetails.TryGetValue(constructorDetails.FullName, out ConstructorDetails? alreadyRegistered)) {
-					_constructorDescriptions.Remove(alreadyRegistered);
+				if (_registeredBuilderDetails.TryGetValue(builderDetails.FullName, out BuilderDetails? alreadyRegistered)) {
+					_builderDescriptions.Remove(alreadyRegistered);
 				}
 
-				Control[] description = TooltipBuilder.MakeConstructorEntry(constructorDetails, null, false, impliedConstructors).ToArray();
-				_registeredConstructorDetails[constructorDetails.FullName] = constructorDetails;
-				_constructorDescriptions[constructorDetails] = description;
+				Control[] description = TooltipBuilder.MakeBuilderEntry(builderDetails, null, false, impliedBuilders).ToArray();
+				_registeredBuilderDetails[builderDetails.FullName] = builderDetails;
+				_builderDescriptions[builderDetails] = description;
 				return description;
 			}
 		}
@@ -133,7 +133,7 @@ namespace SharpEditor.CodeHelpers {
 			return name.Split('.').Length;
 		}
 
-		protected List<ConstructorDetails> GetOwnerConstructors(TSpan span) {
+		protected List<BuilderDetails> GetOwnerBuilders(TSpan span) {
 			//IContext spanContext = parsingState.GetContext(span.StartOffset);
 			////Type ownerType = (GetConstructor(spanContext?.SimpleName ?? "") ?? fallbackType).DeclaringType;
 			////ConstructorDetails ownerConstructor = ownerType != null ? GetConstructor(ownerType) : fallbackType;
@@ -141,37 +141,37 @@ namespace SharpEditor.CodeHelpers {
 			//ConstructorDetails ownerConstructor = GetConstructor(spanContext?.SimpleName ?? "") ?? fallbackType;
 			//List<ConstructorDetails> ownerConstructors = new List<ConstructorDetails>() { ownerConstructor };
 
-			List<ConstructorDetails> ownerConstructors = new List<ConstructorDetails>();
+			List<BuilderDetails> ownerBuilders = new List<BuilderDetails>();
 			foreach (TSpan ownerSpan in span.Owners.OfType<TSpan>().OrderBy(s => s.StartOffset)) {
-				if (ownerSpan.Type == SharpConfigSpanType.DIV && ownerSpan.Name != null && divTypes.Get(ownerSpan.Name) is ConstructorDetails divConstructor) {
-					ownerConstructors.Add(divConstructor);
+				if (ownerSpan.Type == SharpConfigSpanType.DIV && ownerSpan.Name != null && divTypes.Get(ownerSpan.Name) is BuilderDetails divBuilder) {
+					ownerBuilders.Add(divBuilder);
 
 					// If we've been redirected to this division because we're using a default implied constructor (i.e. no span)
 					//if (divConstructor.Arguments.Where(a => span.Name != a.Name && (span.Name?.StartsWith(a.Name) ?? false) && CodeHelpers.DefaultType(a.Type) != null).OrderByDescending(a => a.Name.Split('.').Length - 1).FirstOrDefault() is ArgumentDetails correspondingArg) {
-					if (span.Name != null && divConstructor.Arguments.Where(a => span.Name.StartsWith(a.Name) && CodeHelpers.DefaultType(a.Type) != null).OrderByDescending(a => PropertyDepth(a.Name)).FirstOrDefault() is ArgumentDetails correspondingArg) {
-						ConstructorDetails? correspondingConstructor = GetConstructor(CodeHelpers.DefaultType(correspondingArg.Type));
-						if (correspondingConstructor != null) { ownerConstructors.Add(correspondingConstructor.Prefixed(correspondingArg.Name)); }
+					if (span.Name != null && divBuilder.Arguments.Where(a => span.Name.StartsWith(a.Name) && CodeHelpers.DefaultType(a.Type) != null).OrderByDescending(a => PropertyDepth(a.Name)).FirstOrDefault() is ArgumentDetails correspondingArg) {
+						BuilderDetails? correspondingBuilder = GetBuilder(CodeHelpers.DefaultType(correspondingArg.Type));
+						if (correspondingBuilder != null) { ownerBuilders.Add(correspondingBuilder.Prefixed(correspondingArg.Name)); }
 					}
 				}
 				else if (span.Name != null && ownerSpan.Type == SharpConfigSpanType.PROPERTY && ownerSpan.Name != null) {
 					int ownerNameOverlap = StringUtils.PrefixOverlapLength(span.Name, ownerSpan.Name);
-					if (ownerNameOverlap > 0 && ownerSpan.Value != null && impliedConstructors.Get(ownerSpan.Value) is ConstructorDetails impliedConstructor) {
+					if (ownerNameOverlap > 0 && ownerSpan.Value != null && impliedBuilders.Get(ownerSpan.Value) is BuilderDetails impliedBuilder) {
 						// Found a constructor for the value of this property
 						string prefix = string.Join(".", ownerSpan.Name.Split('.').SkipLastN(1));
-						ownerConstructors.Add(impliedConstructor.Prefixed(prefix));
+						ownerBuilders.Add(impliedBuilder.Prefixed(prefix));
 					}
 
 					foreach(TSpan parentSpan in ownerSpan.Owners.OfType<TSpan>().OrderBy(s => s.StartOffset)) {
-						if (parentSpan.Type == SharpConfigSpanType.DIV && parentSpan.Name != null && divTypes.Get(parentSpan.Name) is ConstructorDetails parentDivConstructor) {
+						if (parentSpan.Type == SharpConfigSpanType.DIV && parentSpan.Name != null && divTypes.Get(parentSpan.Name) is BuilderDetails parentDivBuilder) {
 							// This div is the parent of the property the current span belongs to, and might be the actual source of the constructor (e.g. title styles)
-							ArgumentDetails? correspondingArg = parentDivConstructor.Arguments
+							ArgumentDetails? correspondingArg = parentDivBuilder.Arguments
 								.Where(a => span.Name.StartsWith(a.Name) && StringUtils.PrefixOverlapLength(span.Name, a.Name) > ownerNameOverlap)
 								.OrderByDescending(a => PropertyDepth(a.Name))
 								.FirstOrDefault();
 							if (correspondingArg != null) {
-								ConstructorDetails? correspondingConstructor = GetConstructor(CodeHelpers.DefaultType(correspondingArg.Type));
-								if (correspondingConstructor != null) {
-									ownerConstructors.Add(correspondingConstructor.Prefixed(correspondingArg.Name));
+								BuilderDetails? correspondingBuilder = GetBuilder(CodeHelpers.DefaultType(correspondingArg.Type));
+								if (correspondingBuilder != null) {
+									ownerBuilders.Add(correspondingBuilder.Prefixed(correspondingArg.Name));
 								}
 							}
 						}
@@ -179,19 +179,19 @@ namespace SharpEditor.CodeHelpers {
 				}
 			}
 
-			if (ownerConstructors.Count == 0) {
-				ownerConstructors.Add(fallbackType);
+			if (ownerBuilders.Count == 0) {
+				ownerBuilders.Add(fallbackType);
 			}
 
-			return ownerConstructors;
+			return ownerBuilders;
 		}
 
-		protected ConstructorArgumentDetails[] GetAllArguments(TSpan span, IEnumerable<ConstructorDetails> parentConstructors) {
+		protected BuilderArgumentDetails[] GetAllArguments(TSpan span, IEnumerable<BuilderDetails> parentBuilders) {
 			if(span.Name is null) {
-				return Array.Empty<ConstructorArgumentDetails>();
+				return Array.Empty<BuilderArgumentDetails>();
 			}
 
-			bool ArgIsMatch(ConstructorArgumentDetails arg) {
+			bool ArgIsMatch(BuilderArgumentDetails arg) {
 
 				bool isNumbered = arg.ArgumentType.DisplayType.IsNumbered(out _);
 
@@ -212,8 +212,8 @@ namespace SharpEditor.CodeHelpers {
 				*/
 			}
 
-			return parentConstructors
-				.SelectMany(p => p.ConstructorArguments)
+			return parentBuilders
+				.SelectMany(p => p.BuilderArguments)
 				.Where(ArgIsMatch)
 				.ToArray();
 		}
@@ -225,11 +225,11 @@ namespace SharpEditor.CodeHelpers {
 			public readonly int indent;
 			public readonly int? caratIndex;
 			public readonly IContext? context;
-			public readonly ConstructorDetails directParent;
+			public readonly BuilderDetails directParent;
 			public readonly ArgumentDetails? argument;
-			public readonly ConstructorDetails[] applicableConstructors;
+			public readonly BuilderDetails[] applicableBuilders;
 
-			public ConfigLineInfo(int line, string text, (string name, string? value)? argText, int indent, int? caratIndex, IContext? context, ConstructorDetails directParent, ArgumentDetails? argument, ConstructorDetails[] applicableConstructors) {
+			public ConfigLineInfo(int line, string text, (string name, string? value)? argText, int indent, int? caratIndex, IContext? context, BuilderDetails directParent, ArgumentDetails? argument, BuilderDetails[] applicableBuilders) {
 				this.line = line;
 				this.text = text;
 				this.argText = argText;
@@ -238,14 +238,14 @@ namespace SharpEditor.CodeHelpers {
 				this.context = context;
 				this.directParent = directParent;
 				this.argument = argument;
-				this.applicableConstructors = applicableConstructors;
+				this.applicableBuilders = applicableBuilders;
 			}
 
-			public IEnumerable<ConstructorArgumentDetails> GetApplicableConstructorArgs() {
-				return applicableConstructors.SelectMany(c => c.ConstructorArguments);
+			public IEnumerable<BuilderArgumentDetails> GetApplicableBuilderArgs() {
+				return applicableBuilders.SelectMany(c => c.BuilderArguments);
 			}
-			public IEnumerable<ConstructorArgumentDetails> GetApplicableConstructorArgs(string startsWith) {
-				return applicableConstructors.SelectMany(c => c.ConstructorArguments).Where(a => a.ArgumentName.StartsWith(startsWith, SharpDocuments.StringComparison));
+			public IEnumerable<BuilderArgumentDetails> GetApplicableBuilderArgs(string startsWith) {
+				return GetApplicableBuilderArgs().Where(a => a.ArgumentName.StartsWith(startsWith, SharpDocuments.StringComparison));
 			}
 		}
 
@@ -311,49 +311,49 @@ namespace SharpEditor.CodeHelpers {
 			Type ownerType = (GetConstructor(ownerContext?.SimpleName ?? "") ?? fallbackType).DeclaringType;
 			ConstructorDetails ownerConstructor = ownerType != null ? GetConstructor(ownerType) : fallbackType;
 			*/
-			ConstructorDetails ownerConstructor = GetConstructor(ownerContext?.SimpleName ?? "") ?? fallbackType;
+			BuilderDetails ownerBuilder = GetBuilder(ownerContext?.SimpleName ?? "") ?? fallbackType;
 
 			// Finding the owner types is necessary, as we might be on an empty line with no owner spans
-			ConstructorDetails[] ownerTypes = ownerContext != null ? ownerContext.TraverseChildren(true).Select(c => GetConstructor(c.SimpleName ?? "") ?? fallbackType).DistinctPreserveOrder(ConstructorComparer.Instance).ToArray() : Array.Empty<ConstructorDetails>(); // new Type[] { ownerType };
-			List<ConstructorDetails> applicableDivConstructors =
-				ownerConstructor.Yield()
+			BuilderDetails[] ownerTypes = ownerContext != null ? ownerContext.TraverseChildren(true).Select(c => GetBuilder(c.SimpleName ?? "") ?? fallbackType).DistinctPreserveOrder(BuilderComparer.Instance).ToArray() : Array.Empty<BuilderDetails>(); // new Type[] { ownerType };
+			List<BuilderDetails> applicableDivBuilders =
+				ownerBuilder.Yield()
 				.Concat(ownerTypes)
 				.Concat(
 					parsingState.FindOverlappingSpans(line)
 						.Where(s => s.Type != SharpConfigSpanType.DRAWING_ERROR && s.Type != SharpConfigSpanType.NONE)
 						.OrderBy(s => s.Length)
-						.SelectMany(s => GetOwnerConstructors(s))
+						.SelectMany(s => GetOwnerBuilders(s))
 					)
-				.DistinctPreserveOrder(ConstructorComparer.Instance)
+				.DistinctPreserveOrder(BuilderComparer.Instance)
 				.ToList();
 
 			ArgumentDetails? argumentDetails = null;
 
-			List<ArgumentDetails> impliedConstructorArguments;
+			List<ArgumentDetails> impliedBuilderArguments;
 			if (argName != null) {
-				impliedConstructorArguments =
-					applicableDivConstructors.SelectMany(c => c.Arguments)
+				impliedBuilderArguments =
+					applicableDivBuilders.SelectMany(c => c.Arguments)
 					.Where(a => a.Implied != null && argName.StartsWith(a.Name, SharpDocuments.StringComparison))
 					.DistinctPreserveOrder(ArgumentComparer.Instance)
 					.ToList();
 			}
 			else {
-				impliedConstructorArguments = new List<ArgumentDetails>();
+				impliedBuilderArguments = new List<ArgumentDetails>();
 			}
-			List<ConstructorDetails> applicableImpliedConstructors = new List<ConstructorDetails>();
-			foreach (ArgumentDetails impliedConArg in impliedConstructorArguments) {
-				foreach (ConstructorDetails impliedConstructor in (ownerContext ?? Context.Empty).TraverseChildren(true).Select(c => c.GetProperty($"{impliedConArg.Name}.{impliedConArg.Implied}", true, c, null)).WhereNotNull().Select(p => GetConstructor(p)).WhereNotNull().DistinctPreserveOrder(ConstructorComparer.Instance)) {
-					foreach (ArgumentDetails impliedArg in impliedConstructor.Arguments) {
+			List<BuilderDetails> applicableImpliedBuilders = new List<BuilderDetails>();
+			foreach (ArgumentDetails impliedConArg in impliedBuilderArguments) {
+				foreach (BuilderDetails impliedBuilder in (ownerContext ?? Context.Empty).TraverseChildren(true).Select(c => c.GetProperty($"{impliedConArg.Name}.{impliedConArg.Implied}", true, c, null)).WhereNotNull().Select(p => GetBuilder(p)).WhereNotNull().DistinctPreserveOrder(BuilderComparer.Instance)) {
+					foreach (ArgumentDetails impliedArg in impliedBuilder.Arguments) {
 						string impliedArgName = $"{impliedConArg.Name}.{impliedArg.Name}";
 						if (SharpDocuments.StringComparer.Equals(argName, impliedArgName)) {
-							applicableImpliedConstructors.Add(impliedConstructor);
+							applicableImpliedBuilders.Add(impliedBuilder);
 							if (argumentDetails == null) argumentDetails = impliedArg.Prefixed(impliedConArg.Name);
 						}
 					}
 				}
 			}
 			if (argumentDetails == null && argName != null) {
-				foreach (ArgumentDetails arg in ownerConstructor.Arguments.Concat(applicableDivConstructors.SelectMany(c => c.Arguments).Where(a => !a.UseLocal).Distinct(ArgumentComparer.Instance))) {
+				foreach (ArgumentDetails arg in ownerBuilder.Arguments.Concat(applicableDivBuilders.SelectMany(c => c.Arguments).Where(a => !a.UseLocal).Distinct(ArgumentComparer.Instance))) {
 					if (arg.Name == argName || (arg.Implied != null && StringEquals($"{arg.Name}.{arg.Implied}", argName))) {
 						argumentDetails = arg;
 						break;
@@ -361,9 +361,9 @@ namespace SharpEditor.CodeHelpers {
 				}
 			}
 
-			ConstructorDetails[] allApplicableConstructors = applicableDivConstructors.Concat(applicableImpliedConstructors).ToArray();
+			BuilderDetails[] allApplicableBuilders = applicableDivBuilders.Concat(applicableImpliedBuilders).ToArray();
 
-			return new ConfigLineInfo(line.LineNumber, currentLineText, argText, currentIndent, caratOffset, ownerContext, ownerConstructor, argumentDetails, allApplicableConstructors);
+			return new ConfigLineInfo(line.LineNumber, currentLineText, argText, currentIndent, caratOffset, ownerContext, ownerBuilder, argumentDetails, allApplicableBuilders);
 		}
 
 		protected ConfigLineInfo GetCurrentLineInfo() {
@@ -379,28 +379,28 @@ namespace SharpEditor.CodeHelpers {
 			return textEditor.CaretOffset;
 		}
 
-		private IEnumerable<ConstructorArgumentDetails> ExpandCompletionArguments(IEnumerable<ConstructorArgumentDetails> arguments, IContext? context) {
-			foreach (ConstructorArgumentDetails argument in arguments.Distinct(ArgumentComparer.Instance).Where(a => !a.ArgumentType.IsList)) {
+		private IEnumerable<BuilderArgumentDetails> ExpandCompletionArguments(IEnumerable<BuilderArgumentDetails> arguments, IContext? context) {
+			foreach (BuilderArgumentDetails argument in arguments.Distinct(ArgumentComparer.Instance).Where(a => !a.ArgumentType.IsList)) {
 				yield return argument;
 
 				if (argument.Implied != null && context != null) {
 					string fullArg = $"{argument.ArgumentName.ToLowerInvariant()}.{argument.Implied.ToLowerInvariant()}";
 					string? style = context.GetProperty(fullArg, argument.UseLocal, context, null);
 					
-					if (!impliedConstructors.TryGetValue(style ?? "!", out ConstructorDetails? argConstructor)) {
-						argConstructor = GetConstructor(CodeHelpers.DefaultType(argument.ArgumentType));
+					if (!impliedBuilders.TryGetValue(style ?? "!", out BuilderDetails? argBuilder)) {
+						argBuilder = GetBuilder(CodeHelpers.DefaultType(argument.ArgumentType));
 					}
 
-					if (argConstructor != null) {
-						foreach(ConstructorArgumentDetails impliedArg in argConstructor.ConstructorArguments) {
-							yield return new ConstructorArgumentDetails(impliedArg.Constructor, impliedArg.Argument.Prefixed(argument.ArgumentName));
+					if (argBuilder != null) {
+						foreach(BuilderArgumentDetails impliedArg in argBuilder.BuilderArguments) {
+							yield return new BuilderArgumentDetails(impliedArg.Builder, impliedArg.Argument.Prefixed(argument.ArgumentName));
 						}
 					}
 				}
 			}
 		}
 
-		IEnumerable<ICompletionData> GetArgumentNameCompletionEntries(IEnumerable<ConstructorArgumentDetails> arguments, IContext? context, string prefix = "", string? existingText = null) {
+		IEnumerable<ICompletionData> GetArgumentNameCompletionEntries(IEnumerable<BuilderArgumentDetails> arguments, IContext? context, string prefix = "", string? existingText = null) {
 			string prepend = prefix.Length > 0 ? prefix + "." : "";
 
 			string FinalText(string text) {
@@ -487,8 +487,8 @@ namespace SharpEditor.CodeHelpers {
 
 			if (string.IsNullOrWhiteSpace(currentLine.text)) {
 				// Blank line (suggest arguments and new rect types)
-				if (currentLine.applicableConstructors.Length > 0) {
-					data.AddRange(GetArgumentNameCompletionEntries(currentLine.GetApplicableConstructorArgs(), currentLine.context));
+				if (currentLine.applicableBuilders.Length > 0) {
+					data.AddRange(GetArgumentNameCompletionEntries(currentLine.GetApplicableBuilderArgs(), currentLine.context));
 				}
 				else {
 					data.AddRange(GetArgumentNameCompletionEntries(fallbackArguments, currentLine.context));
@@ -496,14 +496,14 @@ namespace SharpEditor.CodeHelpers {
 
 				if (string.IsNullOrWhiteSpace(currentLine.text)) {
 					// Only suggest rect types with an empty line
-					foreach (ConstructorDetails divConstructor in divTypes) {
-						data.Add(new CompletionEntry($"{divConstructor.Name}:") {
-							DescriptionElements = GetConstructorDescription(divConstructor),
+					foreach (BuilderDetails divBuilder in divTypes) {
+						data.Add(new CompletionEntry($"{divBuilder.Name}:") {
+							DescriptionElements = GetBuilderDescription(divBuilder),
 							Append = Environment.NewLine
 						});
-						if (divConstructor.FullName != divConstructor.Name) {
-							appendData.Add(new CompletionEntry($"{divConstructor.FullName}:") {
-								DescriptionElements = GetConstructorDescription(divConstructor),
+						if (divBuilder.FullName != divBuilder.Name) {
+							appendData.Add(new CompletionEntry($"{divBuilder.FullName}:") {
+								DescriptionElements = GetBuilderDescription(divBuilder),
 								Append = Environment.NewLine
 							});
 						}
@@ -511,9 +511,9 @@ namespace SharpEditor.CodeHelpers {
 				}
 			}
 			else if (currentLine.text == "@" && currentLine.directParent != null) {
-				// Start of local parameter (only suggest properties of current constructor - or default if current unknown)
+				// Start of local parameter (only suggest properties of current builder - or default if current unknown)
 				if (currentLine.directParent != null) {
-					data.AddRange(GetArgumentNameCompletionEntries(currentLine.directParent.ConstructorArguments, currentLine.context));
+					data.AddRange(GetArgumentNameCompletionEntries(currentLine.directParent.BuilderArguments, currentLine.context));
 				}
 				else {
 					data.AddRange(GetArgumentNameCompletionEntries(fallbackArguments, currentLine.context));
@@ -521,10 +521,10 @@ namespace SharpEditor.CodeHelpers {
 			}
 			else if(currentLine.text == "!") {
 				// Start of negative flag
-				data.AddRange(GetArgumentNameCompletionEntries(currentLine.GetApplicableConstructorArgs().Where(a => a.ArgumentType.DisplayType == typeof(bool)), currentLine.context));
+				data.AddRange(GetArgumentNameCompletionEntries(currentLine.GetApplicableBuilderArgs().Where(a => a.ArgumentType.DisplayType == typeof(bool)), currentLine.context));
 			}
 			else if (currentLine.text.EndsWith(":") && currentLine.argument != null && currentLine.argument.Type.DisplayType is Type argType) {
-				// Previous character is colon, so check to see if this is an argument where we can suggest values (enum or implied constructor)
+				// Previous character is colon, so check to see if this is an argument where we can suggest values (enum or implied builder)
 				if (Nullable.GetUnderlyingType(argType) is Type nulledType) {
 					argType = nulledType;
 				}
@@ -558,14 +558,14 @@ namespace SharpEditor.CodeHelpers {
 					}
 				}
 				else {
-					// If the argument is an implied constructor (i.e. a Shape which can then refer to other arguments), give that constructor's name
-					foreach ((string impliedConstructorName, ConstructorDetails impliedConstructor) in impliedConstructors.GetConstructorNames(argType).OrderBy(kv => kv.Value.Name)) {
-						data.Add(new CompletionEntry(impliedConstructorName) {
-							DescriptionElements = GetConstructorDescription(impliedConstructor),
+					// If the argument is an implied builder (i.e. a Shape which can then refer to other arguments), give that builder's name
+					foreach ((string impliedBuilderName, BuilderDetails impliedBuilder) in impliedBuilders.GetBuilderNames(argType).OrderBy(kv => kv.Value.Name)) {
+						data.Add(new CompletionEntry(impliedBuilderName) {
+							DescriptionElements = GetBuilderDescription(impliedBuilder),
 						});
-						if(impliedConstructorName != impliedConstructor.FullName) {
-							appendData.Add(new CompletionEntry(impliedConstructor.FullName) {
-								DescriptionElements = GetConstructorDescription(impliedConstructor),
+						if(impliedBuilderName != impliedBuilder.FullName) {
+							appendData.Add(new CompletionEntry(impliedBuilder.FullName) {
+								DescriptionElements = GetBuilderDescription(impliedBuilder),
 							});
 						}
 					}
@@ -574,7 +574,7 @@ namespace SharpEditor.CodeHelpers {
 			else if (currentLine.text.EndsWith(".")) {
 				// Previous character is "."
 				string withoutDot = currentLine.text.Substring(0, currentLine.text.Length - 1);
-				data.AddRange(GetArgumentNameCompletionEntries(currentLine.GetApplicableConstructorArgs(withoutDot), currentLine.context, existingText: currentLine.text));
+				data.AddRange(GetArgumentNameCompletionEntries(currentLine.GetApplicableBuilderArgs(withoutDot), currentLine.context, existingText: currentLine.text));
 			}
 
 			data.AddRange(appendData.OrderBy(d => d.Text));
@@ -617,8 +617,8 @@ namespace SharpEditor.CodeHelpers {
 
 		#region Tooltip
 
-		protected abstract bool GetCustomToolTipContent(TSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext);
-		protected abstract void GetAdditionalToolTipContent(TSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext);
+		protected abstract bool GetCustomToolTipContent(TSpan span, string word, List<Control> elements, IContext? currentContext, BuilderDetails? builder, IContext? builderContext);
+		protected abstract void GetAdditionalToolTipContent(TSpan span, string word, List<Control> elements, IContext? currentContext, BuilderDetails? builder, IContext? builderContext);
 
 		// TODO This is in progress?
 		/*
@@ -636,26 +636,26 @@ namespace SharpEditor.CodeHelpers {
 
 				IContext? currentContext = parsingState.GetContext(span.StartOffset);
 
-				ConstructorDetails? constructor = null;
-				IContext? constructorContext = null;
-				if (span.Value == word && currentContext != null && impliedConstructors.TryGetValue(word, out constructor)) { // Check if span value is shape
+				BuilderDetails? builder = null;
+				IContext? builderContext = null;
+				if (span.Value == word && currentContext != null && impliedBuilders.TryGetValue(word, out builder)) { // Check if span value is shape
 					string[]? nameParts = span.Name?.Split('.');
 					if (nameParts != null && nameParts.Length > 1 && string.Equals(nameParts[^1], "style", StringComparison.InvariantCultureIgnoreCase)) {
-						constructorContext = new NamedContext(currentContext, string.Join(".", nameParts.Take(nameParts.Length - 1)));
+						builderContext = new NamedContext(currentContext, string.Join(".", nameParts.Take(nameParts.Length - 1)));
 					}
 					else {
-						constructorContext = currentContext;
+						builderContext = currentContext;
 					}
 				}
 				else if (span.Type == SharpConfigSpanType.DIV) { // See if we're over a div
-					constructor = divTypes.Get(span.Name ?? "");
-					constructorContext = span.Context;
+					builder = divTypes.Get(span.Name ?? "");
+					builderContext = span.Context;
 				}
 
-				if (!GetCustomToolTipContent(span, word, content, currentContext, constructor, constructorContext)) {
+				if (!GetCustomToolTipContent(span, word, content, currentContext, builder, builderContext)) {
 					// Only continue if subclass indicates that it didn't get all necessary tips
-					if (constructor != null) {
-						content.AddRange(TooltipBuilder.MakeConstructorEntry(constructor, constructorContext, true, impliedConstructors));
+					if (builder != null) {
+						content.AddRange(TooltipBuilder.MakeBuilderEntry(builder, builderContext, true, impliedBuilders));
 					}
 					else if (span.Type == SharpConfigSpanType.DIV) {
 						content.AddRange(MakeNamedChildEntry(span));
@@ -668,7 +668,7 @@ namespace SharpEditor.CodeHelpers {
 					}
 				}
 
-				GetAdditionalToolTipContent(span, word, content, currentContext, constructor, constructorContext);
+				GetAdditionalToolTipContent(span, word, content, currentContext, builder, builderContext);
 
 				if (content.Count > 0) {
 					break; // Stop querying spans if one provides any content
@@ -684,19 +684,19 @@ namespace SharpEditor.CodeHelpers {
 			TSpan? firstSpan = parsingState.ConfigSpans.Where(s => s.Type == SharpConfigSpanType.DIV).OrderBy(s => s.StartOffset).FirstOrDefault();
 
 			if(firstSpan is not null && offset < firstSpan.StartOffset) {
-				IContext? constructorContext = parsingState.GetContext(offset);
-				content.AddRange(TooltipBuilder.MakeConstructorEntry(fallbackType, constructorContext, true, impliedConstructors));
+				IContext? builderContext = parsingState.GetContext(offset);
+				content.AddRange(TooltipBuilder.MakeBuilderEntry(fallbackType, builderContext, true, impliedBuilders));
 			}
 
 			return content;
 		}
 
-		protected ConstructorArgumentDetails? GetNamedChildArg(TSpan span, ConstructorDetails parentConstructor) {
+		protected BuilderArgumentDetails? GetNamedChildArg(TSpan span, BuilderDetails parentBuilder) {
 			if (span.Name is null) {
 				return null;
 			}
 
-			bool ArgIsMatch(ConstructorArgumentDetails arg) {
+			bool ArgIsMatch(BuilderArgumentDetails arg) {
 				if(arg.ArgumentType.DisplayType == typeof(ChildHolder)) {
 					return SharpDocuments.StringEquals(span.Name, arg.ArgumentName); // TODO Need to deal with stray underscores here?
 				}
@@ -709,7 +709,7 @@ namespace SharpEditor.CodeHelpers {
 				}
 			}
 
-			return parentConstructor.ConstructorArguments
+			return parentBuilder.BuilderArguments
 				.Where(ArgIsMatch)
 				.FirstOrDefault();
 		}
@@ -719,7 +719,7 @@ namespace SharpEditor.CodeHelpers {
 
 			if (context is null || context.Parent is null) { return Enumerable.Empty<Control>(); }
 
-			ConstructorArgumentDetails[] arguments = context.Parent.TraverseSelfAndChildren()
+			BuilderArgumentDetails[] arguments = context.Parent.TraverseSelfAndChildren()
 				.Select(p => divTypes.Get(p.SimpleName)).WhereNotNull()
 				.Select(c => GetNamedChildArg(span, c)).WhereNotNull().ToArray();
 
@@ -733,10 +733,10 @@ namespace SharpEditor.CodeHelpers {
 
 			if (context is null) { return Enumerable.Empty<Control>(); }
 
-			ConstructorDetails constructor = divTypes.Get(context.SimpleName) ?? fallbackType;
+			BuilderDetails builder = divTypes.Get(context.SimpleName) ?? fallbackType;
 
-			ConstructorArgumentDetails[] arguments = constructor.ConstructorArguments
-				.Where(a => a.ArgumentType.IsList).ToArray() ?? Array.Empty<ConstructorArgumentDetails>();
+			BuilderArgumentDetails[] arguments = builder.BuilderArguments
+				.Where(a => a.ArgumentType.IsList).ToArray() ?? Array.Empty<BuilderArgumentDetails>();
 
 			if (arguments.Length == 0) { return Enumerable.Empty<Control>(); }
 
@@ -745,7 +745,7 @@ namespace SharpEditor.CodeHelpers {
 
 		protected IEnumerable<Control> MakePropertyEntry(TSpan span, string word, IContext? context) {
 
-			ConstructorArgumentDetails[] allArgs = GetAllArguments(span, GetOwnerConstructors(span));
+			BuilderArgumentDetails[] allArgs = GetAllArguments(span, GetOwnerBuilders(span));
 
 			Type[] enumTypes = allArgs.Select(t => t.ArgumentType.DisplayType.GetUnderlyingType()).Where(t => t.IsEnum).ToArray();
 			EnumDoc[] enumDocs = enumTypes
@@ -812,17 +812,17 @@ namespace SharpEditor.CodeHelpers {
 				items.Add(item);
 			}
 
-			List<ConstructorDetails> contextConstructors = new List<ConstructorDetails>();
-			if (word != null && impliedConstructors.TryGetValue(word, out ConstructorDetails? implied)) {
-				contextConstructors.Add(implied);
+			List<BuilderDetails> contextBuilders = new List<BuilderDetails>();
+			if (word != null && impliedBuilders.TryGetValue(word, out BuilderDetails? implied)) {
+				contextBuilders.Add(implied);
 			}
-			if (lineInfo.applicableConstructors.Length > 0) {
-				contextConstructors.Add(lineInfo.applicableConstructors.First());
+			if (lineInfo.applicableBuilders.Length > 0) {
+				contextBuilders.Add(lineInfo.applicableBuilders.First());
 			}
 
-			foreach(ConstructorDetails contextConstructor in contextConstructors) {
-				MenuItem item = new MenuItem() { Header = contextConstructor.Name + " Documentation..." };
-				item.Click += delegate { SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(contextConstructor, null); };
+			foreach(BuilderDetails contextBuilder in contextBuilders) {
+				MenuItem item = new MenuItem() { Header = contextBuilder.Name + " Documentation..." };
+				item.Click += delegate { SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(contextBuilder, null); };
 				items.Add(item);
 			}
 
@@ -939,22 +939,22 @@ namespace SharpEditor.CodeHelpers {
 
 		public static ICodeHelper GetCodeHelper(TextEditor textEditor, CharacterSheetParsingState parsingState) {
 			ITypeDetailsCollection divTypes = SharpEditorRegistries.WidgetFactoryInstance;
-			ITypeDetailsCollection impliedConstructors = SharpEditorRegistries.ShapeFactoryInstance;
+			ITypeDetailsCollection impliedBuilders = SharpEditorRegistries.ShapeFactoryInstance;
 
-			ConstructorDetails fallbackType = SharpEditorRegistries.WidgetFactoryInstance.Get(typeof(SharpSheets.Widgets.Page))!;
-			ConstructorArgumentDetails[] fallbackArguments = WidgetFactory.WidgetSetupConstructor.ConstructorArguments.ToArray();
+			BuilderDetails fallbackType = SharpEditorRegistries.WidgetFactoryInstance.Get(typeof(SharpSheets.Widgets.Page))!;
+			BuilderArgumentDetails[] fallbackArguments = WidgetFactory.WidgetSetupBuilder.BuilderArguments.ToArray();
 
-			return new CharacterSheetCodeHelper(textEditor, parsingState, divTypes, impliedConstructors, fallbackType, fallbackArguments);
+			return new CharacterSheetCodeHelper(textEditor, parsingState, divTypes, impliedBuilders, fallbackType, fallbackArguments);
 		}
 
 		private CharacterSheetCodeHelper(
 				TextEditor textEditor,
 				SharpConfigParsingState<SharpConfigSpan> parsingState,
 				ITypeDetailsCollection divTypes,
-				ITypeDetailsCollection impliedConstructors,
-				ConstructorDetails fallbackType,
-				ConstructorArgumentDetails[] fallbackArguments
-			) : base(textEditor, parsingState, divTypes, impliedConstructors, fallbackType, fallbackArguments) {
+				ITypeDetailsCollection impliedBuilders,
+				BuilderDetails fallbackType,
+				BuilderArgumentDetails[] fallbackArguments
+			) : base(textEditor, parsingState, divTypes, impliedBuilders, fallbackType, fallbackArguments) {
 
 		}
 
@@ -966,11 +966,11 @@ namespace SharpEditor.CodeHelpers {
 			return false;
 		}
 
-		protected override bool GetCustomToolTipContent(SharpConfigSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
+		protected override bool GetCustomToolTipContent(SharpConfigSpan span, string word, List<Control> elements, IContext? currentContext, BuilderDetails? builder, IContext? builderContext) {
 			return false;
 		}
 
-		protected override void GetAdditionalToolTipContent(SharpConfigSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
+		protected override void GetAdditionalToolTipContent(SharpConfigSpan span, string word, List<Control> elements, IContext? currentContext, BuilderDetails? builder, IContext? builderContext) {
 			return;
 		}
 	}
@@ -987,13 +987,13 @@ namespace SharpEditor.CodeHelpers {
 			*/
 
 			ITypeDetailsCollection divTypes = SharpEditorRegistries.CardSetConfigFactoryInstance;
-			ITypeDetailsCollection impliedConstructors = SharpEditorRegistries.ShapeFactoryInstance;
+			ITypeDetailsCollection impliedBuilders = SharpEditorRegistries.ShapeFactoryInstance;
 
-			ConstructorDetails fallbackType = CardSetConfigFactory.CardSetConfigConstructor;
-			ConstructorArgumentDetails[] fallbackArguments = fallbackType.ConstructorArguments
-				.Concat(WidgetFactory.WidgetSetupConstructor.ConstructorArguments).ToArray();
+			BuilderDetails fallbackType = CardSetConfigFactory.CardSetConfigBuilder;
+			BuilderArgumentDetails[] fallbackArguments = fallbackType.BuilderArguments
+				.Concat(WidgetFactory.WidgetSetupBuilder.BuilderArguments).ToArray();
 
-			return new CardConfigCodeHelper(textEditor, parsingState, divTypes, impliedConstructors, fallbackType, fallbackArguments);
+			return new CardConfigCodeHelper(textEditor, parsingState, divTypes, impliedBuilders, fallbackType, fallbackArguments);
 		}
 
 		protected new readonly CardConfigParsingState parsingState;
@@ -1002,10 +1002,10 @@ namespace SharpEditor.CodeHelpers {
 				TextEditor textEditor,
 				CardConfigParsingState parsingState,
 				ITypeDetailsCollection divTypes,
-				ITypeDetailsCollection impliedConstructors,
-				ConstructorDetails fallbackType,
-				ConstructorArgumentDetails[] fallbackArguments
-			) : base(textEditor, parsingState, divTypes, impliedConstructors, fallbackType, fallbackArguments) {
+				ITypeDetailsCollection impliedBuilders,
+				BuilderDetails fallbackType,
+				BuilderArgumentDetails[] fallbackArguments
+			) : base(textEditor, parsingState, divTypes, impliedBuilders, fallbackType, fallbackArguments) {
 			this.parsingState = parsingState;
 		}
 
@@ -1045,7 +1045,7 @@ namespace SharpEditor.CodeHelpers {
 			else { return word; }
 		}
 
-		protected override bool GetCustomToolTipContent(CardConfigSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
+		protected override bool GetCustomToolTipContent(CardConfigSpan span, string word, List<Control> elements, IContext? currentContext, BuilderDetails? builder, IContext? builderContext) {
 			DocumentLine currentLine = Document.GetLineByOffset(span.StartOffset);
 			string variableWord = GetVariableNameFromWord(word);
 			if ((span.IsExpression || Document.GetText(span).Contains(variableWord.StartsWith("$") ? variableWord : "$" + variableWord)) && ParsingState != null) {
@@ -1062,17 +1062,17 @@ namespace SharpEditor.CodeHelpers {
 			return false;
 		}
 
-		protected override void GetAdditionalToolTipContent(CardConfigSpan span, string word, List<Control> elements, IContext? currentContext, ConstructorDetails? constructor, IContext? constructorContext) {
-			if (constructor != null) {
-				if (constructor.FullName == CardSetConfigFactory.BackgroundConstructor.FullName) {
-					if ((constructorContext ?? Context.Empty).TraverseParents().Any(c => CardSetConfigFactory.SegmentConfigConstructors.ContainsKey(c.SimpleName))) {
+		protected override void GetAdditionalToolTipContent(CardConfigSpan span, string word, List<Control> elements, IContext? currentContext, BuilderDetails? builder, IContext? builderContext) {
+			if (builder != null) {
+				if (builder.FullName == CardSetConfigFactory.BackgroundBuilder.FullName) {
+					if ((builderContext ?? Context.Empty).TraverseParents().Any(c => CardSetConfigFactory.SegmentConfigBuilders.ContainsKey(c.SimpleName))) {
 						elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSubjectEnvironments.BaseDefinitions.Concat(CardSegmentEnvironments.BaseDefinitions).Concat(CardSegmentOutlineEnvironments.BaseDefinitions), null));
 					}
 					else {
 						elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSubjectEnvironments.BaseDefinitions.Concat(CardOutlinesEnvironments.BaseDefinitions), null));
 					}
 				}
-				else if (constructor.FullName == CardSetConfigFactory.OutlineConstructor.FullName) {
+				else if (builder.FullName == CardSetConfigFactory.OutlineBuilder.FullName) {
 					elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSubjectEnvironments.BaseDefinitions.Concat(CardOutlinesEnvironments.BaseDefinitions), null));
 				}
 				/*
@@ -1080,10 +1080,10 @@ namespace SharpEditor.CodeHelpers {
 					elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSectionEnvironments.BaseDefinitions, null));
 				}
 				*/
-				else if (constructor.FullName == CardSetConfigFactory.FeatureConfigConstructor.FullName) {
+				else if (builder.FullName == CardSetConfigFactory.FeatureConfigBuilder.FullName) {
 					elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardFeatureEnvironments.BaseDefinitions, null));
 				}
-				else if (CardSetConfigFactory.cardConfigConstructorsByName.ContainsKey(constructor.FullName)) { // This one last so we've already checked other possibilities from this collection
+				else if (CardSetConfigFactory.cardConfigBuildersByName.ContainsKey(builder.FullName)) { // This one last so we've already checked other possibilities from this collection
 					elements.AddRange(TooltipBuilder.MakeDefinitionEntries(CardSegmentEnvironments.BaseDefinitions, null));
 				}
 			}

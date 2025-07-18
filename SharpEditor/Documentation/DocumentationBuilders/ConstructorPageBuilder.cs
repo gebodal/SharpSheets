@@ -27,51 +27,51 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 	// UIElement -> Control
 	// FrameworkElement -> Control
 
-	public static class ConstructorPageBuilder {
+	public static class BuilderPageBuilder {
 
-		public static DocumentationPage GetConstructorPage(ConstructorDetails constructor, DocumentationWindow window, Func<ConstructorDetails?>? refreshAction) {
-			if (constructor == null) {
-				return MakeErrorPage("Invalid constructor.");
+		public static DocumentationPage GetBuilderPage(BuilderDetails builder, DocumentationWindow window, Func<BuilderDetails?>? refreshAction) {
+			if (builder == null) {
+				return MakeErrorPage("Invalid builder.");
 			}
 
-			return MakePage(GetConstructorPageContent(constructor, window), constructor.Name, () => GetConstructorPageContent(refreshAction?.Invoke(), window));
+			return MakePage(GetBuilderPageContent(builder, window), builder.Name, () => GetBuilderPageContent(refreshAction?.Invoke(), window));
 		}
 
-		private static Control GetConstructorPageContent(ConstructorDetails? constructor, DocumentationWindow window) {
-			if (constructor == null) {
-				return MakeErrorContent("Invalid constructor.");
+		private static Control GetBuilderPageContent(BuilderDetails? builder, DocumentationWindow window) {
+			if (builder == null) {
+				return MakeErrorContent("Invalid builder.");
 			}
 
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
-			TextBlock headerBlock = GetContentTextBlock(ConstructorContentBuilder.MakeConstructorHeaderBlock(constructor), TextBlockMargin);
+			TextBlock headerBlock = GetContentTextBlock(BuilderContentBuilder.MakeBuilderHeaderBlock(builder), TextBlockMargin);
 			headerBlock.MakeFontSizeRelative(TextBlockClass.H3);
 
-			if (constructor is MarkupConstructorDetails markupConstructor) {
+			if (builder is MarkupBuilderDetails markupBuilder) {
 				Avalonia.Controls.Grid headerGrid = MakeExternalLinkHeader(headerBlock, "Open Pattern File...", out Button patternSourceButton, window);
-				patternSourceButton.Click += delegate { SharpEditorWindow.Instance?.OpenEditorDocument(markupConstructor.Pattern.source.Path, true); };
+				patternSourceButton.Click += delegate { SharpEditorWindow.Instance?.OpenEditorDocument(markupBuilder.Pattern.source.Path, true); };
 				stack.Children.Add(headerGrid);
 			}
 			else {
 				stack.Children.Add(headerBlock);
 			}
 
-			if (MakeDescriptionTextBlock(constructor.Description, window) is TextBlock descriptionBlock) {
+			if (MakeDescriptionTextBlock(builder.Description, window) is TextBlock descriptionBlock) {
 				//TextBlock descriptionBlock = BaseContentBuilder.GetContentTextBlock(constructor.Description, IndentedMargin);
 				stack.Children.Add(descriptionBlock);
 			}
 
-			if (typeof(IShape).IsAssignableFrom(constructor.DeclaringType) || typeof(IWidget).IsAssignableFrom(constructor.DeclaringType)) {
-				Control? graphicElement = MakeExampleGraphic(constructor);
+			if (typeof(IShape).IsAssignableFrom(builder.DeclaringType) || typeof(IWidget).IsAssignableFrom(builder.DeclaringType)) {
+				Control? graphicElement = MakeExampleGraphic(builder);
 				if (graphicElement != null) {
 					stack.Children.Add(graphicElement);
 				}
 			}
 
-			if (constructor.Arguments.Length > 0) {
+			if (builder.Arguments.Length > 0) {
 				stack.Children.Add(MakeSeparator());
 
-				foreach (ConstructorArgumentDetails arg in constructor.ConstructorArguments) {
+				foreach (BuilderArgumentDetails arg in builder.BuilderArguments) {
 					stack.Children.Add(MakeSingleArgumentElement(arg, window).SetMargin(ParagraphSpacingMargin));
 				}
 			}
@@ -79,7 +79,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return stack;
 		}
 
-		public static Control MakeSingleArgumentElement(ConstructorArgumentDetails argument, DocumentationWindow window) {
+		public static Control MakeSingleArgumentElement(BuilderArgumentDetails argument, DocumentationWindow window) {
 			StackPanel argPanel = new StackPanel() { Orientation = Orientation.Vertical };
 
 			argPanel.Children.Add(MakeArgumentHeaderBlock(argument, window));
@@ -103,12 +103,12 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return argPanel;
 		}
 
-		public static TextBlock MakeArgumentHeaderBlock(ConstructorArgumentDetails argument, DocumentationWindow window) {
+		public static TextBlock MakeArgumentHeaderBlock(BuilderArgumentDetails argument, DocumentationWindow window) {
 			TextBlock argumentBlock = GetContentTextBlock(TextBlockMargin);
 
 			argumentBlock.Inlines?.Add(GetArgumentTypeInline(argument, window));
 
-			argumentBlock.Inlines?.Add(new Run(SharpValueHandler.NO_BREAK_SPACE + argument.ConstructorName) { Foreground = SharpEditorPalette.GetTypeBrush(argument.DeclaringType) });
+			argumentBlock.Inlines?.Add(new Run(SharpValueHandler.NO_BREAK_SPACE + argument.BuilderName) { Foreground = SharpEditorPalette.GetTypeBrush(argument.DeclaringType) });
 
 			ArgumentDetails arg = argument.Argument;
 			//while (arg != null && arg is PrefixedArgumentDetails prefixed) { arg = prefixed.Basis; } // What was this supposed to be doing?
@@ -119,12 +119,12 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				argumentBlock.Inlines?.Add(new Run("." + argument.Implied));
 			}
 
-			argumentBlock.Inlines?.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(argument.Argument, null));
+			argumentBlock.Inlines?.AddRange(BuilderContentBuilder.GetArgumentDefaultInlines(argument.Argument, null));
 
 			return argumentBlock;
 		}
 
-		public static Inline GetArgumentTypeInline(ConstructorArgumentDetails argument, DocumentationWindow window) {
+		public static Inline GetArgumentTypeInline(BuilderArgumentDetails argument, DocumentationWindow window) {
 			if (EnumContentBuilder.IsEnum(argument.ArgumentType, out EnumDoc? enumDoc)) {
 				ClickableRun enumClickable = new ClickableRun(SharpValueHandler.GetTypeName(argument.ArgumentType)) { Foreground = SharpEditorPalette.TypeBrush };
 				enumClickable.MouseLeftButtonDown += window.MakeNavigationDelegate(enumDoc, null);
@@ -136,12 +136,12 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		}
 
 		private static readonly float ExampleGraphicDefaultMargin = 0.1f;
-		public static Control? MakeExampleGraphic(ConstructorDetails constructor) {
-			if (!typeof(IShape).IsAssignableFrom(constructor.DeclaringType) && !typeof(IWidget).IsAssignableFrom(constructor.DeclaringType)) {
+		public static Control? MakeExampleGraphic(BuilderDetails builder) {
+			if (!typeof(IShape).IsAssignableFrom(builder.DeclaringType) && !typeof(IWidget).IsAssignableFrom(builder.DeclaringType)) {
 				return null;
 			}
 
-			if (constructor.Rect != null && (constructor.Rect.Width <= 0 || constructor.Rect.Height <= 0)) {
+			if (builder.Rect != null && (builder.Rect.Width <= 0 || builder.Rect.Height <= 0)) {
 				// It has been indicated that no example should be drawn for this object
 				return null;
 			}
@@ -160,8 +160,8 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					return new Rectangle(pageArea.Width, pageArea.Height).Margins(margin, false);
 				}
 
-				if (typeof(IShape).IsAssignableFrom(constructor.DeclaringType)) {
-					IContext shapeContext = Context.Simple("example", new Dictionary<string, string>() { { "style", constructor.FullName } }, new Dictionary<string, bool>());
+				if (typeof(IShape).IsAssignableFrom(builder.DeclaringType)) {
+					IContext shapeContext = Context.Simple("example", new Dictionary<string, string>() { { "style", builder.FullName } }, new Dictionary<string, bool>());
 					DirectoryPath source = new DirectoryPath(SharpEditorPathInfo.TemplateDirectory);
 					string exampleName = "NAME";
 
@@ -179,17 +179,17 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					*/
 
 					IShape shape;
-					if (constructor.DeclaringType == typeof(BoxedTitle)) {
+					if (builder.DeclaringType == typeof(BoxedTitle)) {
 						shape = new BoxedTitle(new Simple(-1), exampleName, new Rounded(-1), trim: new Margins(1f));
 					}
-					else if (constructor.DeclaringType == typeof(TabTitle)) {
+					else if (builder.DeclaringType == typeof(TabTitle)) {
 						shape = new TabTitle(new Simple(-1), exampleName, new Rounded(-1), trim: new Margins(1f), includeProtrusion: true);
 					}
-					else if (typeof(ITitleStyledBox).IsAssignableFrom(constructor.DeclaringType)) {
+					else if (typeof(ITitleStyledBox).IsAssignableFrom(builder.DeclaringType)) {
 						shape = SharpEditorRegistries.ShapeFactoryInstance.MakeTitleStyle(shapeContext, new Simple(-1, dashes: new float[] { 3f, 3f }, stroke: SharpSheets.Colors.Color.Black), exampleName, source, out _);
 					}
 					else {
-						shape = SharpEditorRegistries.ShapeFactoryInstance.MakeExample(constructor.DisplayType, constructor.FullName, source, out _); // .MakeShape(constructor.DisplayType, shapeContext, exampleName, source);
+						shape = SharpEditorRegistries.ShapeFactoryInstance.MakeExample(builder.DisplayType, builder.FullName, source, out _); // .MakeShape(constructor.DisplayType, shapeContext, exampleName, source);
 					}
 
 					SharpSheets.Layouts.Size pageSize;
@@ -209,25 +209,25 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 							shapeRect = GetShape(pageSize);
 						}
 					}
-					else if (constructor.Canvas != null || constructor.Rect != null) {
-						if (constructor.Canvas != null && constructor.Rect != null) {
-							pageSize = constructor.Canvas;
-							shapeRect = constructor.Rect;
+					else if (builder.Canvas != null || builder.Rect != null) {
+						if (builder.Canvas != null && builder.Rect != null) {
+							pageSize = builder.Canvas;
+							shapeRect = builder.Rect;
 						}
-						else if (constructor.Canvas != null) {
-							pageSize = constructor.Canvas;
+						else if (builder.Canvas != null) {
+							pageSize = builder.Canvas;
 							shapeRect = GetShape(pageSize);
 						}
 						else { // constructor.Rect != null
-							pageSize = GetPage(constructor.Rect!);
+							pageSize = GetPage(builder.Rect!);
 							shapeRect = GetShape(pageSize);
 						}
 					}
-					else if (typeof(IBar).IsAssignableFrom(constructor.DeclaringType) || typeof(IUsageBar).IsAssignableFrom(constructor.DeclaringType)) {
+					else if (typeof(IBar).IsAssignableFrom(builder.DeclaringType) || typeof(IUsageBar).IsAssignableFrom(builder.DeclaringType)) {
 						pageSize = GetPage(new Rectangle(140, 30));
 						shapeRect = GetShape(pageSize);
 					}
-					else if (typeof(IDetail).IsAssignableFrom(constructor.DeclaringType)) {
+					else if (typeof(IDetail).IsAssignableFrom(builder.DeclaringType)) {
 						pageSize = GetPage(new Rectangle(90, 20));
 						shapeRect = GetShape(pageSize);
 					}
@@ -257,11 +257,11 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 						displayRects.AddRange(entried.EntryRects(canvas, shapeRect));
 					}
 				}
-				else if (typeof(IWidget).IsAssignableFrom(constructor.DeclaringType)) {
+				else if (typeof(IWidget).IsAssignableFrom(builder.DeclaringType)) {
 					//IContext context = Context.Simple("example", new Dictionary<string, string>(), new Dictionary<string, bool>());
 					DirectoryPath source = new DirectoryPath(SharpEditorPathInfo.TemplateDirectory);
 
-					IWidget widget = SharpEditorRegistries.WidgetFactoryInstance.MakeExample(constructor.FullName, source, false, out List<SharpSheets.Exceptions.SharpParsingException> errors);
+					IWidget widget = SharpEditorRegistries.WidgetFactoryInstance.MakeExample(builder.FullName, source, false, out List<SharpSheets.Exceptions.SharpParsingException> errors);
 					//IWidget widget = SharpEditorRegistries.WidgetFactoryInstance.MakeWidget(constructor.Name, context, source, out List<SharpSheets.Exceptions.SharpParsingException> errors);
 
 					SharpSheets.Layouts.Size pageSize;
@@ -281,17 +281,17 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 							widgetRect = GetShape(pageSize);
 						}
 					}
-					else if (constructor.Canvas != null || constructor.Rect != null) {
-						if (constructor.Canvas != null && constructor.Rect != null) {
-							pageSize = constructor.Canvas;
-							widgetRect = constructor.Rect;
+					else if (builder.Canvas != null || builder.Rect != null) {
+						if (builder.Canvas != null && builder.Rect != null) {
+							pageSize = builder.Canvas;
+							widgetRect = builder.Rect;
 						}
-						else if (constructor.Canvas != null) {
-							pageSize = constructor.Canvas;
+						else if (builder.Canvas != null) {
+							pageSize = builder.Canvas;
 							widgetRect = GetShape(pageSize);
 						}
 						else { // constructor.Rect != null
-							pageSize = GetPage(constructor.Rect!);
+							pageSize = GetPage(builder.Rect!);
 							widgetRect = GetShape(pageSize);
 						}
 					}

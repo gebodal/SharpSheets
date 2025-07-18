@@ -100,7 +100,7 @@ namespace SharpSheets.Documentation {
 	}
 
 	[DebuggerDisplay("{Name} ({DeclaringType.Name}), Arg Count = {Arguments.Length}")]
-	public class ConstructorDetails {
+	public class BuilderDetails {
 		public Type DisplayType { get; }
 		public Type DeclaringType { get; }
 		public string Name { get; }
@@ -109,7 +109,7 @@ namespace SharpSheets.Documentation {
 		public DocumentationString? Description { get; }
 		public Rectangle? Rect { get; } // TODO Rename back to Size?
 		public Size? Canvas { get; }
-		public ConstructorDetails(Type displayType, Type declaringType, string name, string fullName, ArgumentDetails[] arguments, DocumentationString? description, Rectangle? size, Size? canvas) {
+		public BuilderDetails(Type displayType, Type declaringType, string name, string fullName, ArgumentDetails[] arguments, DocumentationString? description, Rectangle? size, Size? canvas) {
 			this.DisplayType = displayType;
 			this.DeclaringType = declaringType;
 			this.Name = name;
@@ -120,49 +120,49 @@ namespace SharpSheets.Documentation {
 			this.Canvas = canvas;
 		}
 
-		public IEnumerable<ConstructorArgumentDetails> ConstructorArguments {
+		public IEnumerable<BuilderArgumentDetails> BuilderArguments {
 			get {
-				return Arguments.Select(a => new ConstructorArgumentDetails(this, a));
+				return Arguments.Select(a => new BuilderArgumentDetails(this, a));
 			}
 		}
 
-		public ConstructorDetails WithArgument(ArgumentDetails argument, int index) {
+		public BuilderDetails WithArgument(ArgumentDetails argument, int index) {
 			List<ArgumentDetails> newArgs = Arguments.ToList();
 			newArgs.Insert(index, argument);
 			return WithArguments(newArgs.ToArray());
 		}
 
-		protected virtual ConstructorDetails WithArguments(ArgumentDetails[] arguments) {
-			return new ConstructorDetails(DisplayType, DeclaringType, Name, FullName, arguments, Description, Rect, Canvas);
+		protected virtual BuilderDetails WithArguments(ArgumentDetails[] arguments) {
+			return new BuilderDetails(DisplayType, DeclaringType, Name, FullName, arguments, Description, Rect, Canvas);
 		}
 
-		public ConstructorDetails WithAdditionalArguments(IEnumerable<ArgumentDetails> extraArgs) {
+		public BuilderDetails WithAdditionalArguments(IEnumerable<ArgumentDetails> extraArgs) {
 			return WithArguments(Arguments.Concat(extraArgs).ToArray());
 		}
 
-		public ConstructorDetails WithAdditionalArguments(params ArgumentDetails[] extraArgs) {
+		public BuilderDetails WithAdditionalArguments(params ArgumentDetails[] extraArgs) {
 			return WithAdditionalArguments((IEnumerable<ArgumentDetails>)extraArgs);
 		}
 
-		public ConstructorDetails Prefixed(string prefix) {
+		public BuilderDetails Prefixed(string prefix) {
 			return WithArguments(Arguments.Select(a => a.Prefixed(prefix)).ToArray());
 		}
 
 	}
 
-	public class ConstructorArgumentDetails {
-		public ConstructorDetails Constructor { get; }
+	public class BuilderArgumentDetails {
+		public BuilderDetails Builder { get; }
 		public ArgumentDetails Argument { get; }
 
-		public ConstructorArgumentDetails(ConstructorDetails constructor, ArgumentDetails argument) {
-			this.Constructor = constructor;
+		public BuilderArgumentDetails(BuilderDetails builder, ArgumentDetails argument) {
+			this.Builder = builder;
 			this.Argument = argument;
 		}
 
-		public Type MethodDisplayType => Constructor.DisplayType;
-		public Type DeclaringType => Constructor.DeclaringType;
-		public string ConstructorName => Constructor.Name;
-		public DocumentationString? MethodDescription => Constructor.Description;
+		public Type MethodDisplayType => Builder.DisplayType;
+		public Type DeclaringType => Builder.DeclaringType;
+		public string BuilderName => Builder.Name;
+		public DocumentationString? MethodDescription => Builder.Description;
 
 		public string ArgumentName => Argument.Name;
 		public ArgumentType ArgumentType => Argument.Type;
@@ -178,56 +178,56 @@ namespace SharpSheets.Documentation {
 		bool ContainsKey(string name);
 	}
 
-	public interface ITypeDetailsCollection : ITypeCollection, IEnumerable<ConstructorDetails> {
-		bool TryGetValue(Type type, [MaybeNullWhen(false)] out ConstructorDetails constructor);
-		bool TryGetValue(string name, [MaybeNullWhen(false)] out ConstructorDetails constructor);
+	public interface ITypeDetailsCollection : ITypeCollection, IEnumerable<BuilderDetails> {
+		bool TryGetValue(Type type, [MaybeNullWhen(false)] out BuilderDetails builder);
+		bool TryGetValue(string name, [MaybeNullWhen(false)] out BuilderDetails builder);
 
-		IEnumerable<KeyValuePair<string, ConstructorDetails>> GetConstructorNames();
+		IEnumerable<KeyValuePair<string, BuilderDetails>> GetBuilderNames();
 	}
 
 	public static class TypeDetailsCollectionUtils {
-		public static ConstructorDetails? Get(this ITypeDetailsCollection collection, Type type) {
-			return collection.TryGetValue(type, out ConstructorDetails? result) ? result : null;
+		public static BuilderDetails? Get(this ITypeDetailsCollection collection, Type type) {
+			return collection.TryGetValue(type, out BuilderDetails? result) ? result : null;
 		}
-		public static ConstructorDetails? Get(this ITypeDetailsCollection collection, string name) {
-			return collection.TryGetValue(name, out ConstructorDetails? result) ? result : null;
-		}
-
-		public static ConstructorDetails Get(this ITypeDetailsCollection collection, Type type, ConstructorDetails fallback) {
-			return collection.TryGetValue(type, out ConstructorDetails? result) ? result : fallback;
-		}
-		public static ConstructorDetails Get(this ITypeDetailsCollection collection, string name, ConstructorDetails fallback) {
-			return collection.TryGetValue(name, out ConstructorDetails? result) ? result : fallback;
+		public static BuilderDetails? Get(this ITypeDetailsCollection collection, string name) {
+			return collection.TryGetValue(name, out BuilderDetails? result) ? result : null;
 		}
 
-		public static IEnumerable<ConstructorDetails> FindConstructors<T>(this ITypeDetailsCollection collection) {
+		public static BuilderDetails Get(this ITypeDetailsCollection collection, Type type, BuilderDetails fallback) {
+			return collection.TryGetValue(type, out BuilderDetails? result) ? result : fallback;
+		}
+		public static BuilderDetails Get(this ITypeDetailsCollection collection, string name, BuilderDetails fallback) {
+			return collection.TryGetValue(name, out BuilderDetails? result) ? result : fallback;
+		}
+
+		public static IEnumerable<BuilderDetails> FindBuilders<T>(this ITypeDetailsCollection collection) {
 			//return collection.Where(c => typeof(T).IsAssignableFrom(c.DeclaringType));
-			foreach (ConstructorDetails c in collection) {
+			foreach (BuilderDetails c in collection) {
 				if (typeof(T).IsAssignableFrom(c.DeclaringType)) {
 					yield return c;
 				}
 			}
 		}
-		public static IEnumerable<ConstructorDetails> FindConstructors(this ITypeDetailsCollection collection, Type parentType) {
+		public static IEnumerable<BuilderDetails> FindBuilders(this ITypeDetailsCollection collection, Type parentType) {
 			//return collection.Where(c => parentType.IsAssignableFrom(c.DeclaringType));
-			foreach (ConstructorDetails c in collection) {
+			foreach (BuilderDetails c in collection) {
 				if (parentType.IsAssignableFrom(c.DeclaringType)) {
 					yield return c;
 				}
 			}
 		}
 
-		public static IEnumerable<KeyValuePair<string, ConstructorDetails>> GetConstructorNames<T>(this ITypeDetailsCollection collection) {
+		public static IEnumerable<KeyValuePair<string, BuilderDetails>> GetBuilderNames<T>(this ITypeDetailsCollection collection) {
 			//return collection.Where(c => typeof(T).IsAssignableFrom(c.DeclaringType));
-			foreach (KeyValuePair<string, ConstructorDetails> entry in collection.GetConstructorNames()) {
+			foreach (KeyValuePair<string, BuilderDetails> entry in collection.GetBuilderNames()) {
 				if (typeof(T).IsAssignableFrom(entry.Value.DeclaringType)) {
 					yield return entry;
 				}
 			}
 		}
-		public static IEnumerable<KeyValuePair<string, ConstructorDetails>> GetConstructorNames(this ITypeDetailsCollection collection, Type parentType) {
+		public static IEnumerable<KeyValuePair<string, BuilderDetails>> GetBuilderNames(this ITypeDetailsCollection collection, Type parentType) {
 			//return collection.Where(c => parentType.IsAssignableFrom(c.DeclaringType));
-			foreach (KeyValuePair<string, ConstructorDetails> entry in collection.GetConstructorNames()) {
+			foreach (KeyValuePair<string, BuilderDetails> entry in collection.GetBuilderNames()) {
 				if (parentType.IsAssignableFrom(entry.Value.DeclaringType)) {
 					yield return entry;
 				}
@@ -238,15 +238,15 @@ namespace SharpSheets.Documentation {
 	[DebuggerDisplay("Count = {typeCollection.Count} types, {nameCollection.Count} names")]
 	public class TypeDetailsCollection : ITypeDetailsCollection {
 
-		private readonly Dictionary<Type, ConstructorDetails> typeCollection;
-		private readonly Dictionary<string, ConstructorDetails> nameCollection;
+		private readonly Dictionary<Type, BuilderDetails> typeCollection;
+		private readonly Dictionary<string, BuilderDetails> nameCollection;
 
 		public TypeDetailsCollection(IEqualityComparer<string> nameComparer) {
-			typeCollection = new Dictionary<Type, ConstructorDetails>();
-			nameCollection = new Dictionary<string, ConstructorDetails>(nameComparer); // StringComparer.InvariantCultureIgnoreCase
+			typeCollection = new Dictionary<Type, BuilderDetails>();
+			nameCollection = new Dictionary<string, BuilderDetails>(nameComparer); // StringComparer.InvariantCultureIgnoreCase
 		}
 
-		public TypeDetailsCollection(IEnumerable<ConstructorDetails> values, IEqualityComparer<string> nameComparer) {
+		public TypeDetailsCollection(IEnumerable<BuilderDetails> values, IEqualityComparer<string> nameComparer) {
 			typeCollection = values.Where(c => c.DeclaringType != null).ToDictionaryAllowRepeats(c => c.DeclaringType, false);
 			nameCollection = values.ToDictionaryAllowRepeats(c => c.FullName, nameComparer, false); // StringComparer.InvariantCultureIgnoreCase
 		}
@@ -254,29 +254,29 @@ namespace SharpSheets.Documentation {
 		//public ConstructorDetails this[Type type] { get { return typeCollection[type]; } }
 		//public ConstructorDetails this[string name] { get { return nameCollection[name]; } }
 
-		public void Add(ConstructorDetails constructor) {
-			if (constructor.DeclaringType != null) typeCollection.Add(constructor.DeclaringType, constructor);
-			nameCollection.Add(constructor.Name, constructor);
+		public void Add(BuilderDetails builder) {
+			if (builder.DeclaringType != null) typeCollection.Add(builder.DeclaringType, builder);
+			nameCollection.Add(builder.Name, builder);
 		}
 
-		public void AddRange(IEnumerable<ConstructorDetails> constructors) {
-			foreach (ConstructorDetails constructor in constructors) {
-				Add(constructor);
+		public void AddRange(IEnumerable<BuilderDetails> builders) {
+			foreach (BuilderDetails builder in builders) {
+				Add(builder);
 			}
 		}
 
-		public void Include(ConstructorDetails constructor) {
-			if (constructor.DeclaringType != null && typeCollection.TryGetValue(constructor.DeclaringType, out ConstructorDetails? existing)) {
-				if (existing != constructor) throw new ArgumentException("Provided conflicting constructor for existing type.");
+		public void Include(BuilderDetails builder) {
+			if (builder.DeclaringType != null && typeCollection.TryGetValue(builder.DeclaringType, out BuilderDetails? existing)) {
+				if (existing != builder) throw new ArgumentException("Provided conflicting builder for existing type.");
 			}
 			else {
-				Add(constructor);
+				Add(builder);
 			}
 		}
 
-		public void UnionWith(IEnumerable<ConstructorDetails> constructors) {
-			foreach (ConstructorDetails constructor in constructors) {
-				Include(constructor);
+		public void UnionWith(IEnumerable<BuilderDetails> builders) {
+			foreach (BuilderDetails builder in builders) {
+				Include(builder);
 			}
 		}
 
@@ -287,14 +287,14 @@ namespace SharpSheets.Documentation {
 			return nameCollection.ContainsKey(name);
 		}
 
-		public bool TryGetValue(Type type, [MaybeNullWhen(false)] out ConstructorDetails constructor) {
-			return typeCollection.TryGetValue(type, out constructor);
+		public bool TryGetValue(Type type, [MaybeNullWhen(false)] out BuilderDetails builder) {
+			return typeCollection.TryGetValue(type, out builder);
 		}
-		public bool TryGetValue(string name, [MaybeNullWhen(false)] out ConstructorDetails constructor) {
-			return nameCollection.TryGetValue(name, out constructor);
+		public bool TryGetValue(string name, [MaybeNullWhen(false)] out BuilderDetails builder) {
+			return nameCollection.TryGetValue(name, out builder);
 		}
 
-		public IEnumerator<ConstructorDetails> GetEnumerator() {
+		public IEnumerator<BuilderDetails> GetEnumerator() {
 			return nameCollection.Values.GetEnumerator();
 		}
 
@@ -302,29 +302,29 @@ namespace SharpSheets.Documentation {
 			return GetEnumerator();
 		}
 
-		public IEnumerable<KeyValuePair<string, ConstructorDetails>> GetConstructorNames() {
+		public IEnumerable<KeyValuePair<string, BuilderDetails>> GetBuilderNames() {
 			return nameCollection;
 		}
 	}
 
-	public class ConstructorComparer : IEqualityComparer<ConstructorDetails> {
-		public static ConstructorComparer Instance { get; } = new ConstructorComparer();
+	public class BuilderComparer : IEqualityComparer<BuilderDetails> {
+		public static BuilderComparer Instance { get; } = new BuilderComparer();
 
-		private ConstructorComparer() { }
+		private BuilderComparer() { }
 
-		public bool Equals(ConstructorDetails? x, ConstructorDetails? y) {
+		public bool Equals(BuilderDetails? x, BuilderDetails? y) {
 			if(x == null || y == null) {
 				return x is null && y is null;
 			}
 			return SharpDocuments.StringComparer.Equals(x.FullName, y.FullName) && x.Arguments.Length == y.Arguments.Length;
 		}
-		public int GetHashCode(ConstructorDetails obj) {
+		public int GetHashCode(BuilderDetails obj) {
 			//return $"{obj.FullName.ToLowerInvariant()} {obj.DeclaringType.FullName} {obj.Arguments.Length}".GetHashCode();
 			return HashCode.Combine(obj.FullName.ToLowerInvariant(), obj.DeclaringType.FullName, obj.Arguments.Length);
 		}
 	}
 
-	public class ArgumentComparer : IEqualityComparer<ArgumentDetails>, IEqualityComparer<ConstructorArgumentDetails> {
+	public class ArgumentComparer : IEqualityComparer<ArgumentDetails>, IEqualityComparer<BuilderArgumentDetails> {
 		public static ArgumentComparer Instance { get; } = new ArgumentComparer();
 
 		private ArgumentComparer() { }
@@ -340,21 +340,21 @@ namespace SharpSheets.Documentation {
 			return HashCode.Combine(obj.Type.DisplayType.FullName, obj.Type.DataType.FullName, obj.Name.ToLowerInvariant());
 		}
 
-		public bool Equals(ConstructorArgumentDetails? x, ConstructorArgumentDetails? y) {
+		public bool Equals(BuilderArgumentDetails? x, BuilderArgumentDetails? y) {
 			return Equals(x?.Argument, y?.Argument);
 		}
-		public int GetHashCode(ConstructorArgumentDetails obj) {
+		public int GetHashCode(BuilderArgumentDetails obj) {
 			return GetHashCode(obj.Argument);
 		}
 	}
 
-	public class ConstructorDetailsUniqueNameEnumerator : IEnumerator<ConstructorDetails> {
+	public class BuilderDetailsUniqueNameEnumerator : IEnumerator<BuilderDetails> {
 
 		object IEnumerator.Current => Current;
-		public ConstructorDetails Current {
+		public BuilderDetails Current {
 			get {
 				try {
-					return constructors[position];
+					return builders[position];
 				}
 				catch (IndexOutOfRangeException) {
 					throw new InvalidOperationException();
@@ -364,18 +364,18 @@ namespace SharpSheets.Documentation {
 
 		private int position;
 
-		private readonly ConstructorDetails[] constructors;
+		private readonly BuilderDetails[] builders;
 
-		public ConstructorDetailsUniqueNameEnumerator(IEnumerable<ConstructorDetails> source, IEqualityComparer<string> nameComparer) {
+		public BuilderDetailsUniqueNameEnumerator(IEnumerable<BuilderDetails> source, IEqualityComparer<string> nameComparer) {
 			HashSet<string> encounteredNames = new HashSet<string>(nameComparer);
-			List<ConstructorDetails> constructors = new List<ConstructorDetails>();
-			foreach(ConstructorDetails constructor in source) {
-				if (!encounteredNames.Contains(constructor.FullName)) {
-					constructors.Add(constructor);
-					encounteredNames.Add(constructor.FullName);
+			List<BuilderDetails> builders = new List<BuilderDetails>();
+			foreach(BuilderDetails builder in source) {
+				if (!encounteredNames.Contains(builder.FullName)) {
+					builders.Add(builder);
+					encounteredNames.Add(builder.FullName);
 				}
 			}
-			this.constructors = constructors.ToArray();
+			this.builders = builders.ToArray();
 			this.position = -1;
 		}
 
@@ -383,7 +383,7 @@ namespace SharpSheets.Documentation {
 
 		public bool MoveNext() {
 			position++;
-			return (position < constructors.Length);
+			return (position < builders.Length);
 		}
 
 		public void Reset() {

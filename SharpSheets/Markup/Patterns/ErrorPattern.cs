@@ -29,8 +29,8 @@ namespace SharpSheets.Markup.Patterns {
 			this.error = error;
 		}
 
-		public override MarkupConstructorDetails GetConstructorDetails() {
-			return new MarkupConstructorDetails(this, typeof(MarkupPattern), typeof(ErrorPattern), Array.Empty<Documentation.ArgumentDetails>(), new Documentation.DocumentationString("Invalid markup pattern."));
+		public override MarkupBuilderDetails GetBuilderDetails() {
+			return new MarkupBuilderDetails(this, typeof(MarkupPattern), typeof(ErrorPattern), Array.Empty<Documentation.ArgumentDetails>(), new Documentation.DocumentationString("Invalid markup pattern."));
 		}
 
 		public override object MakeExample(WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool diagnostic, out SharpParsingException[] buildErrors) {

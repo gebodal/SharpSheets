@@ -109,12 +109,12 @@ namespace SharpEditor.Documentation {
 			return DocFrame.Children[0] is DocumentationPage page && page.CanRefresh;
 		}
 
-		public void NavigateTo(ConstructorDetails constructor, Func<ConstructorDetails?>? refreshAction) {
-			if (typeof(IMarkupElement).IsAssignableFrom(constructor.DeclaringType)) {
-				NavigateTo(MarkupPageBuilder.GetMarkupElementPage(constructor, this, refreshAction));
+		public void NavigateTo(BuilderDetails builder, Func<BuilderDetails?>? refreshAction) {
+			if (typeof(IMarkupElement).IsAssignableFrom(builder.DeclaringType)) {
+				NavigateTo(MarkupPageBuilder.GetMarkupElementPage(builder, this, refreshAction));
 			}
 			else {
-				NavigateTo(ConstructorPageBuilder.GetConstructorPage(constructor, this, refreshAction));
+				NavigateTo(BuilderPageBuilder.GetBuilderPage(builder, this, refreshAction));
 			}
 		}
 
@@ -133,12 +133,12 @@ namespace SharpEditor.Documentation {
 			NavigateTo(FontPageBuilder.GetFontFamilyPage(fontFamilyName, this));
 		}
 
-		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(ConstructorDetails constructor, Func<ConstructorDetails?>? refreshAction) {
-			if (typeof(IMarkupElement).IsAssignableFrom(constructor.DeclaringType)) {
-				return delegate { NavigateTo(MarkupPageBuilder.GetMarkupElementPage(constructor, this, refreshAction)); };
+		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(BuilderDetails builder, Func<BuilderDetails?>? refreshAction) {
+			if (typeof(IMarkupElement).IsAssignableFrom(builder.DeclaringType)) {
+				return delegate { NavigateTo(MarkupPageBuilder.GetMarkupElementPage(builder, this, refreshAction)); };
 			}
 			else {
-				return delegate { NavigateTo(ConstructorPageBuilder.GetConstructorPage(constructor, this, refreshAction)); };
+				return delegate { NavigateTo(BuilderPageBuilder.GetBuilderPage(builder, this, refreshAction)); };
 			}
 		}
 		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(EnumDoc enumDoc, Func<EnumDoc?>? refreshAction) {
@@ -168,18 +168,18 @@ namespace SharpEditor.Documentation {
 				return MakeNavigationDelegate(link.location);
 			}
 			else if (link.linkType == DocumentationLinkType.WIDGET) {
-				if (SharpEditorRegistries.WidgetFactoryInstance.Get(link.location) is ConstructorDetails widgetConstructor) {
-					return delegate { NavigateTo(ConstructorPageBuilder.GetConstructorPage(widgetConstructor, this, WidgetConstructorFunc(link.location))); };
+				if (SharpEditorRegistries.WidgetFactoryInstance.Get(link.location) is BuilderDetails widgetBuilder) {
+					return delegate { NavigateTo(BuilderPageBuilder.GetBuilderPage(widgetBuilder, this, WidgetBuilderFunc(link.location))); };
 				}
 			}
 			else if (link.linkType == DocumentationLinkType.SHAPE) {
-				if (SharpEditorRegistries.ShapeFactoryInstance.Get(link.location) is ConstructorDetails shapeConstructor) {
-					return delegate { NavigateTo(ConstructorPageBuilder.GetConstructorPage(shapeConstructor, this, ShapeConstructorFunc(link.location))); };
+				if (SharpEditorRegistries.ShapeFactoryInstance.Get(link.location) is BuilderDetails shapeBuilder) {
+					return delegate { NavigateTo(BuilderPageBuilder.GetBuilderPage(shapeBuilder, this, ShapeBuilderFunc(link.location))); };
 				}
 			}
 			else if (link.linkType == DocumentationLinkType.MARKUP) {
-				if (MarkupDocumentation.MarkupConstructors.Get(link.location) is ConstructorDetails markupConstructor) {
-					return delegate { NavigateTo(MarkupPageBuilder.GetMarkupElementPage(markupConstructor, this, MarkupConstructorFunc(link.location))); };
+				if (MarkupDocumentation.MarkupBuilders.Get(link.location) is BuilderDetails markupBuilder) {
+					return delegate { NavigateTo(MarkupPageBuilder.GetMarkupElementPage(markupBuilder, this, MarkupBuilderFunc(link.location))); };
 				}
 			}
 			else if (link.linkType == DocumentationLinkType.ENUM) {
@@ -188,8 +188,8 @@ namespace SharpEditor.Documentation {
 				}
 			}
 			else if (link.linkType == DocumentationLinkType.CARD) {
-				if (CardSetConfigFactory.ConfigConstructors.Get(link.location) is ConstructorDetails cardElementConstructor) {
-					return delegate { NavigateTo(ConstructorPageBuilder.GetConstructorPage(cardElementConstructor, this, CardElementConstructorFunc(link.location))); };
+				if (CardSetConfigFactory.ConfigBuilders.Get(link.location) is BuilderDetails cardElementBuilder) {
+					return delegate { NavigateTo(BuilderPageBuilder.GetBuilderPage(cardElementBuilder, this, CardElementBuilderFunc(link.location))); };
 				}
 			}
 
@@ -204,39 +204,39 @@ namespace SharpEditor.Documentation {
 				else if (Documentation.DocumentationRoot.GetFile(link) is DocumentationFile file) {
 					NavigateTo(DocumentationPageBuilder.CreateDocumentationPage(file, this));
 				}
-				else if (SharpEditorRegistries.WidgetFactoryInstance.Get(link) is ConstructorDetails widgetConstructor) {
-					NavigateTo(ConstructorPageBuilder.GetConstructorPage(widgetConstructor, this, WidgetConstructorFunc(link)));
+				else if (SharpEditorRegistries.WidgetFactoryInstance.Get(link) is BuilderDetails widgetBuilder) {
+					NavigateTo(BuilderPageBuilder.GetBuilderPage(widgetBuilder, this, WidgetBuilderFunc(link)));
 				}
-				else if (SharpEditorRegistries.ShapeFactoryInstance.Get(link) is ConstructorDetails shapeConstructor) {
-					NavigateTo(ConstructorPageBuilder.GetConstructorPage(shapeConstructor, this, ShapeConstructorFunc(link)));
+				else if (SharpEditorRegistries.ShapeFactoryInstance.Get(link) is BuilderDetails shapeBuilder) {
+					NavigateTo(BuilderPageBuilder.GetBuilderPage(shapeBuilder, this, ShapeBuilderFunc(link)));
 				}
-				else if (MarkupDocumentation.MarkupConstructors.Get(link) is ConstructorDetails markupConstructor) {
-					NavigateTo(MarkupPageBuilder.GetMarkupElementPage(markupConstructor, this, MarkupConstructorFunc(link)));
+				else if (MarkupDocumentation.MarkupBuilders.Get(link) is BuilderDetails markupBuilder) {
+					NavigateTo(MarkupPageBuilder.GetMarkupElementPage(markupBuilder, this, MarkupBuilderFunc(link)));
 				}
-				else if (CardSetConfigFactory.ConfigConstructors.Get(link) is ConstructorDetails cardElementConstructor) {
-					NavigateTo(ConstructorPageBuilder.GetConstructorPage(cardElementConstructor, this, CardElementConstructorFunc(link)));
+				else if (CardSetConfigFactory.ConfigBuilders.Get(link) is BuilderDetails cardElementBuilder) {
+					NavigateTo(BuilderPageBuilder.GetBuilderPage(cardElementBuilder, this, CardElementBuilderFunc(link)));
 				}
 			};
 		}
 
-		private static Func<ConstructorDetails?> WidgetConstructorFunc(string name) {
+		private static Func<BuilderDetails?> WidgetBuilderFunc(string name) {
 			return () => SharpEditorRegistries.WidgetFactoryInstance.Get(name);
 		}
 
-		private static Func<ConstructorDetails?> ShapeConstructorFunc(string name) {
+		private static Func<BuilderDetails?> ShapeBuilderFunc(string name) {
 			return () => SharpEditorRegistries.ShapeFactoryInstance.Get(name);
 		}
 
-		private static Func<ConstructorDetails?> MarkupConstructorFunc(string name) {
-			return () => MarkupDocumentation.MarkupConstructors.Get(name);
+		private static Func<BuilderDetails?> MarkupBuilderFunc(string name) {
+			return () => MarkupDocumentation.MarkupBuilders.Get(name);
 		}
 
 		private static Func<EnumDoc?> BuiltInEnumDocFunc(string name) {
 			return () => SharpDocumentation.GetBuiltInEnumDocFromName(name);
 		}
 
-		private static Func<ConstructorDetails?> CardElementConstructorFunc(string name) {
-			return () => CardSetConfigFactory.ConfigConstructors.Get(name);
+		private static Func<BuilderDetails?> CardElementBuilderFunc(string name) {
+			return () => CardSetConfigFactory.ConfigBuilders.Get(name);
 		}
 
 		#region Commands

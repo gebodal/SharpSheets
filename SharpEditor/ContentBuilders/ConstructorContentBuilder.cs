@@ -10,9 +10,9 @@ using Avalonia.Controls.Documents;
 
 namespace SharpEditor.ContentBuilders {
 
-	public static class ConstructorContentBuilder {
+	public static class BuilderContentBuilder {
 
-		public static IEnumerable<Inline> MakeConstructorHeaderBlock(string name, string fullName, Type displayType, Type declaringType) {
+		public static IEnumerable<Inline> MakeBuilderHeaderBlock(string name, string fullName, Type displayType, Type declaringType) {
 			string? prefix = fullName;
 			string displayName = name;
 			if (prefix == displayName) {
@@ -38,8 +38,8 @@ namespace SharpEditor.ContentBuilders {
 			};
 		}
 
-		public static IEnumerable<Inline> MakeConstructorHeaderBlock(ConstructorDetails constructor) {
-			return MakeConstructorHeaderBlock(constructor.Name, constructor.FullName, constructor.DisplayType, constructor.DeclaringType);
+		public static IEnumerable<Inline> MakeBuilderHeaderBlock(BuilderDetails builder) {
+			return MakeBuilderHeaderBlock(builder.Name, builder.FullName, builder.DisplayType, builder.DeclaringType);
 		}
 
 		public static IEnumerable<Inline> GetArgumentDefaultInlines(ArgumentDetails arg, IContext? context) {

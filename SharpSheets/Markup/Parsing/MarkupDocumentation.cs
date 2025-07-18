@@ -17,26 +17,26 @@ namespace SharpSheets.Markup.Parsing {
 
 	public static class MarkupDocumentation {
 
-		public static readonly ConstructorDetails DivConstructor;
-		public static readonly ConstructorDetails PatternConstructor;
+		public static readonly BuilderDetails DivBuilder;
+		public static readonly BuilderDetails PatternBuilder;
 
-		public static readonly ITypeDetailsCollection MarkupConstructors;
+		public static readonly ITypeDetailsCollection MarkupBuilders;
 
 		// DivSetup
-		private static readonly MethodInfo divSetupConstructorInfo;
-		private static readonly ConstructorDoc divSetupConstructorDoc;
+		private static readonly MethodInfo divSetupBuilderInfo;
+		private static readonly BuilderDoc divSetupBuilderDoc;
 		// StyleSheet
-		private static readonly MethodInfo styleSheetConstructorInfo;
-		private static readonly ConstructorDoc styleSheetConstructorDoc;
+		private static readonly MethodInfo styleSheetBuilderInfo;
+		private static readonly BuilderDoc styleSheetBuilderDoc;
 		// PositionExpression
-		private static readonly MethodInfo positionExpressionConstructorInfo;
-		private static readonly ConstructorDoc positionExpressionConstructorDoc;
+		private static readonly MethodInfo positionExpressionBuilderInfo;
+		private static readonly BuilderDoc positionExpressionBuilderDoc;
 		// LabelDetailsExpression
-		private static readonly MethodInfo labelDetailsExpressionConstructorInfo;
-		private static readonly ConstructorDoc labelDetailsExpressionConstructorDoc;
+		private static readonly MethodInfo labelDetailsExpressionBuilderInfo;
+		private static readonly BuilderDoc labelDetailsExpressionBuilderDoc;
 		// RectangleExpression
-		private static readonly MethodInfo rectangleExpressionConstructorInfo;
-		private static readonly ConstructorDoc rectangleExpressionConstructorDoc;
+		private static readonly MethodInfo rectangleExpressionBuilderInfo;
+		private static readonly BuilderDoc rectangleExpressionBuilderDoc;
 
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
@@ -46,26 +46,26 @@ namespace SharpSheets.Markup.Parsing {
 
 			MarkupEvaluationContext markupContext = new MarkupEvaluationContext(MarkupEvaluationTypes.BaseContext);
 
-			// Initialize Constructor Infos
-			divSetupConstructorInfo = SharpFactory.GetBuilder(typeof(DivSetup)) ?? throw new InvalidOperationException($"Cannot access {nameof(DivSetup)} builder.");
-			divSetupConstructorDoc = SharpDocumentation.GetConstructorDoc(divSetupConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(DivSetup)} documentation.");
+			// Initialize Builder Infos
+			divSetupBuilderInfo = SharpFactory.GetBuilder(typeof(DivSetup)) ?? throw new InvalidOperationException($"Cannot access {nameof(DivSetup)} builder.");
+			divSetupBuilderDoc = SharpDocumentation.GetBuilderDoc(divSetupBuilderInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(DivSetup)} documentation.");
 			
-			styleSheetConstructorInfo = SharpFactory.GetBuilder(typeof(StyleSheet)) ?? throw new InvalidOperationException($"Cannot access {nameof(StyleSheet)} builder.");
-			styleSheetConstructorDoc = SharpDocumentation.GetConstructorDoc(styleSheetConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(StyleSheet)} documentation.");
+			styleSheetBuilderInfo = SharpFactory.GetBuilder(typeof(StyleSheet)) ?? throw new InvalidOperationException($"Cannot access {nameof(StyleSheet)} builder.");
+			styleSheetBuilderDoc = SharpDocumentation.GetBuilderDoc(styleSheetBuilderInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(StyleSheet)} documentation.");
 
-			positionExpressionConstructorInfo = SharpFactory.GetBuilder(typeof(PositionExpression)) ?? throw new InvalidOperationException($"Cannot access {nameof(PositionExpression)} builder.");
-			positionExpressionConstructorDoc = SharpDocumentation.GetConstructorDoc(positionExpressionConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(PositionExpression)} documentation.");
+			positionExpressionBuilderInfo = SharpFactory.GetBuilder(typeof(PositionExpression)) ?? throw new InvalidOperationException($"Cannot access {nameof(PositionExpression)} builder.");
+			positionExpressionBuilderDoc = SharpDocumentation.GetBuilderDoc(positionExpressionBuilderInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(PositionExpression)} documentation.");
 
-			labelDetailsExpressionConstructorInfo = SharpFactory.GetBuilder(typeof(LabelDetailsExpression))?? throw new InvalidOperationException($"Cannot access {nameof(LabelDetailsExpression)} builder.");
-			labelDetailsExpressionConstructorDoc = SharpDocumentation.GetConstructorDoc(positionExpressionConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(LabelDetailsExpression)} documentation.");
+			labelDetailsExpressionBuilderInfo = SharpFactory.GetBuilder(typeof(LabelDetailsExpression))?? throw new InvalidOperationException($"Cannot access {nameof(LabelDetailsExpression)} builder.");
+			labelDetailsExpressionBuilderDoc = SharpDocumentation.GetBuilderDoc(positionExpressionBuilderInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(LabelDetailsExpression)} documentation.");
 
-			rectangleExpressionConstructorInfo = SharpFactory.GetBuilder(typeof(RectangleExpression)) ?? throw new InvalidOperationException($"Cannot access {nameof(RectangleExpression)} builder.");
-			rectangleExpressionConstructorDoc = SharpDocumentation.GetConstructorDoc(rectangleExpressionConstructorInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(RectangleExpression)} documentation.");
-			// Constructor Infos Initialized
+			rectangleExpressionBuilderInfo = SharpFactory.GetBuilder(typeof(RectangleExpression)) ?? throw new InvalidOperationException($"Cannot access {nameof(RectangleExpression)} builder.");
+			rectangleExpressionBuilderDoc = SharpDocumentation.GetBuilderDoc(rectangleExpressionBuilderInfo) ?? throw new InvalidOperationException($"Cannot access {nameof(RectangleExpression)} documentation.");
+			// Builder Infos Initialized
 
-			DivConstructor = GetConstructorDetails(typeof(DivElement), "div");
+			DivBuilder = GetBuilderDetails(typeof(DivElement), "div");
 
-			PatternConstructor = new ConstructorDetails(
+			PatternBuilder = new BuilderDetails(
 				typeof(MarkupPattern), typeof(MarkupPattern),
 				"pattern", "pattern",
 				new ArgumentDetails[] {
@@ -73,7 +73,7 @@ namespace SharpSheets.Markup.Parsing {
 					new ArgumentDetails("name", new DocumentationString("The name for this pattern. This is the identifier that will be used to specify this pattern in configuration files. Ideally it should be unique, but this is not a requirement."), ArgumentType.Simple(typeof(string)), false, true, null, null, null),
 					new ArgumentDetails("example-size", new DocumentationString(new TextSpan("The size (and optionally position) for the example pattern (the position will be ignored unless "), new ParameterSpan("example-canvas"), new TextSpan(" is also specified) displayed in the designer and documentation.")), ArgumentType.Simple(typeof(Rectangle)), true, true, null, null, null),
 					new ArgumentDetails("example-canvas", new DocumentationString("The page size that the example pattern will be drawn on in the designer and documentation."), ArgumentType.Simple(typeof(Size)), true, true, null, null, null)
-				}.Concat(DivConstructor.Arguments).ToArray(),
+				}.Concat(DivBuilder.Arguments).ToArray(),
 				new DocumentationString(new TextSpan("This is the base element for a Markup pattern. Every pattern " +
 					"must have a "), new TypeSpan("pattern", typeof(MarkupPattern)), new TextSpan(" element as its root. " +
 					"This element may also be the root element of a Markup file. If not, it must be a direct child of a "),
@@ -83,7 +83,7 @@ namespace SharpSheets.Markup.Parsing {
 				null, null
 				);
 
-			ConstructorDetails libraryConstructor = new ConstructorDetails(
+			BuilderDetails libraryBuilder = new BuilderDetails(
 				typeof(IMarkupElement), typeof(IMarkupElement),
 				"patternLibrary", "patternLibrary",
 				new ArgumentDetails[] {
@@ -96,7 +96,7 @@ namespace SharpSheets.Markup.Parsing {
 				null, null
 				);
 
-			ConstructorDetails useConstructor = new ConstructorDetails(
+			BuilderDetails useBuilder = new BuilderDetails(
 				typeof(IDrawableElement), typeof(IDrawableElement),
 				"use", "use",
 				new ArgumentDetails[] {
@@ -105,7 +105,7 @@ namespace SharpSheets.Markup.Parsing {
 					new ArgumentDetails("y", new DocumentationString("The y-coordinate at which to draw the duplicate element."), ArgumentType.Simple(typeof(YLengthExpression)), true, true, markupContext.ZeroHeightExpression, null, null),
 					new ArgumentDetails("width", new DocumentationString(new TextSpan("The width to use for the duplicate element. This will only be used if the referenced element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element.")), ArgumentType.Simple(typeof(XLengthExpression)), true, true, markupContext.ZeroWidthExpression, null, null),
 					new ArgumentDetails("height", new DocumentationString(new TextSpan("The height to use for the duplicate element. This will only be used if the referenced element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element.")), ArgumentType.Simple(typeof(YLengthExpression)), true, true, markupContext.ZeroHeightExpression, null, null),
-				}.Concat(GetArgumentDetails(styleSheetConstructorInfo, styleSheetConstructorDoc, true)).ToArray(),
+				}.Concat(GetArgumentDetails(styleSheetBuilderInfo, styleSheetBuilderDoc, true)).ToArray(),
 				new DocumentationString(new TextSpan("This element duplicates another drawable element at a specified location. " +
 				"If the duplicated element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element, then a new " +
 				"width and height may be specified for it. The effect of this element is essentially the same as if the referenced " +
@@ -113,7 +113,7 @@ namespace SharpSheets.Markup.Parsing {
 				null, null
 				); // "width" and "height" ignored unless "href" is a <symbol>
 
-			ConstructorDetails optionConstructor = new ConstructorDetails(
+			BuilderDetails optionBuilder = new BuilderDetails(
 				typeof(IMarkupElement), typeof(IMarkupElement),
 				"option", "option",
 				new ArgumentDetails[] {
@@ -125,7 +125,7 @@ namespace SharpSheets.Markup.Parsing {
 				null, null
 				);
 
-			ConstructorDetails argsConstructor = new ConstructorDetails(
+			BuilderDetails argsBuilder = new BuilderDetails(
 				typeof(IMarkupElement), typeof(IMarkupElement),
 				"args", "args",
 				Array.Empty<ArgumentDetails>(),
@@ -140,7 +140,7 @@ namespace SharpSheets.Markup.Parsing {
 				null, null
 				);
 
-			ConstructorDetails defsConstructor = new ConstructorDetails(
+			BuilderDetails defsBuilder = new BuilderDetails(
 				typeof(IMarkupElement), typeof(IMarkupElement),
 				"defs", "defs",
 				Array.Empty<ArgumentDetails>(),
@@ -149,7 +149,7 @@ namespace SharpSheets.Markup.Parsing {
 				null, null
 				);
 
-			ConstructorDetails descConstructor = new ConstructorDetails(
+			BuilderDetails descBuilder = new BuilderDetails(
 				typeof(IMarkupElement), typeof(IMarkupElement),
 				"desc", "desc",
 				Array.Empty<ArgumentDetails>(),
@@ -160,7 +160,7 @@ namespace SharpSheets.Markup.Parsing {
 				null, null
 				);
 
-			ConstructorDetails stopConstructor = new ConstructorDetails(
+			BuilderDetails stopBuilder = new BuilderDetails(
 				typeof(IMarkupElement), typeof(IMarkupElement),
 				"stop", "stop",
 				new ArgumentDetails[] {
@@ -171,65 +171,65 @@ namespace SharpSheets.Markup.Parsing {
 				null, null
 				);
 
-			List<ConstructorDetails> markupConstructors = new List<ConstructorDetails>() {
+			List<BuilderDetails> markupBuilders = new List<BuilderDetails>() {
 				// Document Level Elements
-				PatternConstructor,
-				libraryConstructor,
+				PatternBuilder,
+				libraryBuilder,
 				// Structural Elements
-				DivConstructor,
-				GetConstructorDetails(typeof(AreaElement), "area"),
-				GetConstructorDetails(typeof(DiagnosticElement), "diagnostic"),
-				GetConstructorDetails(typeof(SlicingValuesElement), "slicing"),
+				DivBuilder,
+				GetBuilderDetails(typeof(AreaElement), "area"),
+				GetBuilderDetails(typeof(DiagnosticElement), "diagnostic"),
+				GetBuilderDetails(typeof(SlicingValuesElement), "slicing"),
 				// Child Div Element
-				GetConstructorDetails(typeof(ChildDivElement), "child"),
+				GetBuilderDetails(typeof(ChildDivElement), "child"),
 				// Styled Div Elements
-				GetConstructorDetails(typeof(BoxStyledDivElement), "box"),
-				GetConstructorDetails(typeof(LabelledBoxStyledDivElement), "labelledBox"),
-				GetConstructorDetails(typeof(TitledBoxStyledDivElement), "titledBox"),
-				GetConstructorDetails(typeof(BarStyledDivElement), "bar"),
-				GetConstructorDetails(typeof(LabelledUsageBarStyledDivElement), "usageBar"),
-				GetConstructorDetails(typeof(DetailStyledDivElement), "detail"),
+				GetBuilderDetails(typeof(BoxStyledDivElement), "box"),
+				GetBuilderDetails(typeof(LabelledBoxStyledDivElement), "labelledBox"),
+				GetBuilderDetails(typeof(TitledBoxStyledDivElement), "titledBox"),
+				GetBuilderDetails(typeof(BarStyledDivElement), "bar"),
+				GetBuilderDetails(typeof(LabelledUsageBarStyledDivElement), "usageBar"),
+				GetBuilderDetails(typeof(DetailStyledDivElement), "detail"),
 				// Graphics Elements
-				GetConstructorDetails(typeof(Line), "line"),
-				GetConstructorDetails(typeof(Rect), "rect"),
-				GetConstructorDetails(typeof(Elements.Circle), "circle"),
-				GetConstructorDetails(typeof(Elements.Ellipse), "ellipse"),
-				GetConstructorDetails(typeof(Polyline), "polyline"),
-				GetConstructorDetails(typeof(Polygon), "polygon"),
-				GetConstructorDetails(typeof(Elements.Path), "path"),
-				GetConstructorDetails(typeof(Grouping), "g"),
-				GetConstructorDetails(typeof(Symbol), "symbol"),
-				GetConstructorDetails(typeof(Elements.Text), "text"),
-				GetConstructorDetails(typeof(TextPath), "textPath"),
-				GetConstructorDetails(typeof(TextRect), "textRect"),
-				GetConstructorDetails(typeof(TSpan), "tspan"),
-				GetConstructorDetails(typeof(Image), "image"),
-				GetConstructorDetails(typeof(ClipPath), "clipPath"),
-				useConstructor,
+				GetBuilderDetails(typeof(Line), "line"),
+				GetBuilderDetails(typeof(Rect), "rect"),
+				GetBuilderDetails(typeof(Elements.Circle), "circle"),
+				GetBuilderDetails(typeof(Elements.Ellipse), "ellipse"),
+				GetBuilderDetails(typeof(Polyline), "polyline"),
+				GetBuilderDetails(typeof(Polygon), "polygon"),
+				GetBuilderDetails(typeof(Elements.Path), "path"),
+				GetBuilderDetails(typeof(Grouping), "g"),
+				GetBuilderDetails(typeof(Symbol), "symbol"),
+				GetBuilderDetails(typeof(Elements.Text), "text"),
+				GetBuilderDetails(typeof(TextPath), "textPath"),
+				GetBuilderDetails(typeof(TextRect), "textRect"),
+				GetBuilderDetails(typeof(TSpan), "tspan"),
+				GetBuilderDetails(typeof(Image), "image"),
+				GetBuilderDetails(typeof(ClipPath), "clipPath"),
+				useBuilder,
 				// Paint Elements
-				GetConstructorDetails(typeof(SolidPaint), "solidPaint"),
-				GetConstructorDetails(typeof(LinearGradient), "linearGradient"),
-				GetConstructorDetails(typeof(RadialGradient), "radialGradient"),
-				stopConstructor,
+				GetBuilderDetails(typeof(SolidPaint), "solidPaint"),
+				GetBuilderDetails(typeof(LinearGradient), "linearGradient"),
+				GetBuilderDetails(typeof(RadialGradient), "radialGradient"),
+				stopBuilder,
 				// Field Elements
-				GetConstructorDetails(typeof(TextField), "textField"),
-				GetConstructorDetails(typeof(CheckField), "checkField"),
-				GetConstructorDetails(typeof(ImageField), "imageField"),
+				GetBuilderDetails(typeof(TextField), "textField"),
+				GetBuilderDetails(typeof(CheckField), "checkField"),
+				GetBuilderDetails(typeof(ImageField), "imageField"),
 				// Argument elements
-				GetConstructorDetails(typeof(MarkupSingleArgument), "arg"),
-				GetConstructorDetails(typeof(MarkupGroupArgument), "grouparg"),
-				GetConstructorDetails(typeof(MarkupVariable), "var"),
-				GetConstructorDetails(typeof(MarkupValidation), "validation"),
-				optionConstructor,
+				GetBuilderDetails(typeof(MarkupSingleArgument), "arg"),
+				GetBuilderDetails(typeof(MarkupGroupArgument), "grouparg"),
+				GetBuilderDetails(typeof(MarkupVariable), "var"),
+				GetBuilderDetails(typeof(MarkupValidation), "validation"),
+				optionBuilder,
 				// Placeholder Elements
-				argsConstructor,
-				defsConstructor,
-				descConstructor
+				argsBuilder,
+				defsBuilder,
+				descBuilder
 			};
 
 			// TODO <slicing> (does this even work?)
 
-			MarkupConstructors = new TypeDetailsCollection(markupConstructors, StringComparer.Ordinal); // Ordinal better than InvariantCulture?
+			MarkupBuilders = new TypeDetailsCollection(markupBuilders, StringComparer.Ordinal); // Ordinal better than InvariantCulture?
 		}
 
 		private static string NormaliseParameterName(string name) {
@@ -267,15 +267,15 @@ namespace SharpSheets.Markup.Parsing {
 		/// <summary></summary>
 		/// <exception cref="SystemException"></exception>
 		/// <exception cref="TargetInvocationException"></exception>
-		private static ArgumentDetails[] GetArgumentDetails(MethodInfo constructorInfo, ConstructorDoc? constructorDoc, bool forceOptional = false, string? prefix = null) {
+		private static ArgumentDetails[] GetArgumentDetails(MethodInfo builderInfo, BuilderDoc? builderDoc, bool forceOptional = false, string? prefix = null) {
 			List<ArgumentDetails> arguments = new List<ArgumentDetails>();
 
 			bool addStyleSheetArgs = false;
 			bool addDivSetupArgs = false;
-			foreach (ParameterInfo parameterInfo in constructorInfo.GetParameters()) {
+			foreach (ParameterInfo parameterInfo in builderInfo.GetParameters()) {
 				if (parameterInfo.Name is null) { continue; }
 
-				ArgumentDoc? argumentDoc = constructorDoc?.GetArgument(parameterInfo.Name);
+				ArgumentDoc? argumentDoc = builderDoc?.GetArgument(parameterInfo.Name);
 
 				if (argumentDoc?.exclude ?? false) {
 					continue;
@@ -287,11 +287,11 @@ namespace SharpSheets.Markup.Parsing {
 					addDivSetupArgs = true;
 				}
 				else if (parameterInfo.ParameterType == typeof(PositionExpression)) {
-					arguments.AddRange(GetArgumentDetails(positionExpressionConstructorInfo, positionExpressionConstructorDoc, forceOptional: true));
+					arguments.AddRange(GetArgumentDetails(positionExpressionBuilderInfo, positionExpressionBuilderDoc, forceOptional: true));
 				}
 				else if (parameterInfo.ParameterType == typeof(LabelDetailsExpression)) {
 					string detailsPrefix = NormaliseParameterName(parameterInfo.Name) + "-";
-					arguments.AddRange(GetArgumentDetails(labelDetailsExpressionConstructorInfo, labelDetailsExpressionConstructorDoc, forceOptional: true, prefix: detailsPrefix));
+					arguments.AddRange(GetArgumentDetails(labelDetailsExpressionBuilderInfo, labelDetailsExpressionBuilderDoc, forceOptional: true, prefix: detailsPrefix));
 				}
 				/*
 				else if (parameterInfo.ParameterType == typeof(RectangleExpression)) {
@@ -322,10 +322,10 @@ namespace SharpSheets.Markup.Parsing {
 			}
 
 			if (addDivSetupArgs) {
-				arguments.AddRange(GetArgumentDetails(divSetupConstructorInfo, divSetupConstructorDoc, forceOptional: true));
+				arguments.AddRange(GetArgumentDetails(divSetupBuilderInfo, divSetupBuilderDoc, forceOptional: true));
 			}
 			if (addStyleSheetArgs) {
-				arguments.AddRange(GetArgumentDetails(styleSheetConstructorInfo, styleSheetConstructorDoc, forceOptional: true));
+				arguments.AddRange(GetArgumentDetails(styleSheetBuilderInfo, styleSheetBuilderDoc, forceOptional: true));
 			}
 
 			return arguments.ToArray();
@@ -350,11 +350,11 @@ namespace SharpSheets.Markup.Parsing {
 		/// <summary></summary>
 		/// <exception cref="SystemException"></exception>
 		/// <exception cref="TargetInvocationException"></exception>
-		private static ConstructorDetails MakeConstructorDetails(string name, MethodInfo constructorInfo, Type declaringType, ConstructorDoc? constructorDoc, DocumentationString? typeDescription) {
-			return new ConstructorDetails(
+		private static BuilderDetails MakeBuilderDetails(string name, MethodInfo builderInfo, Type declaringType, BuilderDoc? builderDoc, DocumentationString? typeDescription) {
+			return new BuilderDetails(
 				declaringType, declaringType,
 				name, name,
-				GetArgumentDetails(constructorInfo, constructorDoc),
+				GetArgumentDetails(builderInfo, builderDoc),
 				NormaliseDescription(typeDescription),
 				null, null
 				);
@@ -365,9 +365,9 @@ namespace SharpSheets.Markup.Parsing {
 		/// <exception cref="InvalidOperationException"></exception>
 		/// <exception cref="SystemException"></exception>
 		/// <exception cref="TargetInvocationException"></exception>
-		private static ConstructorDetails GetConstructorDetails(Type type, string name) {
+		private static BuilderDetails GetBuilderDetails(Type type, string name) {
 			//ConstructorInfo constructorInfo = type.GetConstructors().FirstOrDefault() ?? throw new ArgumentException($"Could not find {nameof(ConstructorInfo)} for {type.Name}.");
-			MethodInfo constructorInfo = SharpFactory.GetBuilder(type) ?? throw new ArgumentException($"Could not find builder for {type.Name}.");
+			MethodInfo builderInfo = SharpFactory.GetBuilder(type) ?? throw new ArgumentException($"Could not find builder for {type.Name}.");
 			// if (constructorInfo.DeclaringType is null) {
 			// 	throw new InvalidOperationException($"Cannot get valid {nameof(ConstructorInfo)} for {type.Name}.");
 			// }
@@ -380,13 +380,13 @@ namespace SharpSheets.Markup.Parsing {
 			// else {
 			// 	constructorDoc = SharpDocumentation.GetConstructorDoc(constructorInfo);
 			// }
-			ConstructorDoc? constructorDoc = SharpDocumentation.GetConstructorDoc(constructorInfo);
+			BuilderDoc? builderDoc = SharpDocumentation.GetBuilderDoc(builderInfo);
 
-			Type builderType = FactoryBuilderAttribute.GetBuilderType(constructorInfo);
+			Type builderType = FactoryBuilderAttribute.GetBuilderType(builderInfo);
 
 			DocumentationString? typeDescription = SharpDocumentation.GetTypeDescription(builderType);
 
-			return MakeConstructorDetails(name, constructorInfo, builderType, constructorDoc, typeDescription);
+			return MakeBuilderDetails(name, builderInfo, builderType, builderDoc, typeDescription);
 		}
 
 	}

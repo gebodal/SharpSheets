@@ -59,7 +59,7 @@ namespace SharpSheets.Markup.Patterns {
 					useExamples = true;
 				}
 				else {
-					setup = (WidgetSetup?)SharpFactory.Build(WidgetFactory.widgetSetupConstructor, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out SharpParsingException[] setupErrors) ?? new WidgetSetup();
+					setup = (WidgetSetup?)SharpFactory.Build(WidgetFactory.widgetSetupBuilder, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out SharpParsingException[] setupErrors) ?? new WidgetSetup();
 					errors.AddRange(setupErrors);
 					useExamples = false;
 				}
@@ -108,8 +108,8 @@ namespace SharpSheets.Markup.Patterns {
 			return base.GetArgumentDetails().Concat(DocumentationGenerator.GetWidgetSetupArguments());
 		}
 
-		public override MarkupConstructorDetails GetConstructorDetails() {
-			return new MarkupConstructorDetails(this, typeof(IWidget), typeof(MarkupWidget), GetArgumentDetails().ToArray(), Description is not null ? new DocumentationString(Description) : null);
+		public override MarkupBuilderDetails GetBuilderDetails() {
+			return new MarkupBuilderDetails(this, typeof(IWidget), typeof(MarkupWidget), GetArgumentDetails().ToArray(), Description is not null ? new DocumentationString(Description) : null);
 		}
 
 		private static MarkupCanvasGraphicsData GetGraphicsData(WidgetSetup setup) {

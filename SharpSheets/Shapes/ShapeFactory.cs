@@ -24,7 +24,7 @@ namespace SharpSheets.Shapes {
 
 		#region Static Initialisation
 
-		private static readonly Dictionary<Type, Dictionary<Type, MethodInfo>> shapeConstructors;
+		private static readonly Dictionary<Type, Dictionary<Type, MethodInfo>> shapeBuilders;
 		private static readonly Dictionary<Type, Dictionary<string, Type>> shapeNames;
 		//private static readonly Dictionary<Type, HashSet<string>> staticShapeNames;
 		private static readonly HashSet<string> allStaticShapeNames;
@@ -55,7 +55,7 @@ namespace SharpSheets.Shapes {
 		};
 
 		static ShapeFactory() {
-			shapeConstructors = requiredArgumentsByType
+			shapeBuilders = requiredArgumentsByType
 				.ToDictionary(
 					kv => kv.Key,
 					kv => SharpFactory.GetBuilders(kv.Key, kv.Value)
@@ -63,7 +63,7 @@ namespace SharpSheets.Shapes {
 						.ToDictionary()
 					);
 
-			shapeNames = shapeConstructors.ToDictionary(kv => kv.Key, kv => kv.Value.ToDictionary(kvc => kvc.Key.Name, kvc => FactoryBuilderAttribute.GetBuilderType(kvc.Value), SharpDocuments.StringComparer));
+			shapeNames = shapeBuilders.ToDictionary(kv => kv.Key, kv => kv.Value.ToDictionary(kvc => kvc.Key.Name, kvc => FactoryBuilderAttribute.GetBuilderType(kvc.Value), SharpDocuments.StringComparer));
 
 			//staticShapeNames = shapeNames.ToDictionary(kv => kv.Key, kv => new HashSet<string>(kv.Value.Keys, SharpDocuments.StringComparer));
 			allStaticShapeNames = new HashSet<string>(shapeNames.SelectMany(kv => kv.Value.Keys), SharpDocuments.StringComparer);
@@ -71,28 +71,28 @@ namespace SharpSheets.Shapes {
 			//allConstructors = shapeConstructors.SelectMany(kv => kv.Value).ToDictionaryAllowRepeats(false);
 		}
 
-		private static TypeDetailsCollection? _allStaticConstructorDetails;
-		private static TypeDetailsCollection AllStaticConstructorDetails {
+		private static TypeDetailsCollection? _allStaticBuilderDetails;
+		private static TypeDetailsCollection AllStaticBuilderDetails {
 			get {
-				if (_allStaticConstructorDetails == null) {
+				if (_allStaticBuilderDetails == null) {
 					//List<ConstructorDetails> constructors = new List<ConstructorDetails>();
-					Dictionary<Type, ConstructorDetails> constructors = new Dictionary<Type, ConstructorDetails>();
-					foreach ((Type super, Dictionary<Type, MethodInfo> builderDict) in shapeConstructors) {
+					Dictionary<Type, BuilderDetails> builders = new Dictionary<Type, BuilderDetails>();
+					foreach ((Type super, Dictionary<Type, MethodInfo> builderDict) in shapeBuilders) {
 						foreach ((Type builderType, MethodInfo builder) in builderDict) {
-							ConstructorDetails constructorDetails = DocumentationGenerator.GetConstructorDetails(super, builder, builderType.Name);
-							if (constructors.TryGetValue(builderType, out ConstructorDetails? existing)) {
+							BuilderDetails builderDetails = DocumentationGenerator.GetBuilderDetails(super, builder, builderType.Name);
+							if (builders.TryGetValue(builderType, out BuilderDetails? existing)) {
 								if (existing.DisplayType == typeof(IBox) && super == typeof(ITitledBox)) {
-									constructors[builderType] = constructorDetails;
+									builders[builderType] = builderDetails;
 								}
 							}
 							else {
-								constructors.Add(builderType, constructorDetails);
+								builders.Add(builderType, builderDetails);
 							}
 						}
 					}
-					_allStaticConstructorDetails = new TypeDetailsCollection(constructors.Values, SharpDocuments.StringComparer);
+					_allStaticBuilderDetails = new TypeDetailsCollection(builders.Values, SharpDocuments.StringComparer);
 				}
-				return _allStaticConstructorDetails;
+				return _allStaticBuilderDetails;
 			}
 		}
 
@@ -118,7 +118,7 @@ namespace SharpSheets.Shapes {
 
 		private static IShape? BuildExample(Type shapeType, Type styleType, out SharpParsingException[] buildErrors) {
 
-			MethodInfo constructor = shapeConstructors[shapeType == typeof(IContainerShape) ? typeof(IBox) : shapeType][styleType];
+			MethodInfo builder = shapeBuilders[shapeType == typeof(IContainerShape) ? typeof(IBox) : shapeType][styleType];
 
 			object[] defaultArgs;
 
@@ -154,7 +154,7 @@ namespace SharpSheets.Shapes {
 				return null;
 			}
 
-			return (IShape?)SharpFactory.Build(constructor, Context.Empty, new DirectoryPath(Directory.GetCurrentDirectory()), null, null, defaultArgs, out buildErrors);
+			return (IShape?)SharpFactory.Build(builder, Context.Empty, new DirectoryPath(Directory.GetCurrentDirectory()), null, null, defaultArgs, out buildErrors);
 		}
 
 		public IShape MakeExample(Type type, string style, DirectoryPath source, out List<SharpParsingException> errors) {
@@ -167,16 +167,16 @@ namespace SharpSheets.Shapes {
 					throw new SharpParsingException(DocumentSpan.Imaginary, $"No shape type provided.");
 				}
 				else if (shapeNames[type].TryGetValue(style, out Type? styleType)) {
-					MethodInfo constructor = shapeConstructors[type][styleType];
+					MethodInfo builder = shapeBuilders[type][styleType];
 					Type? shapeType = shapeNames[type == typeof(IContainerShape) ? typeof(IBox) : type].GetValueOrFallback(style, null);
 
-					if (shapeType != null && AllStaticConstructorDetails.TryGetValue(shapeType, out ConstructorDetails? constructorDoc)) {
-						IContext context = new ConstructorContext(constructorDoc, new Dictionary<string, object>() { { "style", constructorDoc.FullName } });
-						shape = MakeShape(type, context, constructorDoc.Name, source, out SharpParsingException[] shapeBuildErrors);
+					if (shapeType != null && AllStaticBuilderDetails.TryGetValue(shapeType, out BuilderDetails? builderDoc)) {
+						IContext context = new BuilderContext(builderDoc, new Dictionary<string, object>() { { "style", builderDoc.FullName } });
+						shape = MakeShape(type, context, builderDoc.Name, source, out SharpParsingException[] shapeBuildErrors);
 						errors.AddRange(shapeBuildErrors);
 					}
 					else {
-						throw new SharpParsingException(DocumentSpan.Imaginary, $"No matching constructor details found for {shapeType?.Name ?? "UNKNOWN TYPE"}.");
+						throw new SharpParsingException(DocumentSpan.Imaginary, $"No matching builder details found for {shapeType?.Name ?? "UNKNOWN TYPE"}.");
 					}
 				}
 				else if (GetCustomStylePattern<MarkupShapePattern>(style) is MarkupShapePattern pattern && pattern.MakeExample(null, this, false, out SharpParsingException[] markupBuildErrors) is IShape markupShape) {
@@ -224,25 +224,25 @@ namespace SharpSheets.Shapes {
 			return context.GetProperty("style", false, context, null, out location);
 		}
 
-		private static MethodInfo GetDefaultConstructor(Type baseType, Type defaultStyle) {
-			if (defaultStyle != null && shapeConstructors[baseType].TryGetValue(defaultStyle, out MethodInfo? constructor)) {
-				return constructor;
+		private static MethodInfo GetDefaultBuilder(Type baseType, Type defaultStyle) {
+			if (defaultStyle != null && shapeBuilders[baseType].TryGetValue(defaultStyle, out MethodInfo? builder)) {
+				return builder;
 			}
 			else {
-				throw new ArgumentException($"Default constructor \"{defaultStyle?.Name ?? "ERROR"}\" could not be found for {baseType.Name}.");
+				throw new ArgumentException($"Default builder \"{defaultStyle?.Name ?? "ERROR"}\" could not be found for {baseType.Name}.");
 			}
 		}
 
-		private static bool TryGetConstructor(string styleName, Type baseType, [MaybeNullWhen(false)] out MethodInfo result) {
+		private static bool TryGetBuilder(string styleName, Type baseType, [MaybeNullWhen(false)] out MethodInfo result) {
 			Type? style = shapeNames[baseType].GetValueOrFallback(styleName, null);
 
 			if (style != null) {
-				if (shapeConstructors[baseType].TryGetValue(style, out MethodInfo? constructor)) {
-					result = constructor;
+				if (shapeBuilders[baseType].TryGetValue(style, out MethodInfo? builder)) {
+					result = builder;
 					return true;
 				}
 				else {
-					throw new ArgumentException($"Could not find constructor for built-in {baseType.Name} type \"{style.Name}\".");
+					throw new ArgumentException($"Could not find builder for built-in {baseType.Name} type \"{style.Name}\".");
 				}
 			}
 			else {
@@ -251,8 +251,8 @@ namespace SharpSheets.Shapes {
 			}
 		}
 
-		private T? Construct<T>(MethodInfo constructor, IContext context, object[] shapeParams, DirectoryPath source, out SharpParsingException[] buildErrors) where T : IShape {
-			return (T?)SharpFactory.Build(constructor, context, source, null, this, shapeParams, out buildErrors);
+		private T? Build<T>(MethodInfo builder, IContext context, object[] shapeParams, DirectoryPath source, out SharpParsingException[] buildErrors) where T : IShape {
+			return (T?)SharpFactory.Build(builder, context, source, null, this, shapeParams, out buildErrors);
 		}
 
 		private T MakeShape<T>(IContext context, string name, float aspect, object[] shapeParams, Type defaultStyle, DirectoryPath source, out SharpParsingException[] buildErrors) where T : IShape {
@@ -262,8 +262,8 @@ namespace SharpSheets.Shapes {
 			buildErrors = null!;
 
 			if (styleName is not null) {
-				if (TryGetConstructor(styleName, baseType, out MethodInfo? constructor)) {
-					T? constructed = Construct<T>(constructor, context, shapeParams, source, out buildErrors);
+				if (TryGetBuilder(styleName, baseType, out MethodInfo? builder)) {
+					T? constructed = Build<T>(builder, context, shapeParams, source, out buildErrors);
 					if (constructed is not null) {
 						return constructed;
 					}
@@ -277,8 +277,8 @@ namespace SharpSheets.Shapes {
 			}
 
 			// If all else fails
-			MethodInfo defaultConstructor = GetDefaultConstructor(baseType, defaultStyle);
-			T fallback = Construct<T>(defaultConstructor, context, shapeParams, source, out SharpParsingException[] defaultBuildErrors) ?? throw new InvalidOperationException($"Could not build default shape for {typeof(T)}");
+			MethodInfo defaultBuilder = GetDefaultBuilder(baseType, defaultStyle);
+			T fallback = Build<T>(defaultBuilder, context, shapeParams, source, out SharpParsingException[] defaultBuildErrors) ?? throw new InvalidOperationException($"Could not build default shape for {typeof(T)}");
 			// If we haven't got any build errors, then just use those from the fallback build. (Should the fallback errors be included even if we already tried a build?)
 			buildErrors = buildErrors is null ? defaultBuildErrors : buildErrors; //buildErrors.Concat(defaultBuildErrors).ToArray();
 			return fallback;
@@ -439,11 +439,11 @@ namespace SharpSheets.Shapes {
 			return pattern != null && pattern is MarkupShapePattern<T>;
 		}
 
-		private ConstructorDetails? GetCustomStyleConstructor(string name) {
+		private BuilderDetails? GetCustomStyleBuilder(string name) {
 			if (customStyles == null || name == null) {
 				return null;
 			}
-			return customStyles.GetConstructor<MarkupShapePattern>(PatternName.Parse(name));
+			return customStyles.GetBuilder<MarkupShapePattern>(PatternName.Parse(name));
 		}
 
 		#endregion
@@ -455,35 +455,35 @@ namespace SharpSheets.Shapes {
 		}
 
 		public bool ContainsKey(Type type) {
-			return AllStaticConstructorDetails.ContainsKey(type);
+			return AllStaticBuilderDetails.ContainsKey(type);
 		}
 
 		public bool ContainsKey(string name) {
-			return AllStaticConstructorDetails.ContainsKey(name) || IsCustomStylePattern(name);
+			return AllStaticBuilderDetails.ContainsKey(name) || IsCustomStylePattern(name);
 		}
 
-		public bool TryGetValue(Type type, [MaybeNullWhen(false)] out ConstructorDetails constructor) {
-			return AllStaticConstructorDetails.TryGetValue(type, out constructor);
+		public bool TryGetValue(Type type, [MaybeNullWhen(false)] out BuilderDetails builder) {
+			return AllStaticBuilderDetails.TryGetValue(type, out builder);
 		}
 
-		public bool TryGetValue(string name, [MaybeNullWhen(false)] out ConstructorDetails constructor) {
-			if(GetCustomStyleConstructor(name) is ConstructorDetails customConstructor) {
-				constructor = customConstructor;
+		public bool TryGetValue(string name, [MaybeNullWhen(false)] out BuilderDetails builder) {
+			if(GetCustomStyleBuilder(name) is BuilderDetails customBuilder) {
+				builder = customBuilder;
 				return true;
 			}
 			else {
-				return AllStaticConstructorDetails.TryGetValue(name, out constructor);
+				return AllStaticBuilderDetails.TryGetValue(name, out builder);
 			}
 		}
 
-		public IEnumerator<ConstructorDetails> GetEnumerator() {
+		public IEnumerator<BuilderDetails> GetEnumerator() {
 			if (customStyles != null) {
-				return new ConstructorDetailsUniqueNameEnumerator(
-					AllStaticConstructorDetails.Concat(customStyles.GetAllConstructorDetails<MarkupShapePattern>()),
+				return new BuilderDetailsUniqueNameEnumerator(
+					AllStaticBuilderDetails.Concat(customStyles.GetAllBuilderDetails<MarkupShapePattern>()),
 					SharpDocuments.StringComparer);
 			}
 			else {
-				return AllStaticConstructorDetails.GetEnumerator();
+				return AllStaticBuilderDetails.GetEnumerator();
 			}
 		}
 
@@ -491,9 +491,9 @@ namespace SharpSheets.Shapes {
 			return GetEnumerator();
 		}
 
-		public IEnumerable<KeyValuePair<string, ConstructorDetails>> GetConstructorNames() {
-			return AllStaticConstructorDetails.Select(c => new KeyValuePair<string, ConstructorDetails>(c.FullName, c))
-				.Concat(customStyles.GetMinimalConstructorNames<MarkupShapePattern>(allStaticShapeNames));
+		public IEnumerable<KeyValuePair<string, BuilderDetails>> GetBuilderNames() {
+			return AllStaticBuilderDetails.Select(c => new KeyValuePair<string, BuilderDetails>(c.FullName, c))
+				.Concat(customStyles.GetMinimalBuilderNames<MarkupShapePattern>(allStaticShapeNames));
 		}
 
 		#endregion

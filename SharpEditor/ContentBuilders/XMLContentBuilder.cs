@@ -21,14 +21,14 @@ namespace SharpEditor.ContentBuilders {
 
 	public static class XMLContentBuilder {
 
-		public static TextBlock GetXMLConstructorBlock(ConstructorDetails constructor, XMLElement element) {
+		public static TextBlock GetXMLBuilderBlock(BuilderDetails builder, XMLElement element) {
 			TextBlock block = BaseContentBuilder.GetContentTextBlock(default);
 			//Paragraph block = new Paragraph();
 
 			block.Inlines?.Add(new Run("<" + SharpValueHandler.NO_BREAK_CHAR) { Foreground = SharpEditorPalette.MarkupPunctuationBrush });
-			block.Inlines?.Add(MakeXMLRun(constructor.Name, SharpEditorPalette.MarkupElementBrush, false));
+			block.Inlines?.Add(MakeXMLRun(builder.Name, SharpEditorPalette.MarkupElementBrush, false));
 
-			foreach (ArgumentDetails attributeArg in constructor.Arguments) {
+			foreach (ArgumentDetails attributeArg in builder.Arguments) {
 				block.Inlines?.Add(" ");
 
 				block.Inlines?.AddRange(GetXMLArgumentInlines(attributeArg, element));
@@ -44,9 +44,9 @@ namespace SharpEditor.ContentBuilders {
 			return block;
 		}
 
-		public static IEnumerable<Inline> MakeMarkupTypeHeader(ConstructorDetails constructor) {
+		public static IEnumerable<Inline> MakeMarkupTypeHeader(BuilderDetails builder) {
 			yield return new Run("<" + SharpValueHandler.NO_BREAK_CHAR) { Foreground = SharpEditorPalette.MarkupPunctuationBrush };
-			yield return XMLContentBuilder.MakeXMLRun(constructor.Name, SharpEditorPalette.MarkupElementBrush, false);
+			yield return XMLContentBuilder.MakeXMLRun(builder.Name, SharpEditorPalette.MarkupElementBrush, false);
 			yield return new Run(SharpValueHandler.NO_BREAK_CHAR + ">") { Foreground = SharpEditorPalette.MarkupPunctuationBrush };
 		}
 

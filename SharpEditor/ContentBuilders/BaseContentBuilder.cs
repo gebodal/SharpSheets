@@ -213,13 +213,13 @@ namespace SharpEditor.ContentBuilders {
 			public virtual Inline Visit(TypeSpan span) {
 				if (span.Type is not null && typeof(SharpSheets.Markup.Elements.IMarkupElement).IsAssignableFrom(span.Type)) {
 
-					if (!SharpSheets.Markup.Parsing.MarkupDocumentation.MarkupConstructors.TryGetValue(span.Type, out ConstructorDetails? markupTypeConstructor)) {
-						SharpSheets.Markup.Parsing.MarkupDocumentation.MarkupConstructors.TryGetValue(span.Name, out markupTypeConstructor);
+					if (!SharpSheets.Markup.Parsing.MarkupDocumentation.MarkupBuilders.TryGetValue(span.Type, out BuilderDetails? markupTypeBuilder)) {
+						SharpSheets.Markup.Parsing.MarkupDocumentation.MarkupBuilders.TryGetValue(span.Name, out markupTypeBuilder);
 					}
 
-					if (markupTypeConstructor is not null) {
+					if (markupTypeBuilder is not null) {
 						Span markupTypeSpan = new Span();
-						markupTypeSpan.Inlines.AddRange(XMLContentBuilder.MakeMarkupTypeHeader(markupTypeConstructor));
+						markupTypeSpan.Inlines.AddRange(XMLContentBuilder.MakeMarkupTypeHeader(markupTypeBuilder));
 						return markupTypeSpan;
 					}
 				}

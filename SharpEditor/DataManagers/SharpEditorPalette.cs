@@ -204,7 +204,7 @@ namespace SharpEditor.DataManagers {
 
 			customHighlighting.MainRuleSet.Spans[styleRuleRulesetIndex].RuleSet.Rules.Insert(0, styleRule);
 
-			string[] rectSetupList = WidgetFactory.WidgetSetupConstructor.Arguments.Select(a => a.Name.ToLowerInvariant()).Distinct().OrderByDescending(a => a).ToArray();
+			string[] rectSetupList = WidgetFactory.WidgetSetupBuilder.Arguments.Select(a => a.Name.ToLowerInvariant()).Distinct().OrderByDescending(a => a).ToArray();
 			HighlightingSpan rectSetupSpanRule = new HighlightingSpan {
 				StartColor = colors["Config_WidgetSetup"],
 				SpanColorIncludesStart = true,

@@ -48,8 +48,8 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		public sealed override MarkupConstructorDetails GetConstructorDetails() {
-			return new MarkupConstructorDetails(this, typeof(T), InstanceType, GetArgumentDetails().ToArray(), Description is not null ? new DocumentationString(Description) : null);
+		public sealed override MarkupBuilderDetails GetBuilderDetails() {
+			return new MarkupBuilderDetails(this, typeof(T), InstanceType, GetArgumentDetails().ToArray(), Description is not null ? new DocumentationString(Description) : null);
 		}
 
 		protected virtual IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, string name, float aspect, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
@@ -284,7 +284,7 @@ namespace SharpSheets.Markup.Patterns {
 		}
 
 		protected override ArgumentDetails[] GetAdditionalArgumentDetails() {
-			return PatternData.TitledShapeConstructorArgs;
+			return PatternData.TitledShapeBuilderArgs;
 		}
 
 	}

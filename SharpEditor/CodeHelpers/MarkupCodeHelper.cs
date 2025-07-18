@@ -107,16 +107,16 @@ namespace SharpEditor.CodeHelpers {
 
 				if (span.Resulting != null) {
 					foreach (MarkupPattern pattern in span.Resulting.OfType<MarkupPattern>()) {
-						if (pattern.GetConstructorDetails() is MarkupConstructorDetails constructorDetails && constructorDetails.DeclaringType != typeof(ErrorPattern) && constructorDetails.Name != null) {
-							contents.AddRange(TooltipBuilder.MakeConstructorEntry(pattern.GetConstructorDetails(), null, true, null));
+						if (pattern.GetBuilderDetails() is MarkupBuilderDetails builderDetails && builderDetails.DeclaringType != typeof(ErrorPattern) && builderDetails.Name != null) {
+							contents.AddRange(TooltipBuilder.MakeBuilderEntry(pattern.GetBuilderDetails(), null, true, null));
 						}
 					}
 				}
 
-				if (span.Entity is XMLElement element && MarkupDocumentation.MarkupConstructors.TryGetValue(element.Name, out ConstructorDetails? constructor)) {
+				if (span.Entity is XMLElement element && MarkupDocumentation.MarkupBuilders.TryGetValue(element.Name, out BuilderDetails? builder)) {
 					if (contents.Count > 0) { contents.Add(TooltipBuilder.MakeSeparator()); }
 
-					TextBlock xmlBlock = XMLContentBuilder.GetXMLConstructorBlock(constructor, element);
+					TextBlock xmlBlock = XMLContentBuilder.GetXMLBuilderBlock(builder, element);
 					xmlBlock.Margin = TooltipBuilder.TextBlockMargin;
 
 					//System.Windows.Documents.Paragraph xmlBlock = XMLContentBuilder.GetXMLConstructorBlock(constructor, element);
@@ -129,7 +129,7 @@ namespace SharpEditor.CodeHelpers {
 
 					contents.Add(xmlBlock);
 
-					if (TooltipBuilder.MakeDescriptionTextBlock(constructor.Description) is TextBlock descriptionBlock) {
+					if (TooltipBuilder.MakeDescriptionTextBlock(builder.Description) is TextBlock descriptionBlock) {
 						//contents.Add(TooltipBuilder.MakeIndentedBlock(constructor.Description));
 						contents.Add(descriptionBlock);
 					}
@@ -213,8 +213,8 @@ namespace SharpEditor.CodeHelpers {
 		}
 
 		private IEnumerable<ArgumentDetails> GetAttributeDetails(XMLElement elem, string attribute) {
-			if (MarkupDocumentation.MarkupConstructors.TryGetValue(elem.Name, out ConstructorDetails? constructor)) {
-				if (constructor.Arguments.FirstOrDefault(a => a.Name == attribute) is ArgumentDetails arg) {
+			if (MarkupDocumentation.MarkupBuilders.TryGetValue(elem.Name, out BuilderDetails? builder)) {
+				if (builder.Arguments.FirstOrDefault(a => a.Name == attribute) is ArgumentDetails arg) {
 					yield return arg;
 				}
 			}
@@ -263,9 +263,9 @@ namespace SharpEditor.CodeHelpers {
 			List<Control> items = new List<Control>();
 
 			if (parsingState != null) {
-				if(parsingState.GetOwner(offset) is MarkupSpan span && span.Name != null && MarkupDocumentation.MarkupConstructors.TryGetValue(span.Name, out ConstructorDetails? contextConstructor)) {
-					MenuItem item = new MenuItem() { Header = "<" + contextConstructor.Name + "> Documentation..." };
-					item.Click += delegate { SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(contextConstructor, () => MarkupDocumentation.MarkupConstructors.Get(contextConstructor.Name)); };
+				if(parsingState.GetOwner(offset) is MarkupSpan span && span.Name != null && MarkupDocumentation.MarkupBuilders.TryGetValue(span.Name, out BuilderDetails? contextBuilder)) {
+					MenuItem item = new MenuItem() { Header = "<" + contextBuilder.Name + "> Documentation..." };
+					item.Click += delegate { SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(contextBuilder, () => MarkupDocumentation.MarkupBuilders.Get(contextBuilder.Name)); };
 					items.Add(item);
 				}
 			}

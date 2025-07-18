@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace SharpSheets.Documentation {
 
-	public class ConstructorContext : IContext {
+	public class BuilderContext : IContext {
 
 		public IContext? Parent { get; } = null;
 		public IEnumerable<IContext> Children => Enumerable.Empty<IContext>();
@@ -30,7 +30,7 @@ namespace SharpSheets.Documentation {
 		private readonly Dictionary<string, bool> flags;
 		private readonly List<string> entries;
 
-		public ConstructorContext(ConstructorDetails constructor, IDictionary<string, object> propertyValues) {
+		public BuilderContext(BuilderDetails builder, IDictionary<string, object> propertyValues) {
 			properties = new Dictionary<string, string>(SharpDocuments.StringComparer);
 			flags = new Dictionary<string, bool>();
 			entries = new List<string>();
@@ -39,7 +39,7 @@ namespace SharpSheets.Documentation {
 				properties[propertyEntry.Key] = ValueParsing.ToString(propertyEntry.Value);
 			}
 
-			foreach (ArgumentDetails arg in constructor.Arguments) {
+			foreach (ArgumentDetails arg in builder.Arguments) {
 				if (arg.Type.DisplayType.TryGetGenericTypeDefinition() == typeof(List<>)) { // Use DisplayType here to be sure...
 					if (arg.ExampleValue is IEnumerable exampleEnumerable) {
 						entries = exampleEnumerable.Cast<object>().Select(v => ValueParsing.ToString(v)).ToList();

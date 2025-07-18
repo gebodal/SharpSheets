@@ -21,7 +21,7 @@ namespace SharpSheets.Documentation {
 			SharpDocumentation.LoadEmbeddedDocumentation(typeof(SharpWidget).Assembly);
 		}
 
-		private static IEnumerable<ArgumentDetails> GetArguments(MethodInfo builder, ConstructorDoc? constructorDoc, string prefix = "", bool ignoreWidgetSetup = false) {
+		private static IEnumerable<ArgumentDetails> GetArguments(MethodInfo builder, BuilderDoc? builderDoc, string prefix = "", bool ignoreWidgetSetup = false) {
 			bool addWidgetSetupArgs = false;
 
 			Type builderType = FactoryBuilderAttribute.GetBuilderType(builder);
@@ -48,7 +48,7 @@ namespace SharpSheets.Documentation {
 				string parameterName = SharpFactory.NormaliseParameterName(param.Name);
 				bool useLocal = propAttr?.Local ?? false; // param.Name[0] == '_';
 
-				ArgumentDoc? argDoc = constructorDoc?.GetArgument(param.Name);
+				ArgumentDoc? argDoc = builderDoc?.GetArgument(param.Name);
 
 				if (argDoc?.exclude ?? false) { // param.ParameterType == typeof(IContext) || param.ParameterType == typeof(CardFeatureConfig) || param.ParameterType == typeof(CardSectionConfig) || param.ParameterType == typeof(CardConfig)
 					continue;
@@ -60,11 +60,11 @@ namespace SharpSheets.Documentation {
 				}
 				else if (typeof(SharpWidget).IsAssignableFrom(param.ParameterType)) {
 
-					MethodInfo nestedConstructor = WidgetFactory.GetConstructorInfo(param.ParameterType) ?? throw new ArgumentException($"Could not find {nameof(ConstructorInfo)} for parameter type.");
-					ConstructorDoc? nestedConstructorDoc = SharpDocumentation.GetConstructorDoc(nestedConstructor);
+					MethodInfo nestedBuilder = WidgetFactory.GetBuilderInfo(param.ParameterType) ?? throw new ArgumentException($"Could not find builder for parameter type {param.ParameterType}.");
+					BuilderDoc? nestedBuilderDoc = SharpDocumentation.GetBuilderDoc(nestedBuilder);
 
 					string nestedPrefix = (prefix.Length > 0 ? prefix + "." : "") + parameterName;
-					foreach (ArgumentDetails p in GetArguments(nestedConstructor, nestedConstructorDoc, nestedPrefix, true)) {
+					foreach (ArgumentDetails p in GetArguments(nestedBuilder, nestedBuilderDoc, nestedPrefix, true)) {
 						yield return p;
 					}
 				}
@@ -80,26 +80,26 @@ namespace SharpSheets.Documentation {
 					}
 				}
 				else if (typeof(ISharpArgsGrouping).IsAssignableFrom(param.ParameterType) || SharpFactory.IsParsableStruct(param.ParameterType)) {
-					MethodInfo nestedConstructor = ValueParsing.GetSimpleConstructor(param.ParameterType);
-					ConstructorDoc? nestedConstructorDoc = SharpDocumentation.GetConstructorDoc(nestedConstructor);
+					MethodInfo nestedBuilder = ValueParsing.GetSimpleBuilder(param.ParameterType);
+					BuilderDoc? nestedBuilderDoc = SharpDocumentation.GetBuilderDoc(nestedBuilder);
 
 					//Console.WriteLine($"Arguments for {param.ParameterType.FullName}");
 
 					string nestedPrefix = (prefix.Length > 0 ? prefix + "." : "") + parameterName;
-					foreach (ArgumentDetails p in GetArguments(nestedConstructor, nestedConstructorDoc, nestedPrefix, false)) {
+					foreach (ArgumentDetails p in GetArguments(nestedBuilder, nestedBuilderDoc, nestedPrefix, false)) {
 						//Console.WriteLine($"{p.Name}: {p.Description ?? "None"}");
 						yield return p;
 					}
 				}
 				else if (typeof(ISharpArgSupplemented).IsAssignableFrom(param.ParameterType)) {
-					MethodInfo nestedConstructor = ValueParsing.GetSimpleConstructor(param.ParameterType);
-					ConstructorDoc? nestedConstructorDoc = SharpDocumentation.GetConstructorDoc(nestedConstructor);
+					MethodInfo nestedBuilder = ValueParsing.GetSimpleBuilder(param.ParameterType);
+					BuilderDoc? nestedBuilderDoc = SharpDocumentation.GetBuilderDoc(nestedBuilder);
 
-					ArgumentDoc? firstArgDoc = nestedConstructorDoc?.arguments[0];
-					yield return GetSingleArg(nestedConstructor.GetParameters()[0], parameterName, prefix, useLocal, argDoc?.description, firstArgDoc);
+					ArgumentDoc? firstArgDoc = nestedBuilderDoc?.arguments[0];
+					yield return GetSingleArg(nestedBuilder.GetParameters()[0], parameterName, prefix, useLocal, argDoc?.description, firstArgDoc);
 
 					string nestedPrefix = (prefix.Length > 0 ? prefix + "." : "") + parameterName;
-					foreach (ArgumentDetails p in GetArguments(nestedConstructor, nestedConstructorDoc, nestedPrefix, false).Skip(1)) {
+					foreach (ArgumentDetails p in GetArguments(nestedBuilder, nestedBuilderDoc, nestedPrefix, false).Skip(1)) {
 						yield return p;
 					}
 				}
@@ -137,8 +137,8 @@ namespace SharpSheets.Documentation {
 			}
 		}
 
-		private static Rectangle? GetExampleSize(ConstructorDoc? constructorDoc) {
-			if (constructorDoc?.size is string sizeStr) {
+		private static Rectangle? GetExampleSize(BuilderDoc? builderDoc) {
+			if (builderDoc?.size is string sizeStr) {
 				string[] parts = sizeStr.Trim().Split(' ');
 				if (parts.Length == 2) {
 					float width = float.Parse(parts[0]);
@@ -163,8 +163,8 @@ namespace SharpSheets.Documentation {
 			return null;
 		}
 
-		private static Size? GetExampleCanvas(ConstructorDoc? constructorDoc) {
-			if (constructorDoc?.canvas is string canvasStr) {
+		private static Size? GetExampleCanvas(BuilderDoc? builderDoc) {
+			if (builderDoc?.canvas is string canvasStr) {
 				string[] parts = canvasStr.Trim().Split(' ');
 				if (parts.Length == 2) {
 					float width = float.Parse(parts[0]);
@@ -182,7 +182,7 @@ namespace SharpSheets.Documentation {
 		}
 
 		public static IEnumerable<ArgumentDetails> GetWidgetSetupArguments(string prefix = "") {
-			foreach (ArgumentDetails p in GetArguments(WidgetFactory.widgetSetupConstructor, WidgetFactory.widgetSetupConstructorDoc, prefix)) {
+			foreach (ArgumentDetails p in GetArguments(WidgetFactory.widgetSetupBuilder, WidgetFactory.widgetSetupBuilderDoc, prefix)) {
 				yield return p;
 			}
 		}
@@ -235,21 +235,21 @@ namespace SharpSheets.Documentation {
 
 		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
-		public static ConstructorDetails GetConstructorDetails(Type displayType, MethodInfo constructor, string name) {
-			Type builderType = FactoryBuilderAttribute.GetBuilderType(constructor);
-			ConstructorDoc? constructorDoc = SharpDocumentation.GetConstructorDoc(constructor);
+		public static BuilderDetails GetBuilderDetails(Type displayType, MethodInfo builder, string name) {
+			Type builderType = FactoryBuilderAttribute.GetBuilderType(builder);
+			BuilderDoc? builderDoc = SharpDocumentation.GetBuilderDoc(builder);
 			if(builderType == typeof(void)) {
 				throw new InvalidOperationException("Provided builder does not have a valid return type.");
 			}
-			return new ConstructorDetails(
+			return new BuilderDetails(
 					displayType,
 					builderType,
 					name, // constructor.DeclaringType.Name,
 					name,
-					GetArguments(constructor, constructorDoc).ToArray(),
+					GetArguments(builder, builderDoc).ToArray(),
 					NormaliseDescription(SharpDocumentation.GetTypeDescription(builderType)),
-					GetExampleSize(constructorDoc),
-					GetExampleCanvas(constructorDoc));
+					GetExampleSize(builderDoc),
+					GetExampleCanvas(builderDoc));
 		}
 
 		private class SharpDocumentationSpanProcessor : IDocumentationSpanVisitor<IDocumentationSpan> {

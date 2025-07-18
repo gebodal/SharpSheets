@@ -34,13 +34,13 @@ namespace SharpSheets.Widgets {
 
 		#region Static Initialisation and Accessors
 
-		private static readonly Dictionary<Type, MethodInfo> widgetConstructorsByType;
-		private static readonly Dictionary<string, MethodInfo> widgetConstructorsByName;
+		private static readonly Dictionary<Type, MethodInfo> widgetBuildersByType;
+		private static readonly Dictionary<string, MethodInfo> widgetBuildersByName;
 		private static readonly Dictionary<Type, string> widgetTypeNames;
 		private static readonly HashSet<string> staticWidgetNames;
 
-		public static readonly MethodInfo widgetSetupConstructor;
-		public static readonly ConstructorDoc widgetSetupConstructorDoc;
+		public static readonly MethodInfo widgetSetupBuilder;
+		public static readonly BuilderDoc widgetSetupBuilderDoc;
 
 		/// <summary></summary>
 		/// <exception cref="TypeInitializationException"></exception>
@@ -51,63 +51,63 @@ namespace SharpSheets.Widgets {
 		static WidgetFactory() {
 			SharpDocumentation.LoadEmbeddedDocumentation(typeof(SharpWidget).Assembly);
 
-			widgetConstructorsByType = SharpFactory.GetBuilders(typeof(IWidget), typeof(WidgetSetup));
-			widgetConstructorsByName = widgetConstructorsByType.ToDictionary(kv => kv.Key.Name, kv => kv.Value, SharpDocuments.StringComparer);
+			widgetBuildersByType = SharpFactory.GetBuilders(typeof(IWidget), typeof(WidgetSetup));
+			widgetBuildersByName = widgetBuildersByType.ToDictionary(kv => kv.Key.Name, kv => kv.Value, SharpDocuments.StringComparer);
 
-			widgetSetupConstructor = SharpFactory.GetBuilder(typeof(WidgetSetup)) ?? throw new InvalidOperationException("Cannot find WidgetSetup builder method.");
-			widgetSetupConstructorDoc = SharpDocumentation.GetConstructorDoc(widgetSetupConstructor) ?? throw new TypeInitializationException(nameof(WidgetFactory), null);
+			widgetSetupBuilder = SharpFactory.GetBuilder(typeof(WidgetSetup)) ?? throw new InvalidOperationException("Cannot find WidgetSetup builder method.");
+			widgetSetupBuilderDoc = SharpDocumentation.GetBuilderDoc(widgetSetupBuilder) ?? throw new TypeInitializationException(nameof(WidgetFactory), null);
 
-			widgetTypeNames = widgetConstructorsByType.ToDictionary(kv =>  FactoryBuilderAttribute.GetBuilderType(kv.Value), kv => kv.Key.Name);
+			widgetTypeNames = widgetBuildersByType.ToDictionary(kv =>  FactoryBuilderAttribute.GetBuilderType(kv.Value), kv => kv.Key.Name);
 
-			staticWidgetNames = new HashSet<string>(widgetConstructorsByName.Keys, SharpDocuments.StringComparer);
+			staticWidgetNames = new HashSet<string>(widgetBuildersByName.Keys, SharpDocuments.StringComparer);
 		}
 
-		private static TypeDetailsCollection? _allStaticConstructorDetails;
-		private static TypeDetailsCollection AllStaticConstructorDetails {
+		private static TypeDetailsCollection? _allStaticBuilderDetails;
+		private static TypeDetailsCollection AllStaticBuilderDetails {
 			get {
-				if (_allStaticConstructorDetails == null) {
-					List<ConstructorDetails> constructors = new List<ConstructorDetails>();
-					foreach ((string widgetName, MethodInfo widgetBuilder) in widgetConstructorsByName) {
-						constructors.Add(DocumentationGenerator.GetConstructorDetails(typeof(SharpWidget), widgetBuilder, widgetName));
+				if (_allStaticBuilderDetails == null) {
+					List<BuilderDetails> builders = new List<BuilderDetails>();
+					foreach ((string widgetName, MethodInfo widgetBuilder) in widgetBuildersByName) {
+						builders.Add(DocumentationGenerator.GetBuilderDetails(typeof(SharpWidget), widgetBuilder, widgetName));
 					}
-					_allStaticConstructorDetails = new TypeDetailsCollection(constructors, SharpDocuments.StringComparer);
+					_allStaticBuilderDetails = new TypeDetailsCollection(builders, SharpDocuments.StringComparer);
 				}
-				return _allStaticConstructorDetails;
+				return _allStaticBuilderDetails;
 			}
 		}
 
-		private static ConstructorDetails? _widgetSetupConstructor;
-		public static ConstructorDetails WidgetSetupConstructor {
+		private static BuilderDetails? _widgetSetupBuilder;
+		public static BuilderDetails WidgetSetupBuilder {
 			get {
-				if (_widgetSetupConstructor == null) {
-					_widgetSetupConstructor = DocumentationGenerator.GetConstructorDetails(typeof(WidgetSetup), widgetSetupConstructor, "WidgetSetup");
+				if (_widgetSetupBuilder == null) {
+					_widgetSetupBuilder = DocumentationGenerator.GetBuilderDetails(typeof(WidgetSetup), widgetSetupBuilder, "WidgetSetup");
 				}
-				return _widgetSetupConstructor;
+				return _widgetSetupBuilder;
 			}
 		}
 
-		private static ConstructorDetails? _divConstructor;
-		public static ConstructorDetails DivConstructor {
+		private static BuilderDetails? _divBuilder;
+		public static BuilderDetails DivBuilder {
 			get {
-				if (_divConstructor == null) {
-					if(!AllStaticConstructorDetails.TryGetValue(typeof(Div), out _divConstructor)) {
-						throw new NotSupportedException("Constructor for Div not found."); // This should never happen
+				if (_divBuilder == null) {
+					if(!AllStaticBuilderDetails.TryGetValue(typeof(Div), out _divBuilder)) {
+						throw new NotSupportedException("Builder for Div not found."); // This should never happen
 					}
 				}
-				return _divConstructor;
+				return _divBuilder;
 			}
 		}
 
-		public static MethodInfo? GetConstructorInfo(Type type) {
-			return widgetConstructorsByType.TryGetValue(type, out MethodInfo? constructor) ? constructor : null;
+		public static MethodInfo? GetBuilderInfo(Type type) {
+			return widgetBuildersByType.TryGetValue(type, out MethodInfo? builder) ? builder : null;
 		}
 
-		private static MethodInfo? GetConstructorInfo(string name) {
-			return widgetConstructorsByName.TryGetValue(name, out MethodInfo? constructor) ? constructor : null;
+		private static MethodInfo? GetBuilderInfo(string name) {
+			return widgetBuildersByName.TryGetValue(name, out MethodInfo? builder) ? builder : null;
 		}
 
-		private static IEnumerable<Regex> GetNamedChildren(MethodInfo constructor) {
-			foreach (ParameterInfo parameter in constructor.GetParameters()) {
+		private static IEnumerable<Regex> GetNamedChildren(MethodInfo builder) {
+			foreach (ParameterInfo parameter in builder.GetParameters()) {
 				if (parameter.Name is not null) {
 					string paramName = SharpFactory.NormaliseParameterName(parameter.Name);
 					if (parameter.ParameterType == typeof(ChildHolder)) {
@@ -122,8 +122,8 @@ namespace SharpSheets.Widgets {
 
 		private static readonly Regex integerRegex = new Regex(@"^[0-9]+$");
 
-		private static bool IsNamedChild(MethodInfo constructor, string child) {
-			foreach(ParameterInfo parameter in constructor.GetParameters()) {
+		private static bool IsNamedChild(MethodInfo builder, string child) {
+			foreach(ParameterInfo parameter in builder.GetParameters()) {
 				if (parameter.Name is not null) {
 					string paramName = SharpFactory.NormaliseParameterName(parameter.Name);
 					if (parameter.ParameterType == typeof(ChildHolder)) {
@@ -168,8 +168,8 @@ namespace SharpSheets.Widgets {
 				if (type == null) {
 					throw new SharpParsingException(context.Location, $"No widget type provided.");
 				}
-				else if (widgetConstructorsByName.TryGetValue(type, out MethodInfo? widgetConstructor)) {
-					IWidget? builtWidget = ConstructWidget(widgetConstructor, context, source, knownSetup, out SharpParsingException[] widgetBuildErrors);
+				else if (widgetBuildersByName.TryGetValue(type, out MethodInfo? widgetBuilder)) {
+					IWidget? builtWidget = ConstructWidget(widgetBuilder, context, source, knownSetup, out SharpParsingException[] widgetBuildErrors);
 					// TODO This error widget construction can be improved
 					widget = builtWidget ?? MakeErrorWidget("Could not construct widget.", new InvalidOperationException("Could not construct widget."), context, source, out _);
 					errors.AddRange(widgetBuildErrors);
@@ -223,7 +223,7 @@ namespace SharpSheets.Widgets {
 			buildErrors = Array.Empty<SharpParsingException>();
 			if (context != null) {
 				try {
-					object? constructed = SharpFactory.Build(widgetSetupConstructor, context, source, this, shapeFactory, Array.Empty<object>(), out SharpParsingException[] setupBuildErrors);
+					object? constructed = SharpFactory.Build(widgetSetupBuilder, context, source, this, shapeFactory, Array.Empty<object>(), out SharpParsingException[] setupBuildErrors);
 					if (constructed is WidgetSetup constuctedSetup) {
 						setup = WidgetSetup.MakeSizedErrorWidget(constuctedSetup.margins, constuctedSetup.size, constuctedSetup.position);
 					}
@@ -270,15 +270,15 @@ namespace SharpSheets.Widgets {
 				if (type == null) {
 					throw new SharpParsingException(DocumentSpan.Imaginary, $"No widget type provided.");
 				}
-				else if (widgetConstructorsByName.TryGetValue(type, out MethodInfo? widgetConstructor)) {
+				else if (widgetBuildersByName.TryGetValue(type, out MethodInfo? widgetBuilder)) {
 					//throw new SharpParsingException(DocumentSpan.Imaginary, "Cannot create example of built-in widget type.");
-					if (AllStaticConstructorDetails.TryGetValue(type, out ConstructorDetails? constructor)) {
-						IContext context = new ConstructorContext(constructor, new Dictionary<string, object>());
-						IWidget? builtExample = ConstructWidget(widgetConstructor, context, source, exampleSetup, out buildErrors);
+					if (AllStaticBuilderDetails.TryGetValue(type, out BuilderDetails? builder)) {
+						IContext context = new BuilderContext(builder, new Dictionary<string, object>());
+						IWidget? builtExample = ConstructWidget(widgetBuilder, context, source, exampleSetup, out buildErrors);
 						widget = builtExample ?? MakeErrorWidget("Could not build example.", new InvalidOperationException("Could not build example."), context, source, out _);
 					}
 					else {
-						throw new SharpParsingException(DocumentSpan.Imaginary, $"No matching constructor details found for {type}.");
+						throw new SharpParsingException(DocumentSpan.Imaginary, $"No matching builder details found for {type}.");
 					}
 				}
 				else if (GetCustomWidgetPattern(type) is MarkupWidgetPattern pattern && pattern.MakeExample(this, shapeFactory, exampleSetup, out buildErrors) is IWidget markupWidget) {
@@ -319,8 +319,8 @@ namespace SharpSheets.Widgets {
 		public bool IsWidget(string name) => ContainsKey(name);
 
 		public bool IsNamedChild(string parent, string child) {
-			if (GetConstructorInfo(parent) is MethodInfo constructor) {
-				return IsNamedChild(constructor, child);
+			if (GetBuilderInfo(parent) is MethodInfo builder) {
+				return IsNamedChild(builder, child);
 			}
 			else if (GetCustomWidgetPattern(parent) is MarkupWidgetPattern pattern) {
 				return pattern.HasNamedChild(child);
@@ -331,8 +331,8 @@ namespace SharpSheets.Widgets {
 		}
 
 		public IEnumerable<Regex> GetNamedChildren(string parentType) {
-			if (GetConstructorInfo(parentType) is MethodInfo constructor) {
-				return GetNamedChildren(constructor);
+			if (GetBuilderInfo(parentType) is MethodInfo builder) {
+				return GetNamedChildren(builder);
 			}
 			else if (GetCustomWidgetPattern(parentType) is MarkupWidgetPattern pattern) {
 				return pattern.GetNamedChildren();
@@ -363,11 +363,11 @@ namespace SharpSheets.Widgets {
 			return customWidgets.IsPattern<MarkupWidgetPattern>(PatternName.Parse(name));
 		}
 
-		private ConstructorDetails? GetCustomWidgetConstructor(string name) {
+		private BuilderDetails? GetCustomWidgetBuilder(string name) {
 			if (customWidgets == null || name == null) {
 				return null;
 			}
-			return customWidgets.GetConstructor<MarkupWidgetPattern>(PatternName.Parse(name));
+			return customWidgets.GetBuilder<MarkupWidgetPattern>(PatternName.Parse(name));
 		}
 
 		private MarkupWidgetPattern? GetCustomWidgetPattern(string name) {
@@ -382,39 +382,39 @@ namespace SharpSheets.Widgets {
 		#region Type Utilities
 
 		public string[] GetAllNames() {
-			return widgetConstructorsByName.Keys.Concat(GetAllCustomWidgetNames()).Distinct().ToArray();
+			return widgetBuildersByName.Keys.Concat(GetAllCustomWidgetNames()).Distinct().ToArray();
 		}
 
 		public bool ContainsKey(Type type) {
-			return widgetConstructorsByType.ContainsKey(type);
+			return widgetBuildersByType.ContainsKey(type);
 		}
 
 		public bool ContainsKey(string name) {
-			return widgetConstructorsByName.ContainsKey(name) || IsCustomWidgetPattern(name);
+			return widgetBuildersByName.ContainsKey(name) || IsCustomWidgetPattern(name);
 		}
 
-		public bool TryGetValue(Type type, [MaybeNullWhen(false)] out ConstructorDetails constructor) {
-			return AllStaticConstructorDetails.TryGetValue(type, out constructor);
+		public bool TryGetValue(Type type, [MaybeNullWhen(false)] out BuilderDetails builder) {
+			return AllStaticBuilderDetails.TryGetValue(type, out builder);
 		}
 
-		public bool TryGetValue(string name, [MaybeNullWhen(false)] out ConstructorDetails constructor) {
-			if (AllStaticConstructorDetails.TryGetValue(name, out constructor)) {
+		public bool TryGetValue(string name, [MaybeNullWhen(false)] out BuilderDetails builder) {
+			if (AllStaticBuilderDetails.TryGetValue(name, out builder)) {
 				return true;
 			}
 			else {
-				constructor = GetCustomWidgetConstructor(name);
-				return constructor is ConstructorDetails;
+				builder = GetCustomWidgetBuilder(name);
+				return builder is BuilderDetails;
 			}
 		}
 
-		public IEnumerator<ConstructorDetails> GetEnumerator() {
+		public IEnumerator<BuilderDetails> GetEnumerator() {
 			if (customWidgets != null) {
-				return new ConstructorDetailsUniqueNameEnumerator(
-					AllStaticConstructorDetails.Concat(customWidgets.GetAllConstructorDetails<MarkupWidgetPattern>()),
+				return new BuilderDetailsUniqueNameEnumerator(
+					AllStaticBuilderDetails.Concat(customWidgets.GetAllBuilderDetails<MarkupWidgetPattern>()),
 					SharpDocuments.StringComparer);
 			}
 			else {
-				return AllStaticConstructorDetails.GetEnumerator();
+				return AllStaticBuilderDetails.GetEnumerator();
 			}
 		}
 
@@ -422,9 +422,9 @@ namespace SharpSheets.Widgets {
 			return GetEnumerator();
 		}
 
-		public IEnumerable<KeyValuePair<string, ConstructorDetails>> GetConstructorNames() {
-			return AllStaticConstructorDetails.Select(c => new KeyValuePair<string, ConstructorDetails>(c.FullName, c))
-				.Concat(customWidgets.GetMinimalConstructorNames<MarkupWidgetPattern>(staticWidgetNames));
+		public IEnumerable<KeyValuePair<string, BuilderDetails>> GetBuilderNames() {
+			return AllStaticBuilderDetails.Select(c => new KeyValuePair<string, BuilderDetails>(c.FullName, c))
+				.Concat(customWidgets.GetMinimalBuilderNames<MarkupWidgetPattern>(staticWidgetNames));
 		}
 
 		#endregion

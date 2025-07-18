@@ -26,16 +26,16 @@ namespace SharpSheets.Markup.Patterns {
 			return registry.GetPatterns().OfType<T>();
 		}
 
-		public static ConstructorDetails? GetConstructor(this IMarkupRegistry registry, PatternName name) {
-			return registry.GetPattern(name)?.GetConstructorDetails();
+		public static BuilderDetails? GetBuilder(this IMarkupRegistry registry, PatternName name) {
+			return registry.GetPattern(name)?.GetBuilderDetails();
 		}
 
-		public static ConstructorDetails? GetConstructor<T>(this IMarkupRegistry registry, PatternName name) where T : MarkupPattern {
-			return registry.GetPattern<T>(name)?.GetConstructorDetails();
+		public static BuilderDetails? GetBuilder<T>(this IMarkupRegistry registry, PatternName name) where T : MarkupPattern {
+			return registry.GetPattern<T>(name)?.GetBuilderDetails();
 		}
 
-		public static IEnumerable<ConstructorDetails> GetAllConstructorDetails<T>(this IMarkupRegistry registry) where T : MarkupPattern {
-			return registry.GetPatterns<T>().Select(p => p.GetConstructorDetails());
+		public static IEnumerable<BuilderDetails> GetAllBuilderDetails<T>(this IMarkupRegistry registry) where T : MarkupPattern {
+			return registry.GetPatterns<T>().Select(p => p.GetBuilderDetails());
 		}
 
 		public static IEnumerable<string> GetValidNames<T>(this IMarkupRegistry registry, HashSet<string> reservedNames) where T : MarkupPattern {
@@ -46,20 +46,20 @@ namespace SharpSheets.Markup.Patterns {
 			return registry.GetMinimalNames(reservedNames).Where(n => registry.IsPattern<T>(PatternName.Parse(n)));
 		}
 
-		public static IEnumerable<KeyValuePair<string, ConstructorDetails>> GetValidConstructorNames<T>(this IMarkupRegistry registry, HashSet<string> reservedNames) where T : MarkupPattern {
+		public static IEnumerable<KeyValuePair<string, BuilderDetails>> GetValidBuilderNames<T>(this IMarkupRegistry registry, HashSet<string> reservedNames) where T : MarkupPattern {
 			foreach(string name in registry.GetValidNames<T>(reservedNames)) {
-				ConstructorDetails? constructorDetails = registry.GetConstructor(PatternName.Parse(name));
-				if(constructorDetails != null) {
-					yield return new KeyValuePair<string, ConstructorDetails>(name, constructorDetails);
+				BuilderDetails? builderDetails = registry.GetBuilder(PatternName.Parse(name));
+				if(builderDetails != null) {
+					yield return new KeyValuePair<string, BuilderDetails>(name, builderDetails);
 				}
 			}
 		}
 
-		public static IEnumerable<KeyValuePair<string, ConstructorDetails>> GetMinimalConstructorNames<T>(this IMarkupRegistry registry, HashSet<string> reservedNames) where T : MarkupPattern {
+		public static IEnumerable<KeyValuePair<string, BuilderDetails>> GetMinimalBuilderNames<T>(this IMarkupRegistry registry, HashSet<string> reservedNames) where T : MarkupPattern {
 			foreach (string name in registry.GetMinimalNames<T>(reservedNames)) {
-				ConstructorDetails? constructorDetails = registry.GetConstructor(PatternName.Parse(name));
-				if (constructorDetails != null) {
-					yield return new KeyValuePair<string, ConstructorDetails>(name, constructorDetails);
+				BuilderDetails? builderDetails = registry.GetBuilder(PatternName.Parse(name));
+				if (builderDetails != null) {
+					yield return new KeyValuePair<string, BuilderDetails>(name, builderDetails);
 				}
 			}
 		}

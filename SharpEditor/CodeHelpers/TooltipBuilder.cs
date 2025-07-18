@@ -40,49 +40,49 @@ namespace SharpEditor.CodeHelpers {
 			return BaseContentBuilder.MakeDescriptionTextBlock(descriptionString, IndentedMargin);
 		}
 
-		public static IEnumerable<Control> MakeConstructorEntry(ConstructorDetails constructor, IContext? constructorContext, bool includeArguments, ITypeDetailsCollection? impliedConstructors) {
-			yield return BaseContentBuilder.GetContentTextBlock(ConstructorContentBuilder.MakeConstructorHeaderBlock(constructor), TextBlockMargin);
+		public static IEnumerable<Control> MakeBuilderEntry(BuilderDetails builder, IContext? builderContext, bool includeArguments, ITypeDetailsCollection? impliedBuilders) {
+			yield return BaseContentBuilder.GetContentTextBlock(BuilderContentBuilder.MakeBuilderHeaderBlock(builder), TextBlockMargin);
 			
-			if (BaseContentBuilder.MakeDescriptionTextBlock(constructor.Description, IndentedMargin) is TextBlock descriptionBlock) {
+			if (BaseContentBuilder.MakeDescriptionTextBlock(builder.Description, IndentedMargin) is TextBlock descriptionBlock) {
 				//yield return BaseContentBuilder.GetContentTextBlock(constructor.Description, IndentedMargin);
 				yield return descriptionBlock;
 			}
 
 			if (!includeArguments) yield break;
 
-			ArgumentDetails[] arguments = constructor.Arguments.GroupBy(a => $"{SharpValueHandler.GetTypeName(a.Type)} {a.Name}").Select(g => g.First()).ToArray(); // What breaks if we don't do this?
-			TextBlock argumentBlock = BaseContentBuilder.GetContentTextBlock(GetArgumentListInlines(arguments, constructorContext), TextBlockMargin); // GetToolTipTextBlock();
+			ArgumentDetails[] arguments = builder.Arguments.GroupBy(a => $"{SharpValueHandler.GetTypeName(a.Type)} {a.Name}").Select(g => g.First()).ToArray(); // What breaks if we don't do this?
+			TextBlock argumentBlock = BaseContentBuilder.GetContentTextBlock(GetArgumentListInlines(arguments, builderContext), TextBlockMargin); // GetToolTipTextBlock();
 			if (argumentBlock.Inlines?.Count > 0) { yield return argumentBlock; }
 
-			if (constructorContext != null && impliedConstructors != null) {
+			if (builderContext != null && impliedBuilders != null) {
 				ArgumentDetails[] impliedArguments = arguments.Where(a => a.Implied != null).ToArray();
 
 				if (impliedArguments.Length > 0) {
 					for (int i = 0; i < impliedArguments.Length; i++) {
 						ArgumentDetails impliedArg = impliedArguments[i];
 
-						object? currentValue = constructorContext.GetProperty($"{impliedArg.Name}.{impliedArg.Implied}", impliedArg.UseLocal, constructorContext, null, out _) ?? impliedArg.DefaultValue;
+						object? currentValue = builderContext.GetProperty($"{impliedArg.Name}.{impliedArg.Implied}", impliedArg.UseLocal, builderContext, null, out _) ?? impliedArg.DefaultValue;
 
-						ConstructorDetails? impliedConstructor = null;
+						BuilderDetails? impliedBuilder = null;
 						if (currentValue is string stringValue) {
-							impliedConstructor = impliedConstructors.Get(stringValue);
+							impliedBuilder = impliedBuilders.Get(stringValue);
 						}
 						else if (currentValue is Type typeValue) {
-							impliedConstructor = impliedConstructors.Get(typeValue);
+							impliedBuilder = impliedBuilders.Get(typeValue);
 						}
 
-						if (impliedConstructor != null && impliedConstructor.Arguments.Length > 0) {
+						if (impliedBuilder != null && impliedBuilder.Arguments.Length > 0) {
 							yield return MakeSeparator();
 
 							List<Inline> headerInlines = new List<Inline>();
-							headerInlines.AddRange(ConstructorContentBuilder.MakeConstructorHeaderBlock(impliedArg.Name, impliedArg.Name, impliedArg.Type.DisplayType, impliedArg.Type.DisplayType));
-							headerInlines.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(impliedArg, constructorContext));
+							headerInlines.AddRange(BuilderContentBuilder.MakeBuilderHeaderBlock(impliedArg.Name, impliedArg.Name, impliedArg.Type.DisplayType, impliedArg.Type.DisplayType));
+							headerInlines.AddRange(BuilderContentBuilder.GetArgumentDefaultInlines(impliedArg, builderContext));
 
 							yield return BaseContentBuilder.GetContentTextBlock(headerInlines, TextBlockMargin);
 
-							ArgumentDetails[] impliedConstructorArguments = impliedConstructor.Arguments.GroupBy(a => $"{SharpValueHandler.GetTypeName(a.Type)} {a.Name}").Select(g => g.First()).ToArray(); // What breaks if we don't do this?
-							IContext impliedContext = new NamedContext(constructorContext, impliedArg.Name);
-							TextBlock impliedArgumentBlock = BaseContentBuilder.GetContentTextBlock(GetArgumentListInlines(impliedConstructorArguments, impliedContext), TextBlockMargin); // GetToolTipTextBlock();
+							ArgumentDetails[] impliedBuilderArguments = impliedBuilder.Arguments.GroupBy(a => $"{SharpValueHandler.GetTypeName(a.Type)} {a.Name}").Select(g => g.First()).ToArray(); // What breaks if we don't do this?
+							IContext impliedContext = new NamedContext(builderContext, impliedArg.Name);
+							TextBlock impliedArgumentBlock = BaseContentBuilder.GetContentTextBlock(GetArgumentListInlines(impliedBuilderArguments, impliedContext), TextBlockMargin); // GetToolTipTextBlock();
 							if (impliedArgumentBlock.Inlines?.Count > 0) { yield return impliedArgumentBlock; }
 						}
 					}
@@ -113,20 +113,20 @@ namespace SharpEditor.CodeHelpers {
 				yield return new Run(SharpValueHandler.NO_BREAK_SPACE.ToString());
 				yield return GetArgumentNameInline(arg);
 
-				foreach(Inline defaultInline in ConstructorContentBuilder.GetArgumentDefaultInlines(arg, context)) {
+				foreach(Inline defaultInline in BuilderContentBuilder.GetArgumentDefaultInlines(arg, context)) {
 					yield return defaultInline;
 				}
 			}
 		}
 
-		public static TextBlock[] GetArgumentDescription(ConstructorArgumentDetails argument, IContext? context) {
+		public static TextBlock[] GetArgumentDescription(BuilderArgumentDetails argument, IContext? context) {
 			return MakeSingleArgumentBlocks(argument, context).ToArray();
 		}
 
-		public static TextBlock MakeArgumentHeaderBlock(ConstructorArgumentDetails argument, IContext? context, bool withMargin) {
+		public static TextBlock MakeArgumentHeaderBlock(BuilderArgumentDetails argument, IContext? context, bool withMargin) {
 			TextBlock argumentBlock = BaseContentBuilder.GetContentTextBlock(withMargin ? TextBlockMargin : default); // GetToolTipTextBlock(withMargin: withMargin);
 			argumentBlock.Inlines?.Add(new Run(SharpValueHandler.GetTypeName(argument.ArgumentType)) { Foreground = SharpEditorPalette.TypeBrush });
-			argumentBlock.Inlines?.Add(new Run(SharpValueHandler.NO_BREAK_SPACE + argument.ConstructorName) { Foreground = SharpEditorPalette.GetTypeBrush(argument.DeclaringType) });
+			argumentBlock.Inlines?.Add(new Run(SharpValueHandler.NO_BREAK_SPACE + argument.BuilderName) { Foreground = SharpEditorPalette.GetTypeBrush(argument.DeclaringType) });
 
 			ArgumentDetails arg = argument.Argument;
 			//while (arg is PrefixedArgumentDetails prefixed) { arg = prefixed.Basis; }
@@ -134,12 +134,12 @@ namespace SharpEditor.CodeHelpers {
 			argumentBlock.Inlines?.Add(new Run("."));
 			argumentBlock.Inlines?.Add(GetArgumentNameInline(arg));
 
-			argumentBlock.Inlines?.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(argument.Argument, context));
+			argumentBlock.Inlines?.AddRange(BuilderContentBuilder.GetArgumentDefaultInlines(argument.Argument, context));
 
 			return argumentBlock;
 		}
 
-		public static IEnumerable<TextBlock> MakeSingleArgumentBlocks(ConstructorArgumentDetails argument, IContext? context) {
+		public static IEnumerable<TextBlock> MakeSingleArgumentBlocks(BuilderArgumentDetails argument, IContext? context) {
 			yield return MakeArgumentHeaderBlock(argument, context, true);
 
 			if (BaseContentBuilder.MakeDescriptionTextBlock(argument.ArgumentDescription, IndentedMargin) is TextBlock descriptionBlock) {
@@ -152,14 +152,14 @@ namespace SharpEditor.CodeHelpers {
 			}
 		}
 
-		public static IEnumerable<Control> MakeMultipleArgumentBlocks(IEnumerable<ConstructorArgumentDetails> allArgs, IContext? context) {
-			foreach (IGrouping<DocumentationString?, ConstructorArgumentDetails> descriptionGrouping in allArgs.GroupBy(t => t.ArgumentDescription)) {
+		public static IEnumerable<Control> MakeMultipleArgumentBlocks(IEnumerable<BuilderArgumentDetails> allArgs, IContext? context) {
+			foreach (IGrouping<DocumentationString?, BuilderArgumentDetails> descriptionGrouping in allArgs.GroupBy(t => t.ArgumentDescription)) {
 				StackPanel argumentList = new StackPanel() {
 					Orientation = Orientation.Vertical,
 					Margin = TooltipBuilder.TextBlockMargin
 				};
-				foreach (ConstructorArgumentDetails constructorArg in descriptionGrouping.GroupBy(t => new { Type = SharpValueHandler.GetTypeName(t.ArgumentType), t.ConstructorName, t.ArgumentName, t.Implied }).Select(g => g.First())) {
-					argumentList.Children.Add(TooltipBuilder.MakeArgumentHeaderBlock(constructorArg, context, false));
+				foreach (BuilderArgumentDetails builderArg in descriptionGrouping.GroupBy(t => new { Type = SharpValueHandler.GetTypeName(t.ArgumentType), t.BuilderName, t.ArgumentName, t.Implied }).Select(g => g.First())) {
+					argumentList.Children.Add(TooltipBuilder.MakeArgumentHeaderBlock(builderArg, context, false));
 				}
 				yield return argumentList;
 

@@ -19,7 +19,7 @@ namespace SharpSheets.Markup.Patterns {
 
 		//public static readonly (ArgumentDetails arg, EnvironmentVariableInfo info)[] TitledShapeArgs;
 
-		public static readonly ArgumentDetails[] TitledShapeConstructorArgs;
+		public static readonly ArgumentDetails[] TitledShapeBuilderArgs;
 
 		public static readonly ArgumentDetails[] DetailVariables;
 
@@ -78,7 +78,7 @@ namespace SharpSheets.Markup.Patterns {
 			};
 			*/
 
-			TitledShapeConstructorArgs = new ArgumentDetails[] {
+			TitledShapeBuilderArgs = new ArgumentDetails[] {
 				aspectArg,
 				formatArg,
 				fontsizeArg

@@ -17,34 +17,34 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 	public static class MarkupPageBuilder {
 
-		public static DocumentationPage GetMarkupElementPage(ConstructorDetails constructor, DocumentationWindow window, Func<ConstructorDetails?>? refreshAction) {
-			if (constructor == null) {
-				return MakeErrorPage("Invalid constructor.");
+		public static DocumentationPage GetMarkupElementPage(BuilderDetails builder, DocumentationWindow window, Func<BuilderDetails?>? refreshAction) {
+			if (builder == null) {
+				return MakeErrorPage("Invalid builder.");
 			}
 
-			return MakePage(GetMarkupElementPageContent(constructor, window), constructor.Name, () => GetMarkupElementPageContent(refreshAction?.Invoke(), window));
+			return MakePage(GetMarkupElementPageContent(builder, window), builder.Name, () => GetMarkupElementPageContent(refreshAction?.Invoke(), window));
 		}
 
-		private static Control GetMarkupElementPageContent(ConstructorDetails? constructor, DocumentationWindow window) {
-			if (constructor == null) {
-				return MakeErrorContent("Invalid constructor.");
+		private static Control GetMarkupElementPageContent(BuilderDetails? builder, DocumentationWindow window) {
+			if (builder == null) {
+				return MakeErrorContent("Invalid builder.");
 			}
 
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
-			TextBlock headerBlock = GetContentTextBlock(XMLContentBuilder.MakeMarkupTypeHeader(constructor), TextBlockMargin);
+			TextBlock headerBlock = GetContentTextBlock(XMLContentBuilder.MakeMarkupTypeHeader(builder), TextBlockMargin);
 			headerBlock.MakeFontSizeRelative(TextBlockClass.H3);
 			stack.Children.Add(headerBlock);
 
-			if (MakeDescriptionTextBlock(constructor.Description, window) is TextBlock descriptionBlock) {
+			if (MakeDescriptionTextBlock(builder.Description, window) is TextBlock descriptionBlock) {
 				//TextBlock descriptionBlock = BaseContentBuilder.GetContentTextBlock(constructor.Description, IndentedMargin);
 				stack.Children.Add(descriptionBlock);
 			}
 
-			if (constructor.Arguments.Length > 0) {
+			if (builder.Arguments.Length > 0) {
 				stack.Children.Add(MakeSeparator());
 
-				foreach (ConstructorArgumentDetails arg in constructor.ConstructorArguments) {
+				foreach (BuilderArgumentDetails arg in builder.BuilderArguments) {
 					stack.Children.Add(MakeSingleMarkupArgumentBlocks(arg, window).SetMargin(ParagraphSpacingMargin));
 				}
 			}
@@ -52,7 +52,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return stack;
 		}
 
-		private static Control MakeSingleMarkupArgumentBlocks(ConstructorArgumentDetails argument, DocumentationWindow window) {
+		private static Control MakeSingleMarkupArgumentBlocks(BuilderArgumentDetails argument, DocumentationWindow window) {
 			StackPanel argPanel = new StackPanel() { Orientation = Orientation.Vertical };
 
 			Type resolvedType = GetArgumentType(argument.ArgumentType, out bool isExpression);
@@ -80,7 +80,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return argPanel;
 		}
 
-		private static TextBlock MakeMarkupArgumentHeaderBlock(ConstructorArgumentDetails argument, Type resolvedType, bool isExpression, DocumentationWindow window) {
+		private static TextBlock MakeMarkupArgumentHeaderBlock(BuilderArgumentDetails argument, Type resolvedType, bool isExpression, DocumentationWindow window) {
 			TextBlock argumentBlock = GetContentTextBlock(TextBlockMargin);
 
 			string typeName = XMLContentBuilder.GetTypeName(argument.ArgumentType, out _);
@@ -107,7 +107,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				argumentBlock.Inlines?.Add(new Run("." + argument.Implied));
 			}
 
-			argumentBlock.Inlines?.AddRange(ConstructorContentBuilder.GetArgumentDefaultInlines(argument.Argument, null));
+			argumentBlock.Inlines?.AddRange(BuilderContentBuilder.GetArgumentDefaultInlines(argument.Argument, null));
 
 			return argumentBlock;
 		}

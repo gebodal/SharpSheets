@@ -166,7 +166,7 @@ namespace SharpSheets.Parsing {
 					return new Regex(value);
 				}
 			}
-			else if (TryGetSimpleConstructor(type, out MethodInfo? constructor)) {
+			else if (TryGetSimpleBuilder(type, out MethodInfo? constructor)) {
 				return ParseValueDict(value, constructor, source);
 			}
 			else {
@@ -289,14 +289,14 @@ namespace SharpSheets.Parsing {
 			throw new NotSupportedException($"String format for values of type {value.GetType().Name} not supported.");
 		}
 
-		public static bool TryGetSimpleConstructor(Type type, [MaybeNullWhen(false)] out MethodInfo constructor) {
+		public static bool TryGetSimpleBuilder(Type type, [MaybeNullWhen(false)] out MethodInfo builder) {
 			// TODO This is very slow! This needs improving, but will be a moot point with source generator approach
-			constructor = SharpFactory.GetBuilder(type); // type.GetConstructors().FirstOrDefault(c => c.IsPublic && c.GetParameters().Length > 0);
-			return constructor != null;
+			builder = SharpFactory.GetBuilder(type); // type.GetConstructors().FirstOrDefault(c => c.IsPublic && c.GetParameters().Length > 0);
+			return builder != null;
 		}
-		public static MethodInfo GetSimpleConstructor(Type type) {
-			if (TryGetSimpleConstructor(type, out MethodInfo? constructor)) {
-				return constructor;
+		public static MethodInfo GetSimpleBuilder(Type type) {
+			if (TryGetSimpleBuilder(type, out MethodInfo? builder)) {
+				return builder;
 			}
 			else {
 				throw new InvalidOperationException($"No simple builder implemented for {type.Name}");
@@ -315,17 +315,17 @@ namespace SharpSheets.Parsing {
 
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
-		public static object? ParseValueDict(string value, MethodInfo constructor, DirectoryPath source) {
+		public static object? ParseValueDict(string value, MethodInfo builder, DirectoryPath source) {
 			Match dictMatch = dictRegex.Match(value);
 			if (dictMatch.Success) {
 				value = dictMatch.Groups["dict"].Value;
 			}
 			else {
-				throw new FormatException($"Badly formatted dictionary string for {FactoryBuilderAttribute.GetBuilderType(constructor).Name ?? "Unknown Type"}.");
+				throw new FormatException($"Badly formatted dictionary string for {FactoryBuilderAttribute.GetBuilderType(builder).Name ?? "Unknown Type"}.");
 			}
 
 			//ConstructorInfo constructor = GetSimpleConstructor(type);
-			ParameterInfo[] parameterList = constructor.GetParameters();
+			ParameterInfo[] parameterList = builder.GetParameters();
 
 			if (parameterList.Any(p => p.ParameterType.IsArray)) {
 				throw new NotSupportedException("Array argument parsing not supported for dictionary-style initialization.");
@@ -383,10 +383,10 @@ namespace SharpSheets.Parsing {
 			}
 
 			try {
-				return constructor.Invoke(null, parameters);
+				return builder.Invoke(null, parameters);
 			}
 			catch (TargetInvocationException e) {
-				throw new InvalidOperationException($"Error found while constructing {FactoryBuilderAttribute.GetBuilderType(constructor).Name ?? "UNKNOWN"} from dictionary.", e);
+				throw new InvalidOperationException($"Error found while constructing {FactoryBuilderAttribute.GetBuilderType(builder).Name ?? "UNKNOWN"} from dictionary.", e);
 			}
 		}
 
