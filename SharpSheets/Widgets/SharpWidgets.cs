@@ -863,8 +863,6 @@ namespace SharpSheets.Widgets {
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 
-			Console.WriteLine($"Draw ({fontSize} ({minfontsize} < s < {maxfontsize}, {epsilon}), fit {fit || fontSize <= 0}): \"{text.Formatted}\"");
-
 			rect = new Rectangle(rect.X + offset.x, rect.Y + offset.y, rect.Width, rect.Height);
 
 			canvas.SaveState();
