@@ -9,16 +9,9 @@ using System.Text;
 
 namespace SharpSheets.Evaluations {
 
-	public interface IEvaluationContext {
-
-		T GetType<T>() where T : EvaluationType;
-		bool TryGetLeastUpperBoundType(EvaluationType a, EvaluationType b, [NotNullWhen(true)] out EvaluationType? lubType);
-
-	}
-
 	public static class EvaluationContextUtils {
 
-		public static bool TryGetLeastUpperBoundType(this IEvaluationContext context, IEnumerable<EvaluationType> types, [NotNullWhen(true)] out EvaluationType? lubType) {
+		public static bool TryGetLeastUpperBoundType(this EvaluationContext context, IEnumerable<EvaluationType> types, [NotNullWhen(true)] out EvaluationType? lubType) {
 			EvaluationType? lub = null;
 			foreach (EvaluationType type in types) {
 				if (lub is null) {
@@ -43,9 +36,17 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
+		public static bool IsType(this EvaluationContext context, EvaluationName word) {
+			return context.TryGetType(word, out _);
+		}
+
+		public static bool IsKeyword(this EvaluationContext context, EvaluationName word) {
+			return Evaluation.IsLangKeyword(word) || context.IsType(word);
+		}
+
 	}
 
-	public sealed class EvaluationContext : IEvaluationContext {
+	public sealed class EvaluationContext {
 
 		public static readonly EvaluationContext BasisContext = Create().Build();
 
@@ -55,7 +56,7 @@ namespace SharpSheets.Evaluations {
 
 		private readonly List<EvaluationType> typesList = new List<EvaluationType>();
 		private readonly Dictionary<Type, EvaluationType> types = new Dictionary<Type, EvaluationType>();
-		private readonly Dictionary<string, EvaluationType> typesByName = new Dictionary<string, EvaluationType>(StringComparer.InvariantCultureIgnoreCase);
+		private readonly Dictionary<EvaluationName, EvaluationType> typesByName = new Dictionary<EvaluationName, EvaluationType>();
 
 		private EvaluationContext() { }
 
@@ -68,7 +69,7 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
-		public EvaluationType GetType(string name) {
+		public EvaluationType GetType(EvaluationName name) {
 			if (typesByName.TryGetValue(name, out EvaluationType? type)) {
 				return type;
 			}
@@ -119,7 +120,7 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
-		public bool TryGetType(string name, [NotNullWhen(true)] out EvaluationType? type) {
+		public bool TryGetType(EvaluationName name, [NotNullWhen(true)] out EvaluationType? type) {
 			return typesByName.TryGetValue(name, out type);
 		}
 
@@ -1999,6 +2000,10 @@ namespace SharpSheets.Evaluations {
 
 			this.EnumNames = new HashSet<string>(enumValues.Select(s => s.ToUpperInvariant()), StringComparer.InvariantCultureIgnoreCase);
 			enumNamesHash = GetEnumNamesHashCode(this.EnumNames);
+
+			foreach (string enumName in this.EnumNames) {
+				AddStaticField(new TypeField(enumName, this, t => new EvaluationValue(enumName, this)));
+			}
 		}
 
 		public static EnumEvaluationType FromSystemType<T>(EvaluationContext context) where T : Enum {

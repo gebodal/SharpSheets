@@ -79,6 +79,13 @@ namespace SharpSheets.Markup.Elements {
 
 			string variable = match.Groups["variable"].Value;
 
+			if (Evaluation.IsLangKeyword(variable)) {
+				throw new EvaluationSyntaxException($"Invalid loop variable name \"{variable}\" (conflicts with evaluations keyword).");
+			}
+			else if (variables.Context.IsType(variable)) {
+				throw new EvaluationSyntaxException($"Loop variable name \"{variable}\" conflicts with type name.");
+			}
+
 			string exprText = match.Groups["expr"].Value;
 			EvaluationNode expr = Evaluation.Parse(exprText, variables);
 

@@ -11,12 +11,23 @@ namespace SharpSheets.Evaluations {
 
 	public static class Evaluation {
 
+		public static readonly IReadOnlySet<EvaluationName> LangKeywords = new HashSet<EvaluationName>() {
+			"and", "or",
+			"for", "in",
+			"if",
+			"true", "false"
+		};
+
+		public static bool IsLangKeyword(EvaluationName keyword) {
+			return LangKeywords.Contains(keyword);
+		}
+
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
 		private static OperatorNode GetOperator(string operatorStr, EvaluationContext context) {
 			if (operatorStr == "**") { return new ExponentNode(context); }
 			else if (operatorStr == "*") { return new MultiplicationNode(context); }
-			else if(operatorStr == "/") { return new DivisionNode(context); }
+			else if (operatorStr == "/") { return new DivisionNode(context); }
 			else if (operatorStr == "%") { return new RemainderNode(context); }
 			else if (operatorStr == "+") { return new AdditionNode(context); }
 			else if (operatorStr == "-") { return new SubtractNode(context); }
@@ -219,6 +230,9 @@ namespace SharpSheets.Evaluations {
 						else if (match.Groups["string"].Success) {
 							output.Add(new ConstantNode(ParseString(match.Groups["string"].Value, context)));
 						}
+						else if (match.Groups["rawvariable"].Success && variables.Context.TryGetType(match.Groups["rawvariable"].Value, out EvaluationType? rawType)) {
+							output.Add(new TypeLiteralNode(rawType));
+						}
 						else if (match.Groups["variable"].Success || match.Groups["rawvariable"].Success) {
 							string key;
 							if (match.Groups["variable"].Success) {
@@ -281,6 +295,9 @@ namespace SharpSheets.Evaluations {
 						}
 						else if (match.Groups["comprehension"].Success) {
 							string loopVariable = match.Groups["compvar"].Value;
+							if (context.IsKeyword(loopVariable)) {
+								throw new EvaluationSyntaxException($"Invalid comprehension loop variable name (conflicts with existing keyword).");
+							}
 							operatorNode = new ComprehensionNode(loopVariable, context);
 						}
 						else if (match.Groups["if"].Success) {

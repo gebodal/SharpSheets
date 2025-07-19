@@ -452,7 +452,7 @@ namespace SharpSheets.Markup.Parsing {
 				Dictionary<EvaluationName, EnvironmentVariableInfo> varTypes = new Dictionary<EvaluationName, EnvironmentVariableInfo>();
 				bool entriesUsed = false;
 				foreach (XMLElement argElem in GetVariableElements(patternElement, VariableType.ARGUMENT, true)) {
-					IMarkupArgument? argument = MakeArgument(argElem, patternContext, out ContextProperty<EvaluationName> argName, out ContextProperty<EvaluationName>? varName);
+					IMarkupArgument? argument = MakeArgument(argElem, false, patternContext, out ContextProperty<EvaluationName> argName, out ContextProperty<EvaluationName>? varName);
 					if (argument != null) {
 						if (patternVariables.IsVariable(argument.VariableName)) {
 							LogError(varName ?? argName, "This variable name is already taken by a pattern argument.");
@@ -1241,8 +1241,10 @@ namespace SharpSheets.Markup.Parsing {
 			#region IMarkupVariable
 
 			//private static readonly Regex variableRegex = new Regex(@"[a-z][a-z0-9]*", RegexOptions.IgnoreCase);
-			private bool ValidateVariableName(XMLElement element, IVariableBox variables, bool isArg, out ContextProperty<EvaluationName> nameAttribute, out ContextProperty<EvaluationName>? variableNameAttribute) {
-				string varType = isArg ? "argument" : "variable";
+			private bool ValidateVariableName(XMLElement element, IVariableBox variables, bool isArg, bool isNested, out ContextProperty<EvaluationName> nameAttribute, out ContextProperty<EvaluationName>? variableNameAttribute) {
+				string GetVarTypeString() {
+					return isArg ? "argument" : "variable";
+				}
 
 				bool success = false;
 				nameAttribute = default;
@@ -1257,11 +1259,11 @@ namespace SharpSheets.Markup.Parsing {
 						success = true;
 					}
 					else {
-						LogError(nameAttr.Value, $"Invalid {varType} name (must start with a letter, and comprise only letters and numbers).");
+						LogError(nameAttr.Value, $"Invalid {GetVarTypeString()} name (must start with a letter, and comprise only letters and numbers).");
 					}
 				}
 				else {
-					LogError(element, varType.ToTitleCase() + "s must have a name.");
+					LogError(element, GetVarTypeString().ToTitleCase() + "s must have a name.");
 				}
 
 				ContextProperty<string>? varNameAttr = GetAttribute(element, "variable", false);
@@ -1269,15 +1271,37 @@ namespace SharpSheets.Markup.Parsing {
 					string varName = varNameAttr.Value.Value;
 					if (EvaluationName.IsValid(varName)) {
 						EvaluationName evalVarName = new EvaluationName(varName);
-						if (!variables.IsVariable(evalVarName)) { //if (!MarkupEnvironments.DrawingStateVariables.IsVariable(evalVarName)) {
-							variableNameAttribute = MakeProperty(varNameAttr.Value, evalVarName);
-						}
-						else {
-							LogError(varNameAttr.Value, varType.ToTitleCase() + " variable name cannot overwrite markup canvas variables.");
-						}
+						variableNameAttribute = MakeProperty(varNameAttr.Value, evalVarName);
 					}
 					else {
-						LogError(varNameAttr.Value, $"Invalid {varType} name (must start with a letter, and comprise only letters and numbers).");
+						LogError(varNameAttr.Value, $"Invalid {GetVarTypeString()} name (must start with a letter, and comprise only letters and numbers).");
+					}
+				}
+
+				if (success && !isNested) {
+					// We found names, and so we must check that the variable name we're using doesn't conflict with keywords
+
+					ContextProperty<EvaluationName> varName = variableNameAttribute ?? nameAttribute;
+					bool foundError = false;
+
+					if (Evaluation.IsLangKeyword(varName.Value)) {
+						LogError(varName, $"Variable name \"{varName.Value}\" conflicts with evaluation keyword.");
+						foundError = true;
+					}
+					else if (variables.Context.IsType(varName.Value)) {
+						LogError(varName, $"Variable name \"{varName.Value}\" conflicts with type name.");
+						foundError = true;
+					}
+					else if (variables.IsVariable(varName.Value)) {
+						LogError(varName, $"Variable name \"{varName.Value}\" conflicts with existing variable name.");
+						foundError = true;
+					}
+
+					if (foundError) {
+						if (variableNameAttribute.HasValue) {
+							variableNameAttribute = null;
+						}
+						success = false;
 					}
 				}
 
@@ -1350,14 +1374,14 @@ namespace SharpSheets.Markup.Parsing {
 				return new MarkupEnumType(typeName, description, enumVals);
 			}
 
-			private IMarkupArgument? MakeArgument(XMLElement elem, MarkupEvaluationContext context, out ContextProperty<EvaluationName> nameAttribute, out ContextProperty<EvaluationName>? varNameAttribute) {
+			private IMarkupArgument? MakeArgument(XMLElement elem, bool isNested, MarkupEvaluationContext context, out ContextProperty<EvaluationName> nameAttribute, out ContextProperty<EvaluationName>? varNameAttribute) {
 				if(elem.Name != "arg" && elem.Name != "grouparg") {
 					throw new InvalidOperationException("Invalid argument element tag."); // This should never happen
 				}
 
 				IVariableBox argExistingVariables = context.DrawingStateVariables();
 
-				if (ValidateVariableName(elem, argExistingVariables, true, out nameAttribute, out varNameAttribute)) {
+				if (ValidateVariableName(elem, argExistingVariables, true, isNested, out nameAttribute, out varNameAttribute)) {
 					if (elem.Name == "arg") {
 						return MakeSingleArgument(elem, context, nameAttribute, varNameAttribute, true);
 					}
@@ -1468,7 +1492,7 @@ namespace SharpSheets.Markup.Parsing {
 				HashSet<EvaluationName> varNames = new HashSet<EvaluationName>();
 
 				foreach (XMLElement child in elem.Elements.Where(e => e.Name == "arg" || e.Name == "grouparg")) {
-					if (MakeArgument(child, context, out ContextProperty<EvaluationName> argName, out ContextProperty<EvaluationName>? argVarName) is IMarkupArgument childArg) {
+					if (MakeArgument(child, true, context, out ContextProperty<EvaluationName> argName, out ContextProperty<EvaluationName>? argVarName) is IMarkupArgument childArg) {
 						if (argNames.Contains(childArg.ArgumentName)) {
 							LogError(argName, "An argument with this name already exists in this grouping.");
 						}
@@ -1527,9 +1551,15 @@ namespace SharpSheets.Markup.Parsing {
 					IVariableBox validationExistingVariables = markupContext.DrawingStateVariables();
 
 					foreach (XMLElement varElem in GetVariableElements(elem, VariableType.VARIABLE, true)) {
-						if(document.ValidateVariableName(varElem, validationExistingVariables, false, out ContextProperty<EvaluationName> nameAttr, out _)) {
+						if(document.ValidateVariableName(varElem, validationExistingVariables, false, false, out ContextProperty<EvaluationName> nameAttr, out _)) {
 							if (validElements.ContainsKey(nameAttr.Value) || outerContext.IsVariable(nameAttr.Value)) {
 								document.LogError(varElem, "There already exists a variable with this name.");
+							}
+							else if (outerContext.Context.IsType(nameAttr.Value)) {
+								document.LogError(varElem, "Variable name conflicts with type name.");
+							}
+							else if (Evaluation.IsLangKeyword(nameAttr.Value)) {
+								document.LogError(varElem, "Variable name conflicts with evaluation keyword.");
 							}
 							else {
 								validElements.Add(nameAttr.Value, varElem);
@@ -2063,7 +2093,7 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				*/
 
-				if (type.GetInterfaces().FirstOrDefault(i => i.TryGetGenericTypeDefinition() == typeof(IExpression<>)) is Type expressionType) {
+				if (type.GetInterfacesOrSelf().FirstOrDefault(i => i.TryGetGenericTypeDefinition() == typeof(IExpression<>)) is Type expressionType) {
 					return TypeName(expressionType.GenericTypeArguments[0]) + " expression";
 				}
 				/*

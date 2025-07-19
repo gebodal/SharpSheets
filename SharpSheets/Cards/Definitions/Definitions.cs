@@ -246,6 +246,11 @@ namespace SharpSheets.Cards.Definitions {
 				description = match.Groups["description"].Value;
 			}
 
+			if (variables.IsKeywordOrVariable(name)) {
+				// TODO Is it sufficient to only check the first name?
+				throw new EvaluationSyntaxException($"Variable name \"{name}\" conflicts with existing keyword.");
+			}
+
 			if (definitionType != null) {
 				if (expression is null) {
 					return new ConstantDefinition(name, aliases, description, definitionType, exampleValue);

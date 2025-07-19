@@ -27,7 +27,7 @@ namespace SharpSheets.Evaluations {
 	public static class VariableBoxUtils {
 
 		public static bool TryGetReturnType(this IVariableBox variables, EvaluationName key, [MaybeNullWhen(false)] out EvaluationType returnType) {
-			if(variables.TryGetVariableInfo(key, out EnvironmentVariableInfo? variableInfo)) {
+			if (variables.TryGetVariableInfo(key, out EnvironmentVariableInfo? variableInfo)) {
 				returnType = variableInfo.EvaluationType;
 				return true;
 			}
@@ -82,6 +82,10 @@ namespace SharpSheets.Evaluations {
 
 		public static bool TryGetLeastUpperBoundType(this IVariableBox variables, EvaluationType a, EvaluationType b, [NotNullWhen(true)] out EvaluationType? lubType) {
 			return variables.Context.TryGetLeastUpperBoundType(a, b, out lubType);
+		}
+
+		public static bool IsKeywordOrVariable(this IVariableBox variables, EvaluationName word) {
+			return variables.Context.IsKeyword(word) || variables.IsVariable(word);
 		}
 
 	}
