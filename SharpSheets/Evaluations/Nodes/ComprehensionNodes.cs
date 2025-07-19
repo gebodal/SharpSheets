@@ -143,8 +143,10 @@ namespace SharpSheets.Evaluations.Nodes {
 				EvaluationValue conditionResult = Third.Evaluate(loopEnv);
 
 				if (BoolEvaluationType.TryGetBool(conditionResult, out bool condition)) {
-					EvaluationValue loopResult = First.Evaluate(loopEnv);
-					result.Add(loopResult);
+					if (condition) {
+						EvaluationValue loopResult = First.Evaluate(loopEnv);
+						result.Add(loopResult);
+					}
 				}
 				else {
 					throw new EvaluationCalculationException("Cannot evaluate loop conditional.");
