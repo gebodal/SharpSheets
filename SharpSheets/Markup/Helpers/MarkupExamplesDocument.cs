@@ -175,9 +175,9 @@ namespace SharpSheets.Markup.Helpers {
 						}
 					}
 					if (markupObject is IWidget widgetArea) {
-						Size minRowsSize = widgetArea.MinimumSize(canvas, Layout.ROWS, (Size)exampleDrawRect);
+						Size minRowsSize = widgetArea.MinimumSize(canvas, LayoutDirection.ROWS, (Size)exampleDrawRect);
 						Rectangle minRows = new Rectangle(exampleDrawRect.X, exampleDrawRect.Top - minRowsSize.Height, minRowsSize.Width, minRowsSize.Height);
-						Size minColsSize = widgetArea.MinimumSize(canvas, Layout.COLUMNS, (Size)exampleDrawRect);
+						Size minColsSize = widgetArea.MinimumSize(canvas, LayoutDirection.COLUMNS, (Size)exampleDrawRect);
 						Rectangle minCols = new Rectangle(exampleDrawRect.X, exampleDrawRect.Top - minColsSize.Height, minColsSize.Width, minColsSize.Height);
 
 						remainingRects.Add(widgetArea.RemainingRect(canvas, exampleDrawRect));

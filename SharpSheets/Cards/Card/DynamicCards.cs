@@ -79,7 +79,7 @@ namespace SharpSheets.Cards.Card {
 
 		public override void DrawGutter(ISharpCanvas canvas, Rectangle rect) {
 			if (GutterStyle != null) {
-				GutterStyle.Layout = Layout.ROWS;
+				GutterStyle.Layout = LayoutDirection.ROWS;
 				GutterStyle.Draw(canvas, rect);
 			}
 		}

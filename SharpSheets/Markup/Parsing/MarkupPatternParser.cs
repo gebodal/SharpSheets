@@ -544,7 +544,7 @@ namespace SharpSheets.Markup.Parsing {
 				DimensionExpression size = GetAttribute(divElem, "size", false, s => MarkupValueParsing.ParseDimension(s, setupVariables), new DimensionExpression(Dimension.Single, setupVariables.Context));
 				PositionExpression? position = MakePositionExpression(divElem, setupVariables);
 				MarginsExpression? margins = GetAttribute(divElem, "margins", false, s => MarkupValueParsing.ParseMargins(s, setupVariables), null);
-				EnumExpression<Layout>? layout = GetAttribute(divElem, "layout", true, s => MarkupValueParsing.ParseEnum<Layout>(s, setupVariables), null);
+				EnumExpression<LayoutDirection>? layout = GetAttribute(divElem, "layout", true, s => MarkupValueParsing.ParseEnum<LayoutDirection>(s, setupVariables), null);
 				EnumExpression<Arrangement>? arrangement = GetAttribute(divElem, "arrangement", true, s => MarkupValueParsing.ParseEnum<Arrangement>(s, setupVariables), null);
 				EnumExpression<LayoutOrder>? order = GetAttribute(divElem, "order", true, s => MarkupValueParsing.ParseEnum<LayoutOrder>(s, setupVariables), null);
 				BoolExpression provideRemaining = GetAttribute(divElem, "provide-remaining", false, s => BoolExpression.Parse(s, setupVariables), new BoolExpression(false, setupVariables.Context));

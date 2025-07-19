@@ -154,15 +154,15 @@ namespace SharpSheets.Shapes {
 			return (transform, drawRect);
 		}
 
-		public static Margins GetNameMargins(Size nameSpace, TitlePosition position, Layout layout, Vector offset, float spacing) {
+		public static Margins GetNameMargins(Size nameSpace, TitlePosition position, LayoutDirection layout, Vector offset, float spacing) {
 			Margins margins;
-			if (position == TitlePosition.LEFT || (layout == Layout.COLUMNS && position.IsLeft())) {
+			if (position == TitlePosition.LEFT || (layout == LayoutDirection.COLUMNS && position.IsLeft())) {
 				margins = new Margins(0f, 0f, 0f, nameSpace.Width + offset.X + spacing);
 			}
-			else if (position == TitlePosition.RIGHT || (layout == Layout.COLUMNS && position.IsRight())) {
+			else if (position == TitlePosition.RIGHT || (layout == LayoutDirection.COLUMNS && position.IsRight())) {
 				margins = new Margins(0f, nameSpace.Width + offset.X + spacing, 0f, 0f);
 			}
-			else if (position == TitlePosition.TOP || (layout == Layout.ROWS && position.IsTop())) {
+			else if (position == TitlePosition.TOP || (layout == LayoutDirection.ROWS && position.IsTop())) {
 				margins = new Margins(nameSpace.Height + offset.Y + spacing, 0f, 0f, 0f);
 			}
 			else { // if (position == Anchor.BOTTOM || (layout==Layout.ROWS && position.IsBottom())) {
@@ -172,29 +172,29 @@ namespace SharpSheets.Shapes {
 			return margins;
 		}
 
-		public static Layout GetTitleLayout(TitlePosition position, Layout layout) {
-			if (position == TitlePosition.LEFT || (layout == Layout.COLUMNS && position.IsLeft())) {
-				return Layout.COLUMNS;
+		public static LayoutDirection GetTitleLayout(TitlePosition position, LayoutDirection layout) {
+			if (position == TitlePosition.LEFT || (layout == LayoutDirection.COLUMNS && position.IsLeft())) {
+				return LayoutDirection.COLUMNS;
 			}
-			else if (position == TitlePosition.RIGHT || (layout == Layout.COLUMNS && position.IsRight())) {
-				return Layout.COLUMNS;
+			else if (position == TitlePosition.RIGHT || (layout == LayoutDirection.COLUMNS && position.IsRight())) {
+				return LayoutDirection.COLUMNS;
 			}
-			else if (position == TitlePosition.TOP || (layout == Layout.ROWS && position.IsTop())) {
-				return Layout.ROWS;
+			else if (position == TitlePosition.TOP || (layout == LayoutDirection.ROWS && position.IsTop())) {
+				return LayoutDirection.ROWS;
 			}
 			else { // if (position == Anchor.BOTTOM || (layout==Layout.ROWS && position.IsBottom())) {
-				return Layout.ROWS;
+				return LayoutDirection.ROWS;
 			}
 		}
 
-		public static Direction GetTitleDirection(TitlePosition position, Layout layout) {
-			if (position == TitlePosition.LEFT || (layout == Layout.COLUMNS && position.IsLeft())) {
+		public static Direction GetTitleDirection(TitlePosition position, LayoutDirection layout) {
+			if (position == TitlePosition.LEFT || (layout == LayoutDirection.COLUMNS && position.IsLeft())) {
 				return Direction.WEST;
 			}
-			else if (position == TitlePosition.RIGHT || (layout == Layout.COLUMNS && position.IsRight())) {
+			else if (position == TitlePosition.RIGHT || (layout == LayoutDirection.COLUMNS && position.IsRight())) {
 				return Direction.EAST;
 			}
-			else if (position == TitlePosition.TOP || (layout == Layout.ROWS && position.IsTop())) {
+			else if (position == TitlePosition.TOP || (layout == LayoutDirection.ROWS && position.IsTop())) {
 				return Direction.NORTH;
 			}
 			else { // if (position == Anchor.BOTTOM || (layout==Layout.ROWS && position.IsBottom())) {

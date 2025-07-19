@@ -50,7 +50,7 @@ namespace SharpSheets.Markup.Patterns {
 
 			WidgetVariables = new ArgumentDetails[] {
 				new ArgumentDetails("gutter", new DocumentationString("Gutter size for this widget."), ArgumentType.Simple(typeof(float)), true, false, 8f, 8f, null),
-				new ArgumentDetails("layout", new DocumentationString("Layout for this widgets children."), ArgumentType.Simple(typeof(Layout)), true, false, Layout.ROWS, Layout.ROWS, null),
+				new ArgumentDetails("layout", new DocumentationString("Layout for this widgets children."), ArgumentType.Simple(typeof(LayoutDirection)), true, false, LayoutDirection.ROWS, LayoutDirection.ROWS, null),
 			};
 
 			aspectArg = new ArgumentDetails("aspect", new DocumentationString("Aspect ratio for this shape."), ArgumentType.Simple(typeof(float)), true, true, -1f, -1f, null);
@@ -59,7 +59,7 @@ namespace SharpSheets.Markup.Patterns {
 			formatArg = new ArgumentDetails("format", new DocumentationString("Font format to use for the title of this shape."), ArgumentType.Simple(typeof(TextFormat)), true, false, TextFormat.BOLD, TextFormat.BOLD, null);
 			fontsizeArg = new ArgumentDetails("fontSize", new DocumentationString("Font size to use for the title of this shape."), ArgumentType.Simple(typeof(float)), true, false, 6f, 6f, null);
 			
-			ArgumentDetails detailLayoutArg = new ArgumentDetails("layout", new DocumentationString("The current layout of the detail shape."), ArgumentType.Simple(typeof(Layout)), false, true, Layout.ROWS, Layout.ROWS, null);
+			ArgumentDetails detailLayoutArg = new ArgumentDetails("layout", new DocumentationString("The current layout of the detail shape."), ArgumentType.Simple(typeof(LayoutDirection)), false, true, LayoutDirection.ROWS, LayoutDirection.ROWS, null);
 
 			AreaShapeVariables = new ArgumentDetails[] { aspectArg };
 
@@ -91,7 +91,7 @@ namespace SharpSheets.Markup.Patterns {
 
 		// Widget Environment Variables
 		public static EnvironmentVariableInfo WidgetGutterVariable(EvaluationContext context) => new EnvironmentVariableInfo("gutter", context.GetType<FloatEvaluationType>(), "Gutter size for this widget.");
-		public static EnvironmentVariableInfo WidgetLayoutVariable(EvaluationContext context) => new EnvironmentVariableInfo("layout", context.GetSystemType<Layout>(), "Layout for this widgets children.");
+		public static EnvironmentVariableInfo WidgetLayoutVariable(EvaluationContext context) => new EnvironmentVariableInfo("layout", context.GetSystemType<LayoutDirection>(), "Layout for this widgets children.");
 		// Area Shape Environment Variables
 		public static EnvironmentVariableInfo AreaShapeAspectVariable(EvaluationContext context) => new EnvironmentVariableInfo("aspect", context.GetType<FloatEvaluationType>(), "Aspect ratio for this shape.");
 		// Shape Name Environment Variables
@@ -101,7 +101,7 @@ namespace SharpSheets.Markup.Patterns {
 		public static EnvironmentVariableInfo TitledFormatVariable(EvaluationContext context) => new EnvironmentVariableInfo("format", context.GetSystemType<TextFormat>(), "Font format to use for the title of this shape.");
 		public static EnvironmentVariableInfo TitledFontsizeVariable(EvaluationContext context) => new EnvironmentVariableInfo("fontSize", context.GetType<FloatEvaluationType>(), "Font size to use for the title of this shape.");
 		// Detail Environment Variables
-		public static EnvironmentVariableInfo DetailLayoutVariable(EvaluationContext context) => new EnvironmentVariableInfo("layout", context.GetSystemType<Layout>(), "The current layout of the detail shape.");
+		public static EnvironmentVariableInfo DetailLayoutVariable(EvaluationContext context) => new EnvironmentVariableInfo("layout", context.GetSystemType<LayoutDirection>(), "The current layout of the detail shape.");
 
 		public static (ArgumentDetails arg, EnvironmentVariableInfo info)[] TitledShapeArgs(EvaluationContext context) {
 			return new (ArgumentDetails, EnvironmentVariableInfo)[] {

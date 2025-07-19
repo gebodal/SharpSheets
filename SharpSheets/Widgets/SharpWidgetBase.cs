@@ -29,11 +29,11 @@ namespace SharpSheets.Widgets {
 
 		public IReadOnlyList<IGridElement> Children { get { return children.ToList<IGridElement>(); } }
 
-		public Layout Layout => setup.layout;
+		public LayoutDirection Layout => setup.layout;
 		public Arrangement Arrangement => setup.arrangement;
 		public LayoutOrder Order => setup.order;
 		public float Gutter => setup.gutter;
-		public virtual Layout GutterLayout => Layout;
+		public virtual LayoutDirection GutterLayout => Layout;
 
 		public virtual bool ProvidesRemaining { get; } = true;
 

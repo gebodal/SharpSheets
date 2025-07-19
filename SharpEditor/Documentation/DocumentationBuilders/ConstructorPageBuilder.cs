@@ -240,7 +240,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 					if (shape is IDetail detail) {
 						// TODO This needs improving so we can see vertical version too
-						detail.Layout = Layout.ROWS;
+						detail.Layout = LayoutDirection.ROWS;
 						detail.Draw(canvas, shapeRect);
 					}
 					else {

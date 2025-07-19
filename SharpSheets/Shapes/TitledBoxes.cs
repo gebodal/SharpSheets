@@ -40,7 +40,7 @@ namespace SharpSheets.Shapes {
 
 		protected readonly TitlePosition position;
 		protected readonly Direction orientation;
-		protected readonly Layout layout;
+		protected readonly LayoutDirection layout;
 		protected readonly Margins padding;
 		protected readonly Margins trim;
 		protected readonly (float x, float y) offset;
@@ -102,7 +102,7 @@ namespace SharpSheets.Shapes {
 		public BlockTitledBox(float aspect, string name = "NAME",
 				float fontSize = 8f, TextFormat format = TextFormat.REGULAR,
 				TitlePosition position = TitlePosition.TOP,
-				Layout layout = Layout.ROWS,
+				LayoutDirection layout = LayoutDirection.ROWS,
 				float? headerSize = null,
 				Colors.Color? stroke = null,
 				Colors.Color? fill = null,
@@ -178,7 +178,7 @@ namespace SharpSheets.Shapes {
 		public static BlockTitledBox Build(float aspect, string name = "NAME",
 				float fontSize = 8f, TextFormat format = TextFormat.REGULAR,
 				TitlePosition position = TitlePosition.TOP,
-				Layout layout = Layout.ROWS,
+				LayoutDirection layout = LayoutDirection.ROWS,
 				float? headerSize = null,
 				Colors.Color? stroke = null,
 				Colors.Color? fill = null,
@@ -197,8 +197,8 @@ namespace SharpSheets.Shapes {
 		protected Size GetNameSpace(ISharpGraphicsState graphicsState) {
 			Size nameSpace = TitleUtils.GetNameSpace(graphicsState, richParts, fontSize, paragraphSpec, heightStrategy, orientation, padding);
 			return TitleUtils.GetTitleLayout(position, layout) switch {
-				Layout.ROWS => new Size(nameSpace.Width, headerSize ?? nameSpace.Height),
-				Layout.COLUMNS => new Size(headerSize ?? nameSpace.Width, nameSpace.Height),
+				LayoutDirection.ROWS => new Size(nameSpace.Width, headerSize ?? nameSpace.Height),
+				LayoutDirection.COLUMNS => new Size(headerSize ?? nameSpace.Width, nameSpace.Height),
 				_ => nameSpace,
 			};
 		}

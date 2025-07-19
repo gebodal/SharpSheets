@@ -68,7 +68,7 @@ namespace SharpSheets.Shapes {
 				canvas.SetLineWidth(width.Value);
 			}
 
-			if (this.Layout == Layout.COLUMNS) {
+			if (this.Layout == LayoutDirection.COLUMNS) {
 				canvas.MoveTo(rect.CentreX, rect.Bottom + offset).LineTo(rect.CentreX, rect.Top - offset);
 			}
 			else {

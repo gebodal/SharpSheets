@@ -45,7 +45,7 @@ namespace SharpSheets.Shapes {
 
 		protected readonly TitlePosition position;
 		protected readonly Justification justification;
-		protected readonly Layout layout;
+		protected readonly LayoutDirection layout;
 		protected readonly Direction orientation;
 		protected readonly Margins padding;
 		protected readonly TextHeightStrategy heightStrategy;
@@ -53,7 +53,7 @@ namespace SharpSheets.Shapes {
 		protected readonly ParagraphSpecification paragraphSpec;
 		protected readonly RichString[] richParts;
 
-		public AbstractPositionedTitleStyle(IContainerShape box, string name, TitlePosition position, Layout layout, Direction orientation, Margins padding, TextFormat format, float fontSize, Vector offset, float spacing, Colors.Color? color, Justification justification, float lineSpacing, TextHeightStrategy heightStrategy) : base(box, name, format, fontSize, offset, spacing, color) {
+		public AbstractPositionedTitleStyle(IContainerShape box, string name, TitlePosition position, LayoutDirection layout, Direction orientation, Margins padding, TextFormat format, float fontSize, Vector offset, float spacing, Colors.Color? color, Justification justification, float lineSpacing, TextHeightStrategy heightStrategy) : base(box, name, format, fontSize, offset, spacing, color) {
 			this.position = position;
 			this.layout = layout;
 			this.orientation = orientation;
@@ -144,7 +144,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
-		public Named(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 3f), spacing, color, justification, lineSpacing, heightStrategy) { }
+		public Named(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 3f), spacing, color, justification, lineSpacing, heightStrategy) { }
 
 		/// <param name="box">Base shape.</param>
 		/// <param name="name">Title text.</param>
@@ -179,7 +179,7 @@ namespace SharpSheets.Shapes {
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
 		[FactoryBuilder(typeof(ITitleStyledBox))]
-		public static Named Build(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, [Property(Default = "(0,3)")] Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) {
+		public static Named Build(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, [Property(Default = "(0,3)")] Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) {
 			return new Named(box, name, position, layout, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
 		}
 
@@ -251,7 +251,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
-		public Titled(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 0f), spacing, color, justification, lineSpacing, heightStrategy) { }
+		public Titled(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 0f), spacing, color, justification, lineSpacing, heightStrategy) { }
 
 		/// <param name="box">Base shape.</param>
 		/// <param name="name">Title text.</param>
@@ -285,7 +285,7 @@ namespace SharpSheets.Shapes {
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
 		[FactoryBuilder(typeof(ITitleStyledBox))]
-		public static Titled Build(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, [Property(Default = "(0,0)")] Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) {
+		public static Titled Build(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, [Property(Default = "(0,0)")] Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) {
 			return new Titled(box, name, position, layout, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
 		}
 
@@ -374,7 +374,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
-		public BoxedTitle(IContainerShape box, string name, IBox box_, Margins trim = default, TitlePosition position = TitlePosition.TOP, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 11f, Vector offset = default, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy) {
+		public BoxedTitle(IContainerShape box, string name, IBox box_, Margins trim = default, TitlePosition position = TitlePosition.TOP, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 11f, Vector offset = default, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy) {
 			this.outline = box_ ?? new NoOutline(-1f);
 			this.trim = trim;
 		}
@@ -415,7 +415,7 @@ namespace SharpSheets.Shapes {
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
 		[FactoryBuilder(typeof(ITitleStyledBox))]
-		public static BoxedTitle Build(IContainerShape box, string name, IBox box_, Margins trim = default, TitlePosition position = TitlePosition.TOP, Layout layout = Layout.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 11f, Vector offset = default, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline) {
+		public static BoxedTitle Build(IContainerShape box, string name, IBox box_, Margins trim = default, TitlePosition position = TitlePosition.TOP, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 11f, Vector offset = default, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline) {
 			return new BoxedTitle(box, name, box_, trim, position, layout, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
 		}
 

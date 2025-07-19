@@ -68,7 +68,7 @@ namespace SharpSheets.Markup.Elements {
 			return href?.Evaluate(environment);
 		}
 
-		protected override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, Layout layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool diagnostic) {
+		protected override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool diagnostic) {
 			IWidget? content = GetContent(evaluationEnvironment);
 			DrawableChildDivElement drawable = new DrawableChildDivElement(this, content, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, provideRemaining, diagnostic);
 			return drawable;
@@ -79,7 +79,7 @@ namespace SharpSheets.Markup.Elements {
 
 		readonly IWidget? content;
 
-		public DrawableChildDivElement(ChildDivElement pattern, IWidget? content, IEnvironment environment, Dimension? size, Position? position, Margins margins, Layout layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool drawConstructionLines)
+		public DrawableChildDivElement(ChildDivElement pattern, IWidget? content, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool drawConstructionLines)
 			: base(pattern, environment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, provideRemaining, drawConstructionLines) {
 
 			this.content = content;

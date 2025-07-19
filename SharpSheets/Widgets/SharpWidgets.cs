@@ -2526,13 +2526,13 @@ namespace SharpSheets.Widgets {
 			// Deal with gutters depending on Layout instead of custom GutterLayout
 			if (setup.gutterStyle is IDetail gutterStyle) {
 				if (gutterLayout == Widgets.GutterLayout.COLUMNS) {
-					gutterStyle.Layout = Layout.COLUMNS;
+					gutterStyle.Layout = LayoutDirection.COLUMNS;
 					for (int i = 0; i < columnGutters.Length; i++) {
 						gutterStyle.Draw(canvas, columnGutters[i]);
 					}
 				}
 				else if (gutterLayout == Widgets.GutterLayout.ROWS) {
-					gutterStyle.Layout = Layout.ROWS;
+					gutterStyle.Layout = LayoutDirection.ROWS;
 					for (int i = 0; i < rowGutters.Length; i++) {
 						gutterStyle.Draw(canvas, rowGutters[i]);
 					}
@@ -2565,8 +2565,8 @@ namespace SharpSheets.Widgets {
 			if (content != null) {
 				Size baseAvailable = (Size)Divisions.Grid(availableSpace.AsRectangle(), rows, columns, horizontalSpacing, verticalSpacing, out _, out _).Flatten().First();
 
-				Size contentMinCols = content.MinimumSize(graphicsState, Layout.COLUMNS, baseAvailable);
-				Size contentMinRows = content.MinimumSize(graphicsState, Layout.ROWS, baseAvailable);
+				Size contentMinCols = content.MinimumSize(graphicsState, LayoutDirection.COLUMNS, baseAvailable);
+				Size contentMinRows = content.MinimumSize(graphicsState, LayoutDirection.ROWS, baseAvailable);
 
 				float width = Divisions.CalculateTotalLength(contentMinCols.Width, columns, horizontalSpacing);
 				float height = Divisions.CalculateTotalLength(contentMinRows.Height, rows, verticalSpacing);
@@ -2618,7 +2618,7 @@ namespace SharpSheets.Widgets {
 
 		protected readonly GutterLayout gutterLayout;
 
-		public override Layout GutterLayout => gutterLayout == Widgets.GutterLayout.COLUMNS ? Layout.COLUMNS : Layout.ROWS;
+		public override LayoutDirection GutterLayout => gutterLayout == Widgets.GutterLayout.COLUMNS ? LayoutDirection.COLUMNS : LayoutDirection.ROWS;
 
 		/// <summary>
 		/// Constructor for Grid widget.

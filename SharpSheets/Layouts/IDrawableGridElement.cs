@@ -55,7 +55,7 @@ namespace SharpSheets.Layouts {
 			Dimension? mySize = drawable.Size;
 			if (mySize.HasValue && mySize?.Relative == -1 && mySize?.Absolute == 0 && mySize?.Percent == 0) {
 				Size minRect = drawable.MinimumSize(canvas, drawable.Layout, (Size)marginRect); // TODO Is this the right layout?
-				mySize = Dimension.FromPoints(drawable.Layout == Layout.COLUMNS ? minRect.Width : minRect.Height);
+				mySize = Dimension.FromPoints(drawable.Layout == LayoutDirection.COLUMNS ? minRect.Width : minRect.Height);
 			}
 
 			float maxFontsize = Math.Min(marginRect.Height / 20f, 6f);

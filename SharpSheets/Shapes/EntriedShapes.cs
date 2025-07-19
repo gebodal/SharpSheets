@@ -13,7 +13,7 @@ namespace SharpSheets.Shapes {
 	public class SimpleEntried : EntriedShapeBase {
 
 		protected readonly Dimension[] sizes;
-		protected readonly Layout layout;
+		protected readonly LayoutDirection layout;
 
 		protected readonly Color? stroke;
 		protected readonly Color? fill;
@@ -34,7 +34,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="dashes"></param>
 		/// <param name="dashOffset"></param>
 		/// <param name="trim" default="0" example="2"></param>
-		public SimpleEntried(float aspect, Dimension[]? sizes = null, Layout layout = Layout.ROWS, Color? stroke = null, Color? fill = null, float[]? dashes = null, float? dashOffset = null, Margins? trim = null) : base(aspect) {
+		public SimpleEntried(float aspect, Dimension[]? sizes = null, LayoutDirection layout = LayoutDirection.ROWS, Color? stroke = null, Color? fill = null, float[]? dashes = null, float? dashOffset = null, Margins? trim = null) : base(aspect) {
 			this.sizes = sizes ?? new Dimension[] { Dimension.Single };
 			this.layout = layout;
 
@@ -54,7 +54,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="dashOffset"></param>
 		/// <param name="trim"></param>
 		[FactoryBuilder(typeof(IEntriedShape))]
-		public static SimpleEntried Build(float aspect, [Property(Default = "1", Example = "2,2,3")] Dimension[]? sizes = null, Layout layout = Layout.ROWS, Color? stroke = null, Color? fill = null, float[]? dashes = null, float? dashOffset = null, [Property(Default = "0", Example = "2")] Margins? trim = null) {
+		public static SimpleEntried Build(float aspect, [Property(Default = "1", Example = "2,2,3")] Dimension[]? sizes = null, LayoutDirection layout = LayoutDirection.ROWS, Color? stroke = null, Color? fill = null, float[]? dashes = null, float? dashOffset = null, [Property(Default = "0", Example = "2")] Margins? trim = null) {
 			return new SimpleEntried(aspect, sizes, layout, stroke, fill, dashes, dashOffset, trim);
 		}
 
@@ -62,7 +62,7 @@ namespace SharpSheets.Shapes {
 			float gutterSize = graphicsState.GetLineWidth();
 
 			Rectangle?[] entryRects;
-			if (layout == Layout.COLUMNS) {
+			if (layout == LayoutDirection.COLUMNS) {
 				entryRects = Divisions.Columns(rect, sizes, gutterSize, out gutters, true, Arrangement.FRONT, LayoutOrder.FORWARD);
 			}
 			else { // layout == Layout.ROWS
@@ -96,7 +96,7 @@ namespace SharpSheets.Shapes {
 
 			foreach(Rectangle? gutter in gutters) {
 				if (gutter is not null) {
-					if (layout == Layout.COLUMNS) {
+					if (layout == LayoutDirection.COLUMNS) {
 						canvas.MoveTo(gutter.CentreX, rect.Bottom).LineTo(gutter.CentreX, rect.Top);
 					}
 					else { // layout == Layout.ROWS

@@ -59,7 +59,7 @@ namespace SharpSheets.Shapes {
 	public interface IUsageBar : IEntriedShape, ILabelledArea { }
 
 	public interface IDetail : IShape {
-		Layout Layout { set; }
+		LayoutDirection Layout { set; }
 		//void Draw(ISharpCanvas canvas, Rectangle rect, Layout layout); // TODO Could layout be a { set; } Property?
 	}
 
@@ -264,7 +264,7 @@ namespace SharpSheets.Shapes {
 	}
 
 	public abstract class DetailBase : IDetail {
-		public Layout Layout { protected get; set; }
+		public LayoutDirection Layout { protected get; set; }
 		public abstract void Draw(ISharpCanvas canvas, Rectangle rect);
 	}
 

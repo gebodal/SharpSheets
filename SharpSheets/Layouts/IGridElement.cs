@@ -15,7 +15,7 @@ namespace SharpSheets.Layouts {
 		Position? Position { get; }
 		Margins Margins { get; }
 
-		Layout Layout { get; }
+		LayoutDirection Layout { get; }
 		Arrangement Arrangement { get; }
 		LayoutOrder Order { get; }
 		float Gutter { get; }
@@ -51,7 +51,7 @@ namespace SharpSheets.Layouts {
 	/// <summary>
 	/// An enum to indicate the direction of arrangement for element contents, either vertically (rows) or horizontally (columns).
 	/// </summary>
-	public enum Layout {
+	public enum LayoutDirection {
 		/// <summary>Indicates that the contents will be arranged vertically, in rows.</summary>
 		ROWS,
 		/// <summary>Indicates that the contents will be arrange horizontally, in columns.</summary>
@@ -63,7 +63,7 @@ namespace SharpSheets.Layouts {
 		// TODO What exactly does availableSpace mean here?
 		/// <summary></summary>
 		/// <exception cref="InvalidRectangleException"></exception>
-		public static Size MinimumSize(this IGridElement element, ISharpGraphicsState graphicsState, Layout parentLayout, Size availableSpace) {
+		public static Size MinimumSize(this IGridElement element, ISharpGraphicsState graphicsState, LayoutDirection parentLayout, Size availableSpace) {
 
 			Margins elementMargins = element.Margins;
 			Dimension? elementSize = element.Size;
@@ -75,7 +75,7 @@ namespace SharpSheets.Layouts {
 
 			// Fix size to any absolute value provided
 			if (elementSize.HasValue && elementSize.Value.HasAbsolute) {
-				if (parentLayout == Layout.COLUMNS) {
+				if (parentLayout == LayoutDirection.COLUMNS) {
 					//minimum.Width = element.Size.Value.Absolute;
 					minimum = new Size(elementSize.Value.Absolute, minimum.Height);
 				}
@@ -94,11 +94,11 @@ namespace SharpSheets.Layouts {
 		// TODO Need to formally define meaning of overallLayout and availableSpace
 		/// <summary></summary>
 		/// <exception cref="InvalidRectangleException"></exception>
-		public static Dimension? FinalSizeFromArrangement(this IGridElement element, ISharpGraphicsState graphicsState, Layout overallLayout, Size availableSpace) {
+		public static Dimension? FinalSizeFromArrangement(this IGridElement element, ISharpGraphicsState graphicsState, LayoutDirection overallLayout, Size availableSpace) {
 			Dimension? finalSize;
 			if (element.IsAutoSize()) {
 				Size minSize = element.MinimumSize(graphicsState, overallLayout, availableSpace);
-				finalSize = Dimension.FromPoints(overallLayout == Layout.COLUMNS ? minSize.Width : minSize.Height);
+				finalSize = Dimension.FromPoints(overallLayout == LayoutDirection.COLUMNS ? minSize.Width : minSize.Height);
 			}
 			else {
 				finalSize = element.Size;
@@ -164,30 +164,30 @@ namespace SharpSheets.Layouts {
 		// TODO This method should possibly throw an error rather than return a nullable in failure cases
 		/// <summary></summary>
 		/// <exception cref="InvalidRectangleException"></exception>
-		public static Size? OverallMinimumSize(IReadOnlyList<IGridElement> elements, ISharpGraphicsState graphicsState, Size availableSpace, Layout layout, float gutter) {
+		public static Size? OverallMinimumSize(IReadOnlyList<IGridElement> elements, ISharpGraphicsState graphicsState, Size availableSpace, LayoutDirection layout, float gutter) {
 			// Order of children not important, so a list like this will work fine
 			List<Size> elementMinimums = new List<Size>();
 
 			List<CanvasElement> remainingElements = new List<CanvasElement>();
-			float remainingLength = layout == Layout.COLUMNS ? availableSpace.Width : availableSpace.Height;
+			float remainingLength = layout == LayoutDirection.COLUMNS ? availableSpace.Width : availableSpace.Height;
 			for (int i = 0; i < elements.Count; i++) {
 				IGridElement element = elements[i];
 				Dimension? elementSize = element.Size;
 				if (element.IsAutoSize()) {
 					Size elementMin = element.MinimumSize(graphicsState, layout, availableSpace);
-					remainingLength -= layout == Layout.COLUMNS ? elementMin.Width : elementMin.Height;
+					remainingLength -= layout == LayoutDirection.COLUMNS ? elementMin.Width : elementMin.Height;
 					elementMinimums.Add(elementMin);
 				}
 				else if (elementSize?.HasAbsolute ?? false) {
 					Size elementAvailable;
-					if (layout == Layout.COLUMNS) {
+					if (layout == LayoutDirection.COLUMNS) {
 						elementAvailable = new Size(elementSize.Value.Absolute, availableSpace.Height);
 					}
 					else {
 						elementAvailable = new Size(availableSpace.Width, elementSize.Value.Absolute);
 					}
 					Size elementMin = element.MinimumSize(graphicsState, layout, elementAvailable);
-					remainingLength -= layout == Layout.COLUMNS ? elementMin.Width : elementMin.Height;
+					remainingLength -= layout == LayoutDirection.COLUMNS ? elementMin.Width : elementMin.Height;
 					elementMinimums.Add(elementMin);
 				}
 				else if (elementSize?.Relative > 0f || elementSize?.Percent > 0f) {
@@ -201,7 +201,7 @@ namespace SharpSheets.Layouts {
 			if (remainingElements.Count > 0 && elementMinimums.Count > 0) { remainingLength -= gutter; }
 
 			Rectangle remainingElementsRect;
-			if (layout == Layout.COLUMNS) {
+			if (layout == LayoutDirection.COLUMNS) {
 				remainingElementsRect = new Rectangle(remainingLength, availableSpace.Height);
 			}
 			else {
@@ -213,7 +213,7 @@ namespace SharpSheets.Layouts {
 				//return null; // TODO Better to just return zero?
 
 				Size requiredSpace;
-				if (layout == Layout.COLUMNS) {
+				if (layout == LayoutDirection.COLUMNS) {
 					requiredSpace = new Size(availableSpace.Width - remainingLength, availableSpace.Height);
 				}
 				else {
@@ -231,7 +231,7 @@ namespace SharpSheets.Layouts {
 			Dimension[] rectSizes = remainingElements.Select(c => c.dimension ?? Dimension.Single).ToArray();
 			Rectangle?[] remainingElementsAvailableSpaces;
 
-			if (layout == Layout.COLUMNS) {
+			if (layout == LayoutDirection.COLUMNS) {
 				remainingElementsAvailableSpaces = Divisions.Columns(remainingElementsRect, rectSizes, gutter, false, Arrangement.FRONT, LayoutOrder.FORWARD);
 			}
 			else {
@@ -245,7 +245,7 @@ namespace SharpSheets.Layouts {
 
 			float height = 0f, width = 0f;
 
-			if (layout == Layout.COLUMNS) {
+			if (layout == LayoutDirection.COLUMNS) {
 				width = Divisions.CalculateTotalLength(elementMinimums.Select(m => m.Width), gutter);
 				height = elementMinimums.Select(m => m.Height).MaxOrFallback(0f);
 			}
@@ -286,7 +286,7 @@ namespace SharpSheets.Layouts {
 			List<int> rectIdxs = new List<int>();
 			List<Dimension> rectSizes = new List<Dimension>();
 
-			Layout parentLayout = parentElement.Layout;
+			LayoutDirection parentLayout = parentElement.Layout;
 			Arrangement parentArrangement = parentElement.Arrangement;
 			LayoutOrder parentOrder = parentElement.Order;
 
@@ -311,7 +311,7 @@ namespace SharpSheets.Layouts {
 			if (containerRect != null && rectSizes.Count > 0) {
 				float parentGutter = parentElement.Gutter;
 				Rectangle?[] divisionRects;
-				if (parentLayout == Layout.COLUMNS) {
+				if (parentLayout == LayoutDirection.COLUMNS) {
 					divisionRects = Divisions.Columns(containerRect, rectSizes.ToArray(), parentGutter, parentGutter, out remainingRect, out gutters, out remainingGutter, false, parentArrangement, parentOrder);
 				}
 				else {
@@ -365,7 +365,7 @@ namespace SharpSheets.Layouts {
 			public Margins Margins { get; }
 
 			public IReadOnlyList<IGridElement> Children { get; } = Array.Empty<IGridElement>(); // new List<IGridElement>();
-			public Layout Layout { get; } = Layout.ROWS;
+			public LayoutDirection Layout { get; } = LayoutDirection.ROWS;
 			public Arrangement Arrangement { get; } = Arrangement.FRONT;
 			public LayoutOrder Order { get; } = LayoutOrder.FORWARD;
 			public float Gutter { get; } = 0f;

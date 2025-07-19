@@ -114,7 +114,7 @@ namespace SharpSheets.Markup.Elements {
 			}
 		}
 
-		protected override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, Layout layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool diagnostic) {
+		protected override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool diagnostic) {
 			T shape = GetShape(evaluationEnvironment, shapeFactory, source, out _); // TODO Should we pass these errors up the chain somehow?
 			DrawableStyledDivElement<T> drawable = new DrawableStyledDivElement<T>(this, shape, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, diagnostic);
 
@@ -484,7 +484,7 @@ namespace SharpSheets.Markup.Elements {
 		//public override IList<IGridElement> Children => childrenProvidedOrder.Select(n => namedChildren[n]).ToList<IGridElement>();
 		public override bool ProvidesRemaining { get { return divProvideRemaining || namedChildren.Values.Any(c => c.ProvidesRemaining); } }
 
-		public DrawableStyledDivElement(StyledDivElement<T> pattern, T shape, IEnvironment environment, Dimension? size, Position? position, Margins margins, Layout layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool drawConstructionLines)
+		public DrawableStyledDivElement(StyledDivElement<T> pattern, T shape, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool drawConstructionLines)
 			: base(pattern, environment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, false, drawConstructionLines) {
 
 			this.shape = shape;

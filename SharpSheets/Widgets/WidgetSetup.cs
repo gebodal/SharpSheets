@@ -30,7 +30,7 @@ namespace SharpSheets.Widgets {
 		public readonly Dimension? size;
 		public readonly Position? position;
 		public readonly Margins margins;
-		public readonly Layout layout;
+		public readonly LayoutDirection layout;
 		public readonly Arrangement arrangement;
 		public readonly LayoutOrder order;
 		public readonly bool diagnostic;
@@ -85,7 +85,7 @@ namespace SharpSheets.Widgets {
 					IDetail? gutter_ = null, // gutter_
 					Dimension? _size = null,
 					Position? _position = null,
-					Layout layout = Layout.ROWS,
+					LayoutDirection layout = LayoutDirection.ROWS,
 					Arrangement arrangement = Arrangement.FRONT,
 					LayoutOrder order = LayoutOrder.FORWARD,
 					bool _diagnostic = false
@@ -161,7 +161,7 @@ namespace SharpSheets.Widgets {
 				IDetail? gutter_ = null, // gutter_
 				[LocalProperty(Default = "1")] Dimension? size = null,
 				[LocalProperty] Position? position = null,
-				Layout layout = Layout.ROWS,
+				LayoutDirection layout = LayoutDirection.ROWS,
 				Arrangement arrangement = Arrangement.FRONT,
 				LayoutOrder order = LayoutOrder.FORWARD,
 				[LocalProperty] bool diagnostic = false

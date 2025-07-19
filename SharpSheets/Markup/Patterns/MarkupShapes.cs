@@ -490,7 +490,7 @@ namespace SharpSheets.Markup.Patterns {
 
 	public class MarkupDetail : MarkupShape, IDetail {
 
-		public Layout Layout { protected get; set; }
+		public LayoutDirection Layout { protected get; set; }
 
 		public MarkupDetail(MarkupDetailPattern pattern, ShapeFactory? shapeFactory, IEnvironment arguments, bool constructionLines) : base(pattern, shapeFactory, arguments, constructionLines) { }
 

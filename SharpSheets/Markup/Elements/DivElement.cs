@@ -21,7 +21,7 @@ namespace SharpSheets.Markup.Elements {
 		public readonly DimensionExpression? size;
 		public readonly PositionExpression? position;
 		public readonly MarginsExpression? margins;
-		public readonly EnumExpression<Layout>? layout;
+		public readonly EnumExpression<LayoutDirection>? layout;
 		public readonly EnumExpression<Arrangement>? arrangement;
 		public readonly EnumExpression<LayoutOrder>? order;
 
@@ -80,7 +80,7 @@ namespace SharpSheets.Markup.Elements {
 			DimensionExpression? _size = null,
 			PositionExpression? _position = null,
 			MarginsExpression? _margins = null,
-			EnumExpression<Layout>? layout = null,
+			EnumExpression<LayoutDirection>? layout = null,
 			EnumExpression<Arrangement>? arrangement = null,
 			EnumExpression<LayoutOrder>? order = null,
 			BoolExpression? _provide_remaining = null,
@@ -148,7 +148,7 @@ namespace SharpSheets.Markup.Elements {
 				[LocalProperty(Default = "1")] DimensionExpression? size = null,
 				[LocalProperty] PositionExpression? position = null,
 				[LocalProperty(Default = "0,0,0,0")] MarginsExpression? margins = null,
-				[Property(Default = "rows")] EnumExpression<Layout>? layout = null,
+				[Property(Default = "rows")] EnumExpression<LayoutDirection>? layout = null,
 				[Property(Default = "FRONT")] EnumExpression<Arrangement>? arrangement = null,
 				[Property(Default = "FORWARD")] EnumExpression<LayoutOrder>? order = null,
 				[LocalProperty(Default = "false")] BoolExpression? provide_remaining = null,
@@ -270,7 +270,7 @@ namespace SharpSheets.Markup.Elements {
 			return slicingValueElements.Where(e => e?.Enabled.Evaluate(environment) ?? false).Select(e => e.NSliceValues).FirstOrDefault();
 		}
 
-		protected virtual DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, Layout layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool diagnostic) {
+		protected virtual DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool diagnostic) {
 			return new DrawableDivElement(this, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, provideRemaining, diagnostic);
 		}
 
@@ -306,7 +306,7 @@ namespace SharpSheets.Markup.Elements {
 						Dimension? size = setup.size?.Evaluate(evaluationEnvironment);
 						Position? position = setup.position?.Evaluate(evaluationEnvironment);
 						Margins margins = setup.margins?.Evaluate(evaluationEnvironment) ?? Margins.Zero;
-						Layout layout = setup.layout?.Evaluate(evaluationEnvironment) ?? Layout.ROWS;
+						LayoutDirection layout = setup.layout?.Evaluate(evaluationEnvironment) ?? LayoutDirection.ROWS;
 						Arrangement arrangement = setup.arrangement?.Evaluate(evaluationEnvironment) ?? Arrangement.FRONT;
 						LayoutOrder order = setup.order?.Evaluate(evaluationEnvironment) ?? LayoutOrder.FORWARD;
 						float gutter = setup.gutter?.Evaluate(evaluationEnvironment) ?? 0f;
@@ -362,7 +362,7 @@ namespace SharpSheets.Markup.Elements {
 			}
 			else {
 				// TODO Check this works in all cases
-				DrawableDivElement singular = new DrawableDivElement(this, outerEnvironment, null, null, Margins.Zero, Layout.ROWS, Arrangement.FRONT, LayoutOrder.FORWARD, 0f, -1f, null, true, diagnostic);
+				DrawableDivElement singular = new DrawableDivElement(this, outerEnvironment, null, null, Margins.Zero, LayoutDirection.ROWS, Arrangement.FRONT, LayoutOrder.FORWARD, 0f, -1f, null, true, diagnostic);
 				singular.AddElements(components);
 				return singular;
 			}
@@ -390,7 +390,7 @@ namespace SharpSheets.Markup.Elements {
 		public Dimension? Size { get; }
 		public Position? Position { get; }
 		public Margins Margins { get; }
-		public Layout Layout { get; }
+		public LayoutDirection Layout { get; }
 		public Arrangement Arrangement { get; }
 		public LayoutOrder Order { get; }
 		public float Gutter { get; }
@@ -422,7 +422,7 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="slicingValues"> The slicing values expression for this Div for laying out shapes in the Markup engine. </param>
 		/// <param name="provideRemaining"> A flag to indicate if this Div should provide remaining area in the grid layout. </param>
 		/// <param name="diagnostic"> A flag to indicate that this Div should draw and record diagnostic information when drawn to the canvas. </param>
-		public DrawableDivElement(DivElement pattern, IEnvironment environment, Dimension? size, Position? position, Margins margins, Layout layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool diagnostic) {
+		public DrawableDivElement(DivElement pattern, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool diagnostic) {
 			this.pattern = pattern;
 			this.environment = environment;
 			this.elements = new List<IIdentifiableMarkupElement>();
@@ -550,11 +550,11 @@ namespace SharpSheets.Markup.Elements {
 							children.Where(c => c.Size.HasValue).Select(d => d.Size!.Value).ToArray(),
 							Gutter,
 							child.Size.Value,
-							(Layout == Layout.ROWS) ? fullRect.Height : fullRect.Width);
+							(Layout == LayoutDirection.ROWS) ? fullRect.Height : fullRect.Width);
 
 						Rectangle finalRect = new Rectangle(
-							(Layout == Layout.ROWS) ? fullRect.Width : finalLength,
-							(Layout == Layout.COLUMNS) ? fullRect.Height : finalLength
+							(Layout == LayoutDirection.ROWS) ? fullRect.Width : finalLength,
+							(Layout == LayoutDirection.COLUMNS) ? fullRect.Height : finalLength
 							);
 
 						return finalRect;

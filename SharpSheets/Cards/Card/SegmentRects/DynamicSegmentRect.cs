@@ -234,7 +234,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 			//Rectangle remainingRect = content.RemainingRect(canvas, new Rectangle(width, 10000f));
 			//float totalHeight = 10000f - (remainingRect?.Height ?? 0f);
 
-			Size minimumSize = content.MinimumSize(graphicsState, Layout.ROWS, new Size(width, 10000f));
+			Size minimumSize = content.MinimumSize(graphicsState, LayoutDirection.ROWS, new Size(width, 10000f));
 			float totalHeight = minimumSize.Height;
 
 			graphicsState.RestoreState();
