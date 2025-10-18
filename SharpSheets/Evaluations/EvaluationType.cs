@@ -1809,7 +1809,7 @@ namespace SharpSheets.Evaluations {
 				for (int r = 0; r < repeats; r++) {
 					result.AddRange(values);
 				}
-				return MakeArray(ElementType, values);
+				return MakeArray(ElementType, result);
 			}
 			else {
 				return null;
