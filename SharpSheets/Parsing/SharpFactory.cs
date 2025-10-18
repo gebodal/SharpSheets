@@ -617,6 +617,9 @@ namespace SharpSheets.Parsing {
 		bool HasEntry(int index);
 		object? MinEntry();
 
+		int MinIndex();
+		int MaxIndex();
+
 		object? Get(int index);
 
 		int NumEntries { get; }
@@ -690,6 +693,9 @@ namespace SharpSheets.Parsing {
 		public T? MinEntry() {
 			return entries.OrderBy(kv => kv.Key).Select(kv => kv.Value).FirstOrDefault();
 		}
+
+		public int MinIndex() => entries.Keys.Min();
+		public int MaxIndex() => entries.Keys.Max();
 
 		object? INumbered.MinEntry() => MinEntry();
 

@@ -2148,30 +2148,86 @@ namespace SharpSheets.Widgets {
 	/// <summary>
 	/// This widget divides the available area into a series of subdivisions, in a number of rows and columns,
 	/// with an outline around each subdivision. Each column may optionally have a title, the format of which can be specified.
-	/// The relative widths of columns can also be specified. Each subdivision contains a text field. The number of columns
-	/// will be the maximum length of "columns" or "widths", with missing column names being empty, and missing widths
-	/// being set to 1 relative unit. If an absolute row height is specified, then the widget's size can be "auto", as a full
-	/// height may be calculated.
+	/// The relative widths of columns can also be specified. Each subdivision contains a text field, or optionally some defined
+	/// content. The number of columns will be the maximum length of "columns" or "widths", or the maximum content number
+	/// specified, with missing column names being empty, and missing widths being set to 1 relative unit. If an absolute
+	/// row height is specified, then the widget's size can be "auto", as a full height may be calculated.
 	/// </summary>
 	public class Subdivided : SharpWidget {
 
-		// TODO This should follow similar conventions to the LinedWidgets, with row spacing and the like
-		// TODO This should probably have a FieldDetails argument, to allow for better customization
 		// TODO There should also be a "header" grouped argument, which should include color
+
+		public class FieldDetails : ISharpArgsGrouping {
+			public readonly float? fontsize;
+			public readonly TextFormat font;
+			public readonly bool rich;
+			public readonly Color? color;
+
+			/// <summary>
+			/// Constructor for field details.
+			/// </summary>
+			/// <param name="fontsize">The font size to use for field contents.
+			/// A value of 0 indicates that the fields should autosize the contents to fit the available space.</param>
+			/// <param name="font">Font format to use for the fields. This will use the appropriate font format from
+			/// the current font selection.</param>
+			/// <param name="rich">Flag to indicate that the fields should have rich text features enabled.</param>
+			/// <param name="color">Color value for the field contents. Defaults to the current text color.</param>
+			public FieldDetails(float? fontsize = null, TextFormat font = TextFormat.REGULAR, bool rich = false, Color? color = null) {
+				this.font = font;
+				this.fontsize = fontsize;
+				this.rich = rich;
+				this.color = color;
+			}
+
+			/// <param name="fontsize">The font size to use for field contents.
+			/// A value of 0 indicates that the fields should autosize the contents to fit the available space.</param>
+			/// <param name="font">Font format to use for the fields. This will use the appropriate font format from
+			/// the current font selection.</param>
+			/// <param name="rich">Flag to indicate that the fields should have rich text features enabled.</param>
+			/// <param name="color">Color value for the field contents. Defaults to the current text color.</param>
+			[FactoryBuilder(typeof(FieldDetails))]
+			public static FieldDetails Build(float? fontsize = null, TextFormat font = TextFormat.REGULAR, bool rich = false, Color? color = null) {
+				return new FieldDetails(fontsize, font, rich, color);
+			}
+
+		}
+
+		public class HeaderDetails : ISharpArgsGrouping {
+			public readonly float fontsize;
+			public readonly ParagraphSpecification paragraph;
+			public readonly float spacing;
+			public readonly Color? color;
+
+			public HeaderDetails(float spacing = 3f, float fontsize = 5f, float lineSpacing = 1f, Color? color = null) {
+				this.spacing = spacing;
+				this.fontsize = fontsize;
+				this.paragraph = new ParagraphSpecification(lineSpacing, 0f, 0f, 0f);
+				this.color = color;
+			}
+
+			/// <param name="spacing">The spacing between the column headers and the top of the subdivisions.</param>
+			/// <param name="fontsize">The font size for the column headers.</param>
+			/// <param name="lineSpacing">The line spacing to use for multi-line column headers.</param>
+			/// <param name="color">Color for the column header text. Defaults to the current text color.</param>
+			[FactoryBuilder(typeof(HeaderDetails))]
+			public static HeaderDetails Build(float spacing = 3f, float fontsize = 5f, float lineSpacing = 1f, Color? color = null) {
+				return new HeaderDetails(spacing, fontsize, lineSpacing, color);
+			}
+		}
 
 		protected readonly string? name;
 
-		protected readonly string[]? columnNames;
+		protected readonly RichString[]? columnNames;
 		protected readonly Dimension[] columnRatios;
 		protected readonly Justification[] justifications;
+		protected readonly Numbered<ChildHolder>? columnContents;
 
-		protected readonly float headerFontSize;
-		protected readonly float headerSpacing;
+		protected readonly HeaderDetails headerDetails;
 
 		protected readonly (float x, float y) spacing;
 		protected readonly Dimension rowHeight;
 		protected readonly int nRows;
-		protected readonly bool rich;
+		protected readonly FieldDetails fields;
 
 		protected readonly IBox boxStyle;
 
@@ -2183,8 +2239,8 @@ namespace SharpSheets.Widgets {
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">A base name to use when naming the subdivision text fields.</param>
 		/// <param name="columns" example="Column 1,Column 2">A list of names for the columns.</param>
-		/// <param name="headerFontSize">The font size for the column headers.</param>
-		/// <param name="headerSpacing">The spacing between the column headers and the top of the subdivisions.</param>
+		/// <param name="content"></param>
+		/// <param name="header">Configuration for the column headers.</param>
 		/// <param name="widths" example="2,1">The widths of the columns.</param>
 		/// <param name="justification" default="LEFT">The justifcations for the column, which will be used for column headers and fields.</param>
 		/// <param name="_spacing" default="5,5">The spacing between the subdivisions, as a pair of numbers,
@@ -2193,38 +2249,38 @@ namespace SharpSheets.Widgets {
 		/// If an absolute value is specified, then the widget size may be calculated for auto-sizing.</param>
 		/// <param name="_rows" example="5">The number of rows to draw.</param>
 		/// <param name="division" example="Simple">The outline style for each division.</param>
-		/// <param name="rich">Flag to indicate that the subdivision fields should have rich text features enabled.</param>
+		/// <param name="field">Configuration information for the cell fields.</param>
 		public Subdivided(
 				WidgetSetup setup,
 				string? name = null,
 				string[]? columns = null, // TODO RichString?
-				float headerFontSize = 5f,
-				float headerSpacing = 3f,
+				Numbered<ChildHolder>? content = null,
+				HeaderDetails? header = null,
 				Dimension[]? widths = null,
 				Justification[]? justification = null,
 				(float x, float y)? _spacing = null,
 				Dimension? _height = default,
 				int _rows = -1,
 				IBox? division = null,
-				bool rich = false
+				FieldDetails? field = null
 			) : base(setup) {
 
 			this.name = name;
 
-			int numColumns = Math.Max(columns?.Length ?? 1, widths?.Length ?? 1);
+			int numColumns = Math.Max(Math.Max(columns?.Length ?? 1, widths?.Length ?? 1), ((content?.NumEntries ?? 0) > 0) ? content!.MaxIndex() : 0);
 
 			// columnNames can be null, and should be null if its length is zero
 			if (columns == null || columns.Length == 0) {
 				columnNames = null;
 			}
 			else {
-				columnNames = new string[numColumns];
+				columnNames = new RichString[numColumns];
 				int c = 0;
 				for (; c < columns.Length; c++) {
-					columnNames[c] = columns[c];
+					columnNames[c] = RichString.Create(columns[c], TextFormat.REGULAR);
 				}
 				for (; c < columnNames.Length; c++) {
-					columnNames[c] = "";
+					columnNames[c] = RichString.Create("", TextFormat.REGULAR);
 				}
 			}
 
@@ -2250,17 +2306,18 @@ namespace SharpSheets.Widgets {
 
 			justifications = new Justification[numColumns];
 			for (int j = 0; j < numColumns; j++) {
-				justifications[j] = (justification != null && j < justification.Length) ? justification[j % justification.Length] : Justification.LEFT;
+				justifications[j] = justification != null ? justification[Math.Min(j, justification.Length - 1)] : Justification.LEFT;
 			}
 
-			this.headerFontSize = headerFontSize;
-			this.headerSpacing = headerSpacing;
+			this.columnContents = content;
+
+			this.headerDetails = header ?? new HeaderDetails();
 
 			spacing = _spacing ?? (5f, 5f);
 			rowHeight = _height ?? Dimension.Single;
 			//this.columnGutter = columnGutter ?? (2f / 3f) * spacing; // config.GetProperty("columngutter", (2f / 3f) * spacing);
 			nRows = _rows;
-			this.rich = rich;
+			this.fields = field ?? new FieldDetails();
 
 			this.boxStyle = division ?? new NoOutline(-1f, trim: Margins.Zero);
 		}
@@ -2268,8 +2325,9 @@ namespace SharpSheets.Widgets {
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">A base name to use when naming the subdivision text fields.</param>
 		/// <param name="columns">A list of names for the columns.</param>
-		/// <param name="headerFontSize">The font size for the column headers.</param>
-		/// <param name="headerSpacing">The spacing between the column headers and the top of the subdivisions.</param>
+		/// <param name="content">Optional content for each column. This content will be used
+		/// instead of the field for the corresponding column for each row.</param>
+		/// <param name="header">Configuration for the column headers.</param>
 		/// <param name="widths">The widths of the columns.</param>
 		/// <param name="justification">The justifcations for the column, which will be used for column headers and fields.</param>
 		/// <param name="spacing">The spacing between the subdivisions, as a pair of numbers,
@@ -2278,37 +2336,43 @@ namespace SharpSheets.Widgets {
 		/// If an absolute value is specified, then the widget size may be calculated for auto-sizing.</param>
 		/// <param name="rows">The number of rows to draw.</param>
 		/// <param name="division">The outline style for each division.</param>
-		/// <param name="rich">Flag to indicate that the subdivision fields should have rich text features enabled.</param>
+		/// <param name="field">Configuration information for the cell fields.</param>
 		[FactoryBuilder(typeof(IWidget))]
 		public static Subdivided Build(
 				WidgetSetup setup,
 				string? name = null,
 				[Property(Example = "Column 1,Column 2")] string[]? columns = null, // TODO RichString?
-				float headerFontSize = 5f,
-				float headerSpacing = 3f,
+				Numbered<ChildHolder>? content = null,
+				HeaderDetails? header = null,
 				[Property(Example = "2,1")] Dimension[]? widths = null,
 				[Property(Default = "LEFT")] Justification[]? justification = null,
 				[LocalProperty(Default = "5,5")] (float x, float y)? spacing = null,
 				[LocalProperty(Default = "1")] Dimension? height = default,
 				[LocalProperty(Example = "5")] int rows = -1,
 				[Property(Example = "Simple")] IBox? division = null,
-				bool rich = false
+				FieldDetails? field = null
 			) {
 
-			return new Subdivided(setup, name, columns, headerFontSize, headerSpacing, widths, justification, spacing, height, rows, division, rich);
+			return new Subdivided(setup, name, columns, content, header, widths, justification, spacing, height, rows, division, field);
 		}
 
 		//private float HeaderFontSize { get { return 5f; } }
 		//private float HeaderSpacing { get { return 3f; } }
 
+		protected float GetHeaderHeight(ISharpGraphicsState graphicsState) {
+			return columnNames?.Max(n => RichStringLayout.CalculateHeight(graphicsState, n.Split('\n'), headerDetails.fontsize, headerDetails.paragraph.LineSpacing, TextHeightStrategy.AscentBaseline)) ?? 0f;
+		}
+
 		/// <summary></summary>
 		/// <exception cref="SharpDrawingException"></exception>
 		/// <exception cref="InvalidRectangleException"></exception>
-		protected void GetRects(Rectangle rect, out Rectangle?[]? headers, out Rectangle?[]? rows, out Rectangle? remainingRect) {
+		protected void GetRects(ISharpGraphicsState graphicsState, Rectangle rect, out Rectangle?[]? headers, out Rectangle?[]? rows, out Rectangle? remainingRect) {
 			Rectangle? workspaceRect = rect;
 
 			if (columnNames != null) {
-				Rectangle? headerRect = Divisions.Row(rect, Dimension.FromPoints(headerFontSize), headerSpacing, out workspaceRect, out _, true, Arrangement.FRONT, LayoutOrder.FORWARD);
+				float headerHeight = GetHeaderHeight(graphicsState);
+
+				Rectangle? headerRect = Divisions.Row(rect, Dimension.FromPoints(headerHeight), headerDetails.spacing, out workspaceRect, out _, true, Arrangement.FRONT, LayoutOrder.FORWARD);
 
 				if (headerRect == null) {
 					throw new SharpDrawingException(this, $"No header space for Subdivided rect. Header Rectangle null.");
@@ -2339,17 +2403,19 @@ namespace SharpSheets.Widgets {
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 			canvas.SaveState();
 
-			GetRects(rect, out Rectangle?[]? headers, out Rectangle?[]? rows, out Rectangle? remainingRect);
+			GetRects(canvas, rect, out Rectangle?[]? headers, out Rectangle?[]? rows, out Rectangle? remainingRect);
 
 			if (columnNames != null && headers != null) {
 				canvas.SaveState();
 
-				canvas.SetTextColor(canvas.GetMidtoneColor().Darken(0.6f));
-				canvas.SetTextFormatAndSize(TextFormat.REGULAR, headerFontSize);
+				//canvas.SetTextColor(canvas.GetMidtoneColor().Darken(0.6f));
+				if(headerDetails.color is Color headerColor) { canvas.SetTextColor(headerColor); }
+				canvas.SetTextFormatAndSize(TextFormat.REGULAR, headerDetails.fontsize);
 
 				for (int i = 0; i < columnNames.Length; i++) {
 					if (headers[i] is not null) {
-						canvas.DrawText(headers[i]!, columnNames[i], justifications[i], 0, TextHeightStrategy.AscentBaseline);
+						//canvas.DrawText(headers[i]!, columnNames[i], justifications[i], Alignment.BOTTOM, TextHeightStrategy.AscentBaseline);
+						canvas.DrawRichText(headers[i]!, columnNames[i].Split('\n'), headerDetails.fontsize, headerDetails.paragraph, justifications[i], Alignment.BOTTOM, TextHeightStrategy.AscentBaseline, false, (0f, 0f));
 					}
 					else {
 						canvas.LogError(this, $"No space for \"{columnNames[i]}\" header.");
@@ -2363,18 +2429,32 @@ namespace SharpSheets.Widgets {
 
 			string fieldName = name ?? "Subdivided";
 
+
 			if (rows != null) {
 				for (int i = 0; i < rows.Length; i++) {
 					if (rows[i] != null) {
+						canvas.SaveState();
+						canvas.SetFieldPrefix($"{fieldName}_{i + 1}_");
+
 						Rectangle?[] columns = Divisions.Columns(rows[i]!, columnRatios, spacing.x, false, Arrangement.FRONT, LayoutOrder.FORWARD); // TODO Should be able to adjust alignment?
 
 						for (int j = 0; j < columnRatios.Length; j++) {
 							//canvas.CorneredRectangle(columns[j], 3f).Fill();
 							if (columns[j] is not null) {
-								this.boxStyle.Draw(canvas, columns[j]!, out Rectangle cellRemaining);
-								canvas.TextField(cellRemaining, $"{fieldName}_{i + 1}_{(columnNames != null ? columnNames[j] : "COLUMN")}", null, TextFieldType.STRING, "", TextFormat.REGULAR, 0, false, rich, justifications[j]); // TODO Tooltip?
+								if ((columnContents?.HasEntry(j) ?? false) && columnContents?[j] is ChildHolder columnContent) {
+									canvas.SaveState();
+									canvas.AppendFieldPrefix((columnNames != null ? columnNames[j].Text : $"COLUMN{j + 1}") + "_");
+									columnContent.Child.Draw(canvas, columns[j]!, default);
+									canvas.RestoreState();
+								}
+								else {
+									this.boxStyle.Draw(canvas, columns[j]!, out Rectangle cellRemaining);
+									canvas.TextField(cellRemaining, $"{(columnNames != null ? columnNames[j].Text : $"COLUMN{j + 1}")}", null, TextFieldType.STRING, "", fields.font, fields.fontsize ?? 0f, fields.color ?? canvas.GetTextColor(), false, fields.rich, justifications[j]); // TODO Tooltip?
+								}
 							}
 						}
+
+						canvas.RestoreState();
 					}
 				}
 			}
@@ -2382,18 +2462,19 @@ namespace SharpSheets.Widgets {
 			canvas.RestoreState();
 
 			if (children.Count == 0 && remainingRect != null) {
-				canvas.TextField(remainingRect, fieldName, null, TextFieldType.STRING, "", TextFormat.REGULAR, 0, true, rich, 0); // TODO Tooltip?
+				canvas.TextField(remainingRect, fieldName, null, TextFieldType.STRING, "", fields.font, fields.fontsize ?? 0f, true, fields.rich, Justification.LEFT); // TODO Tooltip?
 			}
 			// else nothing
 		}
 
 		protected override Rectangle? GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
-			GetRects(rect, out _, out _, out Rectangle? remainingRect);
+			GetRects(graphicsState, rect, out _, out _, out Rectangle? remainingRect);
 			return remainingRect;
 		}
 
 		protected override Size GetMinimumContentSize(ISharpGraphicsState graphicsState, Size availableSpace) {
-			return new Size(0f, (columnNames != null ? (headerFontSize + headerSpacing) : 0f) + Divisions.CalculateTotalLength(rowHeight.Absolute, nRows, spacing.y));
+			float headerHeight = GetHeaderHeight(graphicsState);
+			return new Size(0f, (columnNames != null ? (headerHeight + headerDetails.spacing) : 0f) + Divisions.CalculateTotalLength(rowHeight.Absolute, nRows, spacing.y));
 		}
 	}
 
@@ -2469,8 +2550,8 @@ namespace SharpSheets.Widgets {
 		public Repeat(
 				WidgetSetup setup,
 				string? name = null,
-				int _rows = 1,
-				int _columns = 1,
+				uint _rows = 1,
+				uint _columns = 1,
 				float? spacing = null,
 				Spacing spacing_ = default,
 				ChildHolder? content = null,
@@ -2478,8 +2559,8 @@ namespace SharpSheets.Widgets {
 			) : base(setup) {
 
 			this.name = name;
-			rows = _rows;
-			columns = _columns;
+			rows = (int)_rows;
+			columns = (int)_columns;
 
 			if (rows < 1 || columns < 1) { throw new ArgumentException("\"rows\" and \"columns\" must have values >= 1."); } // SharpInitializationException
 
@@ -2492,6 +2573,7 @@ namespace SharpSheets.Widgets {
 			this.gutterLayout = gutterLayout;
 		}
 
+		/// <param name="buildErrors">Build errors list.</param>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">A name to be appended to all child form fields, to distinguish between repeated fields.</param>
 		/// <param name="rows">The number of repeated rows to draw.</param>
@@ -2504,17 +2586,21 @@ namespace SharpSheets.Widgets {
 		/// <size>0 0</size>
 		[FactoryBuilder(typeof(IWidget))]
 		public static Repeat Build(
+				[BuildErrors] IList<Exception> buildErrors,
 				WidgetSetup setup,
 				string? name = null,
-				[LocalProperty] int rows = 1,
-				[LocalProperty] int columns = 1,
+				[LocalProperty] uint rows = 1,
+				[LocalProperty] uint columns = 1,
 				float? spacing = null,
 				Spacing spacing_ = default,
 				ChildHolder? content = null,
 				GutterLayout gutterLayout = Widgets.GutterLayout.NONE
 			) {
 
-			return new Repeat(setup, name, rows, columns, spacing, spacing_, content, gutterLayout);
+			if(rows < 1) { buildErrors.Add(new ArgumentException("\"rows\" must have a value >= 1.")); }
+			if(columns < 1) { buildErrors.Add(new ArgumentException("\"columns\" must have a value >= 1.")); }
+
+			return new Repeat(setup, name, Math.Max(1U, rows), Math.Max(1U, columns), spacing, spacing_, content, gutterLayout);
 		}
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
@@ -2655,6 +2741,7 @@ namespace SharpSheets.Widgets {
 			this.gutterLayout = gutterLayout;
 		}
 
+		/// <param name="buildErrors">Build errors list.</param>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="rows">The number of grid rows for this widget's children.</param>
 		/// <param name="columns">The number of grid columns for this widget's children.</param>
@@ -2668,6 +2755,7 @@ namespace SharpSheets.Widgets {
 		/// <size>0 0</size>
 		[FactoryBuilder(typeof(IWidget))]
 		public static Grid Build(
+				[BuildErrors] IList<Exception> buildErrors,
 				WidgetSetup setup,
 				[LocalProperty] uint rows = 1,
 				[LocalProperty] uint columns = 1,
@@ -2677,7 +2765,10 @@ namespace SharpSheets.Widgets {
 				GutterLayout gutterLayout = Widgets.GutterLayout.NONE
 			) {
 
-			return new Grid(setup, rows, columns, flow, spacing, spacing_, gutterLayout);
+			if(rows < 1) { buildErrors.Add(new ArgumentException("\"rows\" must have a value >= 1.")); }
+			if(columns < 1) { buildErrors.Add(new ArgumentException("\"columns\" must have a value >= 1.")); }
+
+			return new Grid(setup, Math.Max(1U, rows), Math.Max(1U, columns), flow, spacing, spacing_, gutterLayout);
 		}
 
 		protected override Rectangle?[] GetChildRects(ISharpGraphicsState graphicsState, Rectangle rect, out Rectangle availableRect, out Rectangle? childrenRectArea, out Rectangle?[] gutters) {
