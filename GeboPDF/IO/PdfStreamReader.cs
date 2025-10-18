@@ -427,7 +427,10 @@ namespace GeboPdf.IO {
 
 				byte[] buffer = new byte[20];
 				for (uint i = 0; i < numObj; i++) {
-					stream.Read(buffer, 0, 20);
+					int bytesRead = stream.Read(buffer, 0, 20);
+					if (bytesRead != 20) {
+						throw new FormatException("Could not read xref table entry (not enough bytes).");
+					}
 
 					uint objectNum = firstObjNum + i;
 					long byteOffset = long.Parse(Encoding.ASCII.GetString(buffer, 0, 10));

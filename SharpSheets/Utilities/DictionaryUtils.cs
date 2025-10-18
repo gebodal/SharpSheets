@@ -34,6 +34,7 @@ namespace SharpSheets.Utilities {
 			return defaultValue;
 		}
 
+		/*
 		public static Dictionary<K, V> ToDictionary<K, V>(this IEnumerable<KeyValuePair<K, V>> source) where K : notnull {
 			return source.ToDictionary(kv => kv.Key, kv => kv.Value);
 		}
@@ -41,6 +42,7 @@ namespace SharpSheets.Utilities {
 		public static Dictionary<K, V> ToDictionary<K, V>(this IEnumerable<KeyValuePair<K, V>> source, IEqualityComparer<K> comparer) where K : notnull {
 			return source.ToDictionary(kv => kv.Key, kv => kv.Value, comparer);
 		}
+		*/
 
 		public static Dictionary<K, V> ToDictionaryAllowRepeats<E, K, V>(this IEnumerable<E> source, Func<E, K> keySelector, Func<E, V> valueSelector, bool overwrite) where K : notnull {
 			Dictionary<K, V> result = new Dictionary<K, V>();

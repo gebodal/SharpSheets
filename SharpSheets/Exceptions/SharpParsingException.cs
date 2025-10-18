@@ -18,7 +18,7 @@ namespace SharpSheets.Exceptions {
 			Location = location;
 		}
 
-		protected SharpParsingException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+		//protected SharpParsingException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 
 		public virtual object Clone() {
 			return new SharpParsingException(Location, Message, InnerException);

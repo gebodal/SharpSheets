@@ -506,6 +506,6 @@ namespace SharpSheets.Layouts {
 	public class InvalidRectangleException : SharpSheetsException {
 		public InvalidRectangleException(string message) : base(message) { }
 		public InvalidRectangleException(string message, Exception innerException) : base(message, innerException) { }
-		protected InvalidRectangleException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+		//protected InvalidRectangleException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 	}
 }
