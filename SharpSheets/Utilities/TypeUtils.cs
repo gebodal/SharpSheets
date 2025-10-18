@@ -35,7 +35,7 @@ namespace SharpSheets.Utilities {
 			}
 			else {
 				try {
-					return type.GetInterfaces();
+					return GetInterfacesRecursive(type).ToArray();
 				}
 				catch (TargetInvocationException) {
 					return Array.Empty<Type>();
