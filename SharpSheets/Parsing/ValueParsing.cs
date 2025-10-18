@@ -11,6 +11,7 @@ using SharpSheets.Fonts;
 using SharpSheets.Canvas;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Collections;
 
 namespace SharpSheets.Parsing {
 
@@ -151,6 +152,9 @@ namespace SharpSheets.Parsing {
 				else {
 					throw new FormatException($"Could not parse {value} into {type} type.");
 				}
+			}
+			else if (type.TryGetGenericTypeDefinition() is Type genericDictType && genericDictType == typeof(Dictionary<,>)) {
+				return ParseDict(value, type, source);
 			}
 			else if (Nullable.GetUnderlyingType(type) is Type nulledType) {
 				return Parse(value, nulledType, source);
@@ -503,6 +507,43 @@ namespace SharpSheets.Parsing {
 				rank = 0;
 				return ToString(value);
 			}
+		}
+
+		#endregion
+
+		#region Parse Dictionary
+
+		private static IDictionary ParseDict(string dictStr, Type type, DirectoryPath source) {
+
+			IDictionary result = (Activator.CreateInstance(type) as IDictionary) ?? throw new FormatException($"Invalid type for dictionary parsing: {type}");
+
+			Type[] typeArgs = type.GenericTypeArguments;
+			if (typeArgs is null || typeArgs.Length != 2) {
+				throw new FormatException($"Invalid type for dictionary parsing: {type}");
+			}
+
+			Type keyType = typeArgs[0];
+			Type valueType = typeArgs[1];
+
+			string[] entries = Escaping.SplitUnescaped(dictStr, new char[] { ',' });
+
+			for (int i = 0; i < entries.Length; i++) {
+				string[] keyValue = Escaping.SplitUnescaped(entries[i], new char[] { ':' });
+
+				if (keyValue.Length != 2) {
+					throw new FormatException("Badly formatted dictionary string.");
+				}
+
+				string keyStr = keyValue[0].Trim();
+				string valueStr = keyValue[1].Trim();
+
+				object keyObj = Parse(keyStr, keyType, source) ?? throw new FormatException($"Invalid null value for dictionary key of type {keyType}: \"{keyStr}\"");
+				object? valueObj = Parse(valueStr, valueType, source);
+
+				result.Add(keyObj, valueObj);
+			}
+
+			return result;
 		}
 
 		#endregion

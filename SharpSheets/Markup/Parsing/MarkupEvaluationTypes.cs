@@ -204,7 +204,7 @@ namespace SharpSheets.Markup.Parsing {
 		//public static readonly EvaluationType USAGE_BAR = EvaluationType.CustomType("UsageBar", Enumerable.Empty<TypeField>(), typeof(IUsageBar));
 		//public static readonly EvaluationType DETAIL = EvaluationType.CustomType("Detail", Enumerable.Empty<TypeField>(), typeof(IDetail));
 
-		private static readonly Regex arrayTupleRegex = new Regex(@"\[(?<tuple>[0-9]+)?\]", RegexOptions.IgnoreCase);
+		private static readonly Regex arrayTupleRegex = new Regex(@"\[(?:(?<tuple>[0-9]+)|(?<dictKey>[a-z][a-z0-9_]*))?\]", RegexOptions.IgnoreCase);
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
 		public static EvaluationType ParseArgumentType(string text, string? description, EvaluationContext context) {
@@ -220,6 +220,11 @@ namespace SharpSheets.Markup.Parsing {
 				if (arrayMatch.Groups["tuple"].Success) {
 					int tupleSize = int.Parse(arrayMatch.Groups["tuple"].Value);
 					return baseType.MakeTuple(tupleSize);
+				}
+				else if (arrayMatch.Groups["dictKey"].Success) {
+					string keyName = arrayMatch.Groups["dictKey"].Value;
+					EvaluationType keyType = ParseArgumentType(keyName, null, context);
+					return new DictionaryEvaluationType(context, keyType, baseType);
 				}
 				else {
 					return baseType.MakeArray();

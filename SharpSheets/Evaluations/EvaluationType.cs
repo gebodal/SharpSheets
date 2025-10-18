@@ -6,6 +6,7 @@ using System.Reflection;
 using SharpSheets.Colors;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Collections;
 
 namespace SharpSheets.Evaluations {
 
@@ -1987,6 +1988,146 @@ namespace SharpSheets.Evaluations {
 
 		protected override int GetTypeHashCode() {
 			return HashCode.Combine(ElementCount, DataType, DisplayType);
+		}
+
+	}
+
+	public class DictionaryEvaluationType : CollectionEvaluationType {
+
+		public EvaluationType KeyType { get; }
+
+		public override Type DataType { get; }
+		public override Type DisplayType { get; }
+
+		internal DictionaryEvaluationType(EvaluationContext context, EvaluationType keyType, EvaluationType elementType) : base(context, elementType) {
+			this.KeyType = keyType;
+
+			this.DataType = MakeDictionaryType(this.KeyType.DataType, this.ElementType.DataType);
+			this.DisplayType = MakeDictionaryType(this.KeyType.DisplayType, this.ElementType.DisplayType);
+
+			AddField(new TypeField("keys", KeyType.MakeArray(), value => ArrayEvaluationType.MakeArrayFromData(KeyType, ((IDictionary)value.Value!).Keys.Cast<object>().ToArray())));
+			AddField(new TypeField("values", ElementType.MakeArray(), value => ArrayEvaluationType.MakeArrayFromData(ElementType, ((IDictionary)value.Value!).Values.Cast<object?>().ToArray())));
+			AddField(new TypeField("count", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((IDictionary)value.Value!).Count, value.Type.Context.GetType<IntEvaluationType>())));
+		}
+
+		protected override string GetMyCollectionBrackets() {
+			return $"[{KeyType.Name}]";
+		}
+
+		private static bool TryGetDictionary(EvaluationValue value, [MaybeNullWhen(false)] out IDictionary dict, [MaybeNullWhen(false)] out DictionaryEvaluationType dictType) {
+			if (value.Type is DictionaryEvaluationType dictEvalType && value.Value is IDictionary dictObj) {
+				dict = dictObj;
+				dictType = dictEvalType;
+				return true;
+			}
+			else {
+				dict = null;
+				dictType = null;
+				return false;
+			}
+		}
+
+		private static Type MakeDictionaryType(Type keyType, Type valueType) {
+			return typeof(Dictionary<,>).MakeGenericType(keyType, valueType);
+		}
+
+		public static EvaluationValue MakeDictionary(EvaluationType keyType, EvaluationType elementType, IList<(EvaluationValue key, EvaluationValue value)> entries) {
+			EvaluationType dictType = new DictionaryEvaluationType(keyType.Context, keyType, elementType);
+			IDictionary dict = (IDictionary)(Activator.CreateInstance(dictType.DataType)!);
+
+			foreach((EvaluationValue key, EvaluationValue value) in entries) {
+				dict.Add(
+					key.Value ?? throw new EvaluationCalculationException("Invalid null value provided for dictionary key."),
+					value.Value
+					);
+			}
+
+			return new EvaluationValue(dict, dictType);
+		}
+
+		public override bool CanImplicitCastFrom(EvaluationType other, [NotNullWhen(true)] out EvaluationType? lubType) {
+			if(other is DictionaryEvaluationType dict
+				&& Context.TryGetLeastUpperBoundType(KeyType, dict.KeyType, out EvaluationType? lubKey)
+				&& Context.TryGetLeastUpperBoundType(ElementType, dict.ElementType, out EvaluationType? lubElement)
+				) {
+
+				lubType = new DictionaryEvaluationType(Context, lubKey, lubElement);
+				return true;
+			}
+			else {
+				lubType = null;
+				return false;
+			}
+		}
+
+		public override EvaluationValue? Cast(EvaluationValue other) {
+			if(TryGetDictionary(other, out IDictionary? dict, out DictionaryEvaluationType? dictType)) {
+				List<(EvaluationValue key, EvaluationValue value)> result = new List<(EvaluationValue key, EvaluationValue value)>();
+
+				foreach(object key in dict.Keys) {
+					result.Add((
+						KeyType.Cast(new EvaluationValue(key, dictType.KeyType)) ?? throw new EvaluationTypeException($"Cannot cast dictionary key of type {dictType.KeyType} to {KeyType}."),
+						ElementType.Cast(new EvaluationValue(dict[key], dictType.ElementType)) ?? throw new EvaluationTypeException($"Cannot cast dictionary value of type {dictType.ElementType} to {ElementType}.")
+						));
+				}
+
+				return MakeDictionary(KeyType, ElementType, result);
+			}
+			else {
+				return null;
+			}
+		}
+
+		// TODO Implement?
+		/*
+		public override EvaluationType? EqualResult(EvaluationType other) => null
+		public override EvaluationValue? Equal(EvaluationValue left, EvaluationValue right) => null;
+
+		public override EvaluationType? NotEqualResult(EvaluationType other) => null;
+		public override EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) => null;
+		*/
+
+		public override EvaluationType? IndexerResult(EvaluationType index) {
+			if (KeyType.CanImplicitCastFrom(index)) {
+				return ElementType;
+			}
+			else {
+				return null;
+			}
+		}
+		public override EvaluationValue? Indexer(EvaluationValue subject, EvaluationValue index) {
+			if (TryGetDictionary(subject, out IDictionary? dict, out _) && KeyType.Cast(index) is EvaluationValue indexCast) {
+				object key = indexCast.Value ?? throw new EvaluationCalculationException("Invalid null dictionary key.");
+				object? value = dict.Contains(key) ? dict[key] : throw new EvaluationCalculationException($"No value for key in dictionary: {key}");
+				return new EvaluationValue(value, ElementType);
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? IterationResult() => KeyType;
+		public override IEnumerable<EvaluationValue>? Iteration(EvaluationValue subject) {
+			if (TryGetDictionary(subject, out IDictionary? dict, out _)) {
+				List<EvaluationValue> result = new List<EvaluationValue>();
+				foreach (object key in dict.Keys) {
+					result.Add(new EvaluationValue(key, KeyType));
+				}
+				return result;
+			}
+			else {
+				return null;
+			}
+		}
+
+		protected override bool EqualTypeData(EvaluationType other) {
+			return other is DictionaryEvaluationType otherDict
+				&& otherDict.KeyType == KeyType
+				&& otherDict.ElementType == ElementType;
+		}
+
+		protected override int GetTypeHashCode() {
+			return HashCode.Combine(DataType, DisplayType);
 		}
 
 	}
