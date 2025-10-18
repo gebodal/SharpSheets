@@ -10,7 +10,9 @@ using SharpSheets.Shapes;
 using SharpSheets.Utilities;
 using SharpSheets.Widgets;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -51,8 +53,8 @@ namespace SharpEditor.DataManagers {
 
 			}
 			*/
-			else if (type.IsArray || TupleUtils.IsTupleType(type)) {
-				return GetArrayTypeName(type, GetTypeName);
+			else if (type.IsArray || TupleUtils.IsTupleType(type) || type.IsAssignableTo(typeof(IDictionary))) {
+				return GetCollectionTypeName(type, GetTypeName);
 			}
 			else if (Nullable.GetUnderlyingType(type) is Type nulledType) {
 				return GetTypeName(nulledType);
@@ -153,7 +155,7 @@ namespace SharpEditor.DataManagers {
 				return "Bool";
 			}
 			else if (type.IsArray || TupleUtils.IsTupleType(type)) {
-				return GetArrayTypeName(type, GetEnvironmentTypeName);
+				return GetCollectionTypeName(type, GetEnvironmentTypeName);
 			}
 			else {
 				return GetTypeName(type);
@@ -175,32 +177,53 @@ namespace SharpEditor.DataManagers {
 			return IsNamedChild(type.DisplayType);
 		}
 
-		private static string GetArrayTypeName(Type type, Func<Type, string> typeNameGetter) {
-			string name = GetArrayTypeName(type, out string postfix, typeNameGetter);
+		private static string GetCollectionTypeName(Type type, Func<Type, string> typeNameGetter) {
+			string name = GetCollectionTypeName(type, out string postfix, typeNameGetter);
 			return name + NO_BREAK_CHAR + postfix;
 		}
-		private static string GetArrayTypeName(Type type, out string postfix, Func<Type, string> typeNameGetter) {
+		private static string GetCollectionTypeName(Type type, out string postfix, Func<Type, string> typeNameGetter) {
 			if (type.IsArray && type.GetElementType() is Type elementType) {
-				string str = GetArrayTypeName(elementType, out string elemPost, typeNameGetter);
+				string str = GetCollectionTypeName(elementType, out string elemPost, typeNameGetter);
 				postfix = "[]" + elemPost;
 				return str;
 			}
 			else if (TupleUtils.IsTupleType(type)) {
 				Type[] typeArgs = type.GetGenericArguments();
 				if (typeArgs.Distinct().Count() == 1) {
-					string str = GetArrayTypeName(typeArgs[0], out string itemPost, typeNameGetter);
+					string str = GetCollectionTypeName(typeArgs[0], out string itemPost, typeNameGetter);
 					postfix = "[" + typeArgs.Length + "]" + itemPost;
 					return str;
 				}
 				else {
 					postfix = "";
-					return "Tuple(" + string.Join(", ", typeArgs.Select(t => GetArrayTypeName(t, typeNameGetter))) + ")";
+					return "Tuple(" + string.Join(", ", typeArgs.Select(t => GetCollectionTypeName(t, typeNameGetter))) + ")";
 				}
+			}
+			else if (type.IsAssignableTo(typeof(IDictionary)) && TryGetIDictionaryGenericArguments(type, out Type? dictKeyType, out Type? dictValueType)) {
+				string str = GetCollectionTypeName(dictValueType, out string elemPost, typeNameGetter);
+				postfix = "[" + typeNameGetter(dictKeyType) + "]" + elemPost;
+				return str;
 			}
 			else {
 				postfix = "";
 				return typeNameGetter(type);
 			}
+		}
+
+		private static bool TryGetIDictionaryGenericArguments(Type type, [MaybeNullWhen(false)] out Type keyType, [MaybeNullWhen(false)] out Type valueType) {
+			// Search implemented interfaces (includes interfaces on base types)
+			foreach (Type iface in type.GetInterfacesOrSelf()) {
+				if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IDictionary<,>)) {
+					Type[] args = iface.GetGenericArguments();
+					keyType = args[0];
+					valueType = args[1];
+					return true;
+				}
+			}
+
+			keyType = null;
+			valueType = null;
+			return false;
 		}
 
 		public static string GetValueString(Type type, object? value) {
@@ -310,6 +333,14 @@ namespace SharpEditor.DataManagers {
 					return value?.ToString() ?? "[Invalid]";
 				}
 			}
+			else if (type.IsAssignableTo(typeof(IDictionary))) {
+				if (value is IDictionary) {
+					return DictionaryToString(type, value);
+				}
+				else {
+					return value?.ToString() ?? "[Invalid]";
+				}
+			}
 			else if (type.IsEnum) {
 				return GetEnumString(value);
 			}
@@ -393,6 +424,27 @@ namespace SharpEditor.DataManagers {
 			else {
 				rank = 0;
 				return GetValueString(type, value);
+			}
+		}
+
+		private static string DictionaryToString(Type type, object? value) {
+			if (value is IDictionary dict && TryGetIDictionaryGenericArguments(type, out Type? dictKeyType, out Type? dictValueType)) {
+				List<string> parts = new List<string>();
+
+				foreach (object key in dict.Keys.Cast<object>()) {
+
+					object? keyValue = dict[key];
+
+					string keyStr = GetValueString(dictKeyType, key);
+					string valueStr = GetValueString(dictValueType, keyValue);
+
+					parts.Add($"{keyStr}: {valueStr}");
+				}
+
+				return string.Join(", ", parts);
+			}
+			else {
+				return "INVALID DICTIONARY OBJECT";
 			}
 		}
 
