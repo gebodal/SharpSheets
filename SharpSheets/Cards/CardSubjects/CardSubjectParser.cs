@@ -64,7 +64,11 @@ namespace SharpSheets.Cards.CardSubjects {
 				\]
 			)* # Zero or more repetitions of this pattern
 			\s*
-			(:\s*(?<entrytext>.+))?
+			(
+				(?<!\\)(\\\\)*: # Colon that is preceeded by an even (inc. zero) number of backslashes
+				\s* # Any amount of whitespace
+				(?<entrytext>.+) # The actual entry text
+			)?
 			$ # Must be end of string
 			", RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase);
 		private static readonly Regex propertyNameRegex = new Regex(@"[a-z][a-z0-9\s]*", RegexOptions.IgnoreCase);

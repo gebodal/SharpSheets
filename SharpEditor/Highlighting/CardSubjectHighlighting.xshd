@@ -158,8 +158,8 @@
 		</Span>
 
 		<Span color="CardSubject_Property">
-			<Begin>(?&lt;=^|\+\s+)[^\#\=\:\%](\\\%|\\\{|[^\:\[\{\%])*(?=\:|\[)</Begin>
-			<End>\:</End>
+			<Begin>(?&lt;=^|\+\s+)[^\#\=\:\%](\\\%|\\\{|[^\:\[\{\%])*(?=(?&lt;!\\)(\\\\)*\:|\[)</Begin>
+			<End>(?&lt;!\\)(\\\\)*\:</End>
 			<RuleSet>
 				<Import ruleSet="TitleDetailsRules"/>
 			</RuleSet>
