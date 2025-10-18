@@ -24,7 +24,7 @@ namespace SharpSheets.Evaluations.Nodes {
 				|| FloatEvaluationType.IsReal(argType)
 				|| StringEvaluationType.IsString(argType)
 				|| BoolEvaluationType.IsBool(argType)
-				|| argType is CollectionEvaluationType) {
+				|| argType.IterationResult() is not null) {
 				return argType.Context.GetType<IntEvaluationType>();
 			}
 			else {
@@ -48,17 +48,17 @@ namespace SharpSheets.Evaluations.Nodes {
 			else if (FloatEvaluationType.TryGetFloat(a, out float aFloat)) {
 				return (int)aFloat;
 			}
-			else if (BoolEvaluationType.TryGetBool(a, out bool aBool)) {
-				return aBool ? 1 : 0;
-			}
 			else if (StringEvaluationType.TryGetString(a, out string? aStr)) {
 				return aStr.Length;
+			}
+			else if (BoolEvaluationType.TryGetBool(a, out bool aBool)) {
+				return aBool ? 1 : 0;
 			}
 			else if (a.Type.Iteration(a) is IEnumerable<EvaluationValue> iterable) {
 				return iterable.Count();
 			}
 			else {
-				Console.WriteLine($"Arg type {arg.GetReturnType()}, value type: {a.Type}, iteration result: {a.Type.IterationResult()}, iteration: {a.Type.Iteration(a)}");
+				//Console.WriteLine($"Arg type {arg.GetReturnType()}, value type: {a.Type}, iteration result: {a.Type.IterationResult()}, iteration: {a.Type.Iteration(a)}");
 				throw new EvaluationTypeException($"Length not defined for value of type {a.Type}.");
 			}
 		}
