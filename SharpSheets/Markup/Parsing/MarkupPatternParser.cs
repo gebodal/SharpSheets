@@ -1922,6 +1922,7 @@ namespace SharpSheets.Markup.Parsing {
 					if (attribute.Name.StartsWith(contextName + ".")) {
 						string valueName = attribute.Name.Substring(contextName.Length + 1);
 						if (!string.IsNullOrEmpty(valueName)) {
+							/*
 							try {
 								EvaluationNode node = Evaluation.Parse(attribute.Value, variables);
 								values[valueName] = node;
@@ -1930,6 +1931,17 @@ namespace SharpSheets.Markup.Parsing {
 							catch (EvaluationException e) {
 								LogError(attribute, "Error parsing context value expression.", e);
 							}
+							*/
+							EvaluationNode node;
+							try {
+								node = Evaluation.Parse(attribute.Value, variables);
+							}
+							catch (EvaluationException) {
+								// TODO Is this an acceptable fallback?
+								node = variables.Context.MakeValue<StringEvaluationType>(attribute.Value);
+							}
+							values[valueName] = node;
+							LogVisit(elem, attribute.Name);
 						}
 					}
 				}
