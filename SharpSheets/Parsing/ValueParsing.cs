@@ -153,7 +153,7 @@ namespace SharpSheets.Parsing {
 					throw new FormatException($"Could not parse {value} into {type} type.");
 				}
 			}
-			else if (type.TryGetGenericTypeDefinition() is Type genericDictType && genericDictType == typeof(Dictionary<,>)) {
+			else if (type.IsAssignableTo(typeof(IDictionary))) { // type.TryGetGenericTypeDefinition() is Type genericDictType && genericDictType == typeof(Dictionary<,>)
 				return ParseDict(value, type, source);
 			}
 			else if (Nullable.GetUnderlyingType(type) is Type nulledType) {

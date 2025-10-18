@@ -2028,7 +2028,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		private static Type MakeDictionaryType(Type keyType, Type valueType) {
-			return typeof(Dictionary<,>).MakeGenericType(keyType, valueType);
+			return typeof(OrderedDictionary<,>).MakeGenericType(keyType, valueType);
 		}
 
 		public static EvaluationValue MakeDictionary(EvaluationType keyType, EvaluationType elementType, IList<(EvaluationValue key, EvaluationValue value)> entries) {
