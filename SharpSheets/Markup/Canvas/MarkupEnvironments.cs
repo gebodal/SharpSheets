@@ -175,8 +175,6 @@ namespace SharpSheets.Markup.Canvas {
 					MarkupEnvironmentFunctions.FromMillimetresFunction.Instance,
 					MarkupEnvironmentFunctions.FromInchesFunction.Instance,
 					MarkupEnvironmentFunctions.FromAutoFunction.Instance,
-					MarkupEnvironmentFunctions.SumDimensionsFunction.Instance,
-					MarkupEnvironmentFunctions.MultiplyDimensionFunction.Instance,
 					MarkupEnvironmentFunctions.DarkenColorFunction.Instance,
 					MarkupEnvironmentFunctions.LightenColorFunction.Instance
 				});
@@ -252,8 +250,6 @@ namespace SharpSheets.Markup.Canvas {
 						MarkupEnvironmentFunctions.FromMillimetresFunction.Instance,
 						MarkupEnvironmentFunctions.FromInchesFunction.Instance,
 						MarkupEnvironmentFunctions.FromAutoFunction.Instance,
-						MarkupEnvironmentFunctions.SumDimensionsFunction.Instance,
-						MarkupEnvironmentFunctions.MultiplyDimensionFunction.Instance,
 						MarkupEnvironmentFunctions.DarkenColorFunction.Instance,
 						MarkupEnvironmentFunctions.LightenColorFunction.Instance
 					},
@@ -678,73 +674,6 @@ namespace SharpSheets.Markup.Canvas {
 
 			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
 				return new EvaluationValue(Dimension.Automatic, environment.GetType<DimensionEvaluationType>());
-			}
-		}
-
-		// TODO We should be able to remove this
-		public class SumDimensionsFunction : AbstractFunction {
-			public static readonly SumDimensionsFunction Instance = new SumDimensionsFunction();
-			private SumDimensionsFunction() { }
-
-			public override EvaluationName Name { get; } = "sumdimensions";
-			public override string? Description { get; } = "Returns the sum of the Dimension arguments, as a single Dimension value.";
-
-			public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
-				return new EnvironmentFunctionArguments(null,
-					new EnvironmentFunctionArgList(new EnvironmentFunctionArg("dim", context.GetType<DimensionEvaluationType>(), null), true)
-				);
-			}
-
-			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
-				return context.GetType<DimensionEvaluationType>();
-			}
-
-			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				Dimension[] argsEval = args.Select(a => {
-					EvaluationValue aVal = a.Evaluate(environment);
-					if (DimensionEvaluationType.TryGetDimension(aVal, out Dimension dim)) {
-						return dim;
-					}
-					else {
-						throw new EvaluationCalculationException($"Cannot cast from {aVal.Type.Name} to {typeof(Dimension).Name}.");
-					}
-				}).ToArray();
-				return new EvaluationValue(DimensionUtils.Sum(argsEval), environment.GetType<DimensionEvaluationType>());
-			}
-		}
-
-		// TODO We should be able to remove this
-		public class MultiplyDimensionFunction : AbstractFunction {
-			public static readonly MultiplyDimensionFunction Instance = new MultiplyDimensionFunction();
-			private MultiplyDimensionFunction() { }
-
-			public override EvaluationName Name { get; } = "multiplydimension";
-			public override string? Description { get; } = "Multiplies a Dimension value by a given real-valued multiplier (this multiplies each of the absolute, relative, and percentage values separately).";
-
-			public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
-				return new EnvironmentFunctionArguments(null,
-					new EnvironmentFunctionArgList(
-						new EnvironmentFunctionArg("dimension", context.GetType<DimensionEvaluationType>(), null),
-						new EnvironmentFunctionArg("factor", context.GetType<FloatEvaluationType>(), null)
-						)
-				);
-			}
-
-			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
-				return context.GetType<DimensionEvaluationType>();
-			}
-
-			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				EvaluationValue dimVal = args[0].Evaluate(environment);
-				EvaluationValue factorVal = args[1].Evaluate(environment);
-
-				if(DimensionEvaluationType.TryGetDimension(dimVal, out Dimension dim) && FloatEvaluationType.TryGetFloat(factorVal, out float factor)) {
-					Dimension result = factor * dim;
-					return new EvaluationValue(result, environment.GetType<DimensionEvaluationType>());
-				}
-				else {
-					throw new EvaluationCalculationException($"Cannot multiply values of types {dimVal.Type.Name} and {factorVal.Type.Name}.");
-				}
 			}
 		}
 
