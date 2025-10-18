@@ -596,7 +596,7 @@ namespace SharpSheets.Markup.Elements {
 
 		public override void Draw(ISharpCanvas canvas, Rectangle fullRect, CancellationToken cancellationToken) {
 
-			Rectangle rect = ApplyAspect(fullRect);
+			Rectangle rect = ApplyAspect(fullRect).Margins(Margins, false); // Need to apply Margins manually, as we're not using GridElements.GetElementRects
 
 			if (diagnostic) {
 				canvas.RegisterAreas(pattern, fullRect, rect, Array.Empty<Rectangle>());
