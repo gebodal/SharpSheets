@@ -20,14 +20,16 @@ namespace SharpSheets.Markup.Parsing {
 			"linearGradient", "radialGradient", "solidPaint"
 		};
 
-		private static readonly Dictionary<string, string[]> referenceElementComponents = new Dictionary<string, string[]> {
-			{ "box", new string[] { "remaining" } },
-			{ "labelledBox", new string[] { "remaining", "label" } },
-			{ "titledBox", new string[] { "remaining" } },
-			{ "bar", new string[] { "remaining", "label" } },
-			{ "usageBar", new string[] { "label", "entry1", "entry2" } },
-			{ "detail", Array.Empty<string>() }
-			// TODO Add remaining types: TitleStylesBox? EntriedArea?
+		private static readonly Dictionary<string, Regex?> referenceElementComponents = new Dictionary<string, Regex?> {
+			{ "box", new Regex(@"^remaining$") },
+			{ "labelledBox", new Regex(@"^(?:remaining|label)$") },
+			{ "titledBox", new Regex(@"^remaining$") },
+			{ "entried", new Regex(@"^entry[0-9]+$") },
+			{ "bar", new Regex(@"^(?:remaining|label)$") },
+			{ "usageBar", new Regex(@"^(?:label|entry1|entry2)$") },
+			{ "detail", null },
+			// TODO Add remaining types: TitleStylesBox?
+			{ "widget", new Regex(@"^remaining$") }
 		};
 
 		private static readonly HashSet<string> useElementIgnoredAttributes = new HashSet<string> {
@@ -46,8 +48,9 @@ namespace SharpSheets.Markup.Parsing {
 			return referenceElementComponents.ContainsKey(name);
 		}
 
-		public static Regex GetReferenceElementChildrenRegex(string name) {
-			return new Regex(string.Join("|", referenceElementComponents[name]));
+		public static Regex? GetReferenceElementChildrenRegex(string name) {
+			//return new Regex(string.Join("|", referenceElementComponents[name]));
+			return referenceElementComponents[name];
 		}
 
 		public static bool IsIgnoredUseCloneAttribute(string name) {

@@ -186,6 +186,7 @@ namespace SharpSheets.Markup.Parsing {
 				GetBuilderDetails(typeof(BoxStyledDivElement), "box"),
 				GetBuilderDetails(typeof(LabelledBoxStyledDivElement), "labelledBox"),
 				GetBuilderDetails(typeof(TitledBoxStyledDivElement), "titledBox"),
+				GetBuilderDetails(typeof(EntriedShapeStyledDivElement), "entried"),
 				GetBuilderDetails(typeof(BarStyledDivElement), "bar"),
 				GetBuilderDetails(typeof(LabelledUsageBarStyledDivElement), "usageBar"),
 				GetBuilderDetails(typeof(DetailStyledDivElement), "detail"),

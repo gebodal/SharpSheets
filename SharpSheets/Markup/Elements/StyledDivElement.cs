@@ -57,7 +57,7 @@ namespace SharpSheets.Markup.Elements {
 
 		protected readonly List<KeyValuePair<string, DivElement>> namedChildren;
 
-		public KeyedChildrenDivElement(string? id, DivSetup setup, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables) :base(id, setup, outerContext, markupContext, variables) {
+		public KeyedChildrenDivElement(string? id, DivSetup setup, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables) : base(id, setup, outerContext, markupContext, variables) {
 			this.namedChildren = new List<KeyValuePair<string, DivElement>>();
 		}
 
@@ -98,13 +98,13 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		protected virtual T GetShape(IEnvironment environment, ShapeFactory? shapeFactory, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			if(href is not null) {
+			if (href is not null) {
 				T evaluated = href.Evaluate(environment) ?? throw new EvaluationCalculationException("Could not evaluate shape.");
 				buildErrors = Array.Empty<SharpParsingException>();
 				return evaluated;
 			}
 			else {
-				if(shapeFactory is null) {
+				if (shapeFactory is null) {
 					throw new ArgumentNullException(nameof(shapeFactory));
 				}
 
@@ -279,6 +279,50 @@ namespace SharpSheets.Markup.Elements {
 			return new TitledBoxStyledDivElement(id, setup, shapeContext, href, name, outerContext, markupContext, variables);
 		}
 		
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	public class EntriedShapeStyledDivElement : StyledDivElement<IEntriedShape> {
+
+		/// <summary>
+		/// Constructor for <see cref="EntriedShapeStyledDivElement"/>.
+		/// </summary>
+		/// <param name="_id" default="null">A unique name for this element.</param>
+		/// <param name="setup">The DivSetup values for this element.</param>
+		/// <param name="_shapeContext">The shape context for this element.</param>
+		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
+		/// <param name="_name" default="null">The name to use for this shape, if a name is accepted by the shape type.</param>
+		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
+		/// <param name="markupContext"></param>
+		/// <param name="variables">The variables declared with this Div.</param>
+		public EntriedShapeStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IEntriedShape?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
+			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
+
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="setup">The DivSetup values for this element.</param>
+		/// <param name="shapeContext">The shape context for this element.</param>
+		/// <param name="href">The shape to use as the style for this element.</param>
+		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
+		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
+		/// <param name="markupContext"></param>
+		/// <param name="variables">The variables declared with this Div.</param>
+		[FactoryBuilder(typeof(EntriedShapeStyledDivElement), Name = "entried")]
+		public static EntriedShapeStyledDivElement Build(
+				[LocalProperty(Default = "null")] string? id,
+				DivSetup setup,
+				[LocalProperty] ContextExpression? shapeContext,
+				[LocalProperty(Default = "null")] IExpression<IEntriedShape?>? href,
+				[LocalProperty(Default = "null")] IExpression<string>? name,
+				[Property(Exclude = true)] IVariableBox outerContext,
+				[Property(Exclude = true)] MarkupEvaluationContext markupContext,
+				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
+			) {
+
+			return new EntriedShapeStyledDivElement(id, setup, shapeContext, href, name, outerContext, markupContext, variables);
+		}
+
 	}
 
 	/// <summary>
@@ -507,7 +551,7 @@ namespace SharpSheets.Markup.Elements {
 
 		public override Size MinimumContentSize(ISharpGraphicsState graphicsState, Size availableSpace) {
 
-			if(shape is IFramedContainerArea framedContainer && namedChildren.TryGetValue("remaining", out DrawableDivElement? remainingDiv)) {
+			if (shape is IFramedContainerArea framedContainer && namedChildren.TryGetValue("remaining", out DrawableDivElement? remainingDiv)) {
 				Rectangle remainingRect = framedContainer.RemainingRect(graphicsState, (Rectangle)availableSpace);
 				Size minimumContent = remainingDiv.MinimumContentSize(graphicsState, (Size)remainingRect) ?? new Size(0f, 0f);
 				return framedContainer.FullSize(graphicsState, minimumContent);
@@ -570,7 +614,7 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		public override Rectangle? ContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
-			if(ProvidesRemaining && shape is IFramedArea framedArea) {
+			if (ProvidesRemaining && shape is IFramedArea framedArea) {
 				return framedArea.RemainingRect(graphicsState, ApplyAspect(rect));
 			}
 			else {

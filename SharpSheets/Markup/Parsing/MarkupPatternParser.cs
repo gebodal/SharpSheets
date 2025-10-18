@@ -683,7 +683,7 @@ namespace SharpSheets.Markup.Parsing {
 			private KeyedChildrenDivElement? MakeStyledDivElement(XMLElement root, XMLElement divElem, IVariableBox outerContext, MarkupEvaluationContext markupContext, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, DirectoryPath source) {
 
 				// Get regex which determines which child elements are valid children
-				Regex namedChildRegex = MarkupParsingConstants.GetReferenceElementChildrenRegex(divElem.Name);
+				Regex? namedChildRegex = MarkupParsingConstants.GetReferenceElementChildrenRegex(divElem.Name);
 
 				IVariableBox variables = markupContext.DrawingStateVariables().AppendVariables(outerContext);
 
@@ -753,7 +753,7 @@ namespace SharpSheets.Markup.Parsing {
 				}
 
 				foreach (XMLElement childElem in divElem.Elements) {
-					if (namedChildRegex.IsMatch(childElem.Name)) {
+					if (namedChildRegex?.IsMatch(childElem.Name) ?? false) {
 						DivElement child = MakeDivElement(root, childElem, divElement.Variables, markupContext, constructed, source);
 						if (child != null) {
 							divElement.AddNamedChild(childElem.Name, child);
