@@ -54,7 +54,7 @@ namespace SharpSheets.Cards.CardSubjects {
 			foreach (ConstantDefinition definition in definitions) {
 				object? exampleValue = null;
 				if (definition.ExampleValue is not null) {
-					exampleValue = definition.ExampleValue;
+					exampleValue = definition.ExampleValue.Value;
 				}
 				else if(definition.Type.ReturnType.DataType.IsValueType) {
 					exampleValue = Activator.CreateInstance(definition.Type.ReturnType.DataType);
