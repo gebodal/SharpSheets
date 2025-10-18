@@ -1704,7 +1704,13 @@ namespace SharpSheets.Evaluations {
 
 	}
 
-	public class ArrayEvaluationType : CollectionEvaluationType {
+	public abstract class SequentialCollectionEvaluationType : CollectionEvaluationType {
+
+		protected SequentialCollectionEvaluationType(EvaluationContext context, EvaluationType elementType) : base(context, elementType) { }
+
+	}
+
+	public class ArrayEvaluationType : SequentialCollectionEvaluationType {
 
 		public override Type DataType { get; }
 		public override Type DisplayType { get; }
@@ -1740,13 +1746,17 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public static EvaluationValue MakeArray(EvaluationType elementType, IList<EvaluationValue> values) {
-			Array final = Array.CreateInstance(elementType.DataType, values.Count);
-			Array.Copy(values.Select(v => v.Value).ToArray(), final, final.Length);
+			return MakeArrayFromData(elementType, values.Select(v => v.Value).ToArray());
+		}
+
+		public static EvaluationValue MakeArrayFromData(EvaluationType elementType, object?[] values) {
+			Array final = Array.CreateInstance(elementType.DataType, values.Length);
+			Array.Copy(values, final, final.Length);
 			return new EvaluationValue(final, elementType.MakeArray());
 		}
 
 		public override bool CanImplicitCastFrom(EvaluationType other, [NotNullWhen(true)] out EvaluationType? lubType) {
-			if(other is CollectionEvaluationType collection && Context.TryGetLeastUpperBoundType(ElementType, collection.ElementType, out EvaluationType? lubElement)) {
+			if(other is SequentialCollectionEvaluationType collection && Context.TryGetLeastUpperBoundType(ElementType, collection.ElementType, out EvaluationType? lubElement)) {
 				lubType = lubElement.MakeArray();
 				return true;
 			}
@@ -1888,7 +1898,7 @@ namespace SharpSheets.Evaluations {
 
 	}
 
-	public class TupleEvaluationType : CollectionEvaluationType {
+	public class TupleEvaluationType : SequentialCollectionEvaluationType {
 
 		public override Type DataType { get; }
 		public override Type DisplayType { get; }
