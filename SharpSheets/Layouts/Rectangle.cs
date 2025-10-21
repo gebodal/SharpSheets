@@ -138,6 +138,10 @@ namespace SharpSheets.Layouts {
 			return new Rectangle(x - width / 2, y - height / 2, width, height);
 		}
 
+		public static Rectangle RectangleAt(float x, float y, Size size) {
+			return RectangleAt(x, y, size.Width, size.Height);
+		}
+
 		public static Rectangle RectangleFromBounding(float left, float bottom, float right, float top) {
 			float leftf = Math.Min(left, right);
 			float rightf = Math.Max(left, right);

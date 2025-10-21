@@ -123,7 +123,12 @@ namespace SharpSheets.Layouts {
 		}
 
 		public override string ToString() {
-			return $"Margins(top: {Top}, right: {Right}, bottom: {Bottom}, left: {Left})";
+			if (Top == Right && Top == Bottom && Top == Left) {
+				return $"Margins({Top})";
+			}
+			else {
+				return $"Margins(top: {Top}, right: {Right}, bottom: {Bottom}, left: {Left})";
+			}
 		}
 
 		public bool Equals(Margins other) {
