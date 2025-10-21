@@ -291,6 +291,9 @@ namespace SharpSheets.Markup.Parsing {
 				else if (typeAttr.Value == MarkupPatternType.LABELLEDBOX) {
 					return PatternData.GetPatternVariables<MarkupLabelledBoxPattern>(context);
 				}
+				else if (typeAttr.Value == MarkupPatternType.TITLESTYLE) {
+					return PatternData.GetPatternVariables<MarkupTitleStyledBoxPattern>(context);
+				}
 				else if (typeAttr.Value == MarkupPatternType.TITLEDBOX) {
 					return PatternData.GetPatternVariables<MarkupTitledBoxPattern>(context);
 				}
@@ -361,6 +364,9 @@ namespace SharpSheets.Markup.Parsing {
 					}
 					else if (type == MarkupPatternType.LABELLEDBOX) {
 						result = new MarkupLabelledBoxPattern(libraryName, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, origin);
+					}
+					else if (type == MarkupPatternType.TITLESTYLE) {
+						result = new MarkupTitleStyledBoxPattern(libraryName, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, origin);
 					}
 					else if (type == MarkupPatternType.TITLEDBOX) {
 						result = new MarkupTitledBoxPattern(libraryName, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, origin);

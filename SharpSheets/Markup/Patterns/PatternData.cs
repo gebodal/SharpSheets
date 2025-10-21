@@ -7,6 +7,7 @@ using System.Linq;
 using SharpSheets.Markup.Parsing;
 using SharpSheets.Widgets;
 using SharpSheets.Utilities;
+using SharpSheets.Shapes;
 
 namespace SharpSheets.Markup.Patterns {
 
@@ -16,10 +17,12 @@ namespace SharpSheets.Markup.Patterns {
 
 		public static readonly ArgumentDetails[] AreaShapeVariables;
 		public static readonly ArgumentDetails[] TitledShapeVariables;
+		public static readonly ArgumentDetails[] TitleStyleShapeVariables;
 
 		//public static readonly (ArgumentDetails arg, EnvironmentVariableInfo info)[] TitledShapeArgs;
 
 		public static readonly ArgumentDetails[] TitledShapeBuilderArgs;
+		public static readonly ArgumentDetails[] TitleStyleBuilderArgs;
 
 		public static readonly ArgumentDetails[] DetailVariables;
 
@@ -40,6 +43,7 @@ namespace SharpSheets.Markup.Patterns {
 		*/
 
 		private static readonly ArgumentDetails aspectArg;
+		private static readonly ArgumentDetails shapeArg;
 		private static readonly ArgumentDetails nameArg;
 		private static readonly ArgumentDetails partsArg;
 		private static readonly ArgumentDetails formatArg;
@@ -54,6 +58,7 @@ namespace SharpSheets.Markup.Patterns {
 			};
 
 			aspectArg = new ArgumentDetails("aspect", new DocumentationString("Aspect ratio for this shape."), ArgumentType.Simple(typeof(float)), true, true, -1f, -1f, null);
+			shapeArg = new ArgumentDetails("shape", new DocumentationString("eriufvbeirugv."), ArgumentType.Simple(typeof(IContainerShape)), true, false, null, null, null);
 			nameArg = new ArgumentDetails("name", new DocumentationString("Name to use for the title of this shape."), ArgumentType.Simple(typeof(string)), true, true, "NAME", "NAME", null);
 			partsArg = new ArgumentDetails("parts", new DocumentationString("Parts of the name to use for the title of this shape, split on newlines."), ArgumentType.Simple(typeof(string[])), true, true, new string[] { "NAME" }, new string[] { "NAME" }, null);
 			formatArg = new ArgumentDetails("format", new DocumentationString("Font format to use for the title of this shape."), ArgumentType.Simple(typeof(TextFormat)), true, false, TextFormat.BOLD, TextFormat.BOLD, null);
@@ -71,6 +76,14 @@ namespace SharpSheets.Markup.Patterns {
 				fontsizeArg
 			};
 
+			TitleStyleShapeVariables = new ArgumentDetails[] {
+				shapeArg,
+				nameArg,
+				partsArg,
+				formatArg,
+				fontsizeArg
+			};
+
 			/*
 			TitledShapeArgs = new (ArgumentDetails, EnvironmentVariableInfo)[] {
 				(formatArg, TitledFormatVariable),
@@ -80,6 +93,11 @@ namespace SharpSheets.Markup.Patterns {
 
 			TitledShapeBuilderArgs = new ArgumentDetails[] {
 				aspectArg,
+				formatArg,
+				fontsizeArg
+			};
+
+			TitleStyleBuilderArgs = new ArgumentDetails[] {
 				formatArg,
 				fontsizeArg
 			};
@@ -100,6 +118,8 @@ namespace SharpSheets.Markup.Patterns {
 		// Title Shape Environment Variables
 		public static EnvironmentVariableInfo TitledFormatVariable(EvaluationContext context) => new EnvironmentVariableInfo("format", context.GetSystemType<TextFormat>(), "Font format to use for the title of this shape.");
 		public static EnvironmentVariableInfo TitledFontsizeVariable(EvaluationContext context) => new EnvironmentVariableInfo("fontSize", context.GetType<FloatEvaluationType>(), "Font size to use for the title of this shape.");
+		// Title Styled Box Environment Variables
+		public static EnvironmentVariableInfo TitleStyledBoxVariable(EvaluationContext context) => new EnvironmentVariableInfo("shape", context.GetSystemType<IContainerShape>(), "The box which this title style is being applied to.");
 		// Detail Environment Variables
 		public static EnvironmentVariableInfo DetailLayoutVariable(EvaluationContext context) => new EnvironmentVariableInfo("layout", context.GetSystemType<LayoutDirection>(), "The current layout of the detail shape.");
 
@@ -154,6 +174,9 @@ namespace SharpSheets.Markup.Patterns {
 			}
 			else if (typeof(T) == typeof(MarkupLabelledBoxPattern)) {
 				return GetVariableBox(AreaShapeVariables, context);
+			}
+			else if (typeof(T) == typeof(MarkupTitleStyledBoxPattern)) {
+				return GetVariableBox(TitleStyleShapeVariables, context);
 			}
 			else if (typeof(T) == typeof(MarkupTitledBoxPattern)) {
 				return GetVariableBox(TitledShapeVariables, context);

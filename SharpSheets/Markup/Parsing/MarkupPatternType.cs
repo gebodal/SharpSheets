@@ -18,6 +18,10 @@
 		/// </summary>
 		LABELLEDBOX,
 		/// <summary>
+		/// A pattern which applies a title to another box.
+		/// </summary>
+		TITLESTYLE,
+		/// <summary>
 		/// A titled box pattern.
 		/// </summary>
 		TITLEDBOX,

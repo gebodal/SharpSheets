@@ -248,6 +248,74 @@ namespace SharpSheets.Markup.Patterns {
 
 	#endregion
 
+	#region ITitleStyledBox
+
+	public class MarkupTitleStyledBoxPattern : MarkupShapePattern<ITitleStyledBox> {
+
+		protected override Type InstanceType { get; } = typeof(MarkupTitleStyledBox);
+
+		public MarkupTitleStyledBoxPattern(
+			string? library,
+			string name,
+			string? description,
+			IMarkupArgument[] arguments,
+			MarkupValidation[] validations,
+			//MarkupVariable[] variables,
+			Rectangle? exampleSize,
+			Size? exampleCanvas,
+			DivElement rootElement,
+			Utilities.FilePath source
+			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
+
+		private static ShapeFactory.TitleStyleParams ResolveParams(ShapeFactory.ShapeParams? shapeParams) {
+			return shapeParams?.As<ShapeFactory.TitleStyleParams>() ?? new ShapeFactory.TitleStyleParams(new NoOutline(-1f), "NAME");
+		}
+
+		protected override ITitleStyledBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+			return new MarkupTitleStyledBox(this, shapeFactory, argumentEnvironment, constructionLines);
+		}
+
+		protected override IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+			IEnumerable<(object? value, EnvironmentVariableInfo info)> baseArgs = base.GetAdditionalArguments(context, shapeParams, source, widgetFactory, shapeFactory);
+			foreach ((object? value, EnvironmentVariableInfo info) baseArg in baseArgs) {
+				yield return baseArg;
+			}
+
+			ShapeFactory.TitleStyleParams titleStyleParams = ResolveParams(shapeParams);
+
+			yield return (titleStyleParams.Name, PatternData.ShapeNameVariable(Context));
+			yield return (titleStyleParams.Name.SplitAndTrim('\n'), PatternData.ShapePartsVariable(Context));
+
+			yield return (titleStyleParams.Box, PatternData.TitleStyledBoxVariable(Context));
+
+			foreach ((ArgumentDetails arg, EnvironmentVariableInfo info) in PatternData.TitledShapeArgs(Context)) {
+				object? value = MakeArgumentValue(arg.Name, arg.Type.DataType, arg.UseLocal, arg.IsOptional, arg.DefaultValue, context, source, widgetFactory, shapeFactory);
+				yield return (value, info);
+			}
+		}
+
+		protected override ArgumentDetails[] GetAdditionalArgumentDetails() {
+			return PatternData.TitleStyleBuilderArgs;
+		}
+
+	}
+
+	public class MarkupTitleStyledBox : MarkupAreaShape, ITitleStyledBox {
+
+		public MarkupTitleStyledBox(MarkupTitleStyledBoxPattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic) : base(style, shapeFactory, arguments, diagnostic, -1f) { }
+
+		public Rectangle RemainingRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
+			return GetDrawableRoot(graphicsState)?.GetNamedArea("remaining", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"remaining\"");
+		}
+
+		public Rectangle FullRect(ISharpGraphicsState graphicsState, Rectangle rect) {
+			return GetDrawableRoot(graphicsState)?.GetFullFromNamedArea("remaining", graphicsState, rect) ?? throw new MissingAreaException("Could not get area \"remaining\"");
+		}
+
+	}
+
+	#endregion
+
 	#region ITitledBox
 
 	public class MarkupTitledBoxPattern : MarkupAreaShapePattern<ITitledBox> {
