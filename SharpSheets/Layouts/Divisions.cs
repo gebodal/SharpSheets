@@ -375,29 +375,26 @@ namespace SharpSheets.Layouts {
 		}
 
 		public static float InferLength(Dimension[] source, float gutter, Dimension accounted, float accountedLength, DivisionStrategy strategy = DivisionStrategy.RELATIVE_DIVISIONS) {
-			
-			// TODO Need to check that this works as expected
-			
+
+			// TODO Is this working as expected now?
+
 			if (source.Length == 0) {
 				throw new ArgumentException("Must provide valid list of source dimensions.");
+			}
+			else if (accounted.Auto) {
+				throw new ArgumentException("Cannot infer length from known auto-sized region.");
+			}
+			else if (accounted.IsAbsolute) {
+				throw new ArgumentException("Cannot infer length from known absolute-sized region.");
 			}
 
 			Dimension totalDimension = source.Sum();
 
-			float remaining = accounted.Relative > 0 ? (accountedLength + gutter) * totalDimension.Relative / accounted.Relative : 0f;
-			float availableMinusRunningTotal = remaining - gutter;
+			float totalAbs = totalDimension.Absolute + (source.Length - 1) * gutter; // Total absolute known length
+			float totalRel = accounted.Relative > 0 ? (totalDimension.Relative / accounted.Relative) * accountedLength : 0f;
+			float totalPer = accounted.Percent > 0 ? (1 / accounted.Percent) * accountedLength : 0f;
 
-			float available = availableMinusRunningTotal;
-			for (int i = 0; i < source.Length; i++) {
-				available -= source[i].Absolute;
-				if (strategy == DivisionStrategy.RELATIVE_RECTANGLES || source[i].Absolute > 0) {
-					available -= gutter;
-				}
-			}
-
-			float final = available / totalDimension.Percent;
-
-			return final;
+			return totalAbs + totalRel + totalPer;
 		}
 
 		public static Dimension[] Fill(float available, Dimension length, float gutter) {

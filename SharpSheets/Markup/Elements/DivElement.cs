@@ -537,6 +537,7 @@ namespace SharpSheets.Markup.Elements {
 			foreach (DrawableDivElement child in children) {
 				if (child.AreaExists(name)) {
 					if (((IGridElement)child).IsInset()) {
+						// This should be possible for relative-sized inset areas
 						throw new InvalidOperationException("Cannot compute full rect from inset area."); // TODO Should have custom exception type?
 					}
 					if (!child.Size.HasValue) {
@@ -547,7 +548,7 @@ namespace SharpSheets.Markup.Elements {
 
 					if (fullRect is not null) {
 						float finalLength = Divisions.InferLength(
-							children.Where(c => c.Size.HasValue).Select(d => d.Size!.Value).ToArray(),
+							children.SelectNotNull(c => c.Size).ToArray(),
 							Gutter,
 							child.Size.Value,
 							(Layout == LayoutDirection.ROWS) ? fullRect.Height : fullRect.Width);
@@ -557,7 +558,7 @@ namespace SharpSheets.Markup.Elements {
 							(Layout == LayoutDirection.COLUMNS) ? fullRect.Height : finalLength
 							);
 
-						return finalRect;
+						return InvertApplyAspect(finalRect.Margins(Margins, true));
 					}
 				}
 			}
@@ -700,7 +701,7 @@ namespace SharpSheets.Markup.Elements {
 			return rect.Aspect(AspectRatio);
 		}
 
-		private Rectangle InvertApplyAspect(Rectangle rect) {
+		protected Rectangle InvertApplyAspect(Rectangle rect) {
 			return rect.ContainAspect(AspectRatio);
 		}
 

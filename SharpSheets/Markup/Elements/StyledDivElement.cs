@@ -571,11 +571,11 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		public override Rectangle? GetNamedArea(string name, ISharpGraphicsState graphicsState, Rectangle fullRect) {
-			Rectangle rect = ApplyAspect(fullRect);
-			foreach (KeyValuePair<string, DrawableDivElement> child in namedChildren) {
-				if (child.Value.AreaExists(name)) {
-					Rectangle childRect = StyledDivUtils.GetChildRect(shape, child.Key, graphicsState, rect);
-					return child.Value.GetNamedArea(name, graphicsState, childRect);
+			Rectangle rect = ApplyAspect(fullRect).Margins(Margins, false);
+			foreach ((string childName, DrawableDivElement childDiv) in namedChildren) {
+				if (childDiv.AreaExists(name)) {
+					Rectangle childRect = StyledDivUtils.GetChildRect(shape, childName, graphicsState, rect);
+					return childDiv.GetNamedArea(name, graphicsState, childRect);
 				}
 			}
 
@@ -586,7 +586,8 @@ namespace SharpSheets.Markup.Elements {
 			if (string.Equals(name, "remaining") && shape is IFramedContainerArea framedContainer) {
 				foreach (DrawableDivElement child in namedChildren.Values) {
 					if (child.AreaExists(name) && child.GetFullFromNamedArea(name, graphicsState, rect) is Rectangle childArea) {
-						return framedContainer.FullRect(graphicsState, childArea);
+						Rectangle containerFull = framedContainer.FullRect(graphicsState, childArea);
+						return InvertApplyAspect(containerFull.Margins(Margins, true));
 					}
 				}
 			}

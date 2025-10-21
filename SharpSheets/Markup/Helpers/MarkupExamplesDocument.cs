@@ -146,7 +146,8 @@ namespace SharpSheets.Markup.Helpers {
 
 							if (framedArea is IFramedContainerArea framedContainerArea) {
 								try {
-									fullRect = framedContainerArea.FullRect(canvas, remainingRect);
+									Size fullSize = framedContainerArea.FullSize(canvas, (Size)remainingRect);
+									fullRect = Rectangle.RectangleAt(exampleDrawRect.CentreX, exampleDrawRect.CentreY, fullSize);
 								}
 								catch (InvalidRectangleException) {
 									fullRect = null;
