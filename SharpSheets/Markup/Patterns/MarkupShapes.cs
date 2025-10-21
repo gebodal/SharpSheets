@@ -52,7 +52,7 @@ namespace SharpSheets.Markup.Patterns {
 			return new MarkupBuilderDetails(this, typeof(T), InstanceType, GetArgumentDetails().ToArray(), Description is not null ? new DocumentationString(Description) : null);
 		}
 
-		protected virtual IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, string name, float aspect, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+		protected virtual IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
 			return Enumerable.Empty<(object? value, EnvironmentVariableInfo info)>();
 		}
 
@@ -66,19 +66,19 @@ namespace SharpSheets.Markup.Patterns {
 			return value;
 		}
 
-		protected abstract T ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines);
+		protected abstract T ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines);
 
-		public T MakeShape(IContext? context, string name, float aspect, DirectoryPath source, ShapeFactory? shapeFactory, bool constructionLines, out SharpParsingException[] buildErrors) {
+		public T MakeShape(IContext? context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, ShapeFactory? shapeFactory, bool constructionLines, out SharpParsingException[] buildErrors) {
 			WidgetFactory dummyWidgetFactory = new WidgetFactory(MarkupRegistry.Empty, shapeFactory);
 
 			IEnvironment argumentEnvironment = ParseArguments(context ?? SharpSheets.Parsing.Context.Empty, source, null, shapeFactory, context == null, out buildErrors)
-				.AppendEnvironment(GetAdditionalArguments(context ?? SharpSheets.Parsing.Context.Empty, name ?? "NAME", aspect, source, dummyWidgetFactory, shapeFactory));
+				.AppendEnvironment(GetAdditionalArguments(context ?? SharpSheets.Parsing.Context.Empty, shapeParams, source, dummyWidgetFactory, shapeFactory));
 
-			return ConstructInstance(argumentEnvironment, aspect, shapeFactory, constructionLines);
+			return ConstructInstance(argumentEnvironment, shapeParams, shapeFactory, constructionLines);
 		}
 
 		public override object MakeExample(WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool diagnostic, out SharpParsingException[] buildErrors) {
-			return MakeShape(null, Name ?? "NAME", -1f, sourceDirectory, shapeFactory, diagnostic, out buildErrors);
+			return MakeShape(null, null, sourceDirectory, shapeFactory, diagnostic, out buildErrors);
 		}
 
 		protected abstract ArgumentDetails[] GetAdditionalArgumentDetails();
@@ -103,9 +103,10 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, string name, float aspect, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
-			return base.GetAdditionalArguments(context, name, aspect, source, widgetFactory, shapeFactory)
-				.Append((aspect, PatternData.AreaShapeAspectVariable(Context)));
+		protected override IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+			ShapeFactory.AreaShapeParams areaShapeParams = shapeParams?.As<ShapeFactory.AreaShapeParams>() ?? new ShapeFactory.AreaShapeParams(-1f);
+			return base.GetAdditionalArguments(context, shapeParams, source, widgetFactory, shapeFactory)
+				.Append((areaShapeParams.Aspect, PatternData.AreaShapeAspectVariable(Context)));
 		}
 
 		protected override ArgumentDetails[] GetAdditionalArgumentDetails() {
@@ -178,8 +179,9 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override IBox ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
-			return new MarkupBox(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
+		protected override IBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+			ShapeFactory.AreaShapeParams areaShapeParams = shapeParams?.As<ShapeFactory.AreaShapeParams>() ?? new ShapeFactory.AreaShapeParams(-1f);
+			return new MarkupBox(this, shapeFactory, argumentEnvironment, constructionLines, areaShapeParams.Aspect);
 		}
 
 	}
@@ -219,8 +221,9 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override ILabelledBox ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
-			return new MarkupLabelledBox(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
+		protected override ILabelledBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+			ShapeFactory.AreaShapeParams areaShapeParams = shapeParams?.As<ShapeFactory.AreaShapeParams>() ?? new ShapeFactory.AreaShapeParams(-1f);
+			return new MarkupLabelledBox(this, shapeFactory, argumentEnvironment, constructionLines, areaShapeParams.Aspect);
 		}
 
 	}
@@ -264,18 +267,25 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override ITitledBox ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
-			return new MarkupTitledBox(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
+		private static ShapeFactory.TitledBoxParams ResolveParams(ShapeFactory.ShapeParams? shapeParams) {
+			return shapeParams?.As<ShapeFactory.TitledBoxParams>() ?? new ShapeFactory.TitledBoxParams(-1f, "NAME");
 		}
 
-		protected override IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, string name, float aspect, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
-			IEnumerable<(object? value, EnvironmentVariableInfo info)> baseArgs = base.GetAdditionalArguments(context, name, aspect, source, widgetFactory, shapeFactory);
+		protected override ITitledBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+			ShapeFactory.TitledBoxParams titledBoxParams = ResolveParams(shapeParams);
+			return new MarkupTitledBox(this, shapeFactory, argumentEnvironment, constructionLines, titledBoxParams.Aspect);
+		}
+
+		protected override IEnumerable<(object? value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+			IEnumerable<(object? value, EnvironmentVariableInfo info)> baseArgs = base.GetAdditionalArguments(context, shapeParams, source, widgetFactory, shapeFactory);
 			foreach ((object? value, EnvironmentVariableInfo info) baseArg in baseArgs) {
 				yield return baseArg;
 			}
 
-			yield return (name, PatternData.ShapeNameVariable(Context));
-			yield return (name.SplitAndTrim('\n'), PatternData.ShapePartsVariable(Context));
+			ShapeFactory.TitledBoxParams titledBoxParams = ResolveParams(shapeParams);
+
+			yield return (titledBoxParams.Name, PatternData.ShapeNameVariable(Context));
+			yield return (titledBoxParams.Name.SplitAndTrim('\n'), PatternData.ShapePartsVariable(Context));
 
 			foreach ((ArgumentDetails arg, EnvironmentVariableInfo info) in PatternData.TitledShapeArgs(Context)) {
 				object? value = MakeArgumentValue(arg.Name, arg.Type.DataType, arg.UseLocal, arg.IsOptional, arg.DefaultValue, context, source, widgetFactory, shapeFactory);
@@ -324,8 +334,9 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override IEntriedShape ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
-			return new MarkupEntriedShape(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
+		protected override IEntriedShape ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+			ShapeFactory.AreaShapeParams areaShapeParams = shapeParams?.As<ShapeFactory.AreaShapeParams>() ?? new ShapeFactory.AreaShapeParams(-1f);
+			return new MarkupEntriedShape(this, shapeFactory, argumentEnvironment, constructionLines, areaShapeParams.Aspect);
 		}
 
 	}
@@ -379,8 +390,9 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override IBar ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
-			return new MarkupBar(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
+		protected override IBar ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+			ShapeFactory.AreaShapeParams areaShapeParams = shapeParams?.As<ShapeFactory.AreaShapeParams>() ?? new ShapeFactory.AreaShapeParams(-1f);
+			return new MarkupBar(this, shapeFactory, argumentEnvironment, constructionLines, areaShapeParams.Aspect);
 		}
 
 	}
@@ -419,8 +431,9 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override IUsageBar ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
-			return new MarkupUsageBar(this, shapeFactory, argumentEnvironment, constructionLines, aspect);
+		protected override IUsageBar ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+			ShapeFactory.AreaShapeParams areaShapeParams = shapeParams?.As<ShapeFactory.AreaShapeParams>() ?? new ShapeFactory.AreaShapeParams(-1f);
+			return new MarkupUsageBar(this, shapeFactory, argumentEnvironment, constructionLines, areaShapeParams.Aspect);
 		}
 
 	}
@@ -477,7 +490,7 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override IDetail ConstructInstance(IEnvironment argumentEnvironment, float aspect, ShapeFactory? shapeFactory, bool constructionLines) {
+		protected override IDetail ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
 			return new MarkupDetail(this, shapeFactory, argumentEnvironment, constructionLines);
 		}
 

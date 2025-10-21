@@ -251,11 +251,11 @@ namespace SharpSheets.Shapes {
 			}
 		}
 
-		private T? Build<T>(MethodInfo builder, IContext context, object[] shapeParams, DirectoryPath source, out SharpParsingException[] buildErrors) where T : IShape {
-			return (T?)SharpFactory.Build(builder, context, source, null, this, shapeParams, out buildErrors);
+		private T? Build<T>(MethodInfo builder, IContext context, ShapeParams shapeParams, DirectoryPath source, out SharpParsingException[] buildErrors) where T : IShape {
+			return (T?)SharpFactory.Build(builder, context, source, null, this, shapeParams.ToArray(), out buildErrors);
 		}
 
-		private T MakeShape<T>(IContext context, string name, float aspect, object[] shapeParams, Type defaultStyle, DirectoryPath source, out SharpParsingException[] buildErrors) where T : IShape {
+		private T MakeShape<T>(IContext context, ShapeParams shapeParams, Type defaultStyle, DirectoryPath source, out SharpParsingException[] buildErrors) where T : IShape {
 			Type baseType = typeof(T);
 			string? styleName = GetStyleNameFromContext(context, out DocumentSpan? location);
 
@@ -269,7 +269,7 @@ namespace SharpSheets.Shapes {
 					}
 				}
 				else if (GetCustomStylePattern<MarkupShapePattern<T>>(styleName) is MarkupShapePattern<T> customPattern) {
-					return customPattern.MakeShape(context, name, aspect, source, this, false, out buildErrors);
+					return customPattern.MakeShape(context, shapeParams, source, this, false, out buildErrors);
 				}
 				else {
 					throw new SharpParsingException(location, $"Unrecognized style \"{styleName}\" for {baseType.Name}.");
@@ -285,36 +285,36 @@ namespace SharpSheets.Shapes {
 		}
 
 		public IBox MakeBox(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			return MakeShape<IBox>(context, "INVALID", aspect, new object[] { aspect }, defaultStyles[typeof(IBox)], source, out buildErrors);
+			return MakeShape<IBox>(context, new AreaShapeParams(aspect), defaultStyles[typeof(IBox)], source, out buildErrors);
 		}
 
 		public ILabelledBox MakeLabelledBox(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			return MakeShape<ILabelledBox>(context, "INVALID", aspect, new object[] { aspect }, defaultStyles[typeof(ILabelledBox)], source, out buildErrors);
+			return MakeShape<ILabelledBox>(context, new AreaShapeParams(aspect), defaultStyles[typeof(ILabelledBox)], source, out buildErrors);
 		}
 
 		public ITitledBox MakeTitledBox(IContext context, float aspect, string name, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			return MakeShape<ITitledBox>(context, name, aspect, new object[] { aspect, name }, defaultStyles[typeof(ITitledBox)], source, out buildErrors);
+			return MakeShape<ITitledBox>(context, new TitledBoxParams(aspect, name), defaultStyles[typeof(ITitledBox)], source, out buildErrors);
 		}
 
 		public ITitleStyledBox MakeTitleStyle(IContext context, IContainerShape box, string name, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			return MakeShape<ITitleStyledBox>(context, name, -1f, new object[] { box, name }, defaultStyles[typeof(ITitleStyledBox)], source, out buildErrors);
+			return MakeShape<ITitleStyledBox>(context, new TitleStyleParams(box, name), defaultStyles[typeof(ITitleStyledBox)], source, out buildErrors);
 			//return (ITitleStyledBox)SharpFactory.Construct(GetConstructor(typeof(ITitleStyledBox), context, defaultStyles[typeof(ITitleStyledBox)]), context, source, null, this, new object[] { box, name }, out buildErrors);
 		}
 
 		public IEntriedShape MakeEntried(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			return MakeShape<IEntriedShape>(context, "INVALID", aspect, new object[] { aspect }, defaultStyles[typeof(IEntriedShape)], source, out buildErrors);
+			return MakeShape<IEntriedShape>(context, new AreaShapeParams(aspect), defaultStyles[typeof(IEntriedShape)], source, out buildErrors);
 		}
 
 		public IBar MakeBar(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			return MakeShape<IBar>(context, "INVALID", aspect, new object[] { aspect }, defaultStyles[typeof(IBar)], source, out buildErrors);
+			return MakeShape<IBar>(context, new AreaShapeParams(aspect), defaultStyles[typeof(IBar)], source, out buildErrors);
 		}
 
 		public IUsageBar MakeUsageBar(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			return MakeShape<IUsageBar>(context, "INVALID", aspect, new object[] { aspect }, defaultStyles[typeof(IUsageBar)], source, out buildErrors);
+			return MakeShape<IUsageBar>(context, new AreaShapeParams(aspect), defaultStyles[typeof(IUsageBar)], source, out buildErrors);
 		}
 
 		public IDetail MakeDetail(IContext context, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			return MakeShape<IDetail>(context, "INVALID", -1f, Array.Empty<object>(), defaultStyles[typeof(IDetail)], source, out buildErrors);
+			return MakeShape<IDetail>(context, new DetailParams(), defaultStyles[typeof(IDetail)], source, out buildErrors);
 		}
 
 		/// <summary></summary>
@@ -497,5 +497,45 @@ namespace SharpSheets.Shapes {
 		}
 
 		#endregion
+
+		public abstract class ShapeParams {
+			public abstract object[] ToArray();
+
+			public TParams As<TParams>() where TParams : ShapeParams {
+				return (this as TParams) ?? throw new InvalidOperationException($"Cannot convert {this.GetType().FullName} to {typeof(TParams).FullName}.");
+			}
+		}
+
+		public class AreaShapeParams(float aspect) : ShapeParams {
+			public float Aspect => aspect;
+
+			public override object[] ToArray() {
+				return new object[] { aspect };
+			}
+		}
+
+		public class TitledBoxParams(float aspect, string name) : AreaShapeParams(aspect) {
+			public string Name => name;
+
+			public override object[] ToArray() {
+				return [.. base.ToArray(), name];
+			}
+		}
+
+		public class TitleStyleParams(IContainerShape box, string name) : ShapeParams {
+			public IContainerShape Box => box;
+			public string Name => name;
+
+			public override object[] ToArray() {
+				return new object[] { box, name };
+			}
+		}
+
+		public class DetailParams : ShapeParams {
+			public override object[] ToArray() {
+				return Array.Empty<object>();
+			}
+		}
+
 	}
 }
