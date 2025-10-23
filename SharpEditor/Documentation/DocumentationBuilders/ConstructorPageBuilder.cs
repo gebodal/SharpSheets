@@ -163,7 +163,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				if (typeof(IShape).IsAssignableFrom(builder.DeclaringType)) {
 					IContext shapeContext = Context.Simple("example", new Dictionary<string, string>() { { "style", builder.FullName } }, new Dictionary<string, bool>());
 					DirectoryPath source = new DirectoryPath(SharpEditorPathInfo.TemplateDirectory);
-					string exampleName = "NAME";
+					string exampleName = builder.Name; // "NAME";
 
 					/*
 					IShape shape;

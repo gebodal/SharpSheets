@@ -267,8 +267,8 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		private static ShapeFactory.TitleStyleParams ResolveParams(ShapeFactory.ShapeParams? shapeParams) {
-			return shapeParams?.As<ShapeFactory.TitleStyleParams>() ?? new ShapeFactory.TitleStyleParams(new NoOutline(-1f), "NAME");
+		private ShapeFactory.TitleStyleParams ResolveParams(ShapeFactory.ShapeParams? shapeParams) {
+			return shapeParams?.As<ShapeFactory.TitleStyleParams>() ?? new ShapeFactory.TitleStyleParams(new NoOutline(-1f), Name);
 		}
 
 		protected override ITitleStyledBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
@@ -335,8 +335,8 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		private static ShapeFactory.TitledBoxParams ResolveParams(ShapeFactory.ShapeParams? shapeParams) {
-			return shapeParams?.As<ShapeFactory.TitledBoxParams>() ?? new ShapeFactory.TitledBoxParams(-1f, "NAME");
+		private ShapeFactory.TitledBoxParams ResolveParams(ShapeFactory.ShapeParams? shapeParams) {
+			return shapeParams?.As<ShapeFactory.TitledBoxParams>() ?? new ShapeFactory.TitledBoxParams(-1f, Name);
 		}
 
 		protected override ITitledBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
