@@ -446,6 +446,10 @@ namespace SharpSheets.Markup.Canvas {
 		public AreaRect Evaluate(IEnvironment environment) {
 			return new AreaRect(Rect?.Evaluate(environment), Margins?.Evaluate(environment));
 		}
+
+		public override string ToString() {
+			return $"AreaRectExpression({Rect}, {Margins})";
+		}
 	}
 
 	public class TransformExpression : IExpression<Transform> {
