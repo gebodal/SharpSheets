@@ -390,9 +390,17 @@ namespace SharpSheets.Layouts {
 
 			Dimension totalDimension = source.Sum();
 
-			float totalAbs = totalDimension.Absolute + (source.Length - 1) * gutter; // Total absolute known length
-			float totalRel = accounted.Relative > 0 ? (totalDimension.Relative / accounted.Relative) * accountedLength : 0f;
+
+			// Total absolute known length (including 'accounted')
+			float totalAbs = totalDimension.Absolute + (source.Length - 1) * gutter;
+			// Total size from percentage
 			float totalPer = accounted.Percent > 0 ? (1 / accounted.Percent) * accountedLength : 0f;
+
+			float remainingAccountedLength = accountedLength - accounted.Absolute - totalPer;
+
+			// Total size from relative (excluding any already covered by absolute and percentage)
+			float totalRel = accounted.Relative > 0 ? (totalDimension.Relative / accounted.Relative) * remainingAccountedLength : 0f;
+			// TODO Is this correct???
 
 			return totalAbs + totalRel + totalPer;
 		}
