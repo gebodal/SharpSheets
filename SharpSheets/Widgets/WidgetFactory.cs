@@ -14,12 +14,6 @@ using System.Text.RegularExpressions;
 
 namespace SharpSheets.Widgets {
 
-	public interface IWidgetFactory {
-		IWidget MakeWidget(string type, IContext context, DirectoryPath source, out List<SharpParsingException> errors, WidgetSetup? knownSetup = null);
-		IWidget MakeWidget(Type type, IContext context, DirectoryPath source, out List<SharpParsingException> errors, WidgetSetup? knownSetup = null);
-		Page MakePage(IContext context, DirectoryPath source, out List<SharpParsingException> errors, WidgetSetup? knownSetup = null);
-	}
-
 	public class WidgetFactory : ITypeDetailsCollection {
 
 		private readonly IMarkupRegistry customWidgets;
