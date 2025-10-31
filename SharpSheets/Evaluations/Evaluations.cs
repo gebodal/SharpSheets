@@ -488,10 +488,17 @@ namespace SharpSheets.Evaluations {
 				}
 
 				if (node is VariablePlaceholderNode placeholderNode) {
-					Dictionary<EvaluationName, EvaluationType> definedVariables = providers.SelectMany(p => p.ProvidedVariables(variables.Context)).ToDictionary();
-					
-					if(definedVariables.TryGetValue(placeholderNode.Key, out EvaluationType? returnType)) {
-						return new VariableNode(placeholderNode.Key, returnType);
+					HashSet<EvaluationName> providerVariables = providers.SelectMany(p => p.ProvidedVariableNames(variables.Context)).ToHashSet();
+
+					if (providerVariables.Contains(placeholderNode.Key)) {
+						Dictionary<EvaluationName, EvaluationType> providerVariableTypes = providers.SelectMany(p => p.ProvidedVariables(variables.Context)).ToDictionary();
+
+						if (providerVariableTypes.TryGetValue(placeholderNode.Key, out EvaluationType? returnType)) {
+							return new VariableNode(placeholderNode.Key, returnType);
+						}
+						else {
+							throw new UndefinedVariableException(placeholderNode.Key);
+						}
 					}
 					else {
 						return variables.GetNode(placeholderNode.Key);

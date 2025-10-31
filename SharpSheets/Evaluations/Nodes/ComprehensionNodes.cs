@@ -11,6 +11,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		/// <summary></summary>
 		/// <exception cref="EvaluationProcessingException"></exception>
 		IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables(EvaluationContext context);
+		IEnumerable<EvaluationName> ProvidedVariableNames(EvaluationContext context);
 	}
 
 	public class ComprehensionNode : BinaryOperatorNode, IVariableProvider {
@@ -48,6 +49,10 @@ namespace SharpSheets.Evaluations.Nodes {
 			catch (UndefinedVariableException) {
 				return Enumerable.Empty<KeyValuePair<EvaluationName, EvaluationType>>();
 			}
+		}
+
+		public IEnumerable<EvaluationName> ProvidedVariableNames(EvaluationContext context) {
+			yield return LoopVariable;
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment) {
@@ -107,11 +112,18 @@ namespace SharpSheets.Evaluations.Nodes {
 		public EvaluationName? LoopVariable { get; set; } = null;
 
 		public IEnumerable<KeyValuePair<EvaluationName, EvaluationType>> ProvidedVariables(EvaluationContext context) {
-			if (LoopVariable == null) {
+			if (!LoopVariable.HasValue) {
 				throw new EvaluationProcessingException("Loop variable not yet assigned.");
 			}
 			EvaluationType loopVarType = Second.GetReturnType().IterationResult() ?? throw new EvaluationTypeException("Comprehension-if requires an iterable source from which to draw values.");
 			return new KeyValuePair<EvaluationName, EvaluationType>(LoopVariable.Value, loopVarType).Yield();
+		}
+
+		public IEnumerable<EvaluationName> ProvidedVariableNames(EvaluationContext context) {
+			if (!LoopVariable.HasValue) {
+				throw new EvaluationProcessingException("Loop variable not yet assigned.");
+			}
+			yield return LoopVariable.Value;
 		}
 
 		internal override void AssignOpening(OperatorNode openingNode) {
