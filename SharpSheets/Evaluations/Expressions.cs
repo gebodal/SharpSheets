@@ -8,11 +8,17 @@ using SharpSheets.Canvas;
 
 namespace SharpSheets.Evaluations {
 
-	public interface IExpression<T> {
+	public interface IExpression {
 
 		bool IsConstant { get; }
 
 		EvaluationContext Context { get; }
+
+		IEnumerable<EvaluationName> GetVariables();
+
+	}
+
+	public interface IExpression<T> : IExpression {
 
 		/// <summary>
 		/// 
@@ -23,49 +29,23 @@ namespace SharpSheets.Evaluations {
 		/// <exception cref="EvaluationTypeException"></exception>
 		T Evaluate(IEnvironment environment);
 
-		IEnumerable<EvaluationName> GetVariables();
-
 	}
 
 	public static class Expressions {
 
-		public static IEnumerable<EvaluationName> GetVariables<T1, T2>(IExpression<T1> expr1, IExpression<T2> expr2) {
-			return expr1.GetVariables().Concat(expr2.GetVariables());
-		}
-		public static IEnumerable<EvaluationName> GetVariables<T1, T2, T3>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3) {
-			return expr1.GetVariables().Concat(expr2.GetVariables()).Concat(expr3.GetVariables());
-		}
-		public static IEnumerable<EvaluationName> GetVariables<T1, T2, T3, T4>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3, IExpression<T4> expr4) {
-			return expr1.GetVariables().Concat(expr2.GetVariables()).Concat(expr3.GetVariables()).Concat(expr4.GetVariables());
-		}
-		public static IEnumerable<EvaluationName> GetVariables<T1, T2, T3, T4, T5>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3, IExpression<T4> expr4, IExpression<T5> expr5) {
-			return expr1.GetVariables().Concat(expr2.GetVariables()).Concat(expr3.GetVariables()).Concat(expr4.GetVariables()).Concat(expr5.GetVariables());
-		}
-		public static IEnumerable<EvaluationName> GetVariables<T1, T2, T3, T4, T5, T6>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3, IExpression<T4> expr4, IExpression<T5> expr5, IExpression<T6> expr6) {
-			return expr1.GetVariables().Concat(expr2.GetVariables()).Concat(expr3.GetVariables()).Concat(expr4.GetVariables()).Concat(expr5.GetVariables()).Concat(expr6.GetVariables());
+		public static IEnumerable<EvaluationName> GetVariables(params IExpression[] expr) {
+			return EnumerableUtils.Concat(expr.SelectMany(e => e.GetVariables()));
 		}
 
-		public static bool IsConstant<T1, T2>(IExpression<T1> expr1, IExpression<T2> expr2) {
-			return expr1.IsConstant && expr2.IsConstant;
-		}
-		public static bool IsConstant<T1, T2, T3>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3) {
-			return expr1.IsConstant && expr2.IsConstant && expr3.IsConstant;
-		}
-		public static bool IsConstant<T1, T2, T3, T4>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3, IExpression<T4> expr4) {
-			return expr1.IsConstant && expr2.IsConstant && expr3.IsConstant && expr4.IsConstant;
-		}
-		public static bool IsConstant<T1, T2, T3, T4, T5>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3, IExpression<T4> expr4, IExpression<T5> expr5) {
-			return expr1.IsConstant && expr2.IsConstant && expr3.IsConstant && expr4.IsConstant && expr5.IsConstant;
-		}
-		public static bool IsConstant<T1, T2, T3, T4, T5, T6>(IExpression<T1> expr1, IExpression<T2> expr2, IExpression<T3> expr3, IExpression<T4> expr4, IExpression<T5> expr5, IExpression<T6> expr6) {
-			return expr1.IsConstant && expr2.IsConstant && expr3.IsConstant && expr4.IsConstant && expr5.IsConstant && expr6.IsConstant;
+		public static bool IsConstant(params IExpression[] expr) {
+			return expr.All(e => e.IsConstant);
 		}
 
 	}
 
 	public static class ExpressionUtils {
 		
-		public static bool CanCompute<T>(this IExpression<T> expr, IVariableBox variables) {
+		public static bool CanCompute(this IExpression expr, IVariableBox variables) {
 			return expr.GetVariables().All(variables.IsVariable);
 		}
 
