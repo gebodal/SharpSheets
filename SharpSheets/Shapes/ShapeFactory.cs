@@ -284,6 +284,30 @@ namespace SharpSheets.Shapes {
 			return fallback;
 		}
 
+		public IContainerShape MakeContainer(IContext context, float aspect, string name, DirectoryPath source, out SharpParsingException[] buildErrors) {
+			if (this.IsPattern<ITitledBox>(context.GetProperty("style", false, context, ""))) {
+				//return this.MakeTitledBox(context, aspect, context.GetProperty("name", true, context, "NAME"));
+				return this.MakeTitledBox(context, aspect, name ?? "NAME", source, out buildErrors);
+			}
+			else {
+				List<SharpParsingException> containerErrors = new List<SharpParsingException>();
+				IBox? outline = this.MakeBox(context, aspect, source, out SharpParsingException[] boxBuildErrors);
+				containerErrors.AddRange(boxBuildErrors);
+				if (!string.IsNullOrEmpty(name)) { // context.HasProperty("name", true, context)
+					new NamedContext(context, "title").HasProperty("style", false, context, out DocumentSpan? titleStyleLocation);
+					//return this.MakeTitleStyle(new NamedContext(context, "title", line: titleStyleLine), (IBox)outline, context.GetProperty("name", true, context, "NAME"));
+					ITitleStyledBox? titleStyledBox = this.MakeTitleStyle(new NamedContext(context, "title", location: titleStyleLocation), ((IBox?)outline) ?? new NoOutline(-1), name ?? "NAME", source, out SharpParsingException[] titleStyleBuildErrors);
+					containerErrors.AddRange(titleStyleBuildErrors);
+					buildErrors = containerErrors.ToArray();
+					return titleStyledBox;
+				}
+				else {
+					buildErrors = containerErrors.ToArray();
+					return outline;
+				}
+			}
+		}
+
 		public IBox MakeBox(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
 			return MakeShape<IBox>(context, new AreaShapeParams(aspect), defaultStyles[typeof(IBox)], source, out buildErrors);
 		}
@@ -331,27 +355,7 @@ namespace SharpSheets.Shapes {
 				string? styleName = GetStyleNameFromContext(context, out _);
 
 				if (shapeType == typeof(IContainerShape)) {
-					if (this.IsPattern<ITitledBox>(context.GetProperty("style", false, context, ""))) {
-						//return this.MakeTitledBox(context, aspect, context.GetProperty("name", true, context, "NAME"));
-						return this.MakeTitledBox(context, aspect, name ?? "NAME", source, out buildErrors);
-					}
-					else {
-						List<SharpParsingException> containerErrors = new List<SharpParsingException>();
-						IBox? outline = this.MakeBox(context, aspect, source, out SharpParsingException[] boxBuildErrors);
-						containerErrors.AddRange(boxBuildErrors);
-						if (!string.IsNullOrEmpty(name)) { // context.HasProperty("name", true, context)
-							new NamedContext(context, "title").HasProperty("style", false, context, out DocumentSpan? titleStyleLocation);
-							//return this.MakeTitleStyle(new NamedContext(context, "title", line: titleStyleLine), (IBox)outline, context.GetProperty("name", true, context, "NAME"));
-							ITitleStyledBox? titleStyledBox = this.MakeTitleStyle(new NamedContext(context, "title", location: titleStyleLocation), ((IBox?)outline) ?? new NoOutline(-1), name ?? "NAME", source, out SharpParsingException[] titleStyleBuildErrors);
-							containerErrors.AddRange(titleStyleBuildErrors);
-							buildErrors = containerErrors.ToArray();
-							return titleStyledBox;
-						}
-						else {
-							buildErrors = containerErrors.ToArray();
-							return outline;
-						}
-					}
+					return this.MakeContainer(context, aspect, name ?? "NAME", source, out buildErrors);
 				}
 				else if (shapeType == typeof(ITitledBox)) {
 					return this.MakeTitledBox(context, aspect, name ?? "NAME", source, out buildErrors);
