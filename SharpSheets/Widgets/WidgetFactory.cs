@@ -246,6 +246,10 @@ namespace SharpSheets.Widgets {
 			}
 		}
 
+		public Div? MakeDiv(IContext context, DirectoryPath source, out SharpParsingException[] buildErrors, WidgetSetup? knownSetup = null) {
+			return MakeWidget(typeof(Div), context, source, out buildErrors, knownSetup: knownSetup) as Div;
+		}
+
 		public IWidget MakeWidget(Type type, IContext context, DirectoryPath source, out SharpParsingException[] buildErrors, WidgetSetup? knownSetup = null) {
 			string typeName = widgetTypeNames.GetValueOrDefault(type, "");
 			return MakeWidget(typeName, context, source, out buildErrors, knownSetup);
