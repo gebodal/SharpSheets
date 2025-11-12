@@ -14,6 +14,8 @@ namespace SharpSheets.Exceptions {
 			Location = location;
 		}
 
+		public SharpParsingException(DocumentSpan? location, Exception innerException) : this(location, innerException.Message, innerException) { }
+
 		public SharpParsingException(DocumentSpan? location, string message) : base(message) {
 			Location = location;
 		}

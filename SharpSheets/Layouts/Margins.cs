@@ -21,6 +21,8 @@ namespace SharpSheets.Layouts {
 			Left = left;
 		}
 
+		public Margins(float vertical, float horizontal) : this(vertical, horizontal, vertical, horizontal) { }
+
 		public Margins(float margin) : this(margin, margin, margin, margin) { }
 
 		private static readonly Regex arrayPattern = new Regex(@"^(?:[\-\+]?[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:\s*\,\s*(?:[\-\+]?[0-9]+(?:\.[0-9]*)?|\.[0-9]+))*$");
