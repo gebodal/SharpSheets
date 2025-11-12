@@ -14,8 +14,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		TODO.md = TODO.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Testing", "Testing\Testing.csproj", "{35D5E875-B97D-43CD-8EC6-E66D80D8D889}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpSheets", "SharpSheets\SharpSheets.csproj", "{E5092C20-9E26-4F02-899D-B46294E8A1E4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpEditor", "SharpEditor\SharpEditor.csproj", "{F818CC03-8462-459E-8FBC-8B813D66C01E}"
