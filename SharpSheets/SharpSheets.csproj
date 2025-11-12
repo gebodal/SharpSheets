@@ -26,6 +26,16 @@
   </ItemGroup>
 	
   <ItemGroup>
+    <ProjectReference Include="..\SharpSheets.Generators\SharpSheets.Generators.csproj"
+        OutputItemType="Analyzer"
+        ReferenceOutputAssembly="false" />
+  </ItemGroup>
+	
+  <PropertyGroup>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+	
+  <ItemGroup>
     <EmbeddedResource Include="Fonts\resources\LiberationSans-Bold.ttf" />
     <EmbeddedResource Include="Fonts\resources\LiberationSans-BoldItalic.ttf" />
     <EmbeddedResource Include="Fonts\resources\LiberationSans-Italic.ttf" />

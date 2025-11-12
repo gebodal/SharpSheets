@@ -175,7 +175,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="orientation">The orientation of the title text. This does not
 		/// change the position of the title text, only its arrangement at that position.</param>
 		[FactoryBuilder(typeof(ITitledBox))]
-		public static BlockTitledBox Build(float aspect, string name = "NAME",
+		public static BlockTitledBox Build(float aspect = -1f, string name = "NAME",
 				float fontSize = 8f, TextFormat format = TextFormat.REGULAR,
 				TitlePosition position = TitlePosition.TOP,
 				LayoutDirection layout = LayoutDirection.ROWS,

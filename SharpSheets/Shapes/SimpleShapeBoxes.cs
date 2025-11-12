@@ -90,7 +90,7 @@ namespace SharpSheets.Shapes {
 		/// will shift the dash pattern along by a number of points equal to the value.</param>
 		/// <param name="trim">Padding to apply to the remaining area.</param>
 		[FactoryBuilder(typeof(IBox))]
-		public static Simple Build(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) {
+		public static Simple Build(float aspect = -1f, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) {
 			return new Simple(aspect, stroke, fill, dashes, dashOffset, trim);
 		}
 

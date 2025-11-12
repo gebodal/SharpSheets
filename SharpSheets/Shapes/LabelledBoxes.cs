@@ -46,7 +46,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="labelTrim">Padding for the inside of the label area.</param>
 		/// <param name="boxTrim">Padding for the inside of the remaining area.</param>
 		[FactoryBuilder(typeof(ILabelledBox))]
-		public static SimpleLabelledBox Build(float aspect, Direction placement = Direction.SOUTH, float labelSize = 10f, Margins labelTrim = default, Margins boxTrim = default) {
+		public static SimpleLabelledBox Build(float aspect = -1f, Direction placement = Direction.SOUTH, float labelSize = 10f, Margins labelTrim = default, Margins boxTrim = default) {
 			return new SimpleLabelledBox(aspect, placement, labelSize, labelTrim, boxTrim);
 		}
 

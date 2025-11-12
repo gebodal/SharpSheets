@@ -32,6 +32,7 @@ namespace SharpSheets.Fonts {
 			/// language system, and feature tags (if they are supported by the font
 			/// specified).</param>
 			[FactoryBuilder(typeof(FontSettingArg))]
+			[SupplementedArgumentBuilder]
 			public static FontSettingArg Build(FontPath? path = null, FontTags? tags = null) {
 				return new FontSettingArg(path, tags);
 			}
@@ -79,6 +80,7 @@ namespace SharpSheets.Fonts {
 		/// <param name="italic">Font to use for italic text.</param>
 		/// <param name="bolditalic">Font to use for bold-italic text.</param>
 		[FactoryBuilder(typeof(FontArgument))]
+		[SupplementedArgumentBuilder]
 		public static FontArgument Build(
 				FontPathGrouping? fonts = null,
 				FontTags? tags = null,

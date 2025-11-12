@@ -47,7 +47,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="includeEmphasis">Flag to indicate that the emphasis should be included
 		/// in calculations of the bar height.</param>
 		[FactoryBuilder(typeof(IUsageBar))]
-		public static SimpleUsageBar Build(float aspect, bool flip = false, UFloat emphasis = default, bool includeEmphasis = true) {
+		public static SimpleUsageBar Build(float aspect = -1f, bool flip = false, UFloat emphasis = default, bool includeEmphasis = true) {
 			return new SimpleUsageBar(aspect, flip, emphasis, includeEmphasis);
 		}
 

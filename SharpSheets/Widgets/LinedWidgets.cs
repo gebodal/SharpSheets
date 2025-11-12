@@ -50,6 +50,7 @@ namespace SharpSheets.Widgets {
 			/// <param name="rich">Flag to indicate that the fields should have rich text features enabled.</param>
 			/// <param name="color">Color value for the field contents. Defaults to the current text color.</param>
 			[FactoryBuilder(typeof(FieldDetails))]
+			[GroupedArgumentBuilder]
 			public static FieldDetails Build(float? fontsize = null, TextFormat font = TextFormat.REGULAR, Justification justification = Justification.LEFT, bool rich = false, Color? color = null) {
 				return new FieldDetails(fontsize, font, justification, rich, color);
 			}

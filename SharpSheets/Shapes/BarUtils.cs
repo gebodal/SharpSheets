@@ -58,6 +58,7 @@ namespace SharpSheets.Shapes {
 		/// should be top, bottom, or centre aligned.</param>
 		/// <param name="color">Text color for this text label.</param>
 		[FactoryBuilder(typeof(LabelDetails))]
+		[GroupedArgumentBuilder]
 		public static LabelDetails Build(float fontSize = 4f, [Property(Default = "0,1", Example = "0.0,3.0")] (float x, float y)? offset = null, TextFormat format = TextFormat.REGULAR, Justification justification = Justification.CENTRE, Alignment alignment = Alignment.TOP, Color? color = null) {
 			return new LabelDetails(fontSize, offset, format, justification, alignment, color);
 		}

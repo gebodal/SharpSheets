@@ -31,7 +31,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="trim">A margin around the inside of the shape area to trim
 		/// when calculating the remaining area.</param>
 		[FactoryBuilder(typeof(IBox))]
-		public static NoOutline Build(float aspect, Margins trim = default) {
+		public static NoOutline Build(float aspect = -1f, Margins trim = default) {
 			return new NoOutline(aspect, trim);
 		}
 
@@ -178,7 +178,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="shadow">The length of the shadow, in points.</param>
 		[FactoryBuilder(typeof(IBox))]
-		public static ShadowedCircle Build(float aspect, float shadow = 1f) {
+		public static ShadowedCircle Build(float aspect = -1f, float shadow = 1f) {
 			return new ShadowedCircle(aspect, shadow);
 		}
 

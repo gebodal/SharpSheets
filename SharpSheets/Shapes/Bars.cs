@@ -103,7 +103,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="includeEmphasis">Flag to indicate that the emphasis should be included
 		/// in calculations of the bar height.</param>
 		[FactoryBuilder(typeof(IBar))]
-		public static SimpleBar Build(float aspect, bool flip = false, UnitInterval? entryFraction = null, UFloat emphasis = default, bool includeEmphasis = true) {
+		public static SimpleBar Build(float aspect = -1f, bool flip = false, UnitInterval? entryFraction = null, UFloat emphasis = default, bool includeEmphasis = true) {
 			return new SimpleBar(aspect, flip, entryFraction, emphasis, includeEmphasis);
 		}
 

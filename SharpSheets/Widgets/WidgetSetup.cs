@@ -149,6 +149,7 @@ namespace SharpSheets.Widgets {
 		/// <param name="diagnostic">Flag to indicate that schematic information is to
 		/// be drawn for this widget, to help with design and debugging.</param>
 		[FactoryBuilder(typeof(WidgetSetup))]
+		[ExpandedArgumentBuilder(Defer = true)]
 		public static WidgetSetup Build(
 				[LocalProperty(Default = "(0,0,0,0)")] Margins margins = default,
 				float linewidth = 1f,

@@ -54,7 +54,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="dashOffset"></param>
 		/// <param name="trim"></param>
 		[FactoryBuilder(typeof(IEntriedShape))]
-		public static SimpleEntried Build(float aspect, [Property(Default = "1", Example = "2,2,3")] Dimension[]? sizes = null, LayoutDirection layout = LayoutDirection.ROWS, Color? stroke = null, Color? fill = null, float[]? dashes = null, float? dashOffset = null, [Property(Default = "0", Example = "2")] Margins? trim = null) {
+		public static SimpleEntried Build(float aspect = -1f, [Property(Default = "1", Example = "2,2,3")] Dimension[]? sizes = null, LayoutDirection layout = LayoutDirection.ROWS, Color? stroke = null, Color? fill = null, float[]? dashes = null, float? dashOffset = null, [Property(Default = "0", Example = "2")] Margins? trim = null) {
 			return new SimpleEntried(aspect, sizes, layout, stroke, fill, dashes, dashOffset, trim);
 		}
 

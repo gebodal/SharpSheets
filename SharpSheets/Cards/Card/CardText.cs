@@ -41,6 +41,7 @@ namespace SharpSheets.Cards.Card {
 			/// <param name="hanging">The indentation length for each line after the first (whose indentation
 			/// is controlled using <paramref name="indent"/>), measured in points.</param>
 			[FactoryBuilder(typeof(ParagraphDataArg))]
+			[GroupedArgumentBuilder]
 			public static ParagraphDataArg Build(float spacing = 0f, float indent = 0f, float hanging = 0f) {
 				return new ParagraphDataArg(spacing, indent, hanging);
 			}
@@ -75,6 +76,7 @@ namespace SharpSheets.Cards.Card {
 			/// <param name="indent">The indentation, in points, to use for the symbol.</param>
 			/// <param name="offset">The offset for the symbol from the text baseline, as a factor of the text font size.</param>
 			[FactoryBuilder(typeof(BulletArg))]
+			[GroupedArgumentBuilder]
 			public static BulletArg Build(string? symbol = null, FontSetting? font = null, float size = 1f, float indent = 0f, float offset = 0f) {
 				return new BulletArg(symbol, font, size, indent, offset);
 			}

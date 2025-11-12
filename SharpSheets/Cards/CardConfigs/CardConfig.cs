@@ -696,6 +696,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			/// <param name="offset">The offset from the baseline at which to draw the
 			/// bullet symbol, as a fraction of the current font size.</param>
 			[FactoryBuilder(typeof(BulletArg))]
+			[GroupedArgumentBuilder]
 			public static BulletArg Build(string symbol = "\u2022", FontSetting? font = null, float size = 1f, float indent = 0f, float offset = 0f) {
 				return new BulletArg(symbol, font, size, indent, offset);
 			}

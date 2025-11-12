@@ -147,6 +147,7 @@ namespace SharpSheets.Widgets {
 			/// A value of 0 or less indicates that the field in the final document should autosize the text.</param>
 			/// <param name="rich">Flag to indicate that the text field should have rich text features enabled.</param>
 			[FactoryBuilder(typeof(FieldDetails))]
+			[GroupedArgumentBuilder]
 			public static FieldDetails Build(string? tooltip = null, float? lined = null, float? linewidth = null, Justification justification = Justification.LEFT, bool singleline = false, TextFormat font = TextFormat.REGULAR, float fontsize = 0f, bool rich = false) {
 				return new FieldDetails(tooltip, lined, linewidth, justification, singleline, font, fontsize, rich);
 			}
@@ -312,6 +313,7 @@ namespace SharpSheets.Widgets {
 			/// A value of 0 or less indicates that the field in the final document should autosize the text.</param>
 			/// <param name="rich">Flag to indicate that the text field should have rich text features enabled.</param>
 			[FactoryBuilder(typeof(FieldDetails))]
+			[GroupedArgumentBuilder]
 			public static FieldDetails Build(string? tooltip = null, Justification justification = Justification.CENTRE, CheckType? check = null, TextFormat font = TextFormat.REGULAR, float fontsize = 0f, bool rich = false) {
 				return new FieldDetails(tooltip, justification, check, font, fontsize, rich);
 			}
@@ -468,6 +470,7 @@ namespace SharpSheets.Widgets {
 			/// directions are rightwards and upwards. This can be used to make specific adjustments, to accomodate quirks of
 			/// specific fonts.</param>
 			[FactoryBuilder(typeof(LabelParams))]
+			[GroupedArgumentBuilder]
 			public static LabelParams Build(float fontSize = 6f, float lineSpacing = 1f, TextFormat format = TextFormat.REGULAR, Justification justification = Justification.CENTRE, Alignment alignment = Alignment.CENTRE, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline, (float x, float y) offset = default) {
 				return new LabelParams(fontSize, lineSpacing, format, justification, alignment, heightStrategy, offset);
 			}
@@ -521,6 +524,7 @@ namespace SharpSheets.Widgets {
 			/// <param name="multiline">Flag to indicate that the field for this widget should be a multiline field.</param>
 			/// <param name="rich">Flag to indicate that the text field should have rich text features enabled.</param>
 			[FactoryBuilder(typeof(FieldDetails))]
+			[GroupedArgumentBuilder]
 			public static FieldDetails Build(string? tooltip = null, Justification justification = Justification.CENTRE, CheckType? check = null, TextFormat font = TextFormat.REGULAR, float fontsize = 0f, bool multiline = false, bool rich = false) {
 				return new FieldDetails(tooltip, justification, check, font, fontsize, multiline, rich);
 			}
@@ -684,6 +688,7 @@ namespace SharpSheets.Widgets {
 			/// <param name="hanging">The indentation length for each line after the first (whose indentation
 			/// is controlled using <paramref name="indent"/>), measured in points.</param>
 			[FactoryBuilder(typeof(ParagraphDataArgs))]
+			[GroupedArgumentBuilder]
 			public static ParagraphDataArgs Build(float spacing = 0f, float indent = 0f, float hanging = 0f) {
 				return new ParagraphDataArgs(spacing, indent, hanging);
 			}
@@ -1005,6 +1010,7 @@ namespace SharpSheets.Widgets {
 		/// <param name="heightStrategy">The height calculation strategy to use when arranging the label text within the label area.</param>
 		/// <param name="color">The color to use for the bar name text. The default is the current text color.</param>
 		[FactoryBuilder(typeof(BarNameDetails))]
+		[GroupedArgumentBuilder]
 		public static BarNameDetails Build(float fontSize = 6f, (float x, float y) offset = default, TextFormat format = TextFormat.REGULAR, Justification justification = Justification.CENTRE, Alignment alignment = Alignment.CENTRE, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline, Color? color = null) {
 			return new BarNameDetails(fontSize, offset, format, justification, alignment, heightStrategy, color);
 		}
@@ -2186,6 +2192,7 @@ namespace SharpSheets.Widgets {
 			/// <param name="rich">Flag to indicate that the fields should have rich text features enabled.</param>
 			/// <param name="color">Color value for the field contents. Defaults to the current text color.</param>
 			[FactoryBuilder(typeof(FieldDetails))]
+			[GroupedArgumentBuilder]
 			public static FieldDetails Build(float? fontsize = null, TextFormat font = TextFormat.REGULAR, bool rich = false, Color? color = null) {
 				return new FieldDetails(fontsize, font, rich, color);
 			}
@@ -2210,6 +2217,7 @@ namespace SharpSheets.Widgets {
 			/// <param name="lineSpacing">The line spacing to use for multi-line column headers.</param>
 			/// <param name="color">Color for the column header text. Defaults to the current text color.</param>
 			[FactoryBuilder(typeof(HeaderDetails))]
+			[GroupedArgumentBuilder]
 			public static HeaderDetails Build(float spacing = 3f, float fontsize = 5f, float lineSpacing = 1f, Color? color = null) {
 				return new HeaderDetails(spacing, fontsize, lineSpacing, color);
 			}
@@ -2512,6 +2520,7 @@ namespace SharpSheets.Widgets {
 		/// <param name="horizontal">Horizontal spacing between elements, measured in points.</param>
 		/// <param name="vertical">Vertical spacing between elements, measured in points.</param>
 		[FactoryBuilder(typeof(Spacing))]
+		[GroupedArgumentBuilder]
 		public static Spacing Build(float? horizontal = null, float? vertical = null) {
 			return new Spacing(horizontal, vertical);
 		}

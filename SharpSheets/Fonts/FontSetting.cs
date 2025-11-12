@@ -25,6 +25,7 @@ namespace SharpSheets.Fonts {
 		/// language system, and feature tags (if they are supported by the font
 		/// specified).</param>
 		[FactoryBuilder(typeof(FontSetting))]
+		[SupplementedArgumentBuilder]
 		public static FontSetting Build(FontPath path, FontTags? tags = null) {
 			return new FontSetting(path, tags);
 		}

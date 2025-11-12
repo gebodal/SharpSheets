@@ -38,6 +38,17 @@ namespace SharpSheets.Parsing {
 
 	}
 
+	[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+	public class GroupedArgumentBuilderAttribute : Attribute { }
+
+	[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+	public class SupplementedArgumentBuilderAttribute : Attribute { }
+
+	[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+	public class ExpandedArgumentBuilderAttribute : Attribute {
+		public bool Defer { get; set; } = false;
+	}
+
 	[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
 	public class PropertyAttribute : Attribute {
 
@@ -63,6 +74,28 @@ namespace SharpSheets.Parsing {
 
 	[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
 	public class BuildErrorsAttribute : Attribute { }
+
+	[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+	public class ParameterParserAttribute : Attribute { }
+
+	[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+	public class FactoryAttribute : Attribute {
+
+		public Type FactoryType { get; }
+		public Type[] RequiredParamaters { get; }
+		public string[] RequiredParamaterNames { get; }
+		public bool[] ExcludeRequiredParamaters { get; }
+		public Type? Default { get; }
+
+		public FactoryAttribute(Type factoryType, Type[] requiredParams, string[] requiredParamaterNames, bool[] excludeRequiredParamaters, Type? @default) {
+			this.FactoryType = factoryType;
+			this.RequiredParamaters = requiredParams;
+			this.RequiredParamaterNames = requiredParamaterNames;
+			this.ExcludeRequiredParamaters = excludeRequiredParamaters;
+			Default = @default;
+		}
+
+	}
 
 	public static class SharpFactory {
 
