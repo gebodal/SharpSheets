@@ -655,12 +655,12 @@ namespace SharpSheets.Generators {
 
 				if (compilation.HasImplicitConversion(paramSymbol.Type, resolverData.AreaShapeInterface)) {
 					bool nameGiven = builder.Parameters.Any(p => StringComparer.OrdinalIgnoreCase.Equals(p.Name, "name"));
-					foreach (SharpSheetsParameterData shapeArg in GetAreaShapeArguments(parameterName, prefix, builderParam.Type.Minimal, paramDoc, builderParam.IsOptional, useLocal, !nameGiven)) {
+					foreach (SharpSheetsParameterData shapeArg in GetAreaShapeArguments(parameterName, prefix, builderParam.Type.Minimal, paramDoc, builderParam.IsOptional, useLocal, !nameGiven, resolverData)) {
 						yield return shapeArg;
 					}
 				}
 				else if (compilation.HasImplicitConversion(paramSymbol.Type, resolverData.DetailInterface)) {
-					foreach (SharpSheetsParameterData detailArg in GetDetailArguments(parameterName, prefix, builderParam.Type.Minimal, paramDoc, builderParam.IsOptional, useLocal)) {
+					foreach (SharpSheetsParameterData detailArg in GetDetailArguments(parameterName, prefix, builderParam.Type.Minimal, paramDoc, builderParam.IsOptional, useLocal, resolverData)) {
 						yield return detailArg;
 					}
 				}
@@ -711,7 +711,7 @@ namespace SharpSheets.Generators {
 			return new SharpSheetsParameterData(name, descriptionContent, ArgumentTypeSimple(param.Type.Minimal), param.IsOptional, useLocal, defaultValue, exampleValue, null);
 		}
 
-		public static IEnumerable<SharpSheetsParameterData> GetAreaShapeArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal, bool includeNameArg) {
+		public static IEnumerable<SharpSheetsParameterData> GetAreaShapeArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal, bool includeNameArg, SharpSheetsParameterResolverData resolverData) {
 			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 
 			yield return new SharpSheetsParameterData(name, argDoc?.Description, ArgumentTypeSimple(argumentType), isOptional, useLocal, argDoc?.DefaultValue, argDoc?.ExampleValue, "style");
@@ -721,20 +721,22 @@ namespace SharpSheets.Generators {
 					yield return new SharpSheetsParameterData("name", DocCommentReader.MakeDocumentationStringFromText("Text to use for shape titles."), ArgumentTypeSimple("string"), true, true, "NAME".ToRepr(), "NAME".ToRepr(), null);
 				}
 
-				// TODO These need replacing
-				string titleStyleDefaultValue = "SharpSheets.Shapes.ShapeFactory.GetDefaultStyle(typeof(SharpSheets.Shapes.ITitleStyledBox))!.Name";
+				AvailableBuilder? defaultTitleStyleBuilder = resolverData.FactoryNameLookup["SharpSheets.Shapes.ITitleStyledBox"].DefaultBuilder;
+				string titleStyleDefaultValue = defaultTitleStyleBuilder?.Name.ToRepr() ?? "ERROR";
+				//string exampleTitleStyle = defaultTitleStyleBuilder is not null ? $"{defaultTitleStyleBuilder.FullTypeName}.{defaultTitleStyleBuilder.MethodName}()" : "ERROR";
+				// Very much not a fan, but this should really be fixed by re-working the title style approach
 				string exampleTitleStyle = "(SharpSheets.Shapes.ITitleStyledBox)SharpSheets.Shapes.ShapeFactory.GetDefaultShape(typeof(SharpSheets.Shapes.ITitleStyledBox))!";
-				
+
 				yield return new SharpSheetsParameterData("title", DocCommentReader.MakeDocumentationStringFromText($"Title style to be used with {name} if a name is provided."), ArgumentTypeSimple("SharpSheets.Shapes.ITitleStyledBox"), true, false, titleStyleDefaultValue, exampleTitleStyle, "style").Prefixed(name);
 			}
 		}
 
-		public static IEnumerable<SharpSheetsParameterData> GetDetailArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal) {
+		public static IEnumerable<SharpSheetsParameterData> GetDetailArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal, SharpSheetsParameterResolverData resolverData) {
 			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 
-			// TODO These need replacing
-			string styleDefaultValue = "SharpSheets.Shapes.ShapeFactory.GetDefaultStyle(typeof(SharpSheets.Shapes.IDetail))!.Name";
-			string exampleDetail = "(SharpSheets.Shapes.IDetail)SharpSheets.Shapes.ShapeFactory.GetDefaultShape(typeof(SharpSheets.Shapes.IDetail))!";
+			AvailableBuilder? defaultDetailBuilder = resolverData.FactoryNameLookup["SharpSheets.Shapes.IDetail"].DefaultBuilder;
+			string styleDefaultValue = defaultDetailBuilder?.Name.ToRepr() ?? "ERROR";
+			string exampleDetail = defaultDetailBuilder is not null ? $"{defaultDetailBuilder.FullTypeName}.{defaultDetailBuilder.MethodName}()" : "ERROR";
 			
 			yield return new SharpSheetsParameterData(name, argDoc?.Description, ArgumentTypeSimple(argumentType), isOptional, useLocal, styleDefaultValue, exampleDetail, "style");
 		}
