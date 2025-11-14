@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 
 namespace SharpSheets.Generators {
 
@@ -20,20 +21,20 @@ namespace SharpSheets.Generators {
 				.ForAttributeWithMetadataNameSelectMany(
 					"SharpSheets.Parsing.FactoryAttribute",
 					predicate: static (s, _) => s is ClassDeclarationSyntax,
-					transform: static (ctx, _) => GetFactorySpecs(ctx));
+					transform: static (ctx, ct) => GetFactorySpecs(ctx, ct));
 
 			IncrementalValuesProvider<AvailableBuilder> availableBuilders = context.SyntaxProvider
 				.ForAttributeWithMetadataName(
 					"SharpSheets.Parsing.FactoryBuilderAttribute",
 					predicate: static (s, _) => s is MethodDeclarationSyntax,
-					transform: static (ctx, _) => GetAvailableBuilders(ctx))
+					transform: static (ctx, ct) => GetAvailableBuilders(ctx, ct))
 				.WhereNotNull();
 
 			IncrementalValuesProvider<ParameterParser> availableParsers = context.SyntaxProvider
 				.ForAttributeWithMetadataName(
 					"SharpSheets.Parsing.ParameterParserAttribute",
 					predicate: static (s, _) => s is MethodDeclarationSyntax,
-					transform: static (ctx, _) => GetParameterParser(ctx))
+					transform: static (ctx, ct) => GetParameterParser(ctx, ct))
 				.WhereNotNull();
 
 			IncrementalValuesProvider<EnumComment> declaredEnums = context.SyntaxProvider
@@ -52,7 +53,7 @@ namespace SharpSheets.Generators {
 				.Combine(availableParsers.Collect())
 				.Combine(context.CompilationProvider)
 				.Flatten()
-				.Select(static (i, _) => FilterParamParsers(i.Item1, i.Item2, i.Item3, i.Item4));
+				.Select(static (i, ct) => FilterParamParsers(i.Item1, i.Item2, i.Item3, i.Item4, ct));
 
 			IncrementalValuesProvider<FactoryToGenerate> factoriesToGenerate = factoriesSpecs
 				.Combine(availableBuilders.Collect())
@@ -60,14 +61,14 @@ namespace SharpSheets.Generators {
 				.Combine(needed)
 				.Combine(context.CompilationProvider)
 				.Flatten()
-				.Select(static (i, _) => FilterFactoriesToGenerate(i.Item1, i.Item2, i.Item3, i.Item4.neededMiscBuilders, i.Item4.neededParamParsers, i.Item5))
+				.Select(static (i, ct) => FilterFactoriesToGenerate(i.Item1, i.Item2, i.Item3, i.Item4.neededMiscBuilders, i.Item4.neededParamParsers, i.Item5, ct))
 				.WhereNotNull();
 
 			IncrementalValueProvider<(EquatableArray<BuilderToGenerate> builders, EquatableArray<ParameterParser> parsers)> allBuildersParsers = needed
 				.Combine(availableBuilders.Collect())
 				.Combine(availableParsers.Collect())
 				.Flatten()
-				.Select(static (i, _) => CollectAllBuildersParsers(i.Item1, i.Item2, i.Item3, i.Item4));
+				.Select(static (i, ct) => CollectAllBuildersParsers(i.Item1, i.Item2, i.Item3, i.Item4, ct));
 
 			// Generate source code for each factory
 			context.RegisterSourceOutput(factoriesToGenerate.Combine(allBuildersParsers).Combine(context.CompilationProvider).Flatten(),
@@ -94,7 +95,9 @@ namespace SharpSheets.Generators {
 				static (spc, source) => ExecuteFactoryDocumentation(source, spc));
 		}
 
-		private static EquatableArray<FactorySpecification> GetFactorySpecs(GeneratorAttributeSyntaxContext ctx) {
+		private static EquatableArray<FactorySpecification> GetFactorySpecs(GeneratorAttributeSyntaxContext ctx, CancellationToken ct) {
+			ct.ThrowIfCancellationRequested();
+
 			if (ctx.TargetSymbol is not INamedTypeSymbol classSymbol || ctx.TargetNode is not ClassDeclarationSyntax declarationNode) {
 				// something went wrong
 				return new EquatableArray<FactorySpecification>(Array.Empty<FactorySpecification>());
@@ -103,6 +106,8 @@ namespace SharpSheets.Generators {
 			List<FactorySpecification> result = new List<FactorySpecification>();
 
 			foreach(AttributeData attr in ctx.Attributes) {
+				ct.ThrowIfCancellationRequested();
+
 				ITypeSymbol? factoryTypeSymbol = (ITypeSymbol?)attr.ConstructorArguments[0].Value;
 				if (factoryTypeSymbol is null) {
 					// Malformed attribute
@@ -199,14 +204,16 @@ namespace SharpSheets.Generators {
 			}
 		}
 
-		private static FactoryToGenerate? FilterFactoriesToGenerate(FactorySpecification spec, ImmutableArray<AvailableBuilder> availableBuilders, ImmutableArray<ParameterParser> availableParsers, EquatableArray<BuilderToGenerate> neededBuilders, EquatableArray<ParameterParser> neededParsers, Compilation compilation) {
+		private static FactoryToGenerate? FilterFactoriesToGenerate(FactorySpecification spec, ImmutableArray<AvailableBuilder> availableBuilders, ImmutableArray<ParameterParser> availableParsers, EquatableArray<BuilderToGenerate> neededBuilders, EquatableArray<ParameterParser> neededParsers, Compilation compilation, CancellationToken ct) {
+			ct.ThrowIfCancellationRequested();
+
 			INamedTypeSymbol? factoryBuildType = spec.FactoryType.GetSymbol(compilation)as INamedTypeSymbol;
 
 			if (factoryBuildType is null) {
 				return null;
 			}
 
-			AvailableBuilder[] factoryBuilders = FilterFactoryBuilders(spec, factoryBuildType, availableBuilders, compilation).ToArray();
+			AvailableBuilder[] factoryBuilders = FilterFactoryBuilders(spec, factoryBuildType, availableBuilders, compilation, ct).ToArray();
 
 			bool isSingleton = factoryBuilders.Length == 1 && spec.FactoryType == factoryBuilders[0].BuilderType && spec.FactoryType == factoryBuilders[0].ConcreteBuilderType;
 
@@ -221,6 +228,8 @@ namespace SharpSheets.Generators {
 
 				return new BuilderToGenerate(builder, spec.RequiredParameters, spec.Namespace, spec.Name, builderMethodName);
 			}).OrderBy(b => b.Builder.ConcreteBuilderType.Name).ToArray();
+
+			ct.ThrowIfCancellationRequested();
 
 			AvailableBuilder? defaultBuilder = factoryBuilders.FirstOrDefault(b => b.ConcreteBuilderType == spec.DefaultType);
 
@@ -241,7 +250,8 @@ namespace SharpSheets.Generators {
 			}
 		}
 
-		private static (EquatableArray<BuilderToGenerate>, EquatableArray<ParameterParser>) CollectAllBuildersParsers(EquatableArray<ParameterParser> neededParsers, EquatableArray<BuilderToGenerate> neededBuilders, ImmutableArray<AvailableBuilder> providedBuilders, ImmutableArray<ParameterParser> providedParsers) {
+		private static (EquatableArray<BuilderToGenerate>, EquatableArray<ParameterParser>) CollectAllBuildersParsers(EquatableArray<ParameterParser> neededParsers, EquatableArray<BuilderToGenerate> neededBuilders, ImmutableArray<AvailableBuilder> providedBuilders, ImmutableArray<ParameterParser> providedParsers, CancellationToken ct) {
+			ct.ThrowIfCancellationRequested(); // Maybe not worth it...
 			return (
 					//new EquatableArray<AvailableBuilder>(providedBuilders.Concat(neededBuilders.Select(b => b.Builder)).ToArray()),
 					new EquatableArray<BuilderToGenerate>(neededBuilders.ToArray()),
@@ -249,7 +259,9 @@ namespace SharpSheets.Generators {
 				);
 		}
 
-		private static AvailableBuilder? GetAvailableBuilders(GeneratorAttributeSyntaxContext ctx) {
+		private static AvailableBuilder? GetAvailableBuilders(GeneratorAttributeSyntaxContext ctx, CancellationToken ct) {
+			ct.ThrowIfCancellationRequested();
+
 			if (ctx.TargetSymbol is not IMethodSymbol methodSymbol) {
 				// something went wrong
 				return null;
@@ -268,6 +280,8 @@ namespace SharpSheets.Generators {
 			}
 
 			string? builderName = attr.NamedArguments.Length > 0 ? (string?)attr.NamedArguments[0].Value.Value : null;
+
+			ct.ThrowIfCancellationRequested();
 
 			return AvailableBuilder.Build(methodSymbol, builderTypeSymbol, builderName);
 		}
@@ -409,7 +423,9 @@ namespace SharpSheets.Generators {
 			}
 		}
 
-		private static ParameterParser? GetParameterParser(GeneratorAttributeSyntaxContext ctx) {
+		private static ParameterParser? GetParameterParser(GeneratorAttributeSyntaxContext ctx, CancellationToken ct) {
+			ct.ThrowIfCancellationRequested();
+
 			if (ctx.TargetSymbol is not IMethodSymbol methodSymbol) {
 				// something went wrong
 				return null;
@@ -434,6 +450,8 @@ namespace SharpSheets.Generators {
 			ITypeSymbol parserType = methodSymbol.ReturnType;
 
 			bool needsSourceDirectory = methodSymbol.Parameters.Length == 2;
+
+			ct.ThrowIfCancellationRequested();
 
 			return ParameterParser.Build(methodSymbol, parserType, needsSourceDirectory);
 		}
@@ -516,8 +534,10 @@ namespace SharpSheets.Generators {
 			return true;
 		}
 
-		private static IEnumerable<AvailableBuilder> FilterFactoryBuilders(FactorySpecification factory, INamedTypeSymbol factoryBuildType, IEnumerable<AvailableBuilder> builders, Compilation compilation) {
+		private static IEnumerable<AvailableBuilder> FilterFactoryBuilders(FactorySpecification factory, INamedTypeSymbol factoryBuildType, IEnumerable<AvailableBuilder> builders, Compilation compilation, CancellationToken ct) {
 			foreach (AvailableBuilder builder in builders) {
+				ct.ThrowIfCancellationRequested();
+
 				INamedTypeSymbol? builderType = builder.BuilderType.GetSymbol(compilation) as INamedTypeSymbol;
 
 				if (builderType is null) {
@@ -539,14 +559,14 @@ namespace SharpSheets.Generators {
 
 		static void ExecuteFactory(FactoryToGenerate factory, EquatableArray<BuilderToGenerate> allBuilders, EquatableArray<ParameterParser> allParsers, SourceProductionContext context, Compilation compilation) {
 			// generate the source code and add it to the output
-			string? result = GenerateFactoryCode(factory, allBuilders, allParsers, compilation);
+			string? result = GenerateFactoryCode(factory, allBuilders, allParsers, compilation, context.CancellationToken);
 			// Create a separate partial class file
 			if (!string.IsNullOrEmpty(result)) {
 				context.AddSource($"Factories.{factory.Spec.Name}.{factory.Spec.FactoryType.Name}.g.cs", SourceText.From(result!, Encoding.UTF8));
 			}
 		}
 
-		static string? GenerateFactoryCode(FactoryToGenerate factory, EquatableArray<BuilderToGenerate> allBuilders, EquatableArray<ParameterParser> allParsers, Compilation compilation) {
+		static string? GenerateFactoryCode(FactoryToGenerate factory, EquatableArray<BuilderToGenerate> allBuilders, EquatableArray<ParameterParser> allParsers, Compilation compilation, CancellationToken ct) {
 			// Need to know if we can build a given pattern name (dictionary lookup)
 			// Need to actually build a given pattern
 			// Need arguments: IContext context, DirectoryPath source, out SharpParsingException[] buildErrors
@@ -554,6 +574,8 @@ namespace SharpSheets.Generators {
 			// Essentially replacing: object? SharpFactory.Build(MethodInfo builder, IContext context, DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, object[] firstParameters, out SharpParsingException[] buildErrors)
 			// Can provide a list of known arguments in the attribute, which can be included in the generated method? (How would we name them?)
 			// Should also allow for case with only 1 builder (i.e. no switch statement) - still need default case, though, as we still need to check for valid name
+
+			ct.ThrowIfCancellationRequested();
 
 			INamedTypeSymbol? factoryBuildType = factory.Spec.FactoryType.GetSymbol(compilation) as INamedTypeSymbol;
 
@@ -569,6 +591,8 @@ namespace SharpSheets.Generators {
 			bool isSingleton = factory.IsSingleton;
 			bool factoryNeedsShapeFactory = NeedsShapeFactory(factory.Builders);
 			bool factoryNeedsWidgetFactory = NeedsWidgetFactory(factory.Builders);
+
+			ct.ThrowIfCancellationRequested();
 
 			StringBuilder sb = new StringBuilder();
 			sb.Append(@$"// <auto-generated/>
@@ -589,6 +613,8 @@ namespace {factory.Spec.Namespace} {{
 			switch (buildName.ToLowerInvariant()) {{");
 
 				foreach (BuilderToGenerate builder in factory.Builders) {
+					ct.ThrowIfCancellationRequested();
+
 					bool builderNeedsShapeFactory = NeedsShapeFactory(builder);
 					bool builderNeedsWidgetFactory = NeedsWidgetFactory(builder);
 
@@ -611,7 +637,7 @@ namespace {factory.Spec.Namespace} {{
 			}
 
 			foreach (BuilderToGenerate builder in factory.Builders) {
-				GenerateBuilderCode(sb, builder, parserLookup, builderLookup, true, compilation);
+				GenerateBuilderCode(sb, builder, parserLookup, builderLookup, true, compilation, ct);
 				sb.Append('\n');
 			}
 
@@ -674,14 +700,15 @@ namespace {factory.Spec.Namespace} {{
 
 		static void ExecuteFactoryDocumentation(FactoryToGenerate factory, SourceProductionContext context) {
 			// generate the source code and add it to the output
-			string? result = GenerateFactoryDocumentation(factory);
+			string? result = GenerateFactoryDocumentation(factory, context.CancellationToken);
 			// Create a separate partial class file
 			if (!string.IsNullOrEmpty(result)) {
 				context.AddSource($"Factories.{factory.Spec.Name}.{factory.Spec.FactoryType.Name}.Documentation.g.cs", SourceText.From(result!, Encoding.UTF8));
 			}
 		}
 
-		static string? GenerateFactoryDocumentation(FactoryToGenerate factory) {
+		static string? GenerateFactoryDocumentation(FactoryToGenerate factory, CancellationToken ct) {
+			ct.ThrowIfCancellationRequested();
 
 			string nameLookupDictionaryVariable = $"__generated__{factory.Spec.FactoryType.Name}_details_namelookup";
 			string typeLookupDictionaryVariable = $"__generated__{factory.Spec.FactoryType.Name}_details_typelookup";
@@ -734,6 +761,8 @@ namespace {factory.Spec.Namespace} {{
 			sb.Append(@$"
 			}};
 ");
+
+			ct.ThrowIfCancellationRequested();
 
 			sb.Append(@$"
 		public static bool Contains{factory.Spec.FactoryType.Name}Details(string name) => {nameLookupDictionaryVariable}.ContainsKey(name);
@@ -849,7 +878,9 @@ namespace {factory.Spec.Namespace} {{
 			return name.Replace("_", "").ToLowerInvariant();
 		}
 
-		private static void GenerateBuilderCode(StringBuilder sb, BuilderToGenerate builder, Dictionary<string, ParameterParser> parserLookup, Dictionary<string, BuilderToGenerate> builderLookup, bool includeGeneratedAttributes, Compilation compilation) {
+		private static void GenerateBuilderCode(StringBuilder sb, BuilderToGenerate builder, Dictionary<string, ParameterParser> parserLookup, Dictionary<string, BuilderToGenerate> builderLookup, bool includeGeneratedAttributes, Compilation compilation, CancellationToken ct) {
+			ct.ThrowIfCancellationRequested();
+
 			bool builderNeedsShapeFactory = NeedsShapeFactory(builder.Builder);
 			bool builderNeedsWidgetFactory = NeedsWidgetFactory(builder.Builder);
 
@@ -877,6 +908,8 @@ namespace {factory.Spec.Namespace} {{
 
 			int count = 0;
 			foreach ((int pIdx, BuilderParameter param) in builder.Builder.Parameters.Enumerate()) {
+				ct.ThrowIfCancellationRequested();
+
 				if (param.IsBuildErrors) {
 					paramVariables.Add(builderErrorsParamVariable);
 					needsBuilderErrorsParam = true;
@@ -1280,7 +1313,8 @@ namespace {factory.Spec.Namespace} {{
 			}
 		}
 
-		private static (EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders) FilterParamParsers(ImmutableArray<FactorySpecification> factories, ImmutableArray<AvailableBuilder> builders, ImmutableArray<ParameterParser> parsers, Compilation compilation) {
+		private static (EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders) FilterParamParsers(ImmutableArray<FactorySpecification> factories, ImmutableArray<AvailableBuilder> builders, ImmutableArray<ParameterParser> parsers, Compilation compilation, CancellationToken ct) {
+			ct.ThrowIfCancellationRequested();
 
 			Dictionary<string, AvailableBuilder> builderLookup = builders.ToDictionary(b => b.ConcreteBuilderType.FullName);
 			Dictionary<string, ParameterParser> parserLookup = parsers.ToDictionary(p => p.ParserType.FullName);
@@ -1295,14 +1329,18 @@ namespace {factory.Spec.Namespace} {{
 					continue;
 				}
 
-				explicitFactoryBuilders.UnionWith(FilterFactoryBuilders(factory, factoryBuildType, builders, compilation));
+				explicitFactoryBuilders.UnionWith(FilterFactoryBuilders(factory, factoryBuildType, builders, compilation, ct));
 			}
+
+			ct.ThrowIfCancellationRequested();
 
 			// Breadth-first search for builders used by other builders
 			HashSet<AvailableBuilder> additionalNonFactoryBuilders = new HashSet<AvailableBuilder>(); // Running list
 			HashSet<AvailableBuilder> toAdd = new HashSet<AvailableBuilder>(explicitFactoryBuilders); // We know we're using these
 			HashSet<AvailableBuilder> additionalBuilders = new HashSet<AvailableBuilder>(); // To find new ones we didn't previously know we'd need
 			do {
+				ct.ThrowIfCancellationRequested();
+
 				// For all parameters in the builders we found we'd need
 				foreach (AvailableBuilder addBuilder in toAdd) {
 					foreach (BuilderParameter param in addBuilder.Parameters) {
@@ -1335,6 +1373,8 @@ namespace {factory.Spec.Namespace} {{
 				.Where(t => t is not null).Select(t => t!));
 
 			while (typeQueue.Count > 0) {
+				ct.ThrowIfCancellationRequested();
+
 				ITypeSymbol type = typeQueue.Dequeue();
 
 				if (type is INamedTypeSymbol namedType) {
@@ -1375,6 +1415,8 @@ namespace {factory.Spec.Namespace} {{
 			List<BuilderToGenerate> miscBuildersToGenerate = new List<BuilderToGenerate>();
 
 			foreach(AvailableBuilder builder in additionalNonFactoryBuilders) {
+				ct.ThrowIfCancellationRequested();
+
 				ITypeSymbol? builderContainingType = compilation.ResolveTypeKey(builder.FullTypeName);
 
 				if (builderContainingType is null) {
@@ -1401,8 +1443,12 @@ namespace {factory.Spec.Namespace} {{
 					}
 				}
 
+				ct.ThrowIfCancellationRequested();
+
 				miscBuildersToGenerate.Add(new BuilderToGenerate(builder, new EquatableArray<RequiredParameter>(GetRequiredParameters(builder).ToArray()), "SharpSheets.Parsing", "ParameterBuilders", $"Build_{clarifiedBuilderName}"));
 			}
+
+			ct.ThrowIfCancellationRequested();
 
 			return (
 				new EquatableArray<ParameterParser>(parsersToImplement.OrderBy(p => p.ParserType.Name).ToArray()),
@@ -1412,7 +1458,7 @@ namespace {factory.Spec.Namespace} {{
 
 		static void ExecuteParamParser(EquatableArray<ParameterParser> neededParsers, ImmutableArray<ParameterParser> parsers, SourceProductionContext context, Compilation compilation) {
 			// generate the source code and add it to the output
-			string? result = GenerateParamParsersCode(neededParsers, parsers, compilation);
+			string? result = GenerateParamParsersCode(neededParsers, parsers, compilation, context.CancellationToken);
 			// Create a separate partial class file
 			if (!string.IsNullOrEmpty(result)) {
 				context.AddSource($"Factories.ParamParser.g.cs", SourceText.From(result!, Encoding.UTF8));
@@ -1421,8 +1467,9 @@ namespace {factory.Spec.Namespace} {{
 
 		private static readonly char[] arrayDelimiters = { ',', ';', '|' };
 
-		private static string? GenerateParamParsersCode(EquatableArray<ParameterParser> neededParsers, ImmutableArray<ParameterParser> existingParsers, Compilation compilation) {
-			
+		private static string? GenerateParamParsersCode(EquatableArray<ParameterParser> neededParsers, ImmutableArray<ParameterParser> existingParsers, Compilation compilation, CancellationToken ct) {
+			ct.ThrowIfCancellationRequested();
+
 			Dictionary<string, ParameterParser> parserLookup = existingParsers.Concat(neededParsers).ToDictionary(p => p.ParserType.FullName);
 
 			List<(ParameterParser parser, INamedTypeSymbol type)> enumTypes = new List<(ParameterParser, INamedTypeSymbol)>();
@@ -1443,6 +1490,8 @@ namespace {factory.Spec.Namespace} {{
 				}
 			}
 
+			ct.ThrowIfCancellationRequested();
+
 			StringBuilder sb = new StringBuilder();
 			sb.Append(@$"// <auto-generated/>
 #nullable enable
@@ -1461,6 +1510,8 @@ namespace SharpSheets.Parsing {{
 
 			// Non-enum types
 			foreach ((ParameterParser parser, ITypeSymbol typeSymbol) in otherTypes) {
+				ct.ThrowIfCancellationRequested();
+
 				int parseRank = typeSymbol.GetArrayOrTupleRank();
 				bool needsSource = NeedsSource(typeSymbol, parserLookup);
 
@@ -1519,6 +1570,7 @@ namespace SharpSheets.Parsing {{
 
 			// Enum types
 			foreach ((ParameterParser parser, INamedTypeSymbol enumSymbol) in enumTypes) {
+				ct.ThrowIfCancellationRequested();
 
 				string enumFullName = enumSymbol.ToFullDisplayString();
 				IEnumerable<string> enumMemberNames = enumSymbol
@@ -1561,17 +1613,20 @@ namespace SharpSheets.Parsing {{
 
 		static void ExecuteMiscBuilders(EquatableArray<BuilderToGenerate> neededMiscBuilders, IList<ParameterParser> availableParsers, SourceProductionContext context, Compilation compilation) {
 			// generate the source code and add it to the output
-			string? result = GenerateMiscBuildersCode(neededMiscBuilders, availableParsers, compilation);
+			string? result = GenerateMiscBuildersCode(neededMiscBuilders, availableParsers, compilation, context.CancellationToken);
 			// Create a separate partial class file
 			if (!string.IsNullOrEmpty(result)) {
 				context.AddSource($"Factories.ParamBuilders.g.cs", SourceText.From(result!, Encoding.UTF8));
 			}
 		}
 
-		private static string? GenerateMiscBuildersCode(EquatableArray<BuilderToGenerate> neededMiscBuilders, IList<ParameterParser> availableParsers, Compilation compilation) {
-			
+		private static string? GenerateMiscBuildersCode(EquatableArray<BuilderToGenerate> neededMiscBuilders, IList<ParameterParser> availableParsers, Compilation compilation, CancellationToken ct) {
+			ct.ThrowIfCancellationRequested();
+
 			Dictionary<string, ParameterParser> parserLookup = availableParsers.ToDictionary(p => p.ParserType.FullName);
 			Dictionary<string, BuilderToGenerate> builderLookup = neededMiscBuilders.ToDictionary(p => p.Builder.BuilderType.FullName);
+
+			ct.ThrowIfCancellationRequested();
 
 			StringBuilder sb = new StringBuilder();
 			sb.Append(@$"// <auto-generated/>
@@ -1588,8 +1643,7 @@ namespace SharpSheets.Parsing {{
 ");
 
 			foreach(BuilderToGenerate builder in neededMiscBuilders) {
-				GenerateBuilderCode(sb, builder, parserLookup, builderLookup, false, compilation);
-
+				GenerateBuilderCode(sb, builder, parserLookup, builderLookup, false, compilation, ct);
 				sb.Append('\n');
 			}
 
@@ -1604,7 +1658,7 @@ namespace SharpSheets.Parsing {{
 
 		static void ExecuteBuilderDocumentation(ImmutableArray<FactoryToGenerate> factories, ImmutableArray<AvailableBuilder> availableBuilders, ImmutableArray<ParameterParser> availableParsers, EquatableArray<BuilderToGenerate> generatedBuilders, EquatableArray<ParameterParser> generatedParsers, SourceProductionContext context, Compilation compilation) {
 			// generate the source code and add it to the output
-			string? result = GenerateBuilderDocumentationCode(factories, availableBuilders, availableParsers, generatedBuilders, generatedParsers, compilation);
+			string? result = GenerateBuilderDocumentationCode(factories, availableBuilders, availableParsers, generatedBuilders, generatedParsers, compilation, context.CancellationToken);
 			// Create a separate partial class file
 			if (!string.IsNullOrEmpty(result)) {
 				context.AddSource($"Documentation.Builders.g.cs", SourceText.From(result!, Encoding.UTF8));
@@ -1617,12 +1671,15 @@ namespace SharpSheets.Parsing {{
 			return builder.ConcreteBuilderType.Type.Replace('.', '_');
 		}
 
-		private static string? GenerateBuilderDocumentationCode(ImmutableArray<FactoryToGenerate> factories, ImmutableArray<AvailableBuilder> availableBuilders, ImmutableArray<ParameterParser> availableParsers, EquatableArray<BuilderToGenerate> generatedBuilders, EquatableArray<ParameterParser> generatedParsers, Compilation compilation) {
+		private static string? GenerateBuilderDocumentationCode(ImmutableArray<FactoryToGenerate> factories, ImmutableArray<AvailableBuilder> availableBuilders, ImmutableArray<ParameterParser> availableParsers, EquatableArray<BuilderToGenerate> generatedBuilders, EquatableArray<ParameterParser> generatedParsers, Compilation compilation, CancellationToken ct) {
+			ct.ThrowIfCancellationRequested();
 
 			SharpSheetsParameterResolverData resolverData = SharpSheetsParameterResolverData.Create(compilation, availableBuilders, availableParsers.Concat(generatedParsers), factories);
 			//SharpSheetsParameterResolverData resolverData = SharpSheetsParameterResolverData.Create(compilation, availableBuilders.Concat(generatedBuilders.Select(b => b.Builder)), availableParsers.Concat(generatedParsers), factories);
 
 			Dictionary<string, string> typeToDocsVariable = availableBuilders.ToDictionary(b => b.ConcreteBuilderType.FullName, GetDocumentationVariableName);
+
+			ct.ThrowIfCancellationRequested();
 
 			StringBuilder sb = new StringBuilder();
 			sb.Append(@$"// <auto-generated/>
@@ -1639,6 +1696,8 @@ namespace SharpSheets.Documentation {{
 ");
 
 			foreach (AvailableBuilder builder in availableBuilders) {
+				ct.ThrowIfCancellationRequested();
+
 				ITypeSymbol? builderType = builder.ConcreteBuilderType.GetSymbol(compilation); // compilation.ResolveTypeKey(builder.ConcreteBuilderType);
 
 				if(builderType is null) {
@@ -1675,6 +1734,8 @@ namespace SharpSheets.Documentation {{
 					arguments: [");
 
 				foreach (SharpSheetsParameterData param in SharpSheetsParameterResolver.GetArguments(builder, method, methodComment, resolverData)) {
+					ct.ThrowIfCancellationRequested();
+
 					if (param.DeferArgsTo is null) {
 						sb.Append(@$"
 							new SharpSheets.Documentation.ArgumentDetails(
@@ -1716,14 +1777,16 @@ namespace SharpSheets.Documentation {{
 
 		static void ExecuteEnumDocumentation(ImmutableArray<EnumComment> declaredEnums, SourceProductionContext context) {
 			// generate the source code and add it to the output
-			string? result = GenerateEnumDocumentationCode(declaredEnums);
+			string? result = GenerateEnumDocumentationCode(declaredEnums, context.CancellationToken);
 			// Create a separate partial class file
 			if (!string.IsNullOrEmpty(result)) {
 				context.AddSource($"Documentation.Enums.g.cs", SourceText.From(result!, Encoding.UTF8));
 			}
 		}
 
-		private static string? GenerateEnumDocumentationCode(ImmutableArray<EnumComment> declaredEnums) {
+		private static string? GenerateEnumDocumentationCode(ImmutableArray<EnumComment> declaredEnums, CancellationToken ct) {
+			ct.ThrowIfCancellationRequested();
+
 			List<(string fullType, string typeName, string docVariableName)> allDocs = new List<(string, string, string)>();
 
 			StringBuilder sb = new StringBuilder();
@@ -1739,6 +1802,8 @@ namespace SharpSheets.Documentation {{
 ");
 
 			foreach (EnumComment enumComment in declaredEnums) {
+				ct.ThrowIfCancellationRequested();
+
 				string docVariableName = enumComment.FullType.Replace('.', '_');
 
 				allDocs.Add((enumComment.FullType, enumComment.Name, docVariableName));
@@ -1779,6 +1844,8 @@ namespace SharpSheets.Documentation {{
 			return __generated__allDocs_names.TryGetValue(typeName, out enumDoc);
 		}
 ");
+
+			ct.ThrowIfCancellationRequested();
 
 			sb.Append(@$"
 		{GeneratorMarkers.NeverEditorBrowsableAttr}
