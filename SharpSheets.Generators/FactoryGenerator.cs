@@ -38,7 +38,7 @@ namespace SharpSheets.Generators {
 
 			IncrementalValuesProvider<EnumComment> declaredEnums = context.SyntaxProvider
 				.CreateSyntaxProvider(
-					predicate: (node, ct) => node is EnumDeclarationSyntax,
+					predicate: (node, ct) => node is EnumDeclarationSyntax enumNode && enumNode.IsPublic(),
 					transform: (ctx, ct) => {
 						EnumDeclarationSyntax enumDeclaration = (EnumDeclarationSyntax)ctx.Node;
 						INamedTypeSymbol? enumSymbol = ctx.SemanticModel.GetDeclaredSymbol(enumDeclaration, ct) as INamedTypeSymbol;
@@ -95,7 +95,7 @@ namespace SharpSheets.Generators {
 		}
 
 		private static EquatableArray<FactorySpecification> GetFactorySpecs(GeneratorAttributeSyntaxContext ctx) {
-			if (ctx.TargetSymbol is not INamedTypeSymbol classSymbol || ctx.TargetNode is not TypeDeclarationSyntax declarationNode) {
+			if (ctx.TargetSymbol is not INamedTypeSymbol classSymbol || ctx.TargetNode is not ClassDeclarationSyntax declarationNode) {
 				// something went wrong
 				return new EquatableArray<FactorySpecification>(Array.Empty<FactorySpecification>());
 			}
@@ -143,12 +143,12 @@ namespace SharpSheets.Generators {
 				DefaultType = defaultType;
 			}
 
-			public static FactorySpecification Build(INamedTypeSymbol classSymbol, TypeDeclarationSyntax declarationNode, ITypeSymbol factoryTypeSymbol, ITypeSymbol[] requiredParams, string[] requiredParamNames, bool[] excludeRequiredParams, ITypeSymbol? defaultType, Compilation compilation) {
+			public static FactorySpecification Build(INamedTypeSymbol classSymbol, ClassDeclarationSyntax declarationNode, ITypeSymbol factoryTypeSymbol, ITypeSymbol[] requiredParams, string[] requiredParamNames, bool[] excludeRequiredParams, ITypeSymbol? defaultType, Compilation compilation) {
 				return new FactorySpecification(
 					classSymbol.ContainingNamespace.ToFullDisplayString(),
 					classSymbol.Name,
 					classSymbol.IsStatic,
-					declarationNode.Modifiers.Any(m => m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.PartialKeyword)),
+					declarationNode.IsPartial(),
 					TypeData.Create(factoryTypeSymbol, compilation),
 					requiredParams.Zip(requiredParamNames, excludeRequiredParams, (t, n, e) => RequiredParameter.Build(t, n, e, compilation)).ToArray(),
 					defaultType is not null ? TypeData.Create(defaultType, compilation) : null
