@@ -36,13 +36,13 @@ namespace SharpSheets.Generators {
 					transform: static (ctx, _) => GetParameterParser(ctx))
 				.WhereNotNull();
 
-			IncrementalValuesProvider<string> declaredEnums = context.SyntaxProvider
+			IncrementalValuesProvider<EnumComment> declaredEnums = context.SyntaxProvider
 				.CreateSyntaxProvider(
 					predicate: (node, ct) => node is EnumDeclarationSyntax,
 					transform: (ctx, ct) => {
 						EnumDeclarationSyntax enumDeclaration = (EnumDeclarationSyntax)ctx.Node;
 						INamedTypeSymbol? enumSymbol = ctx.SemanticModel.GetDeclaredSymbol(enumDeclaration, ct) as INamedTypeSymbol;
-						return enumSymbol?.ToFullDisplayString();
+						return enumSymbol is not null ? DocCommentReader.FromEnumSymbol(enumSymbol, ctx.SemanticModel.Compilation, ct) : null; // enumSymbol?.ToFullDisplayString();
 					})
 				.WhereNotNull();
 
@@ -86,8 +86,8 @@ namespace SharpSheets.Generators {
 				static (spc, source) => ExecuteBuilderDocumentation(source.Item4, source.Item1, source.Item2, source.Item3.neededMiscBuilders, source.Item3.neededParamParsers, spc, source.Item5));
 
 			// Generate documentation code for enums
-			context.RegisterSourceOutput(declaredEnums.Collect().Combine(context.CompilationProvider),
-				static (spc, source) => ExecuteEnumDocumentation(source.Left, spc, source.Right));
+			context.RegisterSourceOutput(declaredEnums.Collect(),
+				static (spc, source) => ExecuteEnumDocumentation(source, spc));
 
 			// Generate documentation linkup code for each factory
 			context.RegisterSourceOutput(factoriesToGenerate,
@@ -1655,8 +1655,8 @@ namespace SharpSheets.Documentation {{
 				string? typeXml = builderType.GetDocumentationCommentXml(preferredCulture: null, expandIncludes: true)?.Replace("\r\n", "\n");
 				string? methodXml = method.GetDocumentationCommentXml(preferredCulture: null, expandIncludes: true)?.Replace("\r\n", "\n");
 
-				DocSummaryComment? typeComment = DocCommentReader.FromSymbol(builderType, resolverData.Compilation);
-				DocMethodComment? methodComment = DocCommentReader.FromSymbol(method, resolverData.BuilderLookup, resolverData.ParserLookup, resolverData);
+				SummaryComment? typeComment = DocCommentReader.FromSymbol(builderType, resolverData.Compilation);
+				BuilderComment? methodComment = DocCommentReader.FromSymbol(method, resolverData.BuilderLookup, resolverData.ParserLookup, resolverData);
 
 				string concreteBuilderTypeMinimal = builder.ConcreteBuilderType.Type;
 				string concreteBuilderTypeNameMinimal = builder.ConcreteBuilderType.Name;
@@ -1715,16 +1715,16 @@ namespace SharpSheets.Documentation {{
 			return sb.ToString();
 		}
 
-		static void ExecuteEnumDocumentation(ImmutableArray<string> declaredEnums, SourceProductionContext context, Compilation compilation) {
+		static void ExecuteEnumDocumentation(ImmutableArray<EnumComment> declaredEnums, SourceProductionContext context) {
 			// generate the source code and add it to the output
-			string? result = GenerateEnumDocumentationCode(declaredEnums, compilation);
+			string? result = GenerateEnumDocumentationCode(declaredEnums);
 			// Create a separate partial class file
 			if (!string.IsNullOrEmpty(result)) {
 				context.AddSource($"Documentation.Enums.g.cs", SourceText.From(result!, Encoding.UTF8));
 			}
 		}
 
-		private static string? GenerateEnumDocumentationCode(ImmutableArray<string> declaredEnums, Compilation compilation) {
+		private static string? GenerateEnumDocumentationCode(ImmutableArray<EnumComment> declaredEnums) {
 			List<(string fullType, string typeName, string docVariableName)> allDocs = new List<(string, string, string)>();
 
 			StringBuilder sb = new StringBuilder();
@@ -1739,29 +1739,19 @@ namespace SharpSheets.Documentation {{
 	public static class EnumDocs {{
 ");
 
-			foreach (string enumName in declaredEnums) {
-				ITypeSymbol? enumSymbol = compilation.ResolveTypeKey(enumName);
+			foreach (EnumComment enumComment in declaredEnums) {
+				string docVariableName = enumComment.FullType.Replace('.', '_');
 
-				if (enumSymbol is not INamedTypeSymbol enumType || !enumType.IsEnum() || enumType.DeclaredAccessibility != Accessibility.Public) {
-					continue;
-				}
-
-				DocSummaryComment? enumComment = DocCommentReader.FromSymbol(enumType, compilation);
-
-				string docVariableName = enumType.ToFullDisplayString().Replace('.', '_');
-
-				allDocs.Add((enumName, enumType.Name, docVariableName));
+				allDocs.Add((enumComment.FullType, enumComment.Name, docVariableName));
 
 				sb.Append(@$"
 		public static readonly SharpSheets.Documentation.EnumDoc {docVariableName} = new SharpSheets.Documentation.EnumDoc(
-				{enumType.Name.ToRepr()},
+				{enumComment.Name.ToRepr()},
 				new EnumValDoc[] {{");
 
-				foreach (IFieldSymbol enumField in enumType.GetDeclaredEnumMembers()) {
-					DocSummaryComment? enumValComment = DocCommentReader.FromSymbol(enumField, compilation);
-
+				foreach ((string valueName, string? valueDescription) in enumComment.Values) {
 					sb.Append(@$"
-					new SharpSheets.Documentation.EnumValDoc({enumType.Name.ToRepr()}, {enumField.Name.ToRepr()}, {enumValComment?.Summary ?? "null"}),");
+					new SharpSheets.Documentation.EnumValDoc({enumComment.Name.ToRepr()}, {valueName.ToRepr()}, {valueDescription ?? "null"}),");
 				}
 
 				sb.Append(@$"

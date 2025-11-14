@@ -10,21 +10,21 @@ using static SharpSheets.Generators.FactoryGenerator;
 
 namespace SharpSheets.Generators {
 
-	public sealed class DocParamComment {
-		public string Name { get; }
+	public record class ParamComment {
+		public readonly string Name;
 		/// <summary> DocumentationString constructor code. </summary>
-		public string? Description { get; }
+		public readonly string? Description;
 		/// <summary>
 		/// Construction code for default value.
 		/// </summary>
-		public string? DefaultValue { get; }
+		public readonly string? DefaultValue;
 		/// <summary>
 		/// Construction code for example value.
 		/// </summary>
-		public string? ExampleValue { get; }
-		public bool Exclude { get; }
+		public readonly string? ExampleValue;
+		public readonly bool Exclude;
 
-		public DocParamComment(string name, string? description, string? defaultValue, string? exampleValue, bool exclude) {
+		public ParamComment(string name, string? description, string? defaultValue, string? exampleValue, bool exclude) {
 			Name = name;
 			Description = description;
 			DefaultValue = defaultValue;
@@ -33,11 +33,10 @@ namespace SharpSheets.Generators {
 		}
 	}
 
-	public sealed class DocMethodComment {
+	public sealed class BuilderComment {
 		/// <summary> DocumentationString constructor code. </summary>
 		public string? Summary { get; }
-		public Dictionary<string, DocParamComment> Params { get; }
-		public Dictionary<string, string?> TypeParams { get; }
+		public EquatableDictionary<string, ParamComment> Params { get; }
 		/// <summary> DocumentationString constructor code. </summary>
 		public string? Returns { get; }
 		/// <summary> DocumentationString constructor code. </summary>
@@ -48,10 +47,9 @@ namespace SharpSheets.Generators {
 		/// <summary> SharpSheets.Layouts.Size constructor code. </summary>
 		public string? Canvas { get; }
 
-		public DocMethodComment(
+		public BuilderComment(
 				string? summary,
-				IEnumerable<DocParamComment> @params,
-				Dictionary<string, string?> typeParams,
+				IEnumerable<ParamComment> @params,
 				string? returns,
 				string? remarks,
 				string? size,
@@ -59,32 +57,41 @@ namespace SharpSheets.Generators {
 			) {
 
 			Summary = summary;
-			Params = @params.ToDictionary(p => p.Name);
-			TypeParams = typeParams;
+			Params = new EquatableDictionary<string, ParamComment>(@params.ToDictionary(p => p.Name));
 			Returns = returns;
 			Remarks = remarks;
 			Size = size;
 			Canvas = canvas;
 		}
-
-		//public static DocComment Empty { get; } = new DocComment(null, new Dictionary<string, string?>(), new Dictionary<string, string?>(), null, null);
 	}
 
-	public sealed class DocSummaryComment {
+	public record class SummaryComment {
 		/// <summary> DocumentationString constructor code. </summary>
-		public string? Summary { get; }
+		public readonly string? Summary;
 
-		public DocSummaryComment(string? summary) {
+		public SummaryComment(string? summary) {
 			Summary = summary;
+		}
+	}
+
+	public record class EnumComment {
+		public readonly string FullType;
+		public readonly string Name;
+		public readonly string? Summary;
+		public readonly EquatableArray<(string name, string? description)> Values;
+
+		public EnumComment(string fullType, string name, string? summary, IEnumerable<(string name, string? description)> values) {
+			FullType = fullType;
+			Name = name;
+			Summary = summary;
+			Values = new EquatableArray<(string, string?)>(values.ToArray());
 		}
 	}
 
 	public static class DocCommentReader {
 
-		// Main entry: returns DocComment.Empty when no docs or on parse errors.
-		public static DocMethodComment? FromSymbol(IMethodSymbol symbol, Dictionary<string, AvailableBuilder> builderLookup, Dictionary<string, ParameterParser> parserLookup, SharpSheetsParameterResolverData resolverData, CancellationToken ct = default) {
+		public static BuilderComment? FromSymbol(IMethodSymbol symbol, Dictionary<string, AvailableBuilder> builderLookup, Dictionary<string, ParameterParser> parserLookup, SharpSheetsParameterResolverData resolverData, CancellationToken ct = default) {
 
-			// expandIncludes: true will expand <include> elements (useful if you use <include> tags)
 			string? xml = symbol.GetDocumentationCommentXml(preferredCulture: null, expandIncludes: true, cancellationToken: ct);
 
 			if (string.IsNullOrWhiteSpace(xml)) {
@@ -102,7 +109,7 @@ namespace SharpSheets.Generators {
 
 				Dictionary<string, IParameterSymbol> paramLookup = symbol.Parameters.ToDictionary(p => p.Name);
 
-				List<DocParamComment> paramDocs = new List<DocParamComment>();
+				List<ParamComment> paramDocs = new List<ParamComment>();
 				IEnumerable<XElement> paramEls = doc.Root.Elements("param");
 				foreach (XElement el in paramEls) {
 					XAttribute nameAttr = el.Attribute("name");
@@ -110,32 +117,20 @@ namespace SharpSheets.Generators {
 						string name = nameAttr.Value;
 						string? text = GetDocumentationString(el, resolverData.Compilation);
 						IParameterSymbol? paramSymbol = paramLookup.TryGetValue(name, out IParameterSymbol val) ? val : null;
-						paramDocs.Add(new DocParamComment(name, text, GetDefaultValue(paramSymbol, resolverData), GetExampleValue(paramSymbol, resolverData), GetExclude(paramSymbol)));
+						paramDocs.Add(new ParamComment(name, text, GetDefaultValue(paramSymbol, resolverData), GetExampleValue(paramSymbol, resolverData), GetExclude(paramSymbol)));
 					}
 				}
 
-				Dictionary<string, string?> typeParamDocs = new Dictionary<string, string?>();
-				IEnumerable<XElement> tparamEls = doc.Root.Elements("typeparam");
-				foreach (XElement el in tparamEls) {
-					XAttribute nameAttr = el.Attribute("name");
-					if (nameAttr != null) {
-						string name = nameAttr.Value;
-						string? text = GetDocumentationString(el, resolverData.Compilation);
-						typeParamDocs[name] = text;
-					}
-				}
-
-				return new DocMethodComment(summary, paramDocs, typeParamDocs, returns, remarks, size, canvas);
+				return new BuilderComment(summary, paramDocs, returns, remarks, size, canvas);
 			}
 			catch (System.Xml.XmlException) {
-				// Malformed XML in doc comment — treat as no docs (alternatively log or fallback)
+				// Malformed XML
 				return null;
 			}
 		}
 
-		public static DocSummaryComment? FromSymbol(ISymbol symbol, Compilation compilation, CancellationToken ct = default) {
+		public static SummaryComment? FromSymbol(ISymbol symbol, Compilation compilation, CancellationToken ct = default) {
 
-			// expandIncludes: true will expand <include> elements (useful if you use <include> tags)
 			string? xml = symbol.GetDocumentationCommentXml(preferredCulture: null, expandIncludes: true, cancellationToken: ct);
 
 			if (string.IsNullOrWhiteSpace(xml)) {
@@ -147,10 +142,40 @@ namespace SharpSheets.Generators {
 
 				string? summary = GetDocumentationString(doc.Root.Element("summary"), compilation);
 
-				return new DocSummaryComment(summary);
+				return new SummaryComment(summary);
 			}
 			catch (System.Xml.XmlException) {
-				// Malformed XML in doc comment — treat as no docs (alternatively log or fallback)
+				// Malformed XML
+				return null;
+			}
+		}
+
+		public static EnumComment? FromEnumSymbol(INamedTypeSymbol symbol, Compilation compilation, CancellationToken ct = default) {
+
+			string? xml = symbol.GetDocumentationCommentXml(preferredCulture: null, expandIncludes: true, cancellationToken: ct);
+
+			string? summary;
+			try {
+				XDocument doc = XDocument.Parse(xml);
+				summary = GetDocumentationString(doc.Root.Element("summary"), compilation);
+			}
+			catch (System.Xml.XmlException) {
+				// Malformed XML
+				summary = null;
+			}
+
+			List<(string name, string? descriptions)> values = new List<(string, string?)>();
+
+			foreach (IFieldSymbol enumField in symbol.GetDeclaredEnumMembers()) {
+				SummaryComment? enumValComment = DocCommentReader.FromSymbol(enumField, compilation);
+
+				values.Add((enumField.Name, enumValComment?.Summary));
+			}
+
+			if (summary is not null || values.Count > 0) {
+				return new EnumComment(symbol.ToFullDisplayString(), symbol.Name, summary, values);
+			}
+			else {
 				return null;
 			}
 		}
@@ -607,7 +632,7 @@ namespace SharpSheets.Generators {
 
 	public static class SharpSheetsParameterResolver {
 
-		public static IEnumerable<SharpSheetsParameterData> GetArguments(AvailableBuilder builder, IMethodSymbol method, DocMethodComment? builderDoc, SharpSheetsParameterResolverData resolverData, string? prefix = null) {
+		public static IEnumerable<SharpSheetsParameterData> GetArguments(AvailableBuilder builder, IMethodSymbol method, BuilderComment? builderDoc, SharpSheetsParameterResolverData resolverData, string? prefix = null) {
 			Compilation compilation = resolverData.Compilation;
 
 			INamedTypeSymbol? builderTypeSymbol = builder.BuilderType.GetSymbol(compilation) as INamedTypeSymbol; // compilation.ResolveTypeKey(builder.BuilderType) as INamedTypeSymbol;
@@ -624,7 +649,7 @@ namespace SharpSheets.Generators {
 
 				if (exclude) { continue; }
 
-				DocParamComment? paramDoc = builderDoc?.Params.TryGetValue(paramSymbol.Name, out DocParamComment pd) ?? false ? pd : null;
+				ParamComment? paramDoc = builderDoc?.Params.TryGetValue(paramSymbol.Name, out ParamComment pd) ?? false ? pd : null;
 				string parameterName = NormaliseParameterName(paramSymbol.Name);
 				bool useLocal = builderParam.IsLocal;
 
@@ -650,7 +675,7 @@ namespace SharpSheets.Generators {
 						continue;
 					}
 
-					DocMethodComment? nestedBuilderDoc = DocCommentReader.FromSymbol(nestedBuilderMethod, resolverData.BuilderLookup, resolverData.ParserLookup, resolverData);
+					BuilderComment? nestedBuilderDoc = DocCommentReader.FromSymbol(nestedBuilderMethod, resolverData.BuilderLookup, resolverData.ParserLookup, resolverData);
 
 					string nestedPrefix = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 
@@ -658,7 +683,7 @@ namespace SharpSheets.Generators {
 						yield return SharpSheetsParameterData.MakeDeferredArgs(nestedBuilder.ConcreteBuilderType, 0, useLocal, nestedPrefix);
 					}
 					else if (nestedBuilder.Structure == BuilderStructure.SUPPLEMENTED) {
-						DocParamComment? firstArgDoc = (nestedBuilderDoc?.Params.TryGetValue(nestedBuilder.Parameters[0].Name, out DocParamComment dpc) ?? false) ? dpc : null;
+						ParamComment? firstArgDoc = (nestedBuilderDoc?.Params.TryGetValue(nestedBuilder.Parameters[0].Name, out ParamComment dpc) ?? false) ? dpc : null;
 						yield return GetSingleArg(nestedBuilder.Parameters[0], parameterName, prefix, useLocal, paramDoc?.Description, firstArgDoc);
 						yield return SharpSheetsParameterData.MakeDeferredArgs(nestedBuilder.ConcreteBuilderType, 1, useLocal, nestedPrefix);
 					}
@@ -679,14 +704,14 @@ namespace SharpSheets.Generators {
 			}
 		}
 
-		private static SharpSheetsParameterData GetSingleArg(BuilderParameter param, string parameterName, string? prefix, bool useLocal, string? descriptionContent, DocParamComment? argDoc) {
+		private static SharpSheetsParameterData GetSingleArg(BuilderParameter param, string parameterName, string? prefix, bool useLocal, string? descriptionContent, ParamComment? argDoc) {
 			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 			string? defaultValue = argDoc?.DefaultValue ?? param.DefaultValue;
 			string? exampleValue = argDoc?.ExampleValue;
 			return new SharpSheetsParameterData(name, descriptionContent, ArgumentTypeSimple(param.Type.Minimal), param.IsOptional, useLocal, defaultValue, exampleValue, null);
 		}
 
-		public static IEnumerable<SharpSheetsParameterData> GetAreaShapeArguments(string parameterName, string? prefix, string argumentType, DocParamComment? argDoc, bool isOptional, bool useLocal, bool includeNameArg) {
+		public static IEnumerable<SharpSheetsParameterData> GetAreaShapeArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal, bool includeNameArg) {
 			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 
 			yield return new SharpSheetsParameterData(name, argDoc?.Description, ArgumentTypeSimple(argumentType), isOptional, useLocal, argDoc?.DefaultValue, argDoc?.ExampleValue, "style");
@@ -704,7 +729,7 @@ namespace SharpSheets.Generators {
 			}
 		}
 
-		public static IEnumerable<SharpSheetsParameterData> GetDetailArguments(string parameterName, string? prefix, string argumentType, DocParamComment? argDoc, bool isOptional, bool useLocal) {
+		public static IEnumerable<SharpSheetsParameterData> GetDetailArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal) {
 			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 
 			// TODO These need replacing
