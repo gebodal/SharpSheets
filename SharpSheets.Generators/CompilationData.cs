@@ -28,12 +28,12 @@ namespace SharpSheets.Generators {
 			IsEnum = isEnum;
 		}
 
-		public static TypeData Create(ITypeSymbol symbol, Compilation compilation) {
+		public static TypeData Create(ITypeSymbol symbol) { // Compilation compilation
 			string fullName = symbol.ToFullDisplayString();
 			return new TypeData(
 					fullName.TrimEnd('?'),
 					symbol.Name,
-					compilation.ReduceParameterType(symbol).ToFullDisplayString(),
+					TypeNameUtils.ReduceParameterTypeName(fullName), //compilation.ReduceParameterType(symbol).ToFullDisplayString(),
 					fullName.EndsWith("?"),
 					symbol.SpecialType,
 					symbol is INamedTypeSymbol named && named.IsEnum()

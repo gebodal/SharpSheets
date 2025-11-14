@@ -100,7 +100,7 @@ namespace SharpSheets.Generators {
 				return new EquatableArray<FactorySpecification>(Array.Empty<FactorySpecification>());
 			}
 
-				List<FactorySpecification> result = new List<FactorySpecification>();
+			List<FactorySpecification> result = new List<FactorySpecification>();
 
 			foreach(AttributeData attr in ctx.Attributes) {
 				ITypeSymbol? factoryTypeSymbol = (ITypeSymbol?)attr.ConstructorArguments[0].Value;
@@ -114,7 +114,7 @@ namespace SharpSheets.Generators {
 				bool[] excludeRequiredParams = attr.ConstructorArguments[3].Values.Select(t => (bool)t.Value!).ToArray();
 				ITypeSymbol? defaultType = (ITypeSymbol?)attr.ConstructorArguments[4].Value;
 
-				result.Add(FactorySpecification.Build(classSymbol, declarationNode, factoryTypeSymbol, requiredParams, requiredParamNames, excludeRequiredParams, defaultType, ctx.SemanticModel.Compilation));
+				result.Add(FactorySpecification.Build(classSymbol, declarationNode, factoryTypeSymbol, requiredParams, requiredParamNames, excludeRequiredParams, defaultType));
 			}
 
 			return new EquatableArray<FactorySpecification>(result.ToArray());
@@ -143,15 +143,15 @@ namespace SharpSheets.Generators {
 				DefaultType = defaultType;
 			}
 
-			public static FactorySpecification Build(INamedTypeSymbol classSymbol, ClassDeclarationSyntax declarationNode, ITypeSymbol factoryTypeSymbol, ITypeSymbol[] requiredParams, string[] requiredParamNames, bool[] excludeRequiredParams, ITypeSymbol? defaultType, Compilation compilation) {
+			public static FactorySpecification Build(INamedTypeSymbol classSymbol, ClassDeclarationSyntax declarationNode, ITypeSymbol factoryTypeSymbol, ITypeSymbol[] requiredParams, string[] requiredParamNames, bool[] excludeRequiredParams, ITypeSymbol? defaultType) {
 				return new FactorySpecification(
 					classSymbol.ContainingNamespace.ToFullDisplayString(),
 					classSymbol.Name,
 					classSymbol.IsStatic,
 					declarationNode.IsPartial(),
-					TypeData.Create(factoryTypeSymbol, compilation),
-					requiredParams.Zip(requiredParamNames, excludeRequiredParams, (t, n, e) => RequiredParameter.Build(t, n, e, compilation)).ToArray(),
-					defaultType is not null ? TypeData.Create(defaultType, compilation) : null
+					TypeData.Create(factoryTypeSymbol),
+					requiredParams.Zip(requiredParamNames, excludeRequiredParams, (t, n, e) => RequiredParameter.Build(t, n, e)).ToArray(),
+					defaultType is not null ? TypeData.Create(defaultType) : null
 				);
 			}
 		}
@@ -190,10 +190,10 @@ namespace SharpSheets.Generators {
 				return !a.Equals(b);
 			}
 
-			public static RequiredParameter Build(ITypeSymbol paramType, string paramName, bool exclude, Compilation compilation) {
+			public static RequiredParameter Build(ITypeSymbol paramType, string paramName, bool exclude) {
 				return new RequiredParameter(
 					paramName,
-					TypeData.Create(paramType, compilation),
+					TypeData.Create(paramType),
 					exclude
 				);
 			}
@@ -269,7 +269,7 @@ namespace SharpSheets.Generators {
 
 			string? builderName = attr.NamedArguments.Length > 0 ? (string?)attr.NamedArguments[0].Value.Value : null;
 
-			return AvailableBuilder.Build(methodSymbol, builderTypeSymbol, builderName, ctx.SemanticModel.Compilation);
+			return AvailableBuilder.Build(methodSymbol, builderTypeSymbol, builderName);
 		}
 
 		public enum BuilderStructure { NONE, GROUPED, SUPPLEMENTED, EXPANDED, EXPANDED_DEFERRED }
@@ -328,16 +328,16 @@ namespace SharpSheets.Generators {
 				return BuilderStructure.NONE;
 			}
 
-			public static AvailableBuilder Build(IMethodSymbol methodSymbol, ITypeSymbol builderTypeSymbol, string? builderName, Compilation compilation) {
+			public static AvailableBuilder Build(IMethodSymbol methodSymbol, ITypeSymbol builderTypeSymbol, string? builderName) {
 				return new AvailableBuilder(
 					methodSymbol.ContainingType.ContainingNamespace.ToFullDisplayString(),
 					methodSymbol.ContainingType.ToFullDisplayString(),
 					methodSymbol.ContainingType.Name,
 					methodSymbol.Name,
-					TypeData.Create(builderTypeSymbol, compilation),
-					TypeData.Create(methodSymbol.ReturnType, compilation),
+					TypeData.Create(builderTypeSymbol),
+					TypeData.Create(methodSymbol.ReturnType),
 					builderName,
-					methodSymbol.Parameters.Select(p => BuilderParameter.Create(p, compilation)).ToArray(),
+					methodSymbol.Parameters.Select(p => BuilderParameter.Create(p)).ToArray(),
 					GetBuilderStructure(methodSymbol)
 				);
 			}
@@ -388,7 +388,7 @@ namespace SharpSheets.Generators {
 				return $"default({type.ToFullDisplayString()})";
 			}
 
-			public static BuilderParameter Create(IParameterSymbol param, Compilation compilation) {
+			public static BuilderParameter Create(IParameterSymbol param) {
 				AttributeData? buildErrorsAttr = param.GetAttributes("SharpSheets.Parsing.BuildErrorsAttribute").FirstOrDefault();
 				AttributeData? propAttr = param.GetAttributes("SharpSheets.Parsing.PropertyAttribute", "SharpSheets.Parsing.LocalPropertyAttribute").FirstOrDefault();
 
@@ -400,7 +400,7 @@ namespace SharpSheets.Generators {
 
 				return new BuilderParameter(
 					param.Name,
-					TypeData.Create(param.Type, compilation),
+					TypeData.Create(param.Type),
 					defaultValue,
 					isLocal,
 					param.IsOptional,
@@ -435,7 +435,7 @@ namespace SharpSheets.Generators {
 
 			bool needsSourceDirectory = methodSymbol.Parameters.Length == 2;
 
-			return ParameterParser.Build(methodSymbol, parserType, needsSourceDirectory, ctx.SemanticModel.Compilation);
+			return ParameterParser.Build(methodSymbol, parserType, needsSourceDirectory);
 		}
 
 		public record class ParameterParser {
@@ -457,22 +457,21 @@ namespace SharpSheets.Generators {
 				NeedsSourceDirectory = needsSourceDirectory;
 			}
 
-			private static ParameterParser Build(string fullTypeName, string methodName, ITypeSymbol parserType, bool needsSourceDirectory, Compilation compilation) {
+			private static ParameterParser Build(string fullTypeName, string methodName, ITypeSymbol parserType, bool needsSourceDirectory) {
 				return new ParameterParser(
 					fullTypeName,
 					methodName,
-					TypeData.Create(parserType, compilation),
+					TypeData.Create(parserType),
 					needsSourceDirectory
 				);
 			}
 
-			public static ParameterParser Build(IMethodSymbol methodSymbol, ITypeSymbol parserType, bool needsSourceDirectory, Compilation compilation) {
+			public static ParameterParser Build(IMethodSymbol methodSymbol, ITypeSymbol parserType, bool needsSourceDirectory) {
 				return Build(
 					methodSymbol.ContainingType.ToFullDisplayString(),
 					methodSymbol.Name,
 					parserType,
-					needsSourceDirectory,
-					compilation
+					needsSourceDirectory
 				);
 			}
 
@@ -488,13 +487,13 @@ namespace SharpSheets.Generators {
 				}
 			}
 
-			public static ParameterParser GetGeneratedParser(ITypeSymbol parserType, Compilation compilation, bool needsSourceDirectory = false) {
+			public static ParameterParser GetGeneratedParser(ITypeSymbol parserType, bool needsSourceDirectory = false) {
 				return Build(
 					"SharpSheets.Parsing.ParameterParsers",
 					$"Parser_{GetParserTypeName(parserType)}",
 					parserType,
-					needsSourceDirectory,
-					compilation);
+					needsSourceDirectory
+				);
 			}
 		}
 
@@ -1271,13 +1270,13 @@ namespace {factory.Spec.Namespace} {{
 			}
 		}
 
-		private static ParameterParser GetParser(ITypeSymbol symbol, Dictionary<string, ParameterParser> parserLookup, Compilation compilation) {
+		private static ParameterParser GetParser(ITypeSymbol symbol, Dictionary<string, ParameterParser> parserLookup) {
 			if (parserLookup.TryGetValue(symbol.ToFullDisplayString(), out ParameterParser parser)) {
 				return parser;
 			}
 			else {
 				bool needsSourceDirectory = NeedsSource(symbol, parserLookup);
-				return ParameterParser.GetGeneratedParser(symbol, compilation, needsSourceDirectory);
+				return ParameterParser.GetGeneratedParser(symbol, needsSourceDirectory);
 			}
 		}
 
@@ -1363,7 +1362,7 @@ namespace {factory.Spec.Namespace} {{
 					continue;
 				}
 
-				parsersToImplement.Add(ParameterParser.GetGeneratedParser(reducedType, compilation, NeedsSource(reducedType, parserLookup)));
+				parsersToImplement.Add(ParameterParser.GetGeneratedParser(reducedType, NeedsSource(reducedType, parserLookup)));
 
 				if (type is IArrayTypeSymbol arrayType) {
 					typeQueue.Enqueue(arrayType);
@@ -1475,7 +1474,7 @@ namespace SharpSheets.Parsing {{
 			string[] parts = SharpSheets.Parsing.StringParsing.SplitOnUnescaped(value, '{arrayDelimiters[parseRank - 1]}').Select(s => s.Trim()).ToArray();");
 
 					if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol) {
-						ParameterParser elemParser = GetParser(arrayTypeSymbol.ElementType, parserLookup, compilation);
+						ParameterParser elemParser = GetParser(arrayTypeSymbol.ElementType, parserLookup);
 						sb.Append(@$"
 			{typeSymbol.ToFullDisplayString()} result = parts.Select(p => {elemParser.FullTypeName}.{elemParser.MethodName}(p{(elemParser.NeedsSourceDirectory ? ", source" : "")})).ToArray();");
 					}
@@ -1489,7 +1488,7 @@ namespace SharpSheets.Parsing {{
 
 						for (int f = 0; f < namedTypeSymbol.TupleElements.Length; f++) {
 							IFieldSymbol field = namedTypeSymbol.TupleElements[f];
-							ParameterParser fieldParser = GetParser(field.Type, parserLookup, compilation);
+							ParameterParser fieldParser = GetParser(field.Type, parserLookup);
 							if (f > 0) { sb.Append(','); }
 							sb.Append(@$"
 				{fieldParser.FullTypeName}.{fieldParser.MethodName}(parts[{f}]{(fieldParser.NeedsSourceDirectory ? ", source" : "")})");
