@@ -600,6 +600,7 @@ namespace SharpSheets.Generators {
 #pragma warning disable
 
 using System.Linq;
+using SharpSheets.Parsing;
 
 namespace {factory.Spec.Namespace} {{
 	public{(factory.Spec.IsStatic ? " static" : "")}{(factory.Spec.IsPartial ? " partial" : "")} class {factory.Spec.Name} {{
