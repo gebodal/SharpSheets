@@ -177,42 +177,42 @@ namespace SharpSheets.Generators {
 			if (resolverData.ParserLookup.TryGetValue(type.ToFullDisplayString(), out ParameterParser parser)) {
 				if(constant is not null) {
 
-					if (CompilationUtils.TryGetSpecialType(parser.ParserType, out SpecialType parserSpecialType)) {
-						if (parserSpecialType == SpecialType.System_Single) {
+					if (parser.ParserType.SpecialType != SpecialType.None) {
+						if (parser.ParserType.SpecialType == SpecialType.System_Single) {
 							try {
 								return $"{float.Parse(constant, CultureInfo.InvariantCulture)}f";
 							}
 							catch (FormatException) { }
 						}
-						else if (parserSpecialType == SpecialType.System_Int32) {
+						else if (parser.ParserType.SpecialType == SpecialType.System_Int32) {
 							try {
 								return $"{int.Parse(constant, CultureInfo.InvariantCulture)}";
 							}
 							catch (FormatException) { }
 						}
-						else if (parserSpecialType == SpecialType.System_UInt32) {
+						else if (parser.ParserType.SpecialType == SpecialType.System_UInt32) {
 							try {
 								return $"{uint.Parse(constant, CultureInfo.InvariantCulture)}U";
 							}
 							catch (SystemException) { }
 						}
-						else if (parserSpecialType == SpecialType.System_Boolean) {
+						else if (parser.ParserType.SpecialType == SpecialType.System_Boolean) {
 							try {
 								return bool.Parse(constant) ? "true" : "false";
 							}
 							catch (SystemException) { }
 						}
-						else if (parserSpecialType == SpecialType.System_String) {
+						else if (parser.ParserType.SpecialType == SpecialType.System_String) {
 							return constant.ToRepr();
 						}
 					}
-					else if (parser.ParserType == "SharpSheets.Utilities.UFloat") {
+					else if (parser.ParserType.FullName == "SharpSheets.Utilities.UFloat") {
 						try {
 							return $"new SharpSheets.Utilities.UFloat({float.Parse(constant, CultureInfo.InvariantCulture)}f)";
 						}
 						catch (FormatException) { }
 					}
-					else if (parser.ParserType == "SharpSheets.Layouts.Margins") {
+					else if (parser.ParserType.FullName == "SharpSheets.Layouts.Margins") {
 						string[] content = constant.Trim().TrimStart('(').TrimEnd(')').Split(',').Select(i => i.Trim()).ToArray();
 
 						float[] values = content.Select(i => {
@@ -230,7 +230,7 @@ namespace SharpSheets.Generators {
 							}
 						}
 					}
-					else if (parser.ParserType == "SharpSheets.Layouts.Dimension") {
+					else if (parser.ParserType.FullName == "SharpSheets.Layouts.Dimension") {
 						if (string.Equals(constant, "auto", StringComparison.InvariantCultureIgnoreCase)) {
 							return "SharpSheets.Layouts.Dimension.Automatic";
 						}
@@ -271,7 +271,7 @@ namespace SharpSheets.Generators {
 
 			ITypeSymbol factoryType = SymbolEqualityComparer.Default.Equals(type, resolverData.ContainerShapeInterface) ? resolverData.BoxInterface : type;
 			if (factoryType is INamedTypeSymbol namedType && resolverData.FactoryLookup.TryGetValue(namedType, out FactoryToGenerate factory)) {
-				AvailableBuilder? builderToUse = (constant is not null && resolverData.BuilderLookup.Values.FirstOrDefault(b => b.BuilderType == factory.Spec.FactoryType && b.ConcreteBuilderType.EndsWith(constant)) is AvailableBuilder requestedBuilder) ? requestedBuilder : factory.DefaultBuilder;
+				AvailableBuilder? builderToUse = (constant is not null && resolverData.BuilderLookup.Values.FirstOrDefault(b => b.BuilderType == factory.Spec.FactoryType && b.ConcreteBuilderType.Minimal.EndsWith(constant)) is AvailableBuilder requestedBuilder) ? requestedBuilder : factory.DefaultBuilder;
 				
 				if (builderToUse is not null) {
 					return $"{builderToUse.FullTypeName}.{builderToUse.MethodName}()";
@@ -528,9 +528,9 @@ namespace SharpSheets.Generators {
 		}
 
 		public static SharpSheetsParameterResolverData Create(Compilation compilation, IEnumerable<AvailableBuilder> availableBuilders, IEnumerable<ParameterParser> availableParsers, IEnumerable<FactoryToGenerate> factories) {
-			Dictionary<string, AvailableBuilder> builderLookup = availableBuilders.ToDictionary(b => b.ConcreteBuilderType);
-			Dictionary<string, ParameterParser> parserLookup = availableParsers.ToDictionary(b => b.ParserType);
-			Dictionary<INamedTypeSymbol, FactoryToGenerate> factoryLookup = factories.ToDictionary<FactoryToGenerate, INamedTypeSymbol>(f => compilation.GetTypeByMetadataName(f.Spec.FactoryType) ?? throw new InvalidOperationException($"Cannot resolve {f.Spec.FactoryType} symbol."), SymbolEqualityComparer.Default);
+			Dictionary<string, AvailableBuilder> builderLookup = availableBuilders.ToDictionary(b => b.ConcreteBuilderType.FullName);
+			Dictionary<string, ParameterParser> parserLookup = availableParsers.ToDictionary(b => b.ParserType.FullName);
+			Dictionary<INamedTypeSymbol, FactoryToGenerate> factoryLookup = factories.ToDictionary<FactoryToGenerate, INamedTypeSymbol>(f => f.Spec.FactoryType.GetSymbol(compilation) as INamedTypeSymbol ?? throw new InvalidOperationException($"Cannot resolve {f.Spec.FactoryType.FullName} symbol."), SymbolEqualityComparer.Default);
 
 			INamedTypeSymbol shapeInterface = compilation.GetTypeByMetadataName("SharpSheets.Shapes.IShape") ?? throw new InvalidOperationException("No IShape type.");
 			INamedTypeSymbol areaShapeInterface = compilation.GetTypeByMetadataName("SharpSheets.Shapes.IAreaShape") ?? throw new InvalidOperationException("No IAreaShape type.");
@@ -589,14 +589,14 @@ namespace SharpSheets.Generators {
 				);
 		}
 
-		public static SharpSheetsParameterData MakeDeferredArgs(string deferArgsTo, int skip, bool useLocal, string? prefix) {
+		public static SharpSheetsParameterData MakeDeferredArgs(TypeData deferArgsTo, int skip, bool useLocal, string? prefix) {
 			SharpSheetsParameterData result = new SharpSheetsParameterData(
 					"deferred", null,
-					deferArgsTo,
+					deferArgsTo.FullName,
 					false, useLocal,
 					null, null,
 					null, null,
-					deferArgsTo, skip
+					deferArgsTo.FullName, skip
 				);
 			if (!string.IsNullOrEmpty(prefix)) {
 				result = result.Prefixed(prefix!);
@@ -610,7 +610,7 @@ namespace SharpSheets.Generators {
 		public static IEnumerable<SharpSheetsParameterData> GetArguments(AvailableBuilder builder, IMethodSymbol method, DocMethodComment? builderDoc, SharpSheetsParameterResolverData resolverData, string? prefix = null) {
 			Compilation compilation = resolverData.Compilation;
 
-			INamedTypeSymbol? builderTypeSymbol = compilation.ResolveTypeKey(builder.BuilderType) as INamedTypeSymbol;
+			INamedTypeSymbol? builderTypeSymbol = builder.BuilderType.GetSymbol(compilation) as INamedTypeSymbol; // compilation.ResolveTypeKey(builder.BuilderType) as INamedTypeSymbol;
 			FactoryToGenerate? builderFactory = resolverData.GetFactory(builderTypeSymbol);
 
 			Queue<SharpSheetsParameterData> deferredParams = new Queue<SharpSheetsParameterData>();
@@ -630,18 +630,18 @@ namespace SharpSheets.Generators {
 
 				if (compilation.HasImplicitConversion(paramSymbol.Type, resolverData.AreaShapeInterface)) {
 					bool nameGiven = builder.Parameters.Any(p => StringComparer.OrdinalIgnoreCase.Equals(p.Name, "name"));
-					foreach (SharpSheetsParameterData shapeArg in GetAreaShapeArguments(parameterName, prefix, builderParam.MinimalType, paramDoc, builderParam.IsOptional, useLocal, !nameGiven)) {
+					foreach (SharpSheetsParameterData shapeArg in GetAreaShapeArguments(parameterName, prefix, builderParam.Type.Minimal, paramDoc, builderParam.IsOptional, useLocal, !nameGiven)) {
 						yield return shapeArg;
 					}
 				}
 				else if (compilation.HasImplicitConversion(paramSymbol.Type, resolverData.DetailInterface)) {
-					foreach (SharpSheetsParameterData detailArg in GetDetailArguments(parameterName, prefix, builderParam.MinimalType, paramDoc, builderParam.IsOptional, useLocal)) {
+					foreach (SharpSheetsParameterData detailArg in GetDetailArguments(parameterName, prefix, builderParam.Type.Minimal, paramDoc, builderParam.IsOptional, useLocal)) {
 						yield return detailArg;
 					}
 				}
-				else if (resolverData.BuilderLookup.TryGetValue(builderParam.MinimalType, out AvailableBuilder nestedBuilder)) { // (typeof(ISharpArgsGrouping).IsAssignableFrom(param.ParameterType) || SharpFactory.IsParsableStruct(param.ParameterType)) {
+				else if (resolverData.BuilderLookup.TryGetValue(builderParam.Type.Minimal, out AvailableBuilder nestedBuilder)) { // (typeof(ISharpArgsGrouping).IsAssignableFrom(param.ParameterType) || SharpFactory.IsParsableStruct(param.ParameterType)) {
 
-					ITypeSymbol? nestedBuilderType = compilation.ResolveTypeKey(nestedBuilder.ConcreteBuilderType);
+					ITypeSymbol? nestedBuilderType = nestedBuilder.ConcreteBuilderType.GetSymbol(compilation); // compilation.ResolveTypeKey(nestedBuilder.ConcreteBuilderType);
 					if (nestedBuilderType is null) {
 						continue;
 					}
@@ -683,7 +683,7 @@ namespace SharpSheets.Generators {
 			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 			string? defaultValue = argDoc?.DefaultValue ?? param.DefaultValue;
 			string? exampleValue = argDoc?.ExampleValue;
-			return new SharpSheetsParameterData(name, descriptionContent, ArgumentTypeSimple(param.MinimalType), param.IsOptional, useLocal, defaultValue, exampleValue, null);
+			return new SharpSheetsParameterData(name, descriptionContent, ArgumentTypeSimple(param.Type.Minimal), param.IsOptional, useLocal, defaultValue, exampleValue, null);
 		}
 
 		public static IEnumerable<SharpSheetsParameterData> GetAreaShapeArguments(string parameterName, string? prefix, string argumentType, DocParamComment? argDoc, bool isOptional, bool useLocal, bool includeNameArg) {

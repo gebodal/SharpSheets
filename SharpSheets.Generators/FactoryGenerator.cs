@@ -125,20 +125,18 @@ namespace SharpSheets.Generators {
 			public readonly string Name;
 			public readonly bool IsStatic;
 			public readonly bool IsPartial;
-			public readonly string FactoryType;
-			public readonly string FactoryTypeName;
+			public readonly TypeData FactoryType;
 
 			public readonly EquatableArray<RequiredParameter> RequiredParameters;
 
-			public readonly string? DefaultType;
+			public readonly TypeData? DefaultType;
 
-			public FactorySpecification(string @namespace, string name, bool isStatic, bool isPartial, string factoryType, string factoryTypeName, IList<RequiredParameter> requiredParams, string? defaultType) {
+			public FactorySpecification(string @namespace, string name, bool isStatic, bool isPartial, TypeData factoryType, IList<RequiredParameter> requiredParams, TypeData? defaultType) {
 				Namespace = @namespace;
 				Name = name;
 				IsStatic = isStatic;
 				IsPartial = isPartial;
 				FactoryType = factoryType;
-				FactoryTypeName = factoryTypeName;
 
 				RequiredParameters = new EquatableArray<RequiredParameter>(requiredParams.ToArray());
 
@@ -151,33 +149,30 @@ namespace SharpSheets.Generators {
 					classSymbol.Name,
 					classSymbol.IsStatic,
 					declarationNode.Modifiers.Any(m => m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.PartialKeyword)),
-					factoryTypeSymbol.ToFullDisplayString(),
-					factoryTypeSymbol.Name,
+					TypeData.Create(factoryTypeSymbol, compilation),
 					requiredParams.Zip(requiredParamNames, excludeRequiredParams, (t, n, e) => RequiredParameter.Build(t, n, e, compilation)).ToArray(),
-					defaultType?.ToFullDisplayString()
+					defaultType is not null ? TypeData.Create(defaultType, compilation) : null
 				);
 			}
 		}
 
 		public class RequiredParameter : IEquatable<RequiredParameter> {
 			public readonly string Name;
-			public readonly string FullType;
-			public readonly string MinimalType;
+			public readonly TypeData Type;
 			public readonly bool Exclude;
 
-			public RequiredParameter(string name, string fullType, string minimalType, bool exclude) {
+			public RequiredParameter(string name, TypeData type, bool exclude) {
 				Name = name;
-				FullType = fullType;
-				MinimalType = minimalType;
+				Type = type;
 				Exclude = exclude;
 			}
 
 			public static explicit operator RequiredParameter(BuilderParameter p) {
-				return new RequiredParameter(p.Name, p.FullType, p.MinimalType, false);
+				return new RequiredParameter(p.Name, p.Type, false);
 			}
 
 			public bool Equals(RequiredParameter other) {
-				return FullType == other.FullType;
+				return Type == other.Type;
 			}
 
 			public override bool Equals(object obj) {
@@ -185,7 +180,7 @@ namespace SharpSheets.Generators {
 			}
 
 			public override int GetHashCode() {
-				return FullType.GetHashCode();
+				return Type.GetHashCode();
 			}
 
 			public static bool operator ==(RequiredParameter a, RequiredParameter b) {
@@ -198,15 +193,14 @@ namespace SharpSheets.Generators {
 			public static RequiredParameter Build(ITypeSymbol paramType, string paramName, bool exclude, Compilation compilation) {
 				return new RequiredParameter(
 					paramName,
-					paramType.ToFullDisplayString(),
-					compilation.ReduceParameterType(paramType).ToFullDisplayString(),
+					TypeData.Create(paramType, compilation),
 					exclude
 				);
 			}
 		}
 
 		private static FactoryToGenerate? FilterFactoriesToGenerate(FactorySpecification spec, ImmutableArray<AvailableBuilder> availableBuilders, ImmutableArray<ParameterParser> availableParsers, EquatableArray<BuilderToGenerate> neededBuilders, EquatableArray<ParameterParser> neededParsers, Compilation compilation) {
-			INamedTypeSymbol? factoryBuildType = compilation.GetTypeByMetadataName(spec.FactoryType);
+			INamedTypeSymbol? factoryBuildType = spec.FactoryType.GetSymbol(compilation)as INamedTypeSymbol;
 
 			if (factoryBuildType is null) {
 				return null;
@@ -222,11 +216,11 @@ namespace SharpSheets.Generators {
 					builderMethodName = $"Build_{builder.TypeName}";
 				}
 				else {
-					builderMethodName = $"Build_{spec.FactoryTypeName}_{builder.TypeName}";
+					builderMethodName = $"Build_{spec.FactoryType.Name}_{builder.TypeName}";
 				}
 
 				return new BuilderToGenerate(builder, spec.RequiredParameters, spec.Namespace, spec.Name, builderMethodName);
-			}).OrderBy(b => b.Builder.ConcreteBuilderTypeName).ToArray();
+			}).OrderBy(b => b.Builder.ConcreteBuilderType.Name).ToArray();
 
 			AvailableBuilder? defaultBuilder = factoryBuilders.FirstOrDefault(b => b.ConcreteBuilderType == spec.DefaultType);
 
@@ -286,11 +280,9 @@ namespace SharpSheets.Generators {
 			public readonly string TypeName; // Of the builder method containing type
 			public readonly string MethodName; // Of the builder method
 
-			public readonly string BuilderType; // The stated type in the builder attribute
-			public readonly string BuilderTypeName; // The name of the stated type in the builder attribute
+			public readonly TypeData BuilderType; // The stated type in the builder attribute
 
-			public readonly string ConcreteBuilderType; // The actual return type of the builder method
-			public readonly string ConcreteBuilderTypeName; // The actual return type of the builder method
+			public readonly TypeData ConcreteBuilderType; // The actual return type of the builder method
 
 			public readonly string? ProvidedName; // An override name of the builder
 			public string Name => ProvidedName ?? TypeName; // Final name to be used for builder
@@ -300,17 +292,15 @@ namespace SharpSheets.Generators {
 
 			public readonly BuilderStructure Structure;
 
-			public AvailableBuilder(string @namespace, string fullTypeName, string typeName, string methodName, string buildType, string buildTypeName, string concreteBuilderType, string concreteBuilderTypeName, string? providedName, IList<BuilderParameter> parameters, BuilderStructure builderStructure) {
+			public AvailableBuilder(string @namespace, string fullTypeName, string typeName, string methodName, TypeData buildType, TypeData concreteBuilderType, string? providedName, IList<BuilderParameter> parameters, BuilderStructure builderStructure) {
 				Namespace = @namespace;
 				FullTypeName = fullTypeName;
 				TypeName = typeName;
 				MethodName = methodName;
 
 				BuilderType = buildType;
-				BuilderTypeName = buildTypeName;
 
 				ConcreteBuilderType = concreteBuilderType;
-				ConcreteBuilderTypeName = concreteBuilderTypeName;
 
 				ProvidedName = providedName;
 
@@ -344,10 +334,8 @@ namespace SharpSheets.Generators {
 					methodSymbol.ContainingType.ToFullDisplayString(),
 					methodSymbol.ContainingType.Name,
 					methodSymbol.Name,
-					builderTypeSymbol.ToFullDisplayString(),
-					builderTypeSymbol.Name,
-					methodSymbol.ReturnType.ToFullDisplayString(),
-					methodSymbol.ReturnType.Name,
+					TypeData.Create(builderTypeSymbol, compilation),
+					TypeData.Create(methodSymbol.ReturnType, compilation),
 					builderName,
 					methodSymbol.Parameters.Select(p => BuilderParameter.Create(p, compilation)).ToArray(),
 					GetBuilderStructure(methodSymbol)
@@ -357,8 +345,7 @@ namespace SharpSheets.Generators {
 
 		public record class BuilderParameter {
 			public readonly string Name;
-			public readonly string FullType;
-			public readonly string MinimalType;
+			public readonly TypeData Type;
 			public readonly string? DefaultValue;
 			public bool HasDefault => DefaultValue is not null;
 			public readonly bool IsLocal;
@@ -366,10 +353,9 @@ namespace SharpSheets.Generators {
 			public readonly bool IsBuildErrors;
 			public readonly bool Exclude;
 
-			public BuilderParameter(string name, string fullType, string minimalType, string? defaultValue, bool isLocal, bool isOptional, bool isBuildErrors, bool exclude) {
+			public BuilderParameter(string name, TypeData type, string? defaultValue, bool isLocal, bool isOptional, bool isBuildErrors, bool exclude) {
 				Name = name;
-				FullType = fullType;
-				MinimalType = minimalType;
+				Type = type;
 				DefaultValue = defaultValue;
 				IsLocal = isLocal;
 				IsOptional = isOptional;
@@ -414,8 +400,7 @@ namespace SharpSheets.Generators {
 
 				return new BuilderParameter(
 					param.Name,
-					param.Type.ToFullDisplayString(),
-					compilation.ReduceParameterType(param.Type).ToFullDisplayString(),
+					TypeData.Create(param.Type, compilation),
 					defaultValue,
 					isLocal,
 					param.IsOptional,
@@ -450,49 +435,44 @@ namespace SharpSheets.Generators {
 
 			bool needsSourceDirectory = methodSymbol.Parameters.Length == 2;
 
-			return ParameterParser.Build(methodSymbol, parserType, needsSourceDirectory);
+			return ParameterParser.Build(methodSymbol, parserType, needsSourceDirectory, ctx.SemanticModel.Compilation);
 		}
 
 		public record class ParameterParser {
 			public readonly string FullTypeName;
 			public readonly string MethodName;
 
-			public readonly string ParserType;
-			public readonly string ParserTypeName;
-			public readonly bool IsEnumType;
+			public readonly TypeData ParserType;
 
 			public readonly bool NeedsSourceDirectory;
 
 			public string CallingName => $"{FullTypeName}.{MethodName}";
 
-			public ParameterParser(string fullTypeName, string methodName, string parserType, string parserTypeName, bool isEnumType, bool needsSourceDirectory) {
+			public ParameterParser(string fullTypeName, string methodName, TypeData parserType, bool needsSourceDirectory) {
 				FullTypeName = fullTypeName;
 				MethodName = methodName;
 
 				ParserType = parserType;
-				ParserTypeName = parserTypeName;
-				IsEnumType = isEnumType;
 
 				NeedsSourceDirectory = needsSourceDirectory;
 			}
 
-			private static ParameterParser Build(string fullTypeName, string methodName, ITypeSymbol parserType, bool needsSourceDirectory) {
+			private static ParameterParser Build(string fullTypeName, string methodName, ITypeSymbol parserType, bool needsSourceDirectory, Compilation compilation) {
 				return new ParameterParser(
 					fullTypeName,
 					methodName,
-					parserType.ToFullDisplayString(),
-					parserType.Name,
-					parserType is INamedTypeSymbol named && named.IsEnum(),
+					TypeData.Create(parserType, compilation),
 					needsSourceDirectory
 				);
 			}
 
-			public static ParameterParser Build(IMethodSymbol methodSymbol, ITypeSymbol parserType, bool needsSourceDirectory) {
+			public static ParameterParser Build(IMethodSymbol methodSymbol, ITypeSymbol parserType, bool needsSourceDirectory, Compilation compilation) {
 				return Build(
 					methodSymbol.ContainingType.ToFullDisplayString(),
 					methodSymbol.Name,
 					parserType,
-					needsSourceDirectory
+					needsSourceDirectory,
+					compilation
 				);
 			}
 
@@ -508,12 +488,13 @@ namespace SharpSheets.Generators {
 				}
 			}
 
-			public static ParameterParser GetGeneratedParser(ITypeSymbol parserType, bool needsSourceDirectory = false) {
+			public static ParameterParser GetGeneratedParser(ITypeSymbol parserType, Compilation compilation, bool needsSourceDirectory = false) {
 				return Build(
 					"SharpSheets.Parsing.ParameterParsers",
 					$"Parser_{GetParserTypeName(parserType)}",
 					parserType,
-					needsSourceDirectory);
+					needsSourceDirectory,
+					compilation);
 			}
 		}
 
@@ -525,7 +506,7 @@ namespace SharpSheets.Generators {
 				if (parameters[p].IsBuildErrors) {
 					continue;
 				}
-				else if (required[count].FullType != parameters[p].MinimalType) {
+				else if (required[count].Type.FullName != parameters[p].Type.Minimal) {
 					return false;
 				}
 				count++;
@@ -538,7 +519,7 @@ namespace SharpSheets.Generators {
 
 		private static IEnumerable<AvailableBuilder> FilterFactoryBuilders(FactorySpecification factory, INamedTypeSymbol factoryBuildType, IEnumerable<AvailableBuilder> builders, Compilation compilation) {
 			foreach (AvailableBuilder builder in builders) {
-				INamedTypeSymbol? builderType = compilation.GetTypeByMetadataName(builder.BuilderType);
+				INamedTypeSymbol? builderType = builder.BuilderType.GetSymbol(compilation) as INamedTypeSymbol;
 
 				if (builderType is null) {
 					// Malformed somehow
@@ -562,7 +543,7 @@ namespace SharpSheets.Generators {
 			string? result = GenerateFactoryCode(factory, allBuilders, allParsers, compilation);
 			// Create a separate partial class file
 			if (!string.IsNullOrEmpty(result)) {
-				context.AddSource($"Factories.{factory.Spec.Name}.{factory.Spec.FactoryTypeName}.g.cs", SourceText.From(result!, Encoding.UTF8));
+				context.AddSource($"Factories.{factory.Spec.Name}.{factory.Spec.FactoryType.Name}.g.cs", SourceText.From(result!, Encoding.UTF8));
 			}
 		}
 
@@ -575,14 +556,14 @@ namespace SharpSheets.Generators {
 			// Can provide a list of known arguments in the attribute, which can be included in the generated method? (How would we name them?)
 			// Should also allow for case with only 1 builder (i.e. no switch statement) - still need default case, though, as we still need to check for valid name
 
-			INamedTypeSymbol? factoryBuildType = compilation.GetTypeByMetadataName(factory.Spec.FactoryType);
+			INamedTypeSymbol? factoryBuildType = factory.Spec.FactoryType.GetSymbol(compilation) as INamedTypeSymbol;
 
 			if (factoryBuildType is null) {
 				return null;
 			}
 
-			Dictionary<string, ParameterParser> parserLookup = allParsers.ToDictionary(p => p.ParserType);
-			Dictionary<string, BuilderToGenerate> builderLookup = allBuilders.ToDictionary(b => b.Builder.BuilderType);
+			Dictionary<string, ParameterParser> parserLookup = allParsers.ToDictionary(p => p.ParserType.FullName);
+			Dictionary<string, BuilderToGenerate> builderLookup = allBuilders.ToDictionary(b => b.Builder.BuilderType.FullName);
 
 			string stringComparerName = "System.StringComparer.OrdinalIgnoreCase";
 
@@ -605,7 +586,7 @@ namespace {factory.Spec.Namespace} {{
 				sb.Append(@$"
 		{GeneratorMarkers.GeneratedCodeAttr}
 		{GeneratorMarkers.CompilerGeneratedAttr}
-		public static {factory.Spec.FactoryType}? Build_{factory.Spec.FactoryTypeName}(string buildName, SharpSheets.Parsing.IContext context{(factory.Spec.RequiredParameters.Count > 0 ? (", " + string.Join(", ", factory.Spec.RequiredParameters.Select(p => $"{p.FullType} {p.Name}"))) : "")}, SharpSheets.Utilities.DirectoryPath source,{(factoryNeedsWidgetFactory ? " SharpSheets.Widgets.WidgetFactory widgetFactory," : "")}{(factoryNeedsShapeFactory ? " SharpSheets.Shapes.ShapeFactory shapeFactory," : "")} out SharpSheets.Exceptions.SharpParsingException[] buildErrors) {{
+		public static {factory.Spec.FactoryType.Type}? Build_{factory.Spec.FactoryType.Name}(string buildName, SharpSheets.Parsing.IContext context{(factory.Spec.RequiredParameters.Count > 0 ? (", " + string.Join(", ", factory.Spec.RequiredParameters.Select(p => $"{p.Type.FullName} {p.Name}"))) : "")}, SharpSheets.Utilities.DirectoryPath source,{(factoryNeedsWidgetFactory ? " SharpSheets.Widgets.WidgetFactory widgetFactory," : "")}{(factoryNeedsShapeFactory ? " SharpSheets.Shapes.ShapeFactory shapeFactory," : "")} out SharpSheets.Exceptions.SharpParsingException[] buildErrors) {{
 			switch (buildName.ToLowerInvariant()) {{");
 
 				foreach (BuilderToGenerate builder in factory.Builders) {
@@ -622,7 +603,7 @@ namespace {factory.Spec.Namespace} {{
 				sb.Append(@$"
 				default:
 					buildErrors = new SharpSheets.Exceptions.SharpParsingException[] {{
-							new SharpSheets.Exceptions.SharpParsingException(context.Location, $""Unrecognized {factory.Spec.FactoryTypeName} name: {{buildName}}"")
+							new SharpSheets.Exceptions.SharpParsingException(context.Location, $""Unrecognized {factory.Spec.FactoryType.Name} name: {{buildName}}"")
 						}};
 					return null;
 			}}
@@ -638,7 +619,7 @@ namespace {factory.Spec.Namespace} {{
 			if (!isSingleton) {
 				if (factory.Builders.Count > 1) {
 
-					string knownTypesName = $"__generated__knownTypes_{factory.Spec.FactoryTypeName}";
+					string knownTypesName = $"__generated__knownTypes_{factory.Spec.FactoryType.Name}";
 
 					// Start HashSet
 					sb.Append(@$"
@@ -660,7 +641,7 @@ namespace {factory.Spec.Namespace} {{
 					sb.Append(@$"
 		{GeneratorMarkers.GeneratedCodeAttr}
 		{GeneratorMarkers.CompilerGeneratedAttr}
-		public static bool CanBuild_{factory.Spec.FactoryTypeName}(string name) {{
+		public static bool CanBuild_{factory.Spec.FactoryType.Name}(string name) {{
 			return {knownTypesName}.Contains(name);
 		}}");
 				}
@@ -668,7 +649,7 @@ namespace {factory.Spec.Namespace} {{
 					sb.Append(@$"
 		{GeneratorMarkers.GeneratedCodeAttr}
 		{GeneratorMarkers.CompilerGeneratedAttr}
-		public static bool CanBuild_{factory.Spec.FactoryTypeName}(string name) {{
+		public static bool CanBuild_{factory.Spec.FactoryType.Name}(string name) {{
 			return {stringComparerName}.Equals(name, ""{factory.Builders[0].Builder.Name}"");
 		}}");
 				}
@@ -676,7 +657,7 @@ namespace {factory.Spec.Namespace} {{
 					sb.Append(@$"
 		{GeneratorMarkers.GeneratedCodeAttr}
 		{GeneratorMarkers.CompilerGeneratedAttr}
-		public static bool CanBuild_{factory.Spec.FactoryTypeName}(string name) {{
+		public static bool CanBuild_{factory.Spec.FactoryType.Name}(string name) {{
 			return false;
 		}}
 ");
@@ -697,14 +678,14 @@ namespace {factory.Spec.Namespace} {{
 			string? result = GenerateFactoryDocumentation(factory);
 			// Create a separate partial class file
 			if (!string.IsNullOrEmpty(result)) {
-				context.AddSource($"Factories.{factory.Spec.Name}.{factory.Spec.FactoryTypeName}.Documentation.g.cs", SourceText.From(result!, Encoding.UTF8));
+				context.AddSource($"Factories.{factory.Spec.Name}.{factory.Spec.FactoryType.Name}.Documentation.g.cs", SourceText.From(result!, Encoding.UTF8));
 			}
 		}
 
 		static string? GenerateFactoryDocumentation(FactoryToGenerate factory) {
 
-			string nameLookupDictionaryVariable = $"__generated__{factory.Spec.FactoryTypeName}_details_namelookup";
-			string typeLookupDictionaryVariable = $"__generated__{factory.Spec.FactoryTypeName}_details_typelookup";
+			string nameLookupDictionaryVariable = $"__generated__{factory.Spec.FactoryType.Name}_details_namelookup";
+			string typeLookupDictionaryVariable = $"__generated__{factory.Spec.FactoryType.Name}_details_typelookup";
 
 			StringBuilder sb = new StringBuilder();
 			sb.Append(@$"// <auto-generated/>
@@ -747,7 +728,7 @@ namespace {factory.Spec.Namespace} {{
 			foreach (BuilderToGenerate builder in factory.Builders) {
 
 				sb.Append(@$"
-				{{ typeof({builder.Builder.ConcreteBuilderType.TrimEnd('?')}), () => SharpSheets.Documentation.BuilderDocs.{GetDocumentationVariableName(builder.Builder)} }},");
+				{{ typeof({builder.Builder.ConcreteBuilderType.Type}), () => SharpSheets.Documentation.BuilderDocs.{GetDocumentationVariableName(builder.Builder)} }},");
 
 			}
 
@@ -756,10 +737,10 @@ namespace {factory.Spec.Namespace} {{
 ");
 
 			sb.Append(@$"
-		public static bool Contains{factory.Spec.FactoryTypeName}Details(string name) => {nameLookupDictionaryVariable}.ContainsKey(name);
-		public static bool Contains{factory.Spec.FactoryTypeName}Details(Type type) => {typeLookupDictionaryVariable}.ContainsKey(type);
+		public static bool Contains{factory.Spec.FactoryType.Name}Details(string name) => {nameLookupDictionaryVariable}.ContainsKey(name);
+		public static bool Contains{factory.Spec.FactoryType.Name}Details(Type type) => {typeLookupDictionaryVariable}.ContainsKey(type);
 
-		public static bool TryGet{factory.Spec.FactoryTypeName}Details(string name, [MaybeNullWhen(false)] out SharpSheets.Documentation.BuilderDetails builder) {{
+		public static bool TryGet{factory.Spec.FactoryType.Name}Details(string name, [MaybeNullWhen(false)] out SharpSheets.Documentation.BuilderDetails builder) {{
 			if ({nameLookupDictionaryVariable}.TryGetValue(name, out Func<SharpSheets.Documentation.BuilderDetails> getter)) {{
 				builder = getter();
 				return true;
@@ -770,7 +751,7 @@ namespace {factory.Spec.Namespace} {{
 			}}
 		}}
 
-		public static bool TryGet{factory.Spec.FactoryTypeName}Details(Type type, [MaybeNullWhen(false)] out SharpSheets.Documentation.BuilderDetails builder) {{
+		public static bool TryGet{factory.Spec.FactoryType.Name}Details(Type type, [MaybeNullWhen(false)] out SharpSheets.Documentation.BuilderDetails builder) {{
 			if ({typeLookupDictionaryVariable}.TryGetValue(type, out Func<SharpSheets.Documentation.BuilderDetails> getter)) {{
 				builder = getter();
 				return true;
@@ -781,7 +762,7 @@ namespace {factory.Spec.Namespace} {{
 			}}
 		}}
 
-		public static IEnumerable<KeyValuePair<string, SharpSheets.Documentation.BuilderDetails>> Get{factory.Spec.FactoryTypeName}BuilderNames() => {nameLookupDictionaryVariable}.Select(kv => new KeyValuePair<string, SharpSheets.Documentation.BuilderDetails>(kv.Key, kv.Value()));
+		public static IEnumerable<KeyValuePair<string, SharpSheets.Documentation.BuilderDetails>> Get{factory.Spec.FactoryType.Name}BuilderNames() => {nameLookupDictionaryVariable}.Select(kv => new KeyValuePair<string, SharpSheets.Documentation.BuilderDetails>(kv.Key, kv.Value()));
 ");
 
 
@@ -840,7 +821,7 @@ namespace {factory.Spec.Namespace} {{
 		private static readonly string childHolderType = "SharpSheets.Parsing.ChildHolder";
 
 		public static bool NeedsShapeFactory(AvailableBuilder builder) {
-			return builder.Parameters.Any(p => shapeMakerLookup.ContainsKey(p.MinimalType));
+			return builder.Parameters.Any(p => shapeMakerLookup.ContainsKey(p.Type.Minimal));
 		}
 		public static bool NeedsShapeFactory(BuilderToGenerate builder) {
 			return NeedsShapeFactory(builder.Builder);
@@ -853,7 +834,7 @@ namespace {factory.Spec.Namespace} {{
 		}
 
 		public static bool NeedsWidgetFactory(AvailableBuilder builder) {
-			return builder.Parameters.Any(p => p.MinimalType.Contains(childHolderType));
+			return builder.Parameters.Any(p => p.Type.Minimal.Contains(childHolderType));
 		}
 		public static bool NeedsWidgetFactory(BuilderToGenerate builder) {
 			return NeedsWidgetFactory(builder.Builder);
@@ -873,7 +854,7 @@ namespace {factory.Spec.Namespace} {{
 			bool builderNeedsShapeFactory = NeedsShapeFactory(builder.Builder);
 			bool builderNeedsWidgetFactory = NeedsWidgetFactory(builder.Builder);
 
-			bool returnNeedsNullableAnnotation = builder.Builder.ConcreteBuilderType.EndsWith("?") || !builder.Builder.CanCallWithEmptyArgs;
+			bool returnNeedsNullableAnnotation = builder.Builder.ConcreteBuilderType.IsNullable || !builder.Builder.CanCallWithEmptyArgs;
 
 			string builderReturnTypeFull = $"{builder.Builder.FullTypeName}{(returnNeedsNullableAnnotation ? "?" : "")}";
 			string errorListVariableName = "@buildErrorsList";
@@ -887,7 +868,7 @@ namespace {factory.Spec.Namespace} {{
 			}
 
 			sb.Append(@$"
-		public static {builderReturnTypeFull} {builder.MethodName}(SharpSheets.Parsing.IContext context{(builder.RequiredParameters.Count > 0 ? (", " + string.Join(", ", builder.RequiredParameters.Select(p => $"{p.FullType} {p.Name}"))) : "")}, SharpSheets.Utilities.DirectoryPath source,{(builderNeedsWidgetFactory ? " SharpSheets.Widgets.WidgetFactory widgetFactory," : "")}{(builderNeedsShapeFactory ? " SharpSheets.Shapes.ShapeFactory shapeFactory," : "")} out SharpSheets.Exceptions.SharpParsingException[] buildErrors) {{
+		public static {builderReturnTypeFull} {builder.MethodName}(SharpSheets.Parsing.IContext context{(builder.RequiredParameters.Count > 0 ? (", " + string.Join(", ", builder.RequiredParameters.Select(p => $"{p.Type.FullName} {p.Name}"))) : "")}, SharpSheets.Utilities.DirectoryPath source,{(builderNeedsWidgetFactory ? " SharpSheets.Widgets.WidgetFactory widgetFactory," : "")}{(builderNeedsShapeFactory ? " SharpSheets.Shapes.ShapeFactory shapeFactory," : "")} out SharpSheets.Exceptions.SharpParsingException[] buildErrors) {{
 			System.Collections.Generic.List<SharpSheets.Exceptions.SharpParsingException> {errorListVariableName} = new System.Collections.Generic.List<SharpSheets.Exceptions.SharpParsingException>();
 ");
 			// {builder.Builder.Namespace}, {builder.Builder.FullTypeName}, {builder.MethodName}, {builder.Builder.BuilderType}, {builder.Builder.Name}, {builder.Builder.Structure}");
@@ -912,14 +893,14 @@ namespace {factory.Spec.Namespace} {{
 					count++;
 				}
 
-				ITypeSymbol? paramResolvedType = compilation.ResolveTypeKey(param.FullType);
+				ITypeSymbol? paramResolvedType = param.Type.GetSymbol(compilation); // compilation.ResolveTypeKey(param.Type.FullName);
 				ITypeSymbol? paramReducedType = paramResolvedType is not null ? compilation.ReduceParameterType(paramResolvedType) : null;
 
-				if (!parserLookup.TryGetValue(param.MinimalType, out ParameterParser? parser)) {
+				if (!parserLookup.TryGetValue(param.Type.Minimal, out ParameterParser? parser)) {
 					parser = null;
 				}
 
-				BuilderToGenerate? paramBuilder = builderLookup.TryGetValue(param.MinimalType, out BuilderToGenerate found) ? found : null;
+				BuilderToGenerate? paramBuilder = builderLookup.TryGetValue(param.Type.Minimal, out BuilderToGenerate found) ? found : null;
 
 				/*
 				sb.Append(@$"
@@ -1031,7 +1012,7 @@ namespace {factory.Spec.Namespace} {{
 					}
 					else if (numberedElemParser is not null) {
 						sb.Append(@$"
-				// Try parse {numberedElemParser.ParserType}");
+				// Try parse {numberedElemParser.ParserType.FullName}");
 
 						string entryValueVariable = valueVariable + "_item";
 						string entryTextVariable = entryValueVariable + "_str";
@@ -1056,7 +1037,7 @@ namespace {factory.Spec.Namespace} {{
 			}}");
 
 				}
-				else if (shapeMakerLookup.TryGetValue(param.MinimalType, out (string method, ShapeMakerArgs args) shapeMaker)) {
+				else if (shapeMakerLookup.TryGetValue(param.Type.Minimal, out (string method, ShapeMakerArgs args) shapeMaker)) {
 					string paramContextVariable = valueVariable + "_context";
 					string paramStyleLocVariable = valueVariable + "_style_loc";
 					string paramShapeBuildErrorsVariable = valueVariable + "_buildErrors";
@@ -1108,10 +1089,10 @@ namespace {factory.Spec.Namespace} {{
 					}
 
 					sb.Append(@$"
-			{param.FullType} {valueVariable} = shapeFactory.{shapeMaker.method}({paramContextVariable}{(shapeMakerArgNames.Count > 0 ? (", " + string.Join(", ", shapeMakerArgNames)) : "")}, source, out SharpSheets.Exceptions.SharpParsingException[] {paramShapeBuildErrorsVariable});
+			{param.Type.FullName} {valueVariable} = shapeFactory.{shapeMaker.method}({paramContextVariable}{(shapeMakerArgNames.Count > 0 ? (", " + string.Join(", ", shapeMakerArgNames)) : "")}, source, out SharpSheets.Exceptions.SharpParsingException[] {paramShapeBuildErrorsVariable});
 			{errorListVariableName}.AddRange({paramShapeBuildErrorsVariable});");
 				}
-				else if (param.MinimalType == childHolderType) {
+				else if (param.Type.Minimal == childHolderType) {
 					string paramChildContextVariable = valueVariable + "_childcontext";
 					string paramNonRecurseContextVariable = valueVariable + "_nonrecurse";
 					string paramConstructedChildVariable = valueVariable + "_constructed";
@@ -1119,7 +1100,7 @@ namespace {factory.Spec.Namespace} {{
 					string paramBuildErrorsVariable = valueVariable + "_buildErrors";
 
 					sb.Append(@$"
-			{param.FullType} {valueVariable};
+			{param.Type.FullName} {valueVariable};
 			IContext? {paramChildContextVariable} = context.GetNamedChild(""{normParamName}"", {param.IsLocal.ToCodeString()}, context);
 			if ({paramChildContextVariable} != null) {{
 				IContext {paramNonRecurseContextVariable} = new SharpSheets.Parsing.DisallowNamedChildContext({paramChildContextVariable});
@@ -1137,7 +1118,7 @@ namespace {factory.Spec.Namespace} {{
 					if (!param.IsOptional) {
 						sb.Append(@$"
 			else {{
-				{errorListVariableName}.Add(new SharpSheets.Exceptions.MissingParameterException(context.Location, {normParamName.ToRepr()}, typeof({param.MinimalType})));
+				{errorListVariableName}.Add(new SharpSheets.Exceptions.MissingParameterException(context.Location, {normParamName.ToRepr()}, typeof({param.Type.Minimal})));
 				{valueVariable} = default; // Note: potentially uninitialized
 			}}");
 					}
@@ -1153,7 +1134,7 @@ namespace {factory.Spec.Namespace} {{
 					string valueLocVariable = $"{param.Name}_loc";
 					sb.Append(@$"
 			string? {valueTextVariable} = context.GetProperty(""{normParamName}"", {param.IsLocal.ToCodeString()}, context, null, out DocumentSpan? {valueLocVariable});
-			{param.FullType} {valueVariable};
+			{param.Type.FullName} {valueVariable};
 			if ({valueTextVariable} != null) {{
 				try {{
 					{valueVariable} = {parser.FullTypeName}.{parser.MethodName}({valueTextVariable}{(parser.NeedsSourceDirectory ? ", source" : "")});
@@ -1175,7 +1156,7 @@ namespace {factory.Spec.Namespace} {{
 
 						sb.Append(@$"
 			SharpSheets.Parsing.IContext {paramContextVariable} = new SharpSheets.Parsing.NamedContext(context, ""{normParamName}"", forceLocal: {param.IsLocal.ToCodeString()});
-			{param.FullType} {valueVariable} = {paramBuilder.FullTypeName}.{paramBuilder.MethodName}({paramContextVariable}, source, out SharpSheets.Exceptions.SharpParsingException[] {paramBuildErrorsVariable});
+			{param.Type.FullName} {valueVariable} = {paramBuilder.FullTypeName}.{paramBuilder.MethodName}({paramContextVariable}, source, out SharpSheets.Exceptions.SharpParsingException[] {paramBuildErrorsVariable});
 			{errorListVariableName}.AddRange({paramBuildErrorsVariable});");
 					}
 					else if (paramBuilder.Builder.Structure == BuilderStructure.SUPPLEMENTED) {
@@ -1185,7 +1166,7 @@ namespace {factory.Spec.Namespace} {{
 						string firstArgLocVariable = firstArgVariable + "_loc";
 						string paramContextVariable = valueVariable + "_context";
 
-						if (!parserLookup.TryGetValue(firstArg.MinimalType, out ParameterParser? firstArgParser)) {
+						if (!parserLookup.TryGetValue(firstArg.Type.Minimal, out ParameterParser? firstArgParser)) {
 							sb.Append("\nERROR;\n");
 							continue;
 						}
@@ -1195,7 +1176,7 @@ namespace {factory.Spec.Namespace} {{
 			string? {firstArgTextVariable} = context.GetProperty(""{normParamName}"", {param.IsLocal.ToCodeString()}, context, null, out DocumentSpan? {firstArgLocVariable});");
 						if (firstArg.IsOptional) {
 							sb.Append(@$"
-			{firstArg.FullType} {firstArgVariable};
+			{firstArg.Type.FullName} {firstArgVariable};
 			if ({firstArgTextVariable} != null) {{
 				try {{
 					{firstArgVariable} = {firstArgParser.FullTypeName}.{firstArgParser.MethodName}({firstArgTextVariable}{(firstArgParser.NeedsSourceDirectory ? ", source" : "")});
@@ -1209,15 +1190,15 @@ namespace {factory.Spec.Namespace} {{
 				{firstArgVariable} = {param.DefaultValue ?? "NULL"};
 			}}
 			SharpSheets.Parsing.IContext {paramContextVariable} = new SharpSheets.Parsing.NamedContext(context, ""{normParamName}"", forceLocal: {param.IsLocal.ToCodeString()});
-			{param.FullType} {valueVariable} = {paramBuilder.FullTypeName}.{paramBuilder.MethodName}({paramContextVariable}, {firstArgVariable}, source, out SharpSheets.Exceptions.SharpParsingException[] {paramBuildErrorsVariable});
+			{param.Type.FullName} {valueVariable} = {paramBuilder.FullTypeName}.{paramBuilder.MethodName}({paramContextVariable}, {firstArgVariable}, source, out SharpSheets.Exceptions.SharpParsingException[] {paramBuildErrorsVariable});
 			{errorListVariableName}.AddRange({paramBuildErrorsVariable});");
 						}
 						else { // Non-optional first argument for nested supplementary arg
 							sb.Append(@$"
-			{param.FullType} {valueVariable};
+			{param.Type.FullName} {valueVariable};
 			if ({firstArgTextVariable} != null) {{
 				try {{
-					{firstArg.FullType} {firstArgVariable} = {firstArgParser.FullTypeName}.{firstArgParser.MethodName}({firstArgTextVariable}{(firstArgParser.NeedsSourceDirectory ? ", source" : "")});
+					{firstArg.Type.FullName} {firstArgVariable} = {firstArgParser.FullTypeName}.{firstArgParser.MethodName}({firstArgTextVariable}{(firstArgParser.NeedsSourceDirectory ? ", source" : "")});
 					SharpSheets.Parsing.IContext {paramContextVariable} = new SharpSheets.Parsing.NamedContext(context, ""{normParamName}"", forceLocal: {param.IsLocal.ToCodeString()});
 					{valueVariable} = {paramBuilder.FullTypeName}.{paramBuilder.MethodName}(context, {firstArgVariable}, source, out SharpSheets.Exceptions.SharpParsingException[] {paramBuildErrorsVariable});
 					{errorListVariableName}.AddRange({paramBuildErrorsVariable});
@@ -1236,7 +1217,7 @@ namespace {factory.Spec.Namespace} {{
 							else {
 								sb.Append(@$"
 			else {{
-				{errorListVariableName}.Add(new SharpSheets.Exceptions.MissingParameterException(context.Location, {normParamName.ToRepr()}, typeof({param.MinimalType})));
+				{errorListVariableName}.Add(new SharpSheets.Exceptions.MissingParameterException(context.Location, {normParamName.ToRepr()}, typeof({param.Type.Minimal})));
 				{valueVariable} = default; // Note: potentially uninitialized
 			}}");
 							}
@@ -1244,7 +1225,7 @@ namespace {factory.Spec.Namespace} {{
 					}
 					else { // Some kind of expanded argument
 						sb.Append(@$"
-			{param.FullType} {valueVariable} = {paramBuilder.FullTypeName}.{paramBuilder.MethodName}(context, source, out SharpSheets.Exceptions.SharpParsingException[] {paramBuildErrorsVariable});
+			{param.Type.FullName} {valueVariable} = {paramBuilder.FullTypeName}.{paramBuilder.MethodName}(context, source, out SharpSheets.Exceptions.SharpParsingException[] {paramBuildErrorsVariable});
 			{errorListVariableName}.AddRange({paramBuildErrorsVariable});");
 					}
 				}
@@ -1290,27 +1271,27 @@ namespace {factory.Spec.Namespace} {{
 			}
 		}
 
-		private static ParameterParser GetParser(ITypeSymbol symbol, Dictionary<string, ParameterParser> parserLookup) {
+		private static ParameterParser GetParser(ITypeSymbol symbol, Dictionary<string, ParameterParser> parserLookup, Compilation compilation) {
 			if (parserLookup.TryGetValue(symbol.ToFullDisplayString(), out ParameterParser parser)) {
 				return parser;
 			}
 			else {
 				bool needsSourceDirectory = NeedsSource(symbol, parserLookup);
-				return ParameterParser.GetGeneratedParser(symbol, needsSourceDirectory);
+				return ParameterParser.GetGeneratedParser(symbol, compilation, needsSourceDirectory);
 			}
 		}
 
 		private static (EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders) FilterParamParsers(ImmutableArray<FactorySpecification> factories, ImmutableArray<AvailableBuilder> builders, ImmutableArray<ParameterParser> parsers, Compilation compilation) {
 
-			Dictionary<string, AvailableBuilder> builderLookup = builders.ToDictionary(b => b.ConcreteBuilderType);
-			Dictionary<string, ParameterParser> parserLookup = parsers.ToDictionary(p => p.ParserType);
-			Dictionary<string, FactorySpecification> factoryLookup = factories.ToDictionary(f => f.FactoryType);
+			Dictionary<string, AvailableBuilder> builderLookup = builders.ToDictionary(b => b.ConcreteBuilderType.FullName);
+			Dictionary<string, ParameterParser> parserLookup = parsers.ToDictionary(p => p.ParserType.FullName);
+			Dictionary<string, FactorySpecification> factoryLookup = factories.ToDictionary(f => f.FactoryType.FullName);
 
 			HashSet<AvailableBuilder> explicitFactoryBuilders = new HashSet<AvailableBuilder>();
 
 			// Need to know all builders that are actually used by a known factory
 			foreach (FactorySpecification factory in factories) {
-				INamedTypeSymbol? factoryBuildType = compilation.GetTypeByMetadataName(factory.FactoryType);
+				INamedTypeSymbol? factoryBuildType = factory.FactoryType.GetSymbol(compilation) as INamedTypeSymbol;
 				if (factoryBuildType is null) {
 					continue;
 				}
@@ -1328,7 +1309,7 @@ namespace {factory.Spec.Namespace} {{
 				// For all parameters in the builders we found we'd need
 				foreach (AvailableBuilder addBuilder in toAdd) {
 					foreach (BuilderParameter param in addBuilder.Parameters) {
-						if (builderLookup.TryGetValue(param.MinimalType, out AvailableBuilder foundBuilder)) {
+						if (builderLookup.TryGetValue(param.Type.Minimal, out AvailableBuilder foundBuilder)) {
 							// Find all parameters which require a builder
 							if (!explicitFactoryBuilders.Contains(foundBuilder) && !additionalNonFactoryBuilders.Contains(foundBuilder) && !toAdd.Contains(foundBuilder)) {
 								// If we didn't know we needed this one, add it to our list for the next pass
@@ -1351,7 +1332,7 @@ namespace {factory.Spec.Namespace} {{
 			Queue<ITypeSymbol> typeQueue = new Queue<ITypeSymbol>(explicitFactoryBuilders.Concat(additionalNonFactoryBuilders)
 				.SelectMany(b => b.Parameters)
 				.Where(b => !b.IsBuildErrors) // We don't parse these
-				.Select(p => p.MinimalType)
+				.Select(p => p.Type.Minimal)
 				.Distinct()
 				.Select(compilation.ResolveTypeKey)
 				.Where(t => t is not null).Select(t => t!));
@@ -1384,7 +1365,7 @@ namespace {factory.Spec.Namespace} {{
 					continue;
 				}
 
-				parsersToImplement.Add(ParameterParser.GetGeneratedParser(reducedType, NeedsSource(reducedType, parserLookup)));
+				parsersToImplement.Add(ParameterParser.GetGeneratedParser(reducedType, compilation, NeedsSource(reducedType, parserLookup)));
 
 				if (type is IArrayTypeSymbol arrayType) {
 					typeQueue.Enqueue(arrayType);
@@ -1427,8 +1408,8 @@ namespace {factory.Spec.Namespace} {{
 			}
 
 			return (
-				new EquatableArray<ParameterParser>(parsersToImplement.OrderBy(p => p.ParserTypeName).ToArray()),
-				new EquatableArray<BuilderToGenerate>(miscBuildersToGenerate.OrderBy(b => b.Builder.ConcreteBuilderType).ToArray())
+				new EquatableArray<ParameterParser>(parsersToImplement.OrderBy(p => p.ParserType.Name).ToArray()),
+				new EquatableArray<BuilderToGenerate>(miscBuildersToGenerate.OrderBy(b => b.Builder.Name).ToArray())
 				);
 		}
 
@@ -1445,13 +1426,13 @@ namespace {factory.Spec.Namespace} {{
 
 		private static string? GenerateParamParsersCode(EquatableArray<ParameterParser> neededParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders, ImmutableArray<ParameterParser> existingParsers, Compilation compilation) {
 			
-			Dictionary<string, ParameterParser> parserLookup = existingParsers.Concat(neededParsers).ToDictionary(p => p.ParserType);
+			Dictionary<string, ParameterParser> parserLookup = existingParsers.Concat(neededParsers).ToDictionary(p => p.ParserType.FullName);
 
 			List<(ParameterParser parser, INamedTypeSymbol type)> enumTypes = new List<(ParameterParser, INamedTypeSymbol)>();
 			List<(ParameterParser parser, ITypeSymbol type)> otherTypes = new List<(ParameterParser, ITypeSymbol)>();
 
 			for (int i = 0; i < neededParsers.Count; i++) {
-				ITypeSymbol? typeSymbol = compilation.ResolveTypeKey(neededParsers[i].ParserType);
+				ITypeSymbol? typeSymbol = neededParsers[i].ParserType.GetSymbol(compilation); // compilation.ResolveTypeKey(neededParsers[i].ParserType);
 
 				if (typeSymbol is null) {
 					continue;
@@ -1496,7 +1477,7 @@ namespace SharpSheets.Parsing {{
 			string[] parts = SharpSheets.Parsing.StringParsing.SplitOnUnescaped(value, '{arrayDelimiters[parseRank - 1]}').Select(s => s.Trim()).ToArray();");
 
 					if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol) {
-						ParameterParser elemParser = GetParser(arrayTypeSymbol.ElementType, parserLookup);
+						ParameterParser elemParser = GetParser(arrayTypeSymbol.ElementType, parserLookup, compilation);
 						sb.Append(@$"
 			{typeSymbol.ToFullDisplayString()} result = parts.Select(p => {elemParser.FullTypeName}.{elemParser.MethodName}(p{(elemParser.NeedsSourceDirectory ? ", source" : "")})).ToArray();");
 					}
@@ -1510,7 +1491,7 @@ namespace SharpSheets.Parsing {{
 
 						for (int f = 0; f < namedTypeSymbol.TupleElements.Length; f++) {
 							IFieldSymbol field = namedTypeSymbol.TupleElements[f];
-							ParameterParser fieldParser = GetParser(field.Type, parserLookup);
+							ParameterParser fieldParser = GetParser(field.Type, parserLookup, compilation);
 							if (f > 0) { sb.Append(','); }
 							sb.Append(@$"
 				{fieldParser.FullTypeName}.{fieldParser.MethodName}(parts[{f}]{(fieldParser.NeedsSourceDirectory ? ", source" : "")})");
@@ -1592,8 +1573,8 @@ namespace SharpSheets.Parsing {{
 
 		private static string? GenerateMiscBuildersCode(EquatableArray<BuilderToGenerate> neededMiscBuilders, IList<ParameterParser> availableParsers, Compilation compilation) {
 			
-			Dictionary<string, ParameterParser> parserLookup = availableParsers.ToDictionary(p => p.ParserType);
-			Dictionary<string, BuilderToGenerate> builderLookup = neededMiscBuilders.ToDictionary(p => p.Builder.BuilderType);
+			Dictionary<string, ParameterParser> parserLookup = availableParsers.ToDictionary(p => p.ParserType.FullName);
+			Dictionary<string, BuilderToGenerate> builderLookup = neededMiscBuilders.ToDictionary(p => p.Builder.BuilderType.FullName);
 
 			StringBuilder sb = new StringBuilder();
 			sb.Append(@$"// <auto-generated/>
@@ -1636,7 +1617,7 @@ namespace SharpSheets.Parsing {{
 		public static readonly string DocumentationSourceName = "DocumentationSource";
 
 		private static string GetDocumentationVariableName(AvailableBuilder builder) {
-			return builder.ConcreteBuilderType.TrimEnd('?').Replace('.', '_');
+			return builder.ConcreteBuilderType.Type.Replace('.', '_');
 		}
 
 		private static string? GenerateBuilderDocumentationCode(ImmutableArray<FactoryToGenerate> factories, ImmutableArray<AvailableBuilder> availableBuilders, ImmutableArray<ParameterParser> availableParsers, EquatableArray<BuilderToGenerate> generatedBuilders, EquatableArray<ParameterParser> generatedParsers, Compilation compilation) {
@@ -1644,7 +1625,7 @@ namespace SharpSheets.Parsing {{
 			SharpSheetsParameterResolverData resolverData = SharpSheetsParameterResolverData.Create(compilation, availableBuilders, availableParsers.Concat(generatedParsers), factories);
 			//SharpSheetsParameterResolverData resolverData = SharpSheetsParameterResolverData.Create(compilation, availableBuilders.Concat(generatedBuilders.Select(b => b.Builder)), availableParsers.Concat(generatedParsers), factories);
 
-			Dictionary<string, string> typeToDocsVariable = availableBuilders.ToDictionary(b => b.ConcreteBuilderType, GetDocumentationVariableName);
+			Dictionary<string, string> typeToDocsVariable = availableBuilders.ToDictionary(b => b.ConcreteBuilderType.FullName, GetDocumentationVariableName);
 
 			StringBuilder sb = new StringBuilder();
 			sb.Append(@$"// <auto-generated/>
@@ -1661,7 +1642,7 @@ namespace SharpSheets.Documentation {{
 ");
 
 			foreach (AvailableBuilder builder in availableBuilders) {
-				ITypeSymbol? builderType = compilation.ResolveTypeKey(builder.ConcreteBuilderType);
+				ITypeSymbol? builderType = builder.ConcreteBuilderType.GetSymbol(compilation); // compilation.ResolveTypeKey(builder.ConcreteBuilderType);
 
 				if(builderType is null) {
 					continue;
@@ -1679,8 +1660,8 @@ namespace SharpSheets.Documentation {{
 				DocSummaryComment? typeComment = DocCommentReader.FromSymbol(builderType, resolverData.Compilation);
 				DocMethodComment? methodComment = DocCommentReader.FromSymbol(method, resolverData.BuilderLookup, resolverData.ParserLookup, resolverData);
 
-				string concreteBuilderTypeMinimal = builder.ConcreteBuilderType.TrimEnd('?');
-				string concreteBuilderTypeNameMinimal = builder.ConcreteBuilderTypeName.TrimEnd('?');
+				string concreteBuilderTypeMinimal = builder.ConcreteBuilderType.Type;
+				string concreteBuilderTypeNameMinimal = builder.ConcreteBuilderType.Name;
 
 				string docVariableName = GetDocumentationVariableName(builder);
 				string docVariableLazyName = $"__generated__lazy_{docVariableName}";
@@ -1690,7 +1671,7 @@ namespace SharpSheets.Documentation {{
 		{GeneratorMarkers.NeverEditorBrowsableAttr}
 		private static readonly System.Lazy<SharpSheets.Documentation.BuilderDetails> {docVariableLazyName} = new System.Lazy<SharpSheets.Documentation.BuilderDetails>(() =>
 			new SharpSheets.Documentation.BuilderDetails(
-					displayType: typeof({builder.BuilderType}),
+					displayType: typeof({builder.BuilderType.Type}),
 					declaringType: typeof({concreteBuilderTypeMinimal}),
 					name: {concreteBuilderTypeNameMinimal.ToRepr()},
 					fullName: {concreteBuilderTypeMinimal.ToRepr()},
