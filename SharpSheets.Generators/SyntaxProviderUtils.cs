@@ -9,7 +9,7 @@ namespace SharpSheets.Generators {
 
 	public static class SyntaxProviderUtils {
 
-		public static IncrementalValuesProvider<T> ForAttributeWithMetadataName<T>(this SyntaxValueProvider provider,
+		public static IncrementalValuesProvider<T> ForAttributeWithMetadataNameSelectMany<T>(this SyntaxValueProvider provider,
 				string fullyQualifiedMetadataName, Func<SyntaxNode, CancellationToken, bool> predicate,
 				Func<GeneratorAttributeSyntaxContext, CancellationToken, IEnumerable<T>> transform
 			) {

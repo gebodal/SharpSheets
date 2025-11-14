@@ -17,7 +17,7 @@ namespace SharpSheets.Generators {
 		public void Initialize(IncrementalGeneratorInitializationContext context) {
 
 			IncrementalValuesProvider<FactorySpecification> factoriesSpecs = context.SyntaxProvider
-				.ForAttributeWithMetadataName<FactorySpecification>(
+				.ForAttributeWithMetadataNameSelectMany(
 					"SharpSheets.Parsing.FactoryAttribute",
 					predicate: static (s, _) => s is ClassDeclarationSyntax,
 					transform: static (ctx, _) => GetFactorySpecs(ctx));
@@ -27,14 +27,14 @@ namespace SharpSheets.Generators {
 					"SharpSheets.Parsing.FactoryBuilderAttribute",
 					predicate: static (s, _) => s is MethodDeclarationSyntax,
 					transform: static (ctx, _) => GetAvailableBuilders(ctx))
-				.Where(static m => m is not null).Select(static (m, _) => m!);
+				.WhereNotNull();
 
 			IncrementalValuesProvider<ParameterParser> availableParsers = context.SyntaxProvider
 				.ForAttributeWithMetadataName(
 					"SharpSheets.Parsing.ParameterParserAttribute",
 					predicate: static (s, _) => s is MethodDeclarationSyntax,
 					transform: static (ctx, _) => GetParameterParser(ctx))
-				.Where(static m => m is not null).Select(static (m, _) => m!);
+				.WhereNotNull();
 
 			IncrementalValuesProvider<string> declaredEnums = context.SyntaxProvider
 				.CreateSyntaxProvider(
@@ -44,7 +44,7 @@ namespace SharpSheets.Generators {
 						INamedTypeSymbol? enumSymbol = ctx.SemanticModel.GetDeclaredSymbol(enumDeclaration, ct) as INamedTypeSymbol;
 						return enumSymbol?.ToFullDisplayString();
 					})
-				.Where(static s => s is not null).Select(static (s, _) => s!);
+				.WhereNotNull();
 
 			IncrementalValueProvider<(EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders)> needed = factoriesSpecs
 				.Collect()
@@ -61,7 +61,7 @@ namespace SharpSheets.Generators {
 				.Combine(context.CompilationProvider)
 				.Flatten()
 				.Select(static (i, _) => FilterFactoriesToGenerate(i.Item1, i.Item2, i.Item3, i.Item4.neededMiscBuilders, i.Item4.neededParamParsers, i.Item5))
-				.Where(static f => f is not null).Select(static (f, _) => f!);
+				.WhereNotNull();
 
 			IncrementalValueProvider<(EquatableArray<BuilderToGenerate> builders, EquatableArray<ParameterParser> parsers)> allBuildersParsers = needed
 				.Combine(availableBuilders.Collect())
@@ -75,7 +75,7 @@ namespace SharpSheets.Generators {
 
 			// Generate source code for additional parsers
 			context.RegisterSourceOutput(needed.Combine(availableParsers.Collect()).Combine(context.CompilationProvider).Flatten(),
-				static (spc, source) => ExecuteParamParser(source.Item1, source.Item2, source.Item3, spc, source.Item4));
+				static (spc, source) => ExecuteParamParser(source.Item1, source.Item3, spc, source.Item4));
 
 			// Generate source code for misc builders
 			context.RegisterSourceOutput(needed.Combine(availableParsers.Collect()).Combine(context.CompilationProvider).Flatten(),
@@ -1296,9 +1296,7 @@ namespace {factory.Spec.Namespace} {{
 					continue;
 				}
 
-				foreach (AvailableBuilder builder in FilterFactoryBuilders(factory, factoryBuildType, builders, compilation)) {
-					explicitFactoryBuilders.Add(builder);
-				}
+				explicitFactoryBuilders.UnionWith(FilterFactoryBuilders(factory, factoryBuildType, builders, compilation));
 			}
 
 			// Breadth-first search for builders used by other builders
@@ -1413,9 +1411,9 @@ namespace {factory.Spec.Namespace} {{
 				);
 		}
 
-		static void ExecuteParamParser(EquatableArray<ParameterParser> neededParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders, ImmutableArray<ParameterParser> parsers, SourceProductionContext context, Compilation compilation) {
+		static void ExecuteParamParser(EquatableArray<ParameterParser> neededParsers, ImmutableArray<ParameterParser> parsers, SourceProductionContext context, Compilation compilation) {
 			// generate the source code and add it to the output
-			string? result = GenerateParamParsersCode(neededParsers, neededMiscBuilders, parsers, compilation);
+			string? result = GenerateParamParsersCode(neededParsers, parsers, compilation);
 			// Create a separate partial class file
 			if (!string.IsNullOrEmpty(result)) {
 				context.AddSource($"Factories.ParamParser.g.cs", SourceText.From(result!, Encoding.UTF8));
@@ -1424,7 +1422,7 @@ namespace {factory.Spec.Namespace} {{
 
 		private static readonly char[] arrayDelimiters = { ',', ';', '|' };
 
-		private static string? GenerateParamParsersCode(EquatableArray<ParameterParser> neededParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders, ImmutableArray<ParameterParser> existingParsers, Compilation compilation) {
+		private static string? GenerateParamParsersCode(EquatableArray<ParameterParser> neededParsers, ImmutableArray<ParameterParser> existingParsers, Compilation compilation) {
 			
 			Dictionary<string, ParameterParser> parserLookup = existingParsers.Concat(neededParsers).ToDictionary(p => p.ParserType.FullName);
 

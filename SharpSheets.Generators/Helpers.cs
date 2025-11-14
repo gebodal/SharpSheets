@@ -20,12 +20,16 @@ namespace SharpSheets.Generators {
 			}
 		}
 
+		public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source) {
+			return source.Where(static e => e is not null).Select(static e => e!);
+		}
+
 		public static IEnumerable<(TFirst, TSecond)> Zip<TFirst, TSecond>(this IEnumerable<TFirst> first, IEnumerable<TSecond> second) {
-			return first.Zip(second, (i, j) => (i, j));
+			return first.Zip(second, static (i, j) => (i, j));
 		}
 
 		public static IEnumerable<TResult> Zip<TFirst, TSecond, TThird, TResult>(this IEnumerable<TFirst> first, IEnumerable<TSecond> second, IEnumerable<TThird> third, Func<TFirst, TSecond, TThird, TResult> resultSelector) {
-			return first.Zip(second.Zip<TSecond, TThird, (TSecond, TThird)>(third, (i, j) => (i, j)), (f, st) => resultSelector(f, st.Item1, st.Item2));
+			return first.Zip(second.Zip<TSecond, TThird, (TSecond, TThird)>(third, static (i, j) => (i, j)), (f, st) => resultSelector(f, st.Item1, st.Item2));
 		}
 
 	}
