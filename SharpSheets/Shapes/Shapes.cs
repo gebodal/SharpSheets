@@ -7,6 +7,8 @@ using SharpSheets.Canvas.Text;
 namespace SharpSheets.Shapes {
 
 	public interface IShape {
+		string DisplayName { get; }
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -115,6 +117,8 @@ namespace SharpSheets.Shapes {
 	}
 
 	public abstract class AbstractAreaShape : IAreaShape {
+
+		public string DisplayName => this.GetType().Name;
 
 		public float Aspect { get; } // TODO This should probably be overridable, given some of the subclass behaviour
 
@@ -264,6 +268,7 @@ namespace SharpSheets.Shapes {
 	}
 
 	public abstract class DetailBase : IDetail {
+		public string DisplayName => this.GetType().Name;
 		public LayoutDirection Layout { protected get; set; }
 		public abstract void Draw(ISharpCanvas canvas, Rectangle rect);
 	}

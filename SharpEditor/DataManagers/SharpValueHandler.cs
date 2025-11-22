@@ -360,6 +360,9 @@ namespace SharpEditor.DataManagers {
 			else if (value is EvaluationValue evalVal) {
 				return GetValueString(type, evalVal.Value);
 			}
+			else if (value is IShape shape) {
+				return shape.DisplayName;
+			}
 			else {
 				return value?.ToString() ?? "[Invalid]";
 			}

@@ -122,6 +122,8 @@ namespace SharpSheets.Markup.Patterns {
 		protected readonly IEnvironment arguments;
 		protected readonly bool diagnostic;
 
+		public string DisplayName => Pattern.Name;
+
 		public MarkupShape(MarkupPattern pattern, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic) {
 			this.Pattern = pattern;
 			this.shapeFactory = shapeFactory;
