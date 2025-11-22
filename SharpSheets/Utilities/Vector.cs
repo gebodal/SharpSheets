@@ -35,6 +35,7 @@ namespace SharpSheets.Utilities {
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
 		public static Vector Parse(string str, IFormatProvider? provider) {
+			str = str.Trim().TrimStart('(').TrimEnd(')');
 			string[] parts = str.SplitAndTrim(2, ',');
 			if (parts.Length != 2) {
 				throw new FormatException($"\"{str}\" is not a valid vector.");
