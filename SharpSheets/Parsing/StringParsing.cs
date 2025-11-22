@@ -139,38 +139,7 @@ namespace SharpSheets.Parsing {
 		}
 
 		public static string[] SplitOnUnescaped(string raw, char separator) {
-
-			List<string> splits = new List<string>();
-			int head = 0;
-
-			bool escaped = false;
-			int i = 0;
-			while(i < raw.Length) {
-				if (escaped) {
-					if (raw[i] == 'u') {
-						i += 4;
-					}
-					else if (raw[i] == 'U') {
-						i += 8;
-					}
-
-					escaped = false;
-				}
-				else if(raw[i] == '\\') {
-					escaped = true;
-				}
-				else if(raw[i] == separator) {
-					string split = raw.Substring(head, i - head);
-					splits.Add(split);
-					head = i + 1;
-				}
-
-				i++;
-			}
-
-			splits.Add(raw.Substring(head));
-
-			return splits.ToArray();
+			return Escaping.SplitUnescaped(raw, separator, StringSplitOptions.None);
 		}
 
 		public static string Unescape(string text, params char[] toUnescape) {

@@ -22,7 +22,11 @@ namespace SharpSheets.Parsing {
 			HashSet<char> seps = new HashSet<char>(separator);
 
 			void Add(string entry) {
-				if (options == StringSplitOptions.RemoveEmptyEntries && entry.Length == 0) {
+				if (options.HasFlag(StringSplitOptions.TrimEntries)) {
+					entry = entry.Trim();
+				}
+
+				if (options.HasFlag(StringSplitOptions.RemoveEmptyEntries) && entry.Length == 0) {
 					return;
 				}
 				else {
@@ -54,7 +58,27 @@ namespace SharpSheets.Parsing {
 			return SplitUnescaped(str, separator, count, StringSplitOptions.None);
 		}
 
+		public static string[] SplitUnescaped(string str, char[] separator, StringSplitOptions options) {
+			return SplitUnescaped(str, separator, str.Length, options);
+		}
+
 		public static string[] SplitUnescaped(string str, char[] separator) {
+			return SplitUnescaped(str, separator, str.Length);
+		}
+
+		public static string[] SplitUnescaped(string str, char separator, int count, StringSplitOptions options) {
+			return SplitUnescaped(str, new char[] { separator }, count, options);
+		}
+
+		public static string[] SplitUnescaped(string str, char separator, int count) {
+			return SplitUnescaped(str, separator, count, StringSplitOptions.None);
+		}
+
+		public static string[] SplitUnescaped(string str, char separator, StringSplitOptions options) {
+			return SplitUnescaped(str, separator, str.Length, options);
+		}
+
+		public static string[] SplitUnescaped(string str, char separator) {
 			return SplitUnescaped(str, separator, str.Length);
 		}
 
