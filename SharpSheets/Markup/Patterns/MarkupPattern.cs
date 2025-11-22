@@ -92,12 +92,10 @@ namespace SharpSheets.Markup.Patterns {
 					string argName = singleArg.ArgumentName.ToString().ToLowerInvariant();
 					ArgumentType singleArgType = GetArgDocumentationType(singleArg);
 					object? exampleValue = GetArgExampleValue(singleArg, singleArgType.DataType);
-					DocumentationString? singleArgDesc = singleArg.Description is not null ? new DocumentationString(singleArg.Description) : null;
 
 					if (typeof(IAreaShape).IsAssignableFrom(singleArgType.DataType)) {
-						ArgumentDoc standInDoc = new ArgumentDoc(argName, singleArgDesc, null, null, false);
 						bool nameGiven = arguments.Any(a => a.ArgumentName.Equals(new EvaluationName("name")));
-						foreach (ArgumentDetails shapeArg in DocumentationGenerator.GetAreaShapeArguments(argName, "", singleArgType.DisplayType, standInDoc, singleArg.IsOptional, singleArg.UseLocal, !nameGiven)) {
+						foreach (ArgumentDetails shapeArg in DocumentationGenerator.GetAreaShapeArguments(argName, "", singleArgType.DisplayType, singleArg.Description, singleArg.IsOptional, singleArg.UseLocal, !nameGiven)) {
 							yield return new ArgumentDetails(
 								shapeArg.Name,
 								shapeArg.Description,
@@ -110,8 +108,7 @@ namespace SharpSheets.Markup.Patterns {
 						}
 					}
 					else if (typeof(IDetail).IsAssignableFrom(singleArgType.DataType)) {
-						ArgumentDoc standInDoc = new ArgumentDoc(argName, singleArgDesc, null, null, false);
-						foreach (ArgumentDetails detailArg in DocumentationGenerator.GetDetailArguments(argName, "", singleArgType.DisplayType, standInDoc, singleArg.IsOptional, singleArg.UseLocal)) {
+						foreach (ArgumentDetails detailArg in DocumentationGenerator.GetDetailArguments(argName, "", singleArgType.DisplayType, singleArg.Description, singleArg.IsOptional, singleArg.UseLocal)) {
 							yield return new ArgumentDetails(
 								detailArg.Name,
 								detailArg.Description,
@@ -126,7 +123,7 @@ namespace SharpSheets.Markup.Patterns {
 
 					yield return new ArgumentDetails(
 						argName,
-						singleArgDesc,
+						singleArg.Description is not null ? new DocumentationString(singleArg.Description) : null,
 						singleArgType,
 						singleArg.IsOptional,
 						singleArg.UseLocal,

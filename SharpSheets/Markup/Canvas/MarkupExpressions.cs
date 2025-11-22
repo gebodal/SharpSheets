@@ -1096,7 +1096,7 @@ namespace SharpSheets.Markup.Canvas {
 			try {
 				Dictionary<string, EvaluationValue> values = this.values.ToDictionary(kv => kv.Key, kv => kv.Value.Evaluate(environment), StringComparer.InvariantCultureIgnoreCase);
 
-				Dictionary<string, string> properties = values.Where(kv => !BoolEvaluationType.IsBool(kv.Value.Type)).ToDictionary(kv => kv.Key, kv => ValueParsing.ToString(kv.Value.Value));
+				Dictionary<string, string> properties = values.Where(kv => !BoolEvaluationType.IsBool(kv.Value.Type)).ToDictionary(kv => kv.Key, kv => ValueSerialization.ToString(kv.Value.Value));
 				Dictionary<string, bool> flags = values.Where(kv => BoolEvaluationType.IsBool(kv.Value.Type)).ToDictionary(kv => kv.Key, kv => BoolEvaluationType.TryGetBool(kv.Value, out bool flag) ? flag : throw new EvaluationCalculationException("Invalid bool value."));
 
 				return SharpSheets.Parsing.Context.Simple(name, properties, flags);

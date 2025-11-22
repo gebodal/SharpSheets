@@ -19,10 +19,15 @@ namespace SharpSheets.Parsing {
 	public static class ValueParsers {
 
 		private static readonly char[] arrayDelimiters = { ',', ';', '|' };
-		public static readonly int MaxArrayOrTupleRank = arrayDelimiters.Length;
+		private static readonly string[] arraySeparators = new string[] { ", ", "; ", " | " };
+		public static readonly int MaxArrayOrTupleRank = 3;
 		public static char GetArrayDelimiter(int rank) {
 			if (rank < 0 || rank >= arrayDelimiters.Length) { throw new InvalidOperationException($"Cannot get delimiter for array of rank {rank} (must be 0-{MaxArrayOrTupleRank})."); }
 			return arrayDelimiters[rank - 1];
+		}
+		public static string GetArraySeparator(int rank) {
+			if (rank < 0 || rank >= arrayDelimiters.Length) { throw new InvalidOperationException($"Cannot get separator for array of rank {rank} (must be 0-{MaxArrayOrTupleRank})."); }
+			return arraySeparators[rank - 1];
 		}
 
 		[ParameterParser]

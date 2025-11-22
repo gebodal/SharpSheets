@@ -7,11 +7,7 @@ using System.Globalization;
 
 namespace SharpSheets.Parsing {
 
-	/// <summary>
-	/// A class containing methods for parsing <see cref="string"/> values into <see cref="object"/> values,
-	/// according to the SharpSheets style conventions.
-	/// </summary>
-	public static class ValueParsing {
+	public static class ValueSerialization {
 
 		/// <summary>
 		/// Convert an object into an <see cref="string"/> with the appropriare formatting,
@@ -24,7 +20,7 @@ namespace SharpSheets.Parsing {
 		/// according to the SharpSheets syntax conventions.
 		/// </returns>
 		/// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
-		/// <exception cref="ArgumentException">Thrown if <paramref name="value"/> is an array with rank greater than 2.</exception>
+		/// <exception cref="InvalidOperationException">Thrown if <paramref name="value"/> is an array with rank greater than 3.</exception>
 		/// <exception cref="NotSupportedException">Thrown when there is no corresponding serialization for <paramref name="value"/>.</exception>
 		/// <exception cref="FormatException">Thrown when <paramref name="value"/> is a badly formatted <see cref="string"/> or <see cref="RichString"/>.</exception>
 		public static string ToString(object? value) {
@@ -97,11 +93,10 @@ namespace SharpSheets.Parsing {
 			throw new NotSupportedException($"String format for values of type {value.GetType().Name} not supported.");
 		}
 
-		private static readonly int arrayMaxRank = 3;
-		private static readonly string[] arraySeparators = new string[] { ", ", "; ", " | " };
 		private static string ArrayToString(object value) => ArrayToString(value, out _);
 		/// <summary></summary>
 		/// <exception cref="ArgumentNullException"></exception>
+		/// <exception cref="InvalidOperationException"></exception>
 		/// <exception cref="FormatException"></exception>
 		private static string ArrayToString(object? value, out int rank) {
 			if(value is null) {
@@ -115,10 +110,7 @@ namespace SharpSheets.Parsing {
 					rank = Math.Max(rank, iRank);
 				}
 				rank += 1;
-				if (rank > arrayMaxRank) {
-					throw new InvalidOperationException($"Cannot process arrays with a rank above {arrayMaxRank}."); // TODO Better exception type?
-				}
-				return string.Join(arraySeparators[rank - 1], parts);
+				return string.Join(ValueParsers.GetArraySeparator(rank), parts);
 			}
 			else if (TupleUtils.IsTupleType(value.GetType())) {
 				List<string> parts = new List<string>();
@@ -128,10 +120,7 @@ namespace SharpSheets.Parsing {
 					rank = Math.Max(rank, iRank);
 				}
 				rank += 1;
-				if (rank > arrayMaxRank) {
-					throw new InvalidOperationException($"Cannot process arrays with a rank above {arrayMaxRank}."); // TODO Better exception type?
-				}
-				return string.Join(arraySeparators[rank - 1], parts);
+				return string.Join(ValueParsers.GetArraySeparator(rank), parts);
 			}
 			else {
 				rank = 0;

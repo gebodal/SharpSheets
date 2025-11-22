@@ -36,19 +36,19 @@ namespace SharpSheets.Documentation {
 			entries = new List<string>();
 
 			foreach(KeyValuePair<string, object> propertyEntry in propertyValues) {
-				properties[propertyEntry.Key] = ValueParsing.ToString(propertyEntry.Value);
+				properties[propertyEntry.Key] = ValueSerialization.ToString(propertyEntry.Value);
 			}
 
 			foreach (ArgumentDetails arg in builder.Arguments) {
 				if (arg.Type.DisplayType.TryGetGenericTypeDefinition() == typeof(List<>)) { // Use DisplayType here to be sure...
 					if (arg.ExampleValue is IEnumerable exampleEnumerable) {
-						entries = exampleEnumerable.Cast<object>().Select(v => ValueParsing.ToString(v)).ToList();
+						entries = exampleEnumerable.Cast<object>().Select(v => ValueSerialization.ToString(v)).ToList();
 					}
 				}
 				else if (arg.Type.DisplayType.TryGetGenericTypeDefinition() == typeof(Numbered<>)) {
 					if (arg.ExampleValue is INumbered exampleNumbered) {
 						foreach (KeyValuePair<int, object?> entry in exampleNumbered) {
-							properties[arg.Name + (entry.Key + 1).ToString()] = ValueParsing.ToString(entry.Value);
+							properties[arg.Name + (entry.Key + 1).ToString()] = ValueSerialization.ToString(entry.Value);
 						}
 					}
 				}
@@ -64,7 +64,7 @@ namespace SharpSheets.Documentation {
 					}
 				}
 				else if (arg.ExampleValue != null) {
-					properties[arg.Name] = ValueParsing.ToString(arg.ExampleValue);
+					properties[arg.Name] = ValueSerialization.ToString(arg.ExampleValue);
 				}
 			}
 
