@@ -47,22 +47,20 @@ namespace SharpSheets.Generators {
 					})
 				.WhereNotNull();
 
-			IncrementalValueProvider<(EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders)> needed = factoriesSpecs
+			IncrementalValuesProvider<FactoryToGenerate> factoriesToGenerate = factoriesSpecs
+				.Combine(availableBuilders.Collect())
+				.Combine(context.CompilationProvider)
+				.Flatten()
+				.Select(static (i, ct) => FilterFactoriesToGenerate(i.Item1, i.Item2, i.Item3, ct))
+				.WhereNotNull();
+
+			IncrementalValueProvider<(EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders)> needed = factoriesToGenerate
 				.Collect()
 				.Combine(availableBuilders.Collect())
 				.Combine(availableParsers.Collect())
 				.Combine(context.CompilationProvider)
 				.Flatten()
 				.Select(static (i, ct) => FilterParamParsers(i.Item1, i.Item2, i.Item3, i.Item4, ct));
-
-			IncrementalValuesProvider<FactoryToGenerate> factoriesToGenerate = factoriesSpecs
-				.Combine(availableBuilders.Collect())
-				.Combine(availableParsers.Collect())
-				.Combine(needed)
-				.Combine(context.CompilationProvider)
-				.Flatten()
-				.Select(static (i, ct) => FilterFactoriesToGenerate(i.Item1, i.Item2, i.Item3, i.Item4.neededMiscBuilders, i.Item4.neededParamParsers, i.Item5, ct))
-				.WhereNotNull();
 
 			IncrementalValueProvider<(EquatableArray<BuilderToGenerate> builders, EquatableArray<ParameterParser> parsers)> allBuildersParsers = needed
 				.Combine(availableBuilders.Collect())
@@ -204,7 +202,7 @@ namespace SharpSheets.Generators {
 			}
 		}
 
-		private static FactoryToGenerate? FilterFactoriesToGenerate(FactorySpecification spec, ImmutableArray<AvailableBuilder> availableBuilders, ImmutableArray<ParameterParser> availableParsers, EquatableArray<BuilderToGenerate> neededBuilders, EquatableArray<ParameterParser> neededParsers, Compilation compilation, CancellationToken ct) {
+		private static FactoryToGenerate? FilterFactoriesToGenerate(FactorySpecification spec, ImmutableArray<AvailableBuilder> availableBuilders, Compilation compilation, CancellationToken ct) {
 			ct.ThrowIfCancellationRequested();
 
 			INamedTypeSymbol? factoryBuildType = spec.FactoryType.GetSymbol(compilation)as INamedTypeSymbol;
@@ -1314,23 +1312,18 @@ namespace {factory.Spec.Namespace} {{
 			}
 		}
 
-		private static (EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders) FilterParamParsers(ImmutableArray<FactorySpecification> factories, ImmutableArray<AvailableBuilder> builders, ImmutableArray<ParameterParser> parsers, Compilation compilation, CancellationToken ct) {
+		private static (EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders) FilterParamParsers(ImmutableArray<FactoryToGenerate> factories, ImmutableArray<AvailableBuilder> builders, ImmutableArray<ParameterParser> parsers, Compilation compilation, CancellationToken ct) {
 			ct.ThrowIfCancellationRequested();
 
 			Dictionary<string, AvailableBuilder> builderLookup = builders.ToDictionary(b => b.ConcreteBuilderType.FullName);
 			Dictionary<string, ParameterParser> parserLookup = parsers.ToDictionary(p => p.ParserType.FullName);
-			Dictionary<string, FactorySpecification> factoryLookup = factories.ToDictionary(f => f.FactoryType.FullName);
+			HashSet<string> factoryTypes = new HashSet<string>(factories.Select(f => f.Spec.FactoryType.FullName));
 
 			HashSet<AvailableBuilder> explicitFactoryBuilders = new HashSet<AvailableBuilder>();
 
 			// Need to know all builders that are actually used by a known factory
-			foreach (FactorySpecification factory in factories) {
-				INamedTypeSymbol? factoryBuildType = factory.FactoryType.GetSymbol(compilation) as INamedTypeSymbol;
-				if (factoryBuildType is null) {
-					continue;
-				}
-
-				explicitFactoryBuilders.UnionWith(FilterFactoryBuilders(factory, factoryBuildType, builders, compilation, ct));
+			foreach (FactoryToGenerate factory in factories) {
+				explicitFactoryBuilders.UnionWith(factory.Builders.Select(b => b.Builder));
 			}
 
 			ct.ThrowIfCancellationRequested();
@@ -1393,7 +1386,7 @@ namespace {factory.Spec.Namespace} {{
 				ITypeSymbol reducedType = compilation.ReduceParameterType(type);
 				string minimalType = reducedType.ToFullDisplayString();
 
-				if (builderLookup.ContainsKey(minimalType) || parserLookup.ContainsKey(minimalType) || factoryLookup.ContainsKey(minimalType) || shapeMakerLookup.ContainsKey(minimalType) || minimalType == childHolderType) {
+				if (builderLookup.ContainsKey(minimalType) || parserLookup.ContainsKey(minimalType) || factoryTypes.Contains(minimalType) || shapeMakerLookup.ContainsKey(minimalType) || minimalType == childHolderType) {
 					// Either this type requires a whole builder, or the parser is already defined for us
 					continue;
 				}
