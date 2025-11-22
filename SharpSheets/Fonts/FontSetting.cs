@@ -3,7 +3,7 @@ using SharpSheets.Parsing;
 
 namespace SharpSheets.Fonts {
 
-	public class FontSetting : ISharpArgSupplemented, IEquatable<FontSetting> {
+	public class FontSetting : IEquatable<FontSetting> {
 
 		public readonly FontPath Path;
 		public readonly FontTags? Tags;

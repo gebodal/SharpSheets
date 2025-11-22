@@ -8,7 +8,7 @@ using SharpSheets.Colors;
 
 namespace SharpSheets.Shapes {
 
-	public class LabelDetails : ISharpArgsGrouping {
+	public class LabelDetails {
 		public readonly float fontSize;
 		public readonly (float x, float y) offset;
 		public readonly TextFormat format;

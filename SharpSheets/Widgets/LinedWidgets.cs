@@ -15,7 +15,7 @@ namespace SharpSheets.Widgets {
 
 	public abstract class AbstractLinedWidget : SharpWidget {
 
-		public class FieldDetails : ISharpArgsGrouping {
+		public class FieldDetails {
 			public readonly float? fontsize;
 			public readonly TextFormat font;
 			public readonly Justification justification;

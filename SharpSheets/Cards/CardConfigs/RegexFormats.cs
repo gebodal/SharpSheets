@@ -8,7 +8,7 @@ namespace SharpSheets.Cards.CardConfigs {
 	/// This class holds a set of regular expressions which can be used to apply
 	/// formatting to a <see cref="RichString"/>.
 	/// </summary>
-	public class RegexFormats : ISharpArgsGrouping {
+	public class RegexFormats {
 		public Regex? regular;
 		public Regex? bold;
 		public Regex? italic;

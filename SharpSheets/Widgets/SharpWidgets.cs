@@ -90,7 +90,7 @@ namespace SharpSheets.Widgets {
 	/// </summary>
 	public class Section : SharpWidget {
 
-		public class FieldDetails : ISharpArgsGrouping {
+		public class FieldDetails {
 			public readonly string? tooltip;
 			public readonly float? lined;
 			public readonly float? lineWidth;
@@ -270,7 +270,7 @@ namespace SharpSheets.Widgets {
 	/// </summary>
 	public class Box : SharpWidget {
 
-		public class FieldDetails : ISharpArgsGrouping {
+		public class FieldDetails {
 			public readonly string? tooltip;
 			public readonly Justification justification;
 			public readonly CheckType? checkType;
@@ -426,7 +426,7 @@ namespace SharpSheets.Widgets {
 	/// </summary>
 	public class Labelled : SharpWidget {
 
-		public class LabelParams : ISharpArgsGrouping {
+		public class LabelParams {
 			public readonly float fontSize;
 			public readonly ParagraphSpecification paragraphSpec;
 			public readonly TextFormat format;
@@ -477,7 +477,7 @@ namespace SharpSheets.Widgets {
 
 		}
 
-		public class FieldDetails : ISharpArgsGrouping {
+		public class FieldDetails {
 			public readonly string? tooltip;
 			public readonly Justification justification;
 			public readonly CheckType? checkType;
@@ -663,7 +663,7 @@ namespace SharpSheets.Widgets {
 	/// </summary>
 	public class Text : SharpWidget {
 
-		public class ParagraphDataArgs : ISharpArgsGrouping {
+		public class ParagraphDataArgs {
 			public readonly float Spacing;
 			public readonly ParagraphIndent Indent;
 
@@ -967,7 +967,7 @@ namespace SharpSheets.Widgets {
 
 	// Unified bars should have a FieldDetails argument, so that the fields can be adjusted
 
-	public class BarNameDetails : ISharpArgsGrouping {
+	public class BarNameDetails {
 		public readonly float fontSize;
 		public readonly (float x, float y) offset;
 		public readonly TextFormat format;
@@ -2163,7 +2163,7 @@ namespace SharpSheets.Widgets {
 
 		// TODO There should also be a "header" grouped argument, which should include color
 
-		public class FieldDetails : ISharpArgsGrouping {
+		public class FieldDetails {
 			public readonly float? fontsize;
 			public readonly TextFormat font;
 			public readonly bool rich;
@@ -2199,7 +2199,7 @@ namespace SharpSheets.Widgets {
 
 		}
 
-		public class HeaderDetails : ISharpArgsGrouping {
+		public class HeaderDetails {
 			public readonly float fontsize;
 			public readonly ParagraphSpecification paragraph;
 			public readonly float spacing;
@@ -2504,7 +2504,7 @@ namespace SharpSheets.Widgets {
 		ROWS
 	}
 
-	public readonly struct Spacing : ISharpArgsGrouping {
+	public readonly struct Spacing {
 		public readonly float? horizontal;
 		public readonly float? vertical;
 		/// <summary>

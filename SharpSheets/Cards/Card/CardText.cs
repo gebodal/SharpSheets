@@ -16,7 +16,7 @@ namespace SharpSheets.Cards.Card {
 	/// </summary>
 	public sealed class CardText : SharpWidget {
 
-		public class ParagraphDataArg : ISharpArgsGrouping {
+		public class ParagraphDataArg {
 			public readonly float Spacing;
 			public readonly ParagraphIndent Indent;
 
@@ -47,7 +47,7 @@ namespace SharpSheets.Cards.Card {
 			}
 		}
 
-		public class BulletArg : ISharpArgsGrouping {
+		public class BulletArg {
 			public readonly string? Symbol;
 			public readonly FontSetting? FontPath;
 			public readonly float FontSizeMultiplier;

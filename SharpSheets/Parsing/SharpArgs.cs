@@ -2,7 +2,7 @@
 
 namespace SharpSheets.Parsing {
 
-	public class ParagraphIndentArg : ISharpArgsGrouping {
+	public class ParagraphIndentArg {
 		public readonly ParagraphIndent Indent;
 
 		/// <summary>

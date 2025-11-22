@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace SharpSheets.Fonts {
 
-	public class FontArgument : ISharpArgSupplemented {
+	public class FontArgument {
 
 		public readonly FontSettingGrouping Fonts;
 
-		public class FontSettingArg : ISharpArgSupplemented {
+		public class FontSettingArg {
 			public readonly FontPath? Path;
 			public readonly FontTags? Tags;
 

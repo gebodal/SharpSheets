@@ -657,7 +657,7 @@ namespace SharpSheets.Cards.CardConfigs {
 	/// </summary>
 	public class ParagraphCardSegmentConfig : AbstractCardSegmentConfig {
 
-		public class BulletArg : ISharpArgsGrouping {
+		public class BulletArg {
 			public readonly string Symbol;
 			public readonly FontSetting? FontPath;
 			public readonly float FontSizeMultiplier;
