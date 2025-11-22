@@ -366,7 +366,7 @@ namespace SharpSheets.Markup.Elements {
 				[Property(Default = "LineHeightBaseline")] EnumExpression<TextHeightStrategy> height_strategy,
 				[Property(Default = "1.0")] FloatExpression line_spacing, [Property(Default = "0.0")] FloatExpression paragraph_spacing,
 				[LocalProperty(Default = "false")] BoolExpression single_line,
-				IEnumerable<TSpan> textContent
+				[Property(Exclude = true)] IEnumerable<TSpan> textContent
 			) {
 
 			return new TextRect(id, styleSheet, x, y, width, height, fit_text, min_font_size, max_font_size, justification, alignment, height_strategy, line_spacing, paragraph_spacing, single_line, textContent);

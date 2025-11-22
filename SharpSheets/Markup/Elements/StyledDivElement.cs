@@ -160,7 +160,7 @@ namespace SharpSheets.Markup.Elements {
 
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="shapeContext">The shape context for this element.</param>
+		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
 		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
@@ -170,7 +170,7 @@ namespace SharpSheets.Markup.Elements {
 		public static BoxStyledDivElement Build(
 				[LocalProperty(Default = "null")] string? id,
 				DivSetup setup,
-				[LocalProperty] ContextExpression? shapeContext,
+				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<IBox?>? href,
 				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[Property(Exclude = true)] IVariableBox outerContext,
@@ -178,7 +178,7 @@ namespace SharpSheets.Markup.Elements {
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new BoxStyledDivElement(id, setup, shapeContext, href, name, outerContext, markupContext, variables);
+			return new BoxStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
 		}
 
 	}
@@ -209,7 +209,7 @@ namespace SharpSheets.Markup.Elements {
 
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="shapeContext">The shape context for this element.</param>
+		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
 		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
@@ -219,7 +219,7 @@ namespace SharpSheets.Markup.Elements {
 		public static LabelledBoxStyledDivElement Build(
 				[LocalProperty(Default = "null")] string? id,
 				DivSetup setup,
-				[LocalProperty] ContextExpression? shapeContext,
+				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<ILabelledBox?>? href,
 				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[Property(Exclude = true)] IVariableBox outerContext,
@@ -227,7 +227,7 @@ namespace SharpSheets.Markup.Elements {
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new LabelledBoxStyledDivElement(id, setup, shapeContext, href, name, outerContext, markupContext, variables);
+			return new LabelledBoxStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
 		}
 		
 	}
@@ -258,7 +258,7 @@ namespace SharpSheets.Markup.Elements {
 
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="shapeContext">The shape context for this element.</param>
+		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
 		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
@@ -268,7 +268,7 @@ namespace SharpSheets.Markup.Elements {
 		public static TitledBoxStyledDivElement Build(
 				[LocalProperty(Default = "null")] string? id,
 				DivSetup setup,
-				[LocalProperty] ContextExpression? shapeContext,
+				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<ITitledBox?>? href,
 				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[Property(Exclude = true)] IVariableBox outerContext,
@@ -276,7 +276,7 @@ namespace SharpSheets.Markup.Elements {
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new TitledBoxStyledDivElement(id, setup, shapeContext, href, name, outerContext, markupContext, variables);
+			return new TitledBoxStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
 		}
 		
 	}
@@ -302,7 +302,7 @@ namespace SharpSheets.Markup.Elements {
 
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="shapeContext">The shape context for this element.</param>
+		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
 		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
@@ -312,7 +312,7 @@ namespace SharpSheets.Markup.Elements {
 		public static EntriedShapeStyledDivElement Build(
 				[LocalProperty(Default = "null")] string? id,
 				DivSetup setup,
-				[LocalProperty] ContextExpression? shapeContext,
+				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<IEntriedShape?>? href,
 				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[Property(Exclude = true)] IVariableBox outerContext,
@@ -320,7 +320,7 @@ namespace SharpSheets.Markup.Elements {
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new EntriedShapeStyledDivElement(id, setup, shapeContext, href, name, outerContext, markupContext, variables);
+			return new EntriedShapeStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
 		}
 
 	}
@@ -351,7 +351,7 @@ namespace SharpSheets.Markup.Elements {
 
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="shapeContext">The shape context for this element.</param>
+		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
 		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
@@ -361,7 +361,7 @@ namespace SharpSheets.Markup.Elements {
 		public static BarStyledDivElement Build(
 				[LocalProperty(Default = "null")] string? id,
 				DivSetup setup,
-				[LocalProperty] ContextExpression? shapeContext,
+				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<IBar?>? href,
 				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[Property(Exclude = true)] IVariableBox outerContext,
@@ -369,7 +369,7 @@ namespace SharpSheets.Markup.Elements {
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new BarStyledDivElement(id, setup, shapeContext, href, name, outerContext, markupContext, variables);
+			return new BarStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
 		}
 		
 	}
@@ -427,7 +427,7 @@ namespace SharpSheets.Markup.Elements {
 
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="shapeContext">The shape context for this element.</param>
+		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
 		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="label1">A label to be drawn by the first entry area.</param>
@@ -441,7 +441,7 @@ namespace SharpSheets.Markup.Elements {
 		[FactoryBuilder(typeof(LabelledUsageBarStyledDivElement), Name = "usageBar")]
 		public static LabelledUsageBarStyledDivElement Build(
 				[LocalProperty(Default = "null")] string? id, DivSetup setup,
-				[LocalProperty] ContextExpression? shapeContext,
+				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<IUsageBar?>? href,
 				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[LocalProperty(Default = "null")] StringExpression? label1,
@@ -454,7 +454,7 @@ namespace SharpSheets.Markup.Elements {
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new LabelledUsageBarStyledDivElement(id, setup, shapeContext, href, name, label1, label2, labels_, note, note_, outerContext, markupContext, variables);
+			return new LabelledUsageBarStyledDivElement(id, setup, outline, href, name, label1, label2, labels_, note, note_, outerContext, markupContext, variables);
 		}
 
 		protected override IUsageBar GetShape(IEnvironment environment, ShapeFactory? shapeFactory, DirectoryPath source, out SharpParsingException[] buildErrors) {
@@ -495,7 +495,7 @@ namespace SharpSheets.Markup.Elements {
 
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="shapeContext">The shape context for this element.</param>
+		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
 		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
@@ -505,7 +505,7 @@ namespace SharpSheets.Markup.Elements {
 		public static DetailStyledDivElement Build(
 				[LocalProperty(Default = "null")] string? id,
 				DivSetup setup,
-				[LocalProperty] ContextExpression? shapeContext,
+				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<IDetail?>? href,
 				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[Property(Exclude = true)] IVariableBox outerContext,
@@ -513,7 +513,7 @@ namespace SharpSheets.Markup.Elements {
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new DetailStyledDivElement(id, setup, shapeContext, href, name, outerContext, markupContext, variables);
+			return new DetailStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
 		}
 		
 	}
@@ -707,14 +707,14 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="context"></param>
 		[FactoryBuilder(typeof(LabelDetailsExpression))]
 		public static LabelDetailsExpression Build(
-				FloatExpression? fontsize,
-				FloatExpression? x_offset,
-				FloatExpression? y_offset,
-				EnumExpression<TextFormat>? font_style,
-				EnumExpression<Justification>? justification,
-				EnumExpression<SharpSheets.Canvas.Text.Alignment>? alignment,
-				ColorExpression? color,
-				[Property(Exclude = true)] EvaluationContext context
+				[Property(Exclude = true)] EvaluationContext context,
+				FloatExpression? fontsize = null,
+				FloatExpression? x_offset = null,
+				FloatExpression? y_offset = null,
+				EnumExpression<TextFormat>? font_style = null,
+				EnumExpression<Justification>? justification = null,
+				EnumExpression<SharpSheets.Canvas.Text.Alignment>? alignment = null,
+				ColorExpression? color = null
 			) {
 
 			return new LabelDetailsExpression(fontsize, x_offset, y_offset, font_style, justification, alignment, color, context);

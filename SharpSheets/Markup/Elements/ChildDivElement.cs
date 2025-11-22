@@ -51,7 +51,7 @@ namespace SharpSheets.Markup.Elements {
 				[LocalProperty(Default = "null")] string? id,
 				DivSetup setup,
 				[LocalProperty(Default = "null")] IExpression<IWidget?>? href,
-				IVariableBox outerContext,
+				[Property(Exclude = true)] IVariableBox outerContext,
 				[Property(Exclude = true)] MarkupEvaluationContext markupContext,
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {

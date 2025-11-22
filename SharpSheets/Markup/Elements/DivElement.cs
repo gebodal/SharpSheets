@@ -143,7 +143,7 @@ namespace SharpSheets.Markup.Elements {
 		/// will be repeated as a whole <paramref name="repeat"/> times.</param>
 		[FactoryBuilder(typeof(DivSetup))]
 		public static DivSetup Build(
-				FilePath source,
+				[Property(Exclude = true)] FilePath source,
 				[Property(Default = "0")] FloatExpression? gutter = null,
 				[LocalProperty(Default = "1")] DimensionExpression? size = null,
 				[LocalProperty] PositionExpression? position = null,

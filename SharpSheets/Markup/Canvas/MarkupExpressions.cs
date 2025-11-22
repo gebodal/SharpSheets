@@ -992,11 +992,11 @@ namespace SharpSheets.Markup.Canvas {
 		/// <param name="height">The height for the position area.</param>
 		[FactoryBuilder(typeof(PositionExpression))]
 		public static PositionExpression Build(
-				[LocalProperty(Default = "null")] EnumExpression<Anchor>? anchor,
-				[LocalProperty(Default = "null")] DimensionExpression? x,
-				[LocalProperty(Default = "null")] DimensionExpression? y,
-				[LocalProperty(Default = "null")] DimensionExpression? width,
-				[LocalProperty(Default = "null")] DimensionExpression? height
+				[LocalProperty(Default = "null")] EnumExpression<Anchor>? anchor = null,
+				[LocalProperty(Default = "null")] DimensionExpression? x = null,
+				[LocalProperty(Default = "null")] DimensionExpression? y = null,
+				[LocalProperty(Default = "null")] DimensionExpression? width = null,
+				[LocalProperty(Default = "null")] DimensionExpression? height = null
 			) {
 
 			return new PositionExpression(anchor, x, y, width, height);
