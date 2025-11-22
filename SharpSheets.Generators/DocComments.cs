@@ -200,7 +200,7 @@ namespace SharpSheets.Generators {
 
 		private static string? GetDocumentationValue(ITypeSymbol type, string? constant, SharpSheetsParameterResolverData resolverData) {
 			if (resolverData.ParserLookup.TryGetValue(type.ToFullDisplayString(), out ParameterParser parser)) {
-				if(constant is not null) {
+				if (constant is not null) {
 
 					if (parser.ParserType.SpecialType != SpecialType.None) {
 						if (parser.ParserType.SpecialType == SpecialType.System_Single) {
@@ -293,6 +293,12 @@ namespace SharpSheets.Generators {
 					return null;
 				}
 			}
+			else if (constant is not null && type is INamedTypeSymbol namedTypeSymbol && namedTypeSymbol.IsGenericList(out ITypeSymbol? listElemType)) {
+				int rank = listElemType.GetArrayOrTupleRank() + 1;
+				if (rank <= FactoryGenerator.arrayDelimiters.Length && resolverData.ParserLookup.TryGetValue(resolverData.Compilation.ReduceParameterType(listElemType).ToFullDisplayString(), out ParameterParser listElemParser)) {
+					return $"SharpSheets.Parsing.StringParsing.SplitOnUnescaped({constant.ToRepr()}, '{arrayDelimiters[rank - 1]}').Select(s => s.Trim()).Select(p => {listElemParser.FullTypeName}.{listElemParser.MethodName}(p{(listElemParser.NeedsSourceDirectory ? $", {FactoryGenerator.DocumentationSourceName}" : "")})).ToList()";
+				}
+			}
 
 			ITypeSymbol factoryType = SymbolEqualityComparer.Default.Equals(type, resolverData.ContainerShapeInterface) ? resolverData.BoxInterface : type;
 			if (factoryType is INamedTypeSymbol namedType && resolverData.FactoryLookup.TryGetValue(namedType, out FactoryToGenerate factory)) {
@@ -317,9 +323,9 @@ namespace SharpSheets.Generators {
 
 			AttributeData? propertyAttr = symbol.GetAttributes("SharpSheets.Parsing.PropertyAttribute", "SharpSheets.Parsing.LocalPropertyAttribute").FirstOrDefault();
 
-			if (propertyAttr is null) { return null; }
+			//if (propertyAttr is null) { return null; }
 
-			string? argVal = (string?)propertyAttr.GetNamedArgument(valueName)?.Value;
+			string? argVal = (string?)propertyAttr?.GetNamedArgument(valueName)?.Value;
 
 			return GetDocumentationValue(resolverData.Compilation.ReduceParameterType(symbol.Type), argVal, resolverData);
 		}
@@ -581,12 +587,12 @@ namespace SharpSheets.Generators {
 		public readonly string? DefaultValue; // Construction for correct object type
 		public readonly string? ExampleValue; // Construction for correct object type
 		public readonly string? Implied;
-		public readonly string[] Prefixes; // Sequence of prefixes to use with .Prefixed("prefix") calls
+		public readonly (string prefix, string? separator)[] Prefixes; // Sequence of prefixes to use with .Prefixed("prefix") calls
 
 		public readonly string? DeferArgsTo;
 		public readonly int SkipDeferredArgs;
 
-		private SharpSheetsParameterData(string name, string? description, string argumentType, bool isOptional, bool useLocal, string? defaultValue, string? exampleValue, string? implied, string[]? prefixes, string? deferArgsTo, int skipDeferredArgs) {
+		private SharpSheetsParameterData(string name, string? description, string argumentType, bool isOptional, bool useLocal, string? defaultValue, string? exampleValue, string? implied, (string prefix, string? sep)[]? prefixes, string? deferArgsTo, int skipDeferredArgs) {
 			Name = name;
 			Description = description;
 			ArgumentType = argumentType;
@@ -595,7 +601,7 @@ namespace SharpSheets.Generators {
 			DefaultValue = defaultValue;
 			ExampleValue = exampleValue;
 			Implied = implied;
-			Prefixes = prefixes ?? Array.Empty<string>();
+			Prefixes = prefixes ?? Array.Empty<(string, string?)>();
 			DeferArgsTo = deferArgsTo;
 			SkipDeferredArgs = skipDeferredArgs;
 		}
@@ -603,18 +609,18 @@ namespace SharpSheets.Generators {
 		public SharpSheetsParameterData(string name, string? description, string argumentType, bool isOptional, bool useLocal, string? defaultValue, string? exampleValue, string? implied)
 			: this(name, description, argumentType, isOptional, useLocal, defaultValue, exampleValue, implied, null, null, 0) { }
 
-		public SharpSheetsParameterData Prefixed(string prefix) {
+		public SharpSheetsParameterData Prefixed(string prefix, string? sep) {
 			return new SharpSheetsParameterData(
 					Name, Description,
 					ArgumentType,
 					IsOptional, UseLocal,
 					DefaultValue, ExampleValue,
-					Implied, Prefixes.Concat(new string[] { prefix }).ToArray(),
+					Implied, Prefixes.Concat(new (string, string?)[] { (prefix, sep) }).ToArray(),
 					DeferArgsTo, SkipDeferredArgs
 				);
 		}
 
-		public static SharpSheetsParameterData MakeDeferredArgs(TypeData deferArgsTo, int skip, bool useLocal, string? prefix) {
+		public static SharpSheetsParameterData MakeDeferredArgs(TypeData deferArgsTo, int skip, bool useLocal, (string prefix, string? sep)? prefix) {
 			SharpSheetsParameterData result = new SharpSheetsParameterData(
 					"deferred", null,
 					deferArgsTo.FullName,
@@ -623,8 +629,8 @@ namespace SharpSheets.Generators {
 					null, null,
 					deferArgsTo.FullName, skip
 				);
-			if (!string.IsNullOrEmpty(prefix)) {
-				result = result.Prefixed(prefix!);
+			if (prefix.HasValue && !string.IsNullOrEmpty(prefix.Value.prefix)) {
+				result = result.Prefixed(prefix.Value.prefix, prefix.Value.sep);
 			}
 			return result;
 		}
@@ -678,20 +684,21 @@ namespace SharpSheets.Generators {
 					BuilderComment? nestedBuilderDoc = DocCommentReader.FromSymbol(nestedBuilderMethod, resolverData.BuilderLookup, resolverData.ParserLookup, resolverData);
 
 					string nestedPrefix = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
+					(string, string?)? expandedPrefix = nestedBuilder.PrefixSep is not null ? (nestedPrefix, nestedBuilder.PrefixSep) : (prefix is not null ? (prefix, null) : null);
 
 					if (nestedBuilder.Structure == BuilderStructure.GROUPED) {
-						yield return SharpSheetsParameterData.MakeDeferredArgs(nestedBuilder.ConcreteBuilderType, 0, useLocal, nestedPrefix);
+						yield return SharpSheetsParameterData.MakeDeferredArgs(nestedBuilder.ConcreteBuilderType, 0, useLocal, (nestedPrefix, null));
 					}
 					else if (nestedBuilder.Structure == BuilderStructure.SUPPLEMENTED) {
 						ParamComment? firstArgDoc = (nestedBuilderDoc?.Params.TryGetValue(nestedBuilder.Parameters[0].Name, out ParamComment dpc) ?? false) ? dpc : null;
 						yield return GetSingleArg(nestedBuilder.Parameters[0], parameterName, prefix, useLocal, paramDoc?.Description, firstArgDoc);
-						yield return SharpSheetsParameterData.MakeDeferredArgs(nestedBuilder.ConcreteBuilderType, 1, useLocal, nestedPrefix);
+						yield return SharpSheetsParameterData.MakeDeferredArgs(nestedBuilder.ConcreteBuilderType, 1, useLocal, (nestedPrefix, null));
 					}
 					else if (nestedBuilder.Structure == BuilderStructure.EXPANDED) {
-						yield return SharpSheetsParameterData.MakeDeferredArgs(nestedBuilder.ConcreteBuilderType, 0, useLocal, prefix);
+						yield return SharpSheetsParameterData.MakeDeferredArgs(nestedBuilder.ConcreteBuilderType, 0, useLocal, expandedPrefix);
 					}
 					else if (nestedBuilder.Structure == BuilderStructure.EXPANDED_DEFERRED) {
-						deferredParams.Enqueue(SharpSheetsParameterData.MakeDeferredArgs(nestedBuilder.ConcreteBuilderType, 0, useLocal, prefix)); // Save these until last
+						deferredParams.Enqueue(SharpSheetsParameterData.MakeDeferredArgs(nestedBuilder.ConcreteBuilderType, 0, useLocal, expandedPrefix)); // Save these until last
 					}
 				}
 				else {
@@ -708,7 +715,7 @@ namespace SharpSheets.Generators {
 			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 			string? defaultValue = argDoc?.DefaultValue ?? param.DefaultValue;
 			string? exampleValue = argDoc?.ExampleValue;
-			return new SharpSheetsParameterData(name, descriptionContent, ArgumentTypeSimple(param.Type.Minimal), param.IsOptional, useLocal, defaultValue, exampleValue, null);
+			return new SharpSheetsParameterData(name, descriptionContent, ArgumentTypeSimple(param.Type.CompilerFullName), param.IsOptional, useLocal, defaultValue, exampleValue, null);
 		}
 
 		public static IEnumerable<SharpSheetsParameterData> GetAreaShapeArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal, bool includeNameArg, SharpSheetsParameterResolverData resolverData) {
@@ -727,17 +734,20 @@ namespace SharpSheets.Generators {
 				// Very much not a fan, but this should really be fixed by re-working the title style approach
 				string exampleTitleStyle = "(SharpSheets.Shapes.ITitleStyledBox)SharpSheets.Shapes.ShapeFactory.GetDefaultShape(typeof(SharpSheets.Shapes.ITitleStyledBox))!";
 
-				yield return new SharpSheetsParameterData("title", DocCommentReader.MakeDocumentationStringFromText($"Title style to be used with {name} if a name is provided."), ArgumentTypeSimple("SharpSheets.Shapes.ITitleStyledBox"), true, false, titleStyleDefaultValue, exampleTitleStyle, "style").Prefixed(name);
+				yield return new SharpSheetsParameterData("title", DocCommentReader.MakeDocumentationStringFromText($"Title style to be used with {name} if a name is provided."), ArgumentTypeSimple("SharpSheets.Shapes.ITitleStyledBox"), true, false, titleStyleDefaultValue, exampleTitleStyle, "style").Prefixed(name, null);
 			}
 		}
 
 		public static IEnumerable<SharpSheetsParameterData> GetDetailArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal, SharpSheetsParameterResolverData resolverData) {
 			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 
-			AvailableBuilder? defaultDetailBuilder = resolverData.FactoryNameLookup["SharpSheets.Shapes.IDetail"].DefaultBuilder;
-			string styleDefaultValue = defaultDetailBuilder?.Name.ToRepr() ?? "ERROR";
-			string exampleDetail = defaultDetailBuilder is not null ? $"{defaultDetailBuilder.FullTypeName}.{defaultDetailBuilder.MethodName}()" : "ERROR";
-			
+			//AvailableBuilder? defaultDetailBuilder = resolverData.FactoryNameLookup["SharpSheets.Shapes.IDetail"].DefaultBuilder;
+			//string styleDefaultValue = defaultDetailBuilder?.Name.ToRepr() ?? "ERROR";
+			//string exampleDetail = defaultDetailBuilder is not null ? $"{defaultDetailBuilder.FullTypeName}.{defaultDetailBuilder.MethodName}()" : "ERROR";
+
+			string? styleDefaultValue = argDoc?.DefaultValue;
+			string? exampleDetail = argDoc?.ExampleValue;
+
 			yield return new SharpSheetsParameterData(name, argDoc?.Description, ArgumentTypeSimple(argumentType), isOptional, useLocal, styleDefaultValue, exampleDetail, "style");
 		}
 

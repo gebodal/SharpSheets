@@ -189,7 +189,7 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				
 				// TODO Should be catching exceptions from shapeFactory call
-				IShape shape = shapeFactory.MakeShape(arg.Type.DataType, shapeContext, contextName, defaultStyle, source, out SharpParsingException[] shapeBuildErrors);
+				IShape shape = shapeFactory.MakeShape(arg.Type.DataType, shapeContext, contextName, /*defaultStyle,*/ source, out SharpParsingException[] shapeBuildErrors);
 				
 				errors.AddRange(shapeBuildErrors);
 				value = new EvaluationValue(shape, arg.Type);
@@ -280,8 +280,9 @@ namespace SharpSheets.Markup.Parsing {
 		}
 
 		public static EvaluationValue ParseValue(string text, EvaluationType evaluationType, DirectoryPath source) {
-			object? value = ValueParsing.Parse(text, evaluationType.DataType, source);
-			EvaluationValue result = new EvaluationValue(value, evaluationType);
+			//object? value = ValueParsing.Parse(text, evaluationType.DataType, source);
+			//EvaluationValue result = new EvaluationValue(value, evaluationType);
+			EvaluationValue result = evaluationType.ParseValue(text, source);
 
 			ValidateData(result, evaluationType);
 

@@ -213,11 +213,11 @@ namespace SharpEditor.Registries {
 			}
 		}
 
-		public IEnumerable<string> GetValidNames(HashSet<string> reservedNames) {
+		public IEnumerable<string> GetValidNames(IReadOnlySet<string> reservedNames) {
 			return patterns.ValidNames(reservedNames);
 		}
 
-		public IEnumerable<string> GetMinimalNames(HashSet<string> reservedNames) {
+		public IEnumerable<string> GetMinimalNames(IReadOnlySet<string> reservedNames) {
 			return patterns.MinimalNames(reservedNames);
 		}
 

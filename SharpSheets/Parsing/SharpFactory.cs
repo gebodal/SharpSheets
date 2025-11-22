@@ -47,6 +47,7 @@ namespace SharpSheets.Parsing {
 	[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 	public class ExpandedArgumentBuilderAttribute : Attribute {
 		public bool Defer { get; set; } = false;
+		public string? PrefixSep { get; set; } = null;
 	}
 
 	[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
@@ -75,8 +76,20 @@ namespace SharpSheets.Parsing {
 	[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
 	public class BuildErrorsAttribute : Attribute { }
 
+	[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+	public class SourceDirectoryAttribute : Attribute { }
+
 	[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 	public class ParameterParserAttribute : Attribute { }
+
+	[AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true, Inherited = false)]
+	public class GenerateParameterParserAttribute : Attribute {
+		public Type ParserType { get; }
+
+		public GenerateParameterParserAttribute(Type parserType) {
+			ParserType = parserType;
+		}
+	}
 
 	[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 	public class FactoryAttribute : Attribute {
@@ -86,6 +99,8 @@ namespace SharpSheets.Parsing {
 		public string[] RequiredParamaterNames { get; }
 		public bool[] ExcludeRequiredParamaters { get; }
 		public Type? Default { get; }
+
+		public bool IncludeDocs { get; set; } = true;
 
 		public FactoryAttribute(Type factoryType, Type[] requiredParams, string[] requiredParamaterNames, bool[] excludeRequiredParamaters, Type? @default) {
 			this.FactoryType = factoryType;
@@ -197,7 +212,7 @@ namespace SharpSheets.Parsing {
 			if (parameterType == typeof(WidgetSetup)) {
 				//IContext setupContext = typeof(IWidget).IsAssignableFrom(declaringType) ? context : new NamedContext(context, parameterName, forceLocal: useLocal);
 				defaultUsed = false;
-				return (WidgetSetup)(Build(WidgetFactory.widgetSetupBuilder, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out buildErrors) ?? throw new InvalidOperationException($"{nameof(WidgetSetup)} parameter cannot be null."));
+				return WidgetFactory.Build_WidgetSetup(context, source, shapeFactory ?? ShapeFactory.StaticOnly, out buildErrors); // (WidgetSetup)(Build(WidgetFactory.widgetSetupBuilder, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out buildErrors) ?? throw new InvalidOperationException($"{nameof(WidgetSetup)} parameter cannot be null."));
 			}
 			else if (parameterType == typeof(ChildHolder)) {
 				if (widgetFactory == null) { throw new SharpParsingException(context.Location, $"No WidgetFactory provided for constructing \"{parameterName}\"."); }
@@ -218,6 +233,7 @@ namespace SharpSheets.Parsing {
 					throw new MissingParameterException(context.Location, parameterName, typeof(Div), $"No entry for required named child \"{parameterName}\" ({parameterType.Name}) provided.");
 				}
 			}
+			/*
 			else if (typeof(IWidget).IsAssignableFrom(parameterType)) {
 				// For widgets created as parameters, the setup is taken from the parent, not a unique context for the parameter
 				if (widgetFactory == null) { throw new SharpParsingException(context.Location, $"No WidgetFactory provided for constructing \"{parameterName}\"."); }
@@ -236,6 +252,7 @@ namespace SharpSheets.Parsing {
 					throw new SharpFactoryException(widgetErrors, $"Errors found parsing argument \"{parameterName}\".");
 				}
 			}
+			*/
 			else if (typeof(IShape).IsAssignableFrom(parameterType)) {
 				if (shapeFactory is null) {
 					throw new ArgumentNullException(nameof(shapeFactory), "Cannot construct shape, as no ShapeFactory instance provided.");

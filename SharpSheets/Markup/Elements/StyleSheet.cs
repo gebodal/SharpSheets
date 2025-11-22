@@ -208,6 +208,7 @@ namespace SharpSheets.Markup.Elements {
 		/// based on some collection, with one repetition for each entry in that collection, with that
 		/// entry being available as an environment variable to the element.</param>
 		[FactoryBuilder(typeof(StyleSheet))]
+		[ExpandedArgumentBuilder(Defer = true)]
 		public static StyleSheet Build(
 				[LocalProperty] ClipPath? clip_path,
 				EnumExpression<AreaRule>? clip_rule,

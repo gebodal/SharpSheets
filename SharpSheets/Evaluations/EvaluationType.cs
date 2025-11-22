@@ -7,6 +7,7 @@ using SharpSheets.Colors;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Collections;
+using SharpSheets.Parsing;
 
 namespace SharpSheets.Evaluations {
 
@@ -96,8 +97,8 @@ namespace SharpSheets.Evaluations {
 			return SetType(typeof(T), type);
 		}
 
-		private EvaluationContext SetDataType<T, S>(T type) where T : SingleDataType<S> {
-			SetType(typeof(T), type);
+		private EvaluationContext SetDataType<T, S>(T type) where T : SingleDataType<S> where S : notnull {
+			SetType<T>(type);
 			types.Add(typeof(S), type);
 			return this;
 		}
@@ -216,7 +217,7 @@ namespace SharpSheets.Evaluations {
 				return type;
 			}
 
-			public T SetDataType<T, S>(Func<EvaluationContext, T> typeBuilder) where T : SingleDataType<S> {
+			public T SetDataType<T, S>(Func<EvaluationContext, T> typeBuilder) where T : SingleDataType<S> where S : notnull {
 				if (built) { throw new InvalidOperationException("Cannot adjust already-built context builder."); }
 				T type = typeBuilder(context);
 				context.SetDataType<T, S>(type);
@@ -473,6 +474,22 @@ namespace SharpSheets.Evaluations {
 
 		public EvaluationValue MakeValue(object? value) {
 			return new EvaluationValue(value, this);
+		}
+
+		/// <exception cref="FormatException"/>
+		protected abstract object ParseValueData(string text, DirectoryPath source);
+
+		/// <exception cref="FormatException"/>
+		public EvaluationValue ParseValue(string text, DirectoryPath source) {
+			return MakeValue(ParseValueData(text, source));
+		}
+
+		/// <exception cref="EvaluationCalculationException"/>
+		protected abstract object? DefaultValueData();
+
+		/// <exception cref="EvaluationCalculationException"/>
+		public EvaluationValue DefaultValue() {
+			return MakeValue(DefaultValueData());
 		}
 
 		protected void AddField(TypeField field) {
@@ -751,6 +768,19 @@ namespace SharpSheets.Evaluations {
 
 		public MetaEvaluationType(EvaluationContext context) : base(context) { }
 
+		protected override object ParseValueData(string text, DirectoryPath source) {
+			if (Context.TryGetType(text, out EvaluationType? type)) {
+				return type;
+			}
+			else {
+				throw new FormatException($"Unrecognized evaluation type name: \"{text}\".");
+			}
+		}
+
+		protected override object? DefaultValueData() {
+			return default(Type);
+		}
+
 		protected override bool EqualTypeData(EvaluationType other) {
 			return Name == other.Name
 				&& DataType == other.DataType;
@@ -761,7 +791,7 @@ namespace SharpSheets.Evaluations {
 		}
 	}
 
-	public abstract class SingleDataType<T> : EvaluationType {
+	public abstract class SingleDataType<T> : EvaluationType where T : notnull {
 
 		public sealed override Type DataType { get; } = typeof(T);
 		public sealed override Type DisplayType => DataType;
@@ -777,6 +807,15 @@ namespace SharpSheets.Evaluations {
 			return HashCode.Combine(Name, DataType);
 		}
 
+		/// <exception cref="FormatException"/>
+		protected abstract T ParseValueDataSingle(string text, DirectoryPath source);
+		protected override sealed object ParseValueData(string text, DirectoryPath source) {
+			return ParseValueDataSingle(text, source);
+		}
+
+		protected override object? DefaultValueData() {
+			return default(T);
+		}
 	}
 
 	public sealed class FloatEvaluationType : SingleDataType<float> {
@@ -786,6 +825,10 @@ namespace SharpSheets.Evaluations {
 		public FloatEvaluationType(EvaluationContext context) : base(context) {
 			AddStaticField(new TypeField("MINVALUE", this, t => new EvaluationValue(float.MinValue, this)));
 			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(float.MaxValue, this)));
+		}
+
+		protected override float ParseValueDataSingle(string text, DirectoryPath source) {
+			return ValueParsers.ParseFloat(text);
 		}
 
 		public static bool IsReal(EvaluationType type) {
@@ -936,6 +979,10 @@ namespace SharpSheets.Evaluations {
 
 		public UFloatEvaluationType(EvaluationContext context) : base(context) {
 			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(UFloat.MaxValue, this)));
+		}
+
+		protected override UFloat ParseValueDataSingle(string text, DirectoryPath source) {
+			return ValueParsers.ParseUFloat(text);
 		}
 
 		public static bool IsPositiveReal(EvaluationType type) {
@@ -1096,6 +1143,10 @@ namespace SharpSheets.Evaluations {
 			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(int.MaxValue, this)));
 		}
 
+		protected override int ParseValueDataSingle(string text, DirectoryPath source) {
+			return ValueParsers.ParseInt(text);
+		}
+
 		public static bool IsIntegral(EvaluationType type) {
 			return type is IntEvaluationType || UIntEvaluationType.IsPositiveIntegral(type);
 		}
@@ -1240,6 +1291,10 @@ namespace SharpSheets.Evaluations {
 
 		public UIntEvaluationType(EvaluationContext context) : base(context) {
 			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(uint.MaxValue, this)));
+		}
+
+		protected override uint ParseValueDataSingle(string text, DirectoryPath source) {
+			return ValueParsers.ParseUInt(text);
 		}
 
 		public static bool IsPositiveIntegral(EvaluationType type) {
@@ -1397,6 +1452,10 @@ namespace SharpSheets.Evaluations {
 
 		public BoolEvaluationType(EvaluationContext context) : base(context) { }
 
+		protected override bool ParseValueDataSingle(string text, DirectoryPath source) {
+			return ValueParsers.ParseBool(text);
+		}
+
 		public static bool IsBool(EvaluationType other) {
 			return other is BoolEvaluationType;
 		}
@@ -1504,6 +1563,10 @@ namespace SharpSheets.Evaluations {
 
 		public StringEvaluationType(EvaluationContext context) : base(context) {
 			AddField(new TypeField("length", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((string)value.Value!).Length, value.Type.Context.GetType<IntEvaluationType>())));
+		}
+
+		protected override string ParseValueDataSingle(string text, DirectoryPath source) {
+			return ValueParsers.ParseString(text);
 		}
 
 		public static bool IsString(EvaluationType other) {
@@ -1709,6 +1772,10 @@ namespace SharpSheets.Evaluations {
 
 		protected SequentialCollectionEvaluationType(EvaluationContext context, EvaluationType elementType) : base(context, elementType) { }
 
+		protected int GetRank() {
+			return 1 + (ElementType is SequentialCollectionEvaluationType sequentialElem ? sequentialElem.GetRank() : 0);
+		}
+
 	}
 
 	public class ArrayEvaluationType : SequentialCollectionEvaluationType {
@@ -1725,6 +1792,18 @@ namespace SharpSheets.Evaluations {
 
 		protected override string GetMyCollectionBrackets() {
 			return "[]";
+		}
+
+		protected override object ParseValueData(string text, DirectoryPath source) {
+			int rank = GetRank();
+
+			if (rank > ValueParsers.MaxArrayOrTupleRank) { throw new FormatException($"Cannot parse array with rank {rank} (max {ValueParsers.MaxArrayOrTupleRank})."); }
+
+			return MakeArray(ElementType, StringParsing.SplitOnUnescaped(text, ValueParsers.GetArrayDelimiter(rank)).Select(v => ElementType.ParseValue(v.Trim(), source)).ToArray()).Value!;
+		}
+
+		protected override object? DefaultValueData() {
+			return MakeArray(ElementType, Array.Empty<EvaluationValue>());
 		}
 
 		private static bool TryGetArray(EvaluationValue value, [MaybeNullWhen(false)] out Array array) {
@@ -1919,6 +1998,27 @@ namespace SharpSheets.Evaluations {
 			return $"[{ElementCount}]";
 		}
 
+		protected override object ParseValueData(string text, DirectoryPath source) {
+			int rank = GetRank();
+
+			if (rank > ValueParsers.MaxArrayOrTupleRank) { throw new FormatException($"Cannot parse tuple with rank {rank} (max {ValueParsers.MaxArrayOrTupleRank})."); }
+
+			string[] parts = StringParsing.SplitOnUnescaped(text, ValueParsers.GetArrayDelimiter(rank));
+
+			if (parts.Length != ElementCount) { throw new FormatException($"Invalid number of elements for tuple of length {ElementCount} (got {parts.Length})."); }
+
+			return MakeTuple(ElementType, parts.Select(v => ElementType.ParseValue(v.Trim(), source)).ToArray()).Value!;
+		}
+
+		protected override object? DefaultValueData() {
+			EvaluationValue[] defaults = new EvaluationValue[ElementCount];
+			EvaluationValue defaultElemValue = ElementType.DefaultValue();
+			for (int i = 0; i < ElementCount; i++) {
+				defaults[i] = defaultElemValue;
+			}
+			return MakeTuple(ElementType, defaults);
+		}
+
 		public static EvaluationValue MakeTuple(EvaluationType elementType, IList<EvaluationValue> values) {
 			Type tupleType = TupleUtils.MakeGenericTupleType(elementType.DataType, values.Count);
 			return new EvaluationValue(TupleUtils.CreateTuple(tupleType, values.Select(v => v.Value).ToArray()), elementType.MakeTuple(values.Count));
@@ -2012,6 +2112,29 @@ namespace SharpSheets.Evaluations {
 
 		protected override string GetMyCollectionBrackets() {
 			return $"[{KeyType.Name}]";
+		}
+
+		protected override object ParseValueData(string text, DirectoryPath source) {
+			string[] parts = Escaping.SplitUnescaped(text, ',');
+
+			List<(EvaluationValue key, EvaluationValue value)> entries = new List<(EvaluationValue, EvaluationValue)>();
+
+			foreach (string part in parts) {
+				string[] keyValue = Escaping.SplitUnescaped(part, ':', 2, StringSplitOptions.TrimEntries);
+
+				if (keyValue.Length != 2) { throw new FormatException("Invalid dictionary entry literal value."); }
+
+				EvaluationValue key = KeyType.ParseValue(keyValue[0], source);
+				EvaluationValue value = ElementType.ParseValue(keyValue[1], source);
+
+				entries.Add((key, value));
+			}
+
+			return MakeDictionary(KeyType, ElementType, entries).Value!;
+		}
+
+		protected override object? DefaultValueData() {
+			return MakeDictionary(KeyType, ElementType, Array.Empty<(EvaluationValue, EvaluationValue)>());
 		}
 
 		private static bool TryGetDictionary(EvaluationValue value, [MaybeNullWhen(false)] out IDictionary dict, [MaybeNullWhen(false)] out DictionaryEvaluationType dictType) {
@@ -2141,20 +2264,41 @@ namespace SharpSheets.Evaluations {
 		public override Type DataType { get; } = typeof(string);
 		public override Type DisplayType => SystemType;
 
-		public IReadOnlySet<string> EnumNames { get; }
+		private readonly IReadOnlyDictionary<string, string> enumNames;
+		private readonly string defaultEnumName;
 		private readonly int enumNamesHash;
 
-		public EnumEvaluationType(EvaluationContext context, string name, IEnumerable<string> enumValues, Type systemType) : base(context) {
+		public IEnumerable<string> EnumNames => enumNames.Keys;
+
+		internal EnumEvaluationType(EvaluationContext context, string name, IEnumerable<string> enumValues, Type systemType) : base(context) {
 			this.Name = name;
 
 			this.SystemType = systemType;
 
-			this.EnumNames = new HashSet<string>(enumValues.Select(s => s.ToUpperInvariant()), StringComparer.InvariantCultureIgnoreCase);
-			enumNamesHash = GetEnumNamesHashCode(this.EnumNames);
+			string[] enumNamesVals = enumValues.Select(s => s.ToUpperInvariant()).Distinct().ToArray();
 
-			foreach (string enumName in this.EnumNames) {
+			if(enumNamesVals.Length == 0) { throw new ArgumentException("Enum evaluation type must be provided with at least one enum value name.", nameof(enumValues)); }
+
+			this.defaultEnumName = enumNamesVals[0];
+			this.enumNames = enumNamesVals.ToDictionary(s => s, StringComparer.InvariantCultureIgnoreCase);
+			enumNamesHash = GetEnumNamesHashCode(this.enumNames.Keys);
+
+			foreach (string enumName in this.enumNames.Keys.Order()) {
 				AddStaticField(new TypeField(enumName, this, t => new EvaluationValue(enumName, this)));
 			}
+		}
+
+		protected override object ParseValueData(string text, DirectoryPath source) {
+			if (enumNames.TryGetValue(text.Trim(), out string? foundName)) {
+				return foundName;
+			}
+			else {
+				throw new FormatException($"Invalid literal for enum of type {Name}: \"{text}\".");
+			}
+		}
+
+		protected override object? DefaultValueData() {
+			return defaultEnumName;
 		}
 
 		public static EnumEvaluationType FromSystemType<T>(EvaluationContext context) where T : Enum {
@@ -2175,7 +2319,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		public bool IsEnumValueDefined(string name) {
-			return EnumNames?.Contains(name) ?? false;
+			return enumNames.ContainsKey(name);
 		}
 
 		public static bool TryGetEnumValue<T>(EvaluationValue value, [NotNullWhen(true)] out T? enumValue) where T : struct {
@@ -2262,17 +2406,17 @@ namespace SharpSheets.Evaluations {
 			return other is EnumEvaluationType otherEnum
 				&& Name == otherEnum.Name
 				&& SystemType == otherEnum.SystemType
-				&& EnumNames.SetEquals(otherEnum.EnumNames);
+				&& EnumNames.SequenceEqual(otherEnum.EnumNames);
 		}
 
 		protected override int GetTypeHashCode() {
 			return HashCode.Combine(Name, SystemType, enumNamesHash);
 		}
 
-		public static int GetEnumNamesHashCode(IReadOnlySet<string> set) {
+		public static int GetEnumNamesHashCode(IEnumerable<string> names) {
 			unchecked {
 				int hash = 0;
-				foreach (string s in set) {
+				foreach (string s in names.Order()) {
 					int h = s?.GetHashCode() ?? 0;
 					hash ^= (h ^ int.MinValue) * -0x61C88647; // 0x9E3779B9 as signed
 				}
@@ -2289,12 +2433,28 @@ namespace SharpSheets.Evaluations {
 		public override Type DataType { get; }
 		public override Type DisplayType => DataType;
 
-		public CustomEvaluationType(EvaluationContext context, string name, IEnumerable<TypeField> fields, IEnumerable<TypeField> staticFields, Type systemType) : base(context) {
+		private readonly Func<string, DirectoryPath, object>? Parser;
+		private readonly object? defaultValue;
+
+		public CustomEvaluationType(EvaluationContext context, string name, IEnumerable<TypeField> fields, IEnumerable<TypeField> staticFields, Type systemType, Func<string, DirectoryPath, object>? parser, object? defaultValue) : base(context) {
 			this.Name = name;
 			this.DataType = systemType;
 
+			this.Parser = parser;
+			this.defaultValue = defaultValue;
+
 			foreach (TypeField field in fields) { AddField(field); }
 			foreach (TypeField staticField in staticFields) { AddStaticField(staticField); }
+		}
+
+		protected override object ParseValueData(string text, DirectoryPath source) {
+			if(Parser is null) { throw new FormatException($"Cannot parse data of type {Name}."); }
+
+			return Parser(text, source);
+		}
+
+		protected override object? DefaultValueData() {
+			return defaultValue;
 		}
 
 		// TODO This needs some implementation?

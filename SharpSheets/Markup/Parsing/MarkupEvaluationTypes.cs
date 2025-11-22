@@ -12,6 +12,8 @@ using SharpSheets.Utilities;
 using SharpSheets.Widgets;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Markup.Patterns;
+using SharpSheets.Colors;
+using SharpSheets.Parsing;
 
 namespace SharpSheets.Markup.Parsing {
 
@@ -146,26 +148,26 @@ namespace SharpSheets.Markup.Parsing {
 
 			// Widget types
 			// TODO Is this right?
-			builder.SetSystemType<IWidget, EvaluationType>(ctx => new CustomEvaluationType(ctx, "widget", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IWidget)));
+			builder.SetSystemType<IWidget, EvaluationType>(ctx => new CustomEvaluationType(ctx, "widget", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IWidget), null, null));
 
 			// Shape types
 			TypeField GetAspectField<TShape>(EvaluationContext ctx) where TShape : IAreaShape {
 				return new TypeField("aspect", ctx.GetType<FloatEvaluationType>(), v => ctx.GetType<FloatEvaluationType>().MakeValue(((TShape)v.Value!).Aspect));
 			}
 			// TODO There are missing types here
-			builder.SetSystemType<IContainerShape, EvaluationType>(ctx => new CustomEvaluationType(ctx, "TitledBox", [GetAspectField<IContainerShape>(ctx)], Enumerable.Empty<TypeField>(), typeof(IContainerShape)));
-			builder.SetSystemType<IBox, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Box", [GetAspectField<IBox>(ctx)], Enumerable.Empty<TypeField>(), typeof(IBox)));
-			builder.SetSystemType<ILabelledBox, EvaluationType>(ctx => new CustomEvaluationType(ctx, "LabelledBox", [GetAspectField<ILabelledBox>(ctx)], Enumerable.Empty<TypeField>(), typeof(ILabelledBox)));
-			builder.SetSystemType<IEntriedShape, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Entried", [GetAspectField<IEntriedShape>(ctx)], Enumerable.Empty<TypeField>(), typeof(IEntriedShape)));
-			builder.SetSystemType<IBar, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Bar", [GetAspectField<IBar>(ctx)], Enumerable.Empty<TypeField>(), typeof(IBar)));
-			builder.SetSystemType<IUsageBar, EvaluationType>(ctx => new CustomEvaluationType(ctx, "UsageBar", [GetAspectField<IUsageBar>(ctx)], Enumerable.Empty<TypeField>(), typeof(IUsageBar)));
-			builder.SetSystemType<IDetail, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Detail", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IDetail)));
+			builder.SetSystemType<IContainerShape, EvaluationType>(ctx => new CustomEvaluationType(ctx, "TitledBox", [GetAspectField<IContainerShape>(ctx)], Enumerable.Empty<TypeField>(), typeof(IContainerShape), null, null));
+			builder.SetSystemType<IBox, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Box", [GetAspectField<IBox>(ctx)], Enumerable.Empty<TypeField>(), typeof(IBox), null, null));
+			builder.SetSystemType<ILabelledBox, EvaluationType>(ctx => new CustomEvaluationType(ctx, "LabelledBox", [GetAspectField<ILabelledBox>(ctx)], Enumerable.Empty<TypeField>(), typeof(ILabelledBox), null, null));
+			builder.SetSystemType<IEntriedShape, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Entried", [GetAspectField<IEntriedShape>(ctx)], Enumerable.Empty<TypeField>(), typeof(IEntriedShape), null, null));
+			builder.SetSystemType<IBar, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Bar", [GetAspectField<IBar>(ctx)], Enumerable.Empty<TypeField>(), typeof(IBar), null, null));
+			builder.SetSystemType<IUsageBar, EvaluationType>(ctx => new CustomEvaluationType(ctx, "UsageBar", [GetAspectField<IUsageBar>(ctx)], Enumerable.Empty<TypeField>(), typeof(IUsageBar), null, null));
+			builder.SetSystemType<IDetail, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Detail", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IDetail), null, null));
 			
 			return builder;
 		}
 
 		private static bool TryGetType(string typeName, EvaluationContext context, [NotNullWhen(true)] out EvaluationType? result) {
-			switch (typeName) {
+			switch (typeName) { // Shouldn't this be lowercased? Why are we not being case-insensitive here?
 				case "float":
 					result = context.GetType<FloatEvaluationType>();
 					return true;
@@ -250,7 +252,7 @@ namespace SharpSheets.Markup.Parsing {
 				fields.Add(field);
 			}
 
-			return new CustomEvaluationType(context, name, fields, Enumerable.Empty<TypeField>(), typeof(Dictionary<EvaluationName, EvaluationValue>));
+			return new CustomEvaluationType(context, name, fields, Enumerable.Empty<TypeField>(), typeof(Dictionary<EvaluationName, EvaluationValue>), null, null);
 		}
 
 		/// <summary></summary>
@@ -282,6 +284,10 @@ namespace SharpSheets.Markup.Parsing {
 			foreach((string name, SharpSheets.Colors.Color color) in SharpSheets.Colors.Color.NamedColors) {
 				AddStaticField(new TypeField(name, this, t => new EvaluationValue(color, this)));
 			}
+		}
+
+		protected override Color ParseValueDataSingle(string text, DirectoryPath source) {
+			return ValueParsers.ParseColor(text);
 		}
 
 		public static bool IsColor(EvaluationType type) {
@@ -341,6 +347,10 @@ namespace SharpSheets.Markup.Parsing {
 			AddField(new TypeField("auto", boolType, v => new EvaluationValue(((Dimension)v.Value!).Auto, boolType)));
 
 			// Should be some static methods in here
+		}
+
+		protected override Dimension ParseValueDataSingle(string text, DirectoryPath source) {
+			return ValueParsers.ParseDimension(text);
 		}
 
 		public static bool IsDimension(EvaluationType type) {
@@ -442,6 +452,10 @@ namespace SharpSheets.Markup.Parsing {
 			AddField(new TypeField("left", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Left, value.Type.Context.GetType<FloatEvaluationType>())));
 		}
 
+		protected override Margins ParseValueDataSingle(string text, DirectoryPath source) {
+			return ValueParsers.ParseMargins(text);
+		}
+
 		public static bool IsMargins(EvaluationType type) {
 			return type is MarginsEvaluationType;
 		}
@@ -536,6 +550,10 @@ namespace SharpSheets.Markup.Parsing {
 
 		public FilePathEvaluationType(EvaluationContext context) : base(context) {
 			
+		}
+
+		protected override FilePath ParseValueDataSingle(string text, DirectoryPath source) {
+			return ValueParsers.ParseFilePath(text, source);
 		}
 
 		public static bool IsFilePath(EvaluationType type) {

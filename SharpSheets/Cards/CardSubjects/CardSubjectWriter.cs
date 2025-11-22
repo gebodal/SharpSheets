@@ -52,19 +52,19 @@ namespace SharpSheets.Cards.CardSubjects {
 
 			bool firstProperty = true;
 			foreach (ConstantDefinition definition in definitions) {
-				object? exampleValue = null;
-				if (definition.ExampleValue is not null) {
+				EvaluationValue exampleValue;
+				if (definition.ExampleValue.HasValue) {
 					exampleValue = definition.ExampleValue.Value;
 				}
-				else if(definition.Type.ReturnType.DataType.IsValueType) {
-					exampleValue = Activator.CreateInstance(definition.Type.ReturnType.DataType);
+				else {
+					exampleValue = definition.Type.ReturnType.DefaultValue();
 				}
 
 				if (firstProperty) {
 					firstProperty = false;
 					result.Append('\n');
 				}
-				result.Append($"\n{GetName(definition)}: {(exampleValue is not null ? DefinitionType.ValueToString(exampleValue) : "")}");
+				result.Append($"\n{GetName(definition)}: {(exampleValue.Value is not null ? DefinitionType.ValueToString(exampleValue.Value) : "")}");
 			}
 
 			return result.ToString();

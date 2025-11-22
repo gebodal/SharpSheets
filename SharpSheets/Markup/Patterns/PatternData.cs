@@ -112,14 +112,30 @@ namespace SharpSheets.Markup.Patterns {
 		public static EnvironmentVariableInfo WidgetLayoutVariable(EvaluationContext context) => new EnvironmentVariableInfo("layout", context.GetSystemType<LayoutDirection>(), "Layout for this widgets children.");
 		// Area Shape Environment Variables
 		public static EnvironmentVariableInfo AreaShapeAspectVariable(EvaluationContext context) => new EnvironmentVariableInfo("aspect", context.GetType<FloatEvaluationType>(), "Aspect ratio for this shape.");
+		public static (EvaluationValue, EnvironmentVariableInfo) AreaShapeAspectVariable(EvaluationContext context, float aspect) {
+			EnvironmentVariableInfo info = AreaShapeAspectVariable(context);
+			return (info.EvaluationType.MakeValue(aspect), info);
+		}
 		// Shape Name Environment Variables
 		public static EnvironmentVariableInfo ShapeNameVariable(EvaluationContext context) => new EnvironmentVariableInfo("name", context.GetType<StringEvaluationType>(), "Name to use for the title of this shape.");
+		public static (EvaluationValue, EnvironmentVariableInfo) ShapeNameVariable(EvaluationContext context, string name) {
+			EnvironmentVariableInfo info = ShapeNameVariable(context);
+			return (info.EvaluationType.MakeValue(name), info);
+		}
 		public static EnvironmentVariableInfo ShapePartsVariable(EvaluationContext context) => new EnvironmentVariableInfo("parts", context.GetType<StringEvaluationType>().MakeArray(), "Parts of the name to use for the title of this shape, split on newlines.");
+		public static (EvaluationValue, EnvironmentVariableInfo) ShapePartsVariable(EvaluationContext context, string[] parts) {
+			EnvironmentVariableInfo info = ShapePartsVariable(context);
+			return (info.EvaluationType.MakeValue(parts), info);
+		}
 		// Title Shape Environment Variables
 		public static EnvironmentVariableInfo TitledFormatVariable(EvaluationContext context) => new EnvironmentVariableInfo("format", context.GetSystemType<TextFormat>(), "Font format to use for the title of this shape.");
 		public static EnvironmentVariableInfo TitledFontsizeVariable(EvaluationContext context) => new EnvironmentVariableInfo("fontSize", context.GetType<FloatEvaluationType>(), "Font size to use for the title of this shape.");
 		// Title Styled Box Environment Variables
 		public static EnvironmentVariableInfo TitleStyledBoxVariable(EvaluationContext context) => new EnvironmentVariableInfo("shape", context.GetSystemType<IContainerShape>(), "The box which this title style is being applied to.");
+		public static (EvaluationValue, EnvironmentVariableInfo) TitleStyledBoxVariable(EvaluationContext context, IContainerShape shape) {
+			EnvironmentVariableInfo info = TitleStyledBoxVariable(context);
+			return (info.EvaluationType.MakeValue(shape), info);
+		}
 		// Detail Environment Variables
 		public static EnvironmentVariableInfo DetailLayoutVariable(EvaluationContext context) => new EnvironmentVariableInfo("layout", context.GetSystemType<LayoutDirection>(), "The current layout of the detail shape.");
 

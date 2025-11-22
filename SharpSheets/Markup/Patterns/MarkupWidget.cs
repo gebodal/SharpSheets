@@ -59,7 +59,7 @@ namespace SharpSheets.Markup.Patterns {
 					useExamples = true;
 				}
 				else {
-					setup = (WidgetSetup?)SharpFactory.Build(WidgetFactory.widgetSetupBuilder, context, source, widgetFactory, shapeFactory, Array.Empty<object>(), out SharpParsingException[] setupErrors) ?? new WidgetSetup();
+					setup = WidgetFactory.Build_WidgetSetup(context, source, shapeFactory ?? ShapeFactory.StaticOnly, out SharpParsingException[] setupErrors);
 					errors.AddRange(setupErrors);
 					useExamples = false;
 				}
@@ -105,7 +105,7 @@ namespace SharpSheets.Markup.Patterns {
 		}
 
 		protected override IEnumerable<ArgumentDetails> GetArgumentDetails() {
-			return base.GetArgumentDetails().Concat(DocumentationGenerator.GetWidgetSetupArguments());
+			return base.GetArgumentDetails().Concat(WidgetFactory.WidgetSetupBuilder.Arguments);
 		}
 
 		public override MarkupBuilderDetails GetBuilderDetails() {

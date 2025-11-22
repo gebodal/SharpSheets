@@ -991,6 +991,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// <param name="width">The width for the position area.</param>
 		/// <param name="height">The height for the position area.</param>
 		[FactoryBuilder(typeof(PositionExpression))]
+		[ExpandedArgumentBuilder]
 		public static PositionExpression Build(
 				[LocalProperty(Default = "null")] EnumExpression<Anchor>? anchor = null,
 				[LocalProperty(Default = "null")] DimensionExpression? x = null,

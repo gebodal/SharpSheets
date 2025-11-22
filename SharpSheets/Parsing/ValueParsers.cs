@@ -12,9 +12,18 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
+[assembly: SharpSheets.Parsing.GenerateParameterParser(typeof(string[]))]
+
 namespace SharpSheets.Parsing {
 
 	public static class ValueParsers {
+
+		private static readonly char[] arrayDelimiters = { ',', ';', '|' };
+		public static readonly int MaxArrayOrTupleRank = arrayDelimiters.Length;
+		public static char GetArrayDelimiter(int rank) {
+			if (rank < 0 || rank >= arrayDelimiters.Length) { throw new InvalidOperationException($"Cannot get delimiter for array of rank {rank} (must be 0-{MaxArrayOrTupleRank})."); }
+			return arrayDelimiters[rank - 1];
+		}
 
 		[ParameterParser]
 		public static int ParseInt(string value) {

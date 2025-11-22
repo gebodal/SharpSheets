@@ -706,6 +706,7 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="color">The color for the label text.</param>
 		/// <param name="context"></param>
 		[FactoryBuilder(typeof(LabelDetailsExpression))]
+		[ExpandedArgumentBuilder(PrefixSep = "-")]
 		public static LabelDetailsExpression Build(
 				[Property(Exclude = true)] EvaluationContext context,
 				FloatExpression? fontsize = null,

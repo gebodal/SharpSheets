@@ -1536,8 +1536,8 @@ namespace SharpSheets.Markup.Parsing {
 					return shapeFactory.MakeExample(argType.DataType, text, source, out _);
 				}
 				else if(argType.IterationResult() is EvaluationType elementType && typeof(IShape).IsAssignableFrom(elementType.DataType)) {
-					if(ValueParsing.Parse<string[]>(text, source) is string[] parts) {
-						return parts.Select(p=> shapeFactory.MakeExample(elementType.DataType, p, source, out _)).ToArray();
+					if(ParameterParsers.Parser_String1(text) is string[] parts) {
+						return parts.Select(p => shapeFactory.MakeExample(elementType.DataType, p, source, out _)).ToArray();
 					}
 					else {
 						return null;

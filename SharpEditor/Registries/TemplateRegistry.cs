@@ -155,7 +155,7 @@ namespace SharpEditor.Registries {
 		public static string GetTemplateContent(string filepath) {
 			string fileText = nameRemoveRegex.Replace(File.ReadAllText(filepath, System.Text.Encoding.UTF8), "");
 			string sourcePath = pathSeparatorReplaceRegex.Replace(System.IO.Path.GetDirectoryName(filepath) ?? "", "/");
-			fileText = fileText.Replace(SharpSheets.Parsing.ValueParsing.SourceKeyword, sourcePath);
+			fileText = fileText.Replace(SharpSheets.Parsing.ValueParsers.SourceKeyword, sourcePath);
 			return fileText;
 		}
 

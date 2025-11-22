@@ -142,6 +142,7 @@ namespace SharpSheets.Markup.Elements {
 		/// Note that if a value is specified for <paramref name="repeat"/>, then this for-each statement
 		/// will be repeated as a whole <paramref name="repeat"/> times.</param>
 		[FactoryBuilder(typeof(DivSetup))]
+		[ExpandedArgumentBuilder(Defer = true)]
 		public static DivSetup Build(
 				[Property(Exclude = true)] FilePath source,
 				[Property(Default = "0")] FloatExpression? gutter = null,

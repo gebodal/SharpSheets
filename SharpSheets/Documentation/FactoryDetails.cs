@@ -62,6 +62,7 @@ namespace SharpSheets.Documentation {
 			this.Implied = implied;
 
 			// Dealing with ExampleValue
+			/*
 			if (exampleValue != System.DBNull.Value && exampleValue != null) {
 				if (type.DataType.IsAssignableFrom(exampleValue.GetType())) {
 					this.ExampleValue = exampleValue;
@@ -78,10 +79,11 @@ namespace SharpSheets.Documentation {
 					ExampleValue = null;
 				}
 			}
+			*/
 		}
 
-		public ArgumentDetails Prefixed(string prefix) {
-			return new PrefixedArgumentDetails(this, prefix);
+		public ArgumentDetails Prefixed(string prefix, string separator = ".") {
+			return new PrefixedArgumentDetails(this, prefix, separator: separator);
 		}
 	}
 
@@ -90,12 +92,14 @@ namespace SharpSheets.Documentation {
 		public ArgumentDetails Basis { get; }
 
 		private readonly string prefix;
+		private readonly string separator;
 
-		public override string Name => $"{prefix}.{Basis.Name}";
+		public override string Name => $"{prefix}{separator}{Basis.Name}";
 
-		public PrefixedArgumentDetails(ArgumentDetails basis, string prefix) : base(basis.Name, basis.Description, basis.Type, basis.IsOptional, basis.UseLocal, basis.DefaultValue, basis.ExampleValue, basis.Implied) {
+		public PrefixedArgumentDetails(ArgumentDetails basis, string prefix, string separator = ".") : base(basis.Name, basis.Description, basis.Type, basis.IsOptional, basis.UseLocal, basis.DefaultValue, basis.ExampleValue, basis.Implied) {
 			this.Basis = basis;
 			this.prefix = prefix;
+			this.separator = separator;
 		}
 	}
 

@@ -8,8 +8,8 @@ namespace SharpSheets.Markup.Patterns {
 		IEnumerable<MarkupPattern> GetPatterns();
 		MarkupPattern? GetPattern(PatternName name);
 
-		IEnumerable<string> GetValidNames(HashSet<string> reservedNames);
-		IEnumerable<string> GetMinimalNames(HashSet<string> reservedNames);
+		IEnumerable<string> GetValidNames(IReadOnlySet<string> reservedNames);
+		IEnumerable<string> GetMinimalNames(IReadOnlySet<string> reservedNames);
 	}
 
 	public static class MarkupRegistryUtils {
@@ -38,15 +38,15 @@ namespace SharpSheets.Markup.Patterns {
 			return registry.GetPatterns<T>().Select(p => p.GetBuilderDetails());
 		}
 
-		public static IEnumerable<string> GetValidNames<T>(this IMarkupRegistry registry, HashSet<string> reservedNames) where T : MarkupPattern {
+		public static IEnumerable<string> GetValidNames<T>(this IMarkupRegistry registry, IReadOnlySet<string> reservedNames) where T : MarkupPattern {
 			return registry.GetValidNames(reservedNames).Where(n => registry.IsPattern<T>(PatternName.Parse(n)));
 		}
 
-		public static IEnumerable<string> GetMinimalNames<T>(this IMarkupRegistry registry, HashSet<string> reservedNames) where T : MarkupPattern {
+		public static IEnumerable<string> GetMinimalNames<T>(this IMarkupRegistry registry, IReadOnlySet<string> reservedNames) where T : MarkupPattern {
 			return registry.GetMinimalNames(reservedNames).Where(n => registry.IsPattern<T>(PatternName.Parse(n)));
 		}
 
-		public static IEnumerable<KeyValuePair<string, BuilderDetails>> GetValidBuilderNames<T>(this IMarkupRegistry registry, HashSet<string> reservedNames) where T : MarkupPattern {
+		public static IEnumerable<KeyValuePair<string, BuilderDetails>> GetValidBuilderNames<T>(this IMarkupRegistry registry, IReadOnlySet<string> reservedNames) where T : MarkupPattern {
 			foreach(string name in registry.GetValidNames<T>(reservedNames)) {
 				BuilderDetails? builderDetails = registry.GetBuilder(PatternName.Parse(name));
 				if(builderDetails != null) {
@@ -55,7 +55,7 @@ namespace SharpSheets.Markup.Patterns {
 			}
 		}
 
-		public static IEnumerable<KeyValuePair<string, BuilderDetails>> GetMinimalBuilderNames<T>(this IMarkupRegistry registry, HashSet<string> reservedNames) where T : MarkupPattern {
+		public static IEnumerable<KeyValuePair<string, BuilderDetails>> GetMinimalBuilderNames<T>(this IMarkupRegistry registry, IReadOnlySet<string> reservedNames) where T : MarkupPattern {
 			foreach (string name in registry.GetMinimalNames<T>(reservedNames)) {
 				BuilderDetails? builderDetails = registry.GetBuilder(PatternName.Parse(name));
 				if (builderDetails != null) {
@@ -103,11 +103,11 @@ namespace SharpSheets.Markup.Patterns {
 				}
 			}
 
-			public IEnumerable<string> GetValidNames(HashSet<string> reservedNames) {
+			public IEnumerable<string> GetValidNames(IReadOnlySet<string> reservedNames) {
 				return patterns.ValidNames(reservedNames);
 			}
 
-			public IEnumerable<string> GetMinimalNames(HashSet<string> reservedNames) {
+			public IEnumerable<string> GetMinimalNames(IReadOnlySet<string> reservedNames) {
 				return patterns.MinimalNames(reservedNames);
 			}
 		}

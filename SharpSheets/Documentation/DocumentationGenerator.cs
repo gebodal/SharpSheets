@@ -58,6 +58,7 @@ namespace SharpSheets.Documentation {
 				else if (param.ParameterType == typeof(WidgetSetup) && typeof(SharpWidget).IsAssignableFrom(builderType)) {
 					addWidgetSetupArgs = true; // Save these until last
 				}
+				/*
 				else if (typeof(SharpWidget).IsAssignableFrom(param.ParameterType)) {
 
 					MethodInfo nestedBuilder = WidgetFactory.GetBuilderInfo(param.ParameterType) ?? throw new ArgumentException($"Could not find builder for parameter type {param.ParameterType}.");
@@ -68,6 +69,7 @@ namespace SharpSheets.Documentation {
 						yield return p;
 					}
 				}
+				*/
 				else if (typeof(IAreaShape).IsAssignableFrom(param.ParameterType)) {
 					bool nameGiven = parameters.Any(p => p.Name is not null && SharpDocuments.StringEquals(p.Name, "name"));
 					foreach (ArgumentDetails shapeArg in GetAreaShapeArguments(parameterName, prefix, param.ParameterType, argDoc, param.IsOptional, useLocal, !nameGiven)) {
@@ -182,8 +184,14 @@ namespace SharpSheets.Documentation {
 		}
 
 		public static IEnumerable<ArgumentDetails> GetWidgetSetupArguments(string prefix = "") {
+			/*
 			foreach (ArgumentDetails p in GetArguments(WidgetFactory.widgetSetupBuilder, WidgetFactory.widgetSetupBuilderDoc, prefix)) {
 				yield return p;
+			}
+			*/
+			foreach(ArgumentDetails arg in WidgetFactory.WidgetSetupBuilder.Arguments) {
+				if (!string.IsNullOrEmpty(prefix)) yield return arg.Prefixed(prefix);
+				else yield return arg;
 			}
 		}
 

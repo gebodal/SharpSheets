@@ -39,13 +39,13 @@ namespace SharpSheets.Markup.Patterns {
 		public int Count => values.Count;
 
 		public IEnumerable<T> Values => values.GetValues();
-		public IEnumerable<PatternName> Keys(HashSet<string> reservedKeys) => values.GetKeys(null, reservedKeys).Select(k => PatternName.Parse(k));
-		public IEnumerable<PatternName> MinimalKeys(HashSet<string> reservedKeys) => values.GetMinimalKeys(null, reservedKeys).Select(k => PatternName.Parse(k));
-		public IEnumerable<PatternName> ValidKeys(HashSet<string> reservedKeys) => values.GetValidKeys(null, reservedKeys).Select(k => PatternName.Parse(k));
+		public IEnumerable<PatternName> Keys(IReadOnlySet<string> reservedKeys) => values.GetKeys(null, reservedKeys).Select(k => PatternName.Parse(k));
+		public IEnumerable<PatternName> MinimalKeys(IReadOnlySet<string> reservedKeys) => values.GetMinimalKeys(null, reservedKeys).Select(k => PatternName.Parse(k));
+		public IEnumerable<PatternName> ValidKeys(IReadOnlySet<string> reservedKeys) => values.GetValidKeys(null, reservedKeys).Select(k => PatternName.Parse(k));
 
-		public IEnumerable<string> Names(HashSet<string> reservedKeys) => values.GetKeys(null, reservedKeys);
-		public IEnumerable<string> MinimalNames(HashSet<string> reservedKeys) => values.GetMinimalKeys(null, reservedKeys);
-		public IEnumerable<string> ValidNames(HashSet<string> reservedKeys) => values.GetValidKeys(null, reservedKeys);
+		public IEnumerable<string> Names(IReadOnlySet<string> reservedKeys) => values.GetKeys(null, reservedKeys);
+		public IEnumerable<string> MinimalNames(IReadOnlySet<string> reservedKeys) => values.GetMinimalKeys(null, reservedKeys);
+		public IEnumerable<string> ValidNames(IReadOnlySet<string> reservedKeys) => values.GetValidKeys(null, reservedKeys);
 
 		private PartNode values;
 
@@ -248,7 +248,7 @@ namespace SharpSheets.Markup.Patterns {
 				}
 			}
 
-			public IEnumerable<string> GetKeys(string? suffixKey, HashSet<string> reservedKeys) {
+			public IEnumerable<string> GetKeys(string? suffixKey, IReadOnlySet<string> reservedKeys) {
 				string? nodeKey = GetNodeKey(suffixKey);
 
 				if (leafValueSet && nodeKey is not null && !reservedKeys.Contains(nodeKey)) {
@@ -264,7 +264,7 @@ namespace SharpSheets.Markup.Patterns {
 				}
 			}
 
-			public IEnumerable<string> GetMinimalKeys(string? suffixKey, HashSet<string> reservedKeys) {
+			public IEnumerable<string> GetMinimalKeys(string? suffixKey, IReadOnlySet<string> reservedKeys) {
 				string? nodeKey = GetNodeKey(suffixKey);
 
 				if (values.Count == 1 && nodeKey != null && !reservedKeys.Contains(nodeKey)) {
@@ -281,7 +281,7 @@ namespace SharpSheets.Markup.Patterns {
 				}
 			}
 
-			public IEnumerable<string> GetValidKeys(string? suffixKey, HashSet<string> reservedKeys) {
+			public IEnumerable<string> GetValidKeys(string? suffixKey, IReadOnlySet<string> reservedKeys) {
 				string? nodeKey = GetNodeKey(suffixKey);
 
 				if (values.Count == 1 && nodeKey != null && !reservedKeys.Contains(nodeKey)) {
