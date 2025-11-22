@@ -5,7 +5,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <DocumentationFile>SharpSheets.xml</DocumentationFile>
     <Version>0.1.1.0</Version>
   </PropertyGroup>
 
@@ -41,9 +40,6 @@
     <EmbeddedResource Include="Fonts\resources\LiberationSans-Italic.ttf" />
     <EmbeddedResource Include="Fonts\resources\LiberationSans-Regular.ttf" />
     <EmbeddedResource Include="Fonts\resources\LICENSE.txt" />
-    <EmbeddedResource Include="SharpSheets.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

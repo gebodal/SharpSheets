@@ -2033,8 +2033,9 @@ namespace SharpSheets.Documentation {{
 		{GeneratorMarkers.NeverEditorBrowsableAttr}
 		private static readonly Dictionary<string, SharpSheets.Documentation.EnumDoc> __generated__allDocs_names = new Dictionary<string, SharpSheets.Documentation.EnumDoc>(System.StringComparer.InvariantCultureIgnoreCase) {{");
 
-			foreach ((_, string typeName, string docVariableName) in allDocs.OrderBy(d => d.typeName)) {
+			foreach ((string fullTypeName, string typeName, string docVariableName) in allDocs.OrderBy(d => d.typeName)) {
 				sb.Append(@$"
+				{{ {fullTypeName.ToRepr()}, {docVariableName} }},
 				{{ {typeName.ToRepr()}, {docVariableName} }},");
 			}
 

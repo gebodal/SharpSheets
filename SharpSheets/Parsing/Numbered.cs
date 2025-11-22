@@ -1,12 +1,6 @@
 ﻿using SharpSheets.Utilities;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SharpSheets.Parsing {
 
@@ -116,59 +110,6 @@ namespace SharpSheets.Parsing {
 				elementType = null;
 				return false;
 			}
-		}
-
-		/// <summary></summary>
-		/// <exception cref="ArgumentException"></exception>
-		/// <exception cref="InvalidOperationException"></exception>
-		public static INumbered ConvertArrayObjectToNumbered(Array array, Type numberedType) {
-			if (numberedType.TryGetGenericTypeDefinition() != typeof(Numbered<>)) {
-				throw new ArgumentException("Invalid Numbered<> type provided.");
-			}
-
-			INumbered numbered = MakeNumbered(numberedType, out Type numberedElementType);
-
-			for (int i = 0; i < array.Length; i++) {
-				object? entry = array.GetValue(i);
-				if (entry == null || numberedElementType.IsAssignableFrom(entry.GetType())) {
-					numbered.Add(i, entry);
-				}
-			}
-
-			return numbered;
-		}
-
-		/// <summary></summary>
-		/// <exception cref="InvalidOperationException"></exception>
-		private static INumbered MakeNumbered(Type numberedType, out Type elementType) {
-			Type numberedElementType;
-			try {
-				numberedElementType = numberedType.GetGenericArguments().Single();
-			}
-			catch (InvalidOperationException e) {
-				throw new InvalidOperationException($"Invalid {nameof(INumbered)} type provided.", e);
-			}
-			catch (NotSupportedException e) {
-				throw new InvalidOperationException($"Invalid {nameof(INumbered)} type provided.", e);
-			}
-			elementType = numberedElementType;
-
-			INumbered? numbered;
-			try {
-				numbered = (INumbered?)Activator.CreateInstance(numberedType);
-			}
-			catch (TargetInvocationException e) {
-				throw new InvalidOperationException($"Could not instantiate {nameof(INumbered)} instance.", e);
-			}
-			catch (SystemException e) {
-				throw new InvalidOperationException($"Could not instantiate {nameof(INumbered)} instance.", e);
-			}
-
-			if (numbered is null) {
-				throw new InvalidOperationException($"Could not initialize {numberedType} object.");
-			}
-
-			return numbered;
 		}
 
 		public static IEnumerable<T?> TakeContinuous<T>(this Numbered<T> source, int n) {

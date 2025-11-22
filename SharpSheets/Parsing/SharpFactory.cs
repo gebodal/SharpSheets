@@ -1,19 +1,4 @@
-﻿using System.Collections.Generic;
-using System;
-using System.Linq;
-using SharpSheets.Layouts;
-using SharpSheets.Colors;
-using SharpSheets.Shapes;
-using System.Reflection;
-using System.Collections;
-using System.Text.RegularExpressions;
-using SharpSheets.Utilities;
-using SharpSheets.Fonts;
-using SharpSheets.Exceptions;
-using SixLabors.ImageSharp;
-using System.Diagnostics.CodeAnalysis;
-
-namespace SharpSheets.Parsing {
+﻿namespace SharpSheets.Parsing {
 
 	[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 	public class FactoryBuilderAttribute : Attribute {
@@ -24,15 +9,6 @@ namespace SharpSheets.Parsing {
 
 		public FactoryBuilderAttribute(Type buildType) {
 			this.BuildType = buildType;
-		}
-
-		public static Type GetBuilderType(MethodInfo method) {
-			if (Nullable.GetUnderlyingType(method.ReturnType) is Type underlying) {
-				return underlying;
-			}
-			else {
-				return method.ReturnType;
-			}
 		}
 
 	}
