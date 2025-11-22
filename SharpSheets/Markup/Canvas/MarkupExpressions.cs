@@ -1082,18 +1082,17 @@ namespace SharpSheets.Markup.Canvas {
 		public bool IsConstant { get; } = false;
 		public EvaluationContext Context { get; }
 
-		private readonly IExpression<string> name;
+		private readonly string name;
 		private readonly Dictionary<string, EvaluationNode> values;
 
-		public ContextExpression(IExpression<string> name, Dictionary<string, EvaluationNode> values) {
+		public ContextExpression(string name, Dictionary<string, EvaluationNode> values, EvaluationContext context) {
 			this.name = name;
 			this.values = values;
-			this.Context = name.Context;
+			this.Context = context;
 		}
 
 		public IContext Evaluate(IEnvironment environment) {
 			try {
-				string name = this.name.Evaluate(environment);
 				Dictionary<string, EvaluationValue> values = this.values.ToDictionary(kv => kv.Key, kv => kv.Value.Evaluate(environment), StringComparer.InvariantCultureIgnoreCase);
 
 				Dictionary<string, string> properties = values.Where(kv => !BoolEvaluationType.IsBool(kv.Value.Type)).ToDictionary(kv => kv.Key, kv => ValueParsing.ToString(kv.Value.Value));

@@ -1913,13 +1913,10 @@ namespace SharpSheets.Markup.Parsing {
 
 			#endregion
 
-			private static readonly Regex contextVariableRegex = new Regex(@"^[a-z][a-z0-9]*$", RegexOptions.IgnoreCase);
 			private ContextExpression? MakeContextExpression(XMLElement elem, IVariableBox variables, string contextName) {
 				if (elem == null) {
 					return null;
 				}
-
-				StringExpression name = new StringExpression(elem.Name, variables.Context);
 
 				Dictionary<string, EvaluationNode> values = new Dictionary<string, EvaluationNode>();
 
@@ -1952,7 +1949,7 @@ namespace SharpSheets.Markup.Parsing {
 					}
 				}
 
-				return new ContextExpression(name, values);
+				return new ContextExpression(elem.Name, values, variables.Context);
 			}
 
 			private LabelDetailsExpression GetLabelDetails(XMLElement elem, IVariableBox variables, string labelName) {
