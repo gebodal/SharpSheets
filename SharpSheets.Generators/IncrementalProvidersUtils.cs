@@ -80,8 +80,12 @@ namespace SharpSheets.Generators {
 			return source.Combine(other1).Combine(other2).Combine(other3).Combine(other4).Flatten();
 		}
 
-		public static IncrementalValuesProvider<T> WhereNotNull<T>(this IncrementalValuesProvider<T?> source) {
-			return source.Where(static e => e is not null).Select(static (e, _) => e!);
+		public static IncrementalValuesProvider<T> WhereNotNull<T>(this IncrementalValuesProvider<T?> source) where T : class {
+			return source.Where(static e => e is not null)!;
+		}
+
+		public static IncrementalValuesProvider<T> WhereNotNull<T>(this IncrementalValuesProvider<T?> source) where T : struct {
+			return source.Where(static e => e is not null).Select(static (e, _) => e!.Value);
 		}
 
 	}

@@ -148,7 +148,7 @@ namespace SharpSheets.Utilities {
 		}
 
 		public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source) where T : class {
-			return source.Where(i => i != null).Select(i => i!);
+			return source.Where(i => i != null)!;
 		}
 
 		public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source) where T : struct {
