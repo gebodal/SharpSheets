@@ -996,6 +996,9 @@ namespace {factory.Spec.Namespace} {{
 			return sb.ToString();
 		}
 
+		[Flags]
+		public enum BuilderParamKind { None = 0b0000, Required = 0b0001, BuildErrors = 0b0010, Source = 0b0100 }
+
 		public record class BuilderToGenerate {
 			public readonly AvailableBuilder Builder;
 			public readonly EquatableArray<RequiredParameter> RequiredParameters;
@@ -1013,6 +1016,32 @@ namespace {factory.Spec.Namespace} {{
 				Namespace = @namespace;
 				TypeName = typeName;
 				MethodName = methodName;
+			}
+
+			public IEnumerable<(BuilderParameter param, BuilderParamKind kind)> GetParams() {
+				int count = 0;
+				foreach ((int pIdx, BuilderParameter param) in Builder.Parameters.Enumerate()) {
+					if (param.IsBuildErrors) {
+						yield return (param, BuilderParamKind.BuildErrors);
+						continue;
+					}
+
+					if (count < RequiredParameters.Count) {
+						yield return (param, param.IsSourceDir ? (BuilderParamKind.Required | BuilderParamKind.Source) : BuilderParamKind.Required);
+						count++;
+						continue;
+					}
+					else {
+						count++;
+					}
+
+					if (param.IsSourceDir) {
+						yield return (param, BuilderParamKind.Source);
+						continue;
+					}
+
+					yield return (param, BuilderParamKind.None);
+				}
 			}
 		}
 
@@ -1129,7 +1158,8 @@ namespace {factory.Spec.Namespace} {{
 				ITypeSymbol? paramResolvedType = param.Type.GetSymbol(compilation); // compilation.ResolveTypeKey(param.Type.FullName);
 				ITypeSymbol? paramReducedType = paramResolvedType is not null ? compilation.ReduceParameterType(paramResolvedType) : null;
 
-				if (!parserLookup.TryGetValue(param.Type.Minimal, out ParameterParser? parser)) {
+				ParameterParser? parser;
+				if (!(parserLookup.TryGetValue(param.Type.FullName, out parser) || parserLookup.TryGetValue(param.Type.Minimal, out parser))) {
 					parser = null;
 				}
 
@@ -1559,41 +1589,50 @@ namespace {factory.Spec.Namespace} {{
 			} while (toAdd.Count > 0); // Keep going if we found some we didn't know we needed already
 
 			// Parser types that have been explicitly requested
-			ITypeSymbol[] requestedParserTypes = requestedParsers.Select(t => t.GetSymbol(compilation)).WhereNotNull().ToArray();
+			TypeData[] requestedParserTypes = requestedParsers.ToArray();
 
 			// Find the parsers we need to generate (i.e. that do not require builders, and are not explicitly defined for us, or have been explicitly requested)
 			HashSet<string> parserTypesToImplement = new HashSet<string>();
 			List<ParameterParser> parsersToImplement = new List<ParameterParser>();
-			Queue<ITypeSymbol> typeQueue = new Queue<ITypeSymbol>(explicitFactoryBuilders.Concat(additionalNonFactoryBuilders)
+			Queue<TypeData> typeQueue = new Queue<TypeData>(additionalNonFactoryBuilders
 				.SelectMany(b => b.Parameters)
+				.Concat(factories
+					.SelectMany(f => f.Builders)
+					.SelectMany(b => b.GetParams())
+					.Where(bk => bk.kind == BuilderParamKind.None)
+					.Select(bk => bk.param)
+					)
 				.Where(b => !b.IsBuildErrors) // We don't parse these
-				.Select(p => p.Type.Minimal)
+				.Select(p => p.Type)
 				.Distinct()
-				.Select(compilation.ResolveTypeKey)
-				.WhereNotNull()
 				.Concat(requestedParserTypes));
 
 			while (typeQueue.Count > 0) {
 				ct.ThrowIfCancellationRequested();
 
-				ITypeSymbol type = typeQueue.Dequeue();
+				TypeData typeData = typeQueue.Dequeue();
+				ITypeSymbol? type = compilation.ResolveTypeKey(typeData.Minimal);
 
-				if (type is INamedTypeSymbol namedType) {
+				if (type is null) { continue; }
+
+				ITypeSymbol reducedType = compilation.ReduceParameterType(type);
+
+				if (reducedType is INamedTypeSymbol namedType) {
 					// Don't want to parse List<> or Numbered<> directly, but we do want to parse their contents
 					if (namedType.IsGenericList(out ITypeSymbol listElemType)) {
-						typeQueue.Enqueue(listElemType);
+						typeQueue.Enqueue(TypeData.Create(listElemType));
 						continue;
 					}
 					else if (namedType.IsGenericNumbered(out ITypeSymbol numberedElemType)) {
-						typeQueue.Enqueue(numberedElemType);
+						typeQueue.Enqueue(TypeData.Create(numberedElemType));
 						continue;
 					}
 				}
 
-				ITypeSymbol reducedType = compilation.ReduceParameterType(type);
-				string minimalType = reducedType.ToFullDisplayString();
+				string minimalType = typeData.Minimal;
+				string fullType = typeData.FullName;
 
-				if (builderLookup.ContainsKey(minimalType) || parserLookup.ContainsKey(minimalType) || factoryTypes.Contains(minimalType) || shapeMakerLookup.ContainsKey(minimalType) || minimalType == childHolderType) {
+				if (builderLookup.ContainsKey(minimalType) || parserLookup.ContainsKey(minimalType) || parserLookup.ContainsKey(fullType) || factoryTypes.Contains(minimalType) || shapeMakerLookup.ContainsKey(minimalType) || minimalType == childHolderType) {
 					// Either this type requires a whole builder, or the parser is already defined for us
 					continue;
 				}
@@ -1605,11 +1644,11 @@ namespace {factory.Spec.Namespace} {{
 
 				parsersToImplement.Add(ParameterParser.GetGeneratedParser(reducedType, NeedsSource(reducedType, parserLookup)));
 
-				if (type is IArrayTypeSymbol arrayType) {
-					typeQueue.Enqueue(arrayType);
+				if (reducedType is IArrayTypeSymbol arrayType) {
+					typeQueue.Enqueue(TypeData.Create(arrayType));
 				}
-				else if (type.IsTupleType && type is INamedTypeSymbol tupleType) {
-					typeQueue.Enqueue(tupleType.TupleElements.Select(f => f.Type));
+				else if (reducedType.IsTupleType && reducedType is INamedTypeSymbol tupleType) {
+					typeQueue.Enqueue(tupleType.TupleElements.Select(f => TypeData.Create(f.Type)));
 				}
 			}
 
@@ -1930,10 +1969,13 @@ namespace SharpSheets.Documentation {{
 		{GeneratorMarkers.NeverEditorBrowsableAttr}
 		private static readonly System.Lazy<SharpSheets.Documentation.BuilderDetails> {docVariableLazyName} = new System.Lazy<SharpSheets.Documentation.BuilderDetails>(() =>
 			new SharpSheets.Documentation.BuilderDetails(
-					displayType: typeof({builder.BuilderType.Type}),
-					declaringType: typeof({concreteBuilderTypeMinimal}),
+					displayType: {SharpSheetsParameterResolver.DisplayTypeSimple(builder.BuilderType.Type)}, // typeof({builder.BuilderType.Type}),
+					declaringType: {SharpSheetsParameterResolver.DisplayTypeSimple(concreteBuilderTypeMinimal)}, // typeof({concreteBuilderTypeMinimal}),
 					name: {builder.Name.ToRepr()},
 					fullName: {builder.Name.ToRepr()},
+					description: {typeComment?.Summary ?? "null"},
+					size: {methodComment?.Size ?? "null"},
+					canvas: {methodComment?.Canvas ?? "null"},
 					arguments: [");
 
 				foreach (SharpSheetsParameterData param in SharpSheetsParameterResolver.GetArguments(builder, method, methodComment, resolverData)) {
@@ -1959,10 +2001,7 @@ namespace SharpSheets.Documentation {{
 				}
 				
 				sb.Append(@$"
-						],
-					description: {typeComment?.Summary ?? "null"},
-					size: {methodComment?.Size ?? "null"},
-					canvas: {methodComment?.Canvas ?? "null"}
+						]
 				));
 		public static SharpSheets.Documentation.BuilderDetails {docVariableName} => {docVariableLazyName}.Value;");
 
@@ -2035,8 +2074,7 @@ namespace SharpSheets.Documentation {{
 
 			foreach ((string fullTypeName, string typeName, string docVariableName) in allDocs.OrderBy(d => d.typeName)) {
 				sb.Append(@$"
-				{{ {fullTypeName.ToRepr()}, {docVariableName} }},
-				{{ {typeName.ToRepr()}, {docVariableName} }},");
+				{{ {fullTypeName.ToRepr()}, {docVariableName} }},");
 			}
 
 			sb.Append(@$"

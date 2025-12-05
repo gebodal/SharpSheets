@@ -34,11 +34,11 @@ namespace SharpSheets.Shapes {
 		private static TypeDetailsCollection AllStaticBuilderDetails {
 			get {
 				if (_allStaticBuilderDetails == null) {
-					Dictionary<Type, BuilderDetails> builders = new Dictionary<Type, BuilderDetails>();
+					Dictionary<DisplayType, BuilderDetails> builders = new Dictionary<DisplayType, BuilderDetails>();
 					foreach(BuilderDetails builderDetails in GetAllBuilderNames().GetValues()) {
-						Type builderType = builderDetails.DeclaringType;
+						DisplayType builderType = builderDetails.DeclaringType;
 						if (builders.TryGetValue(builderType, out BuilderDetails? existing)) {
-							if (existing.DisplayType == typeof(IBox) && builderDetails.DisplayType == typeof(ITitledBox)) {
+							if (existing.DisplayType.IsSimple<IBox>() && builderDetails.DisplayType.IsSimple<ITitledBox>()) {
 								builders[builderType] = builderDetails;
 							}
 						}
@@ -452,7 +452,7 @@ namespace SharpSheets.Shapes {
 				return this.MakeDetail(context, source, out buildErrors);
 			}
 
-			throw new ArgumentException($"Provided type {shapeType.Name} is not a valid subtype of IShape.");
+			throw new ArgumentException($"Provided type {shapeType.Name} is not a valid subtype of {nameof(IShape)}.");
 		}
 
 		private bool IsTitledBoxPattern(string style) {

@@ -33,13 +33,14 @@ namespace SharpEditor.CodeHelpers {
 
 	public static class CodeHelpers {
 
-		public static Type? DefaultType(Type type) {
+		public static Type? DefaultType(Type? type) {
+			if (type is null) { return null; }
 			// TODO Others?
 			return ShapeFactory.GetDefaultStyle(type);
 		}
 
 		public static Type? DefaultType(ArgumentType type) {
-			return DefaultType(type.DisplayType);
+			return DefaultType(type.DisplayType.SystemType);
 		}
 
 	}

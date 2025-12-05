@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace SharpSheets.Utilities {
 
@@ -19,7 +20,7 @@ namespace SharpSheets.Utilities {
 			return type.TryGetGenericTypeDefinition() is Type genericType && ValueTupleGenericTypes.Contains(genericType);
 		}
 
-		public static bool IsTupleObject(object obj) {
+		public static bool IsTupleObject(object? obj) {
 			return obj is null ? false : IsTupleType(obj.GetType());
 		}
 
@@ -81,48 +82,6 @@ namespace SharpSheets.Utilities {
 			return GetTupleLength(tupleObject.GetType());
 		}
 
-		public static Type MakeGenericTupleType(params Type[] types) {
-			if (types.Length == 0) {
-				throw new ArgumentException("Empty list of types provided.");
-			}
-			else if (types.Length == 1) {
-				return typeof(ValueTuple<>).MakeGenericType(types);
-			}
-			else if (types.Length == 2) {
-				return typeof(ValueTuple<,>).MakeGenericType(types);
-			}
-			else if (types.Length == 3) {
-				return typeof(ValueTuple<,,>).MakeGenericType(types);
-			}
-			else if (types.Length == 4) {
-				return typeof(ValueTuple<,,,>).MakeGenericType(types);
-			}
-			else if (types.Length == 5) {
-				return typeof(ValueTuple<,,,,>).MakeGenericType(types);
-			}
-			else if (types.Length == 6) {
-				return typeof(ValueTuple<,,,,,>).MakeGenericType(types);
-			}
-			else if (types.Length == 7) {
-				return typeof(ValueTuple<,,,,,,>).MakeGenericType(types);
-			}
-			else {
-				Type[] genericArgs = new Type[8];
-				Array.Copy(types, genericArgs, 7);
-
-				Type[] remainingArgs = new Type[types.Length - 7];
-				Array.Copy(types, 7, remainingArgs, 0, remainingArgs.Length);
-
-				genericArgs[7] = MakeGenericTupleType(remainingArgs);
-
-				return typeof(ValueTuple<,,,,,,,>).MakeGenericType(genericArgs);
-			}
-		}
-
-		public static Type MakeGenericTupleType(Type type, int n) {
-			return MakeGenericTupleType(type.Yield(n).ToArray());
-		}
-
 		public static Type[] GetTupleTypes(Type tupleType) {
 			if (!IsTupleType(tupleType)) {
 				throw new ArgumentException("Non-tuple object provided.");
@@ -141,51 +100,14 @@ namespace SharpSheets.Utilities {
 			}
 		}
 
-		public static object CreateTuple(Type tupleType, object?[] values) {
-			if (tupleType.TryGetGenericTypeDefinition() is Type genericType && ValueTupleGenericTypes.Contains(genericType)) {
-				
-				object?[] tupleValues;
-
-				if (genericType == typeof(ValueTuple<,,,,,,,>) && tupleType.GenericTypeArguments[7] is Type tRest && IsTupleType(tRest)) {
-					tupleValues = new object[8];
-					Array.Copy(values, tupleValues, 7);
-
-					object[] remainingValues = new object[values.Length - 7];
-					Array.Copy(values, 7, remainingValues, 0, remainingValues.Length);
-
-					tupleValues[7] = CreateTuple(tRest, remainingValues);
-				}
-				else {
-					tupleValues = values;
-				}
-
-				ConstructorInfo? tupleConstructor = tupleType.GetConstructor(tupleType.GenericTypeArguments);
-
-				if(tupleConstructor is null) {
-					throw new InvalidOperationException("Could not get constructor for tuple type " + tupleType);
-				}
-
-				return tupleConstructor.Invoke(tupleValues);
-			}
-
-			throw new ArgumentException("Non-tuple type provided.");
-		}
-
-		private static readonly string[] fieldNames = new string[] { "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Item7", "Rest" };
-		public static IEnumerable<object> Iterate(object tupleObject) {
-			Type tupleType = tupleObject.GetType();
-
-			if (!IsTupleType(tupleType)) {
-				throw new ArgumentException("Non-tuple object provided.");
-			}
-
-			int itemCount = tupleType.GenericTypeArguments.Length;
+		public static IEnumerable<object?> Iterate(ITuple tupleObject) {
+			int itemCount = tupleObject.Length;
 
 			for (int i = 0; i < itemCount; i++) {
-				object value = GetFieldValue(tupleType, tupleObject, i); // tupleType.GetField(fieldNames[i])?.GetValue(tupleObject) ?? throw new ArgumentException($"Could not access field {i} of provided tuple value.");
-				if (i == 7) {
-					foreach (object nested in Iterate(value)) {
-						yield return nested;
+				object? value = tupleObject[i];
+				if (i == 7 && value is ITuple nextedTuple) {
+					foreach (object? nestedValue in Iterate(nextedTuple)) {
+						yield return nestedValue;
 					}
 				}
 				else {
@@ -194,33 +116,21 @@ namespace SharpSheets.Utilities {
 			}
 		}
 
-		public static object Index(object tupleObject, int index) {
-			if(index < 0) {
+		public static object? Index(ITuple tupleObject, int index) {
+			if (index < 0) {
 				throw new IndexOutOfRangeException($"Invalid index {index}.");
 			}
 
-			Type tupleType = tupleObject.GetType();
-
-			if (!IsTupleType(tupleType)) {
-				throw new ArgumentException("Non-tuple object provided.");
-			}
-
-
-			if(index > 6) {
-				object value = GetFieldValue(tupleType, tupleObject, 7); // tupleType.GetField(fieldNames[7])?.GetValue(tupleObject) ?? throw new ArgumentException($"Could not access field of provided tuple value.");
-				return Index(value, index - 7);
+			if (index > 6 && tupleObject[7] is ITuple nestedTuple) {
+				return Index(nestedTuple, index - 7);
 			}
 			else {
-				int itemCount = tupleType.GenericTypeArguments.Length;
+				int itemCount = tupleObject.Length;
 				if (index >= itemCount) {
 					throw new IndexOutOfRangeException("Index out of range.");
 				}
-				return GetFieldValue(tupleType, tupleObject, index); // tupleType.GetField(fieldNames[index]).GetValue(tupleObject);
+				return tupleObject[index];
 			}
-		}
-
-		private static object GetFieldValue(Type tupleType, object tupleObject, int index) {
-			return tupleType.GetField(fieldNames[index])?.GetValue(tupleObject) ?? throw new InvalidOperationException($"Could not access field {index} of provided tuple value of type: {tupleType}");
 		}
 
 	}

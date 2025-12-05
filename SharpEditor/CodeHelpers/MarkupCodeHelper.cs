@@ -107,7 +107,7 @@ namespace SharpEditor.CodeHelpers {
 
 				if (span.Resulting != null) {
 					foreach (MarkupPattern pattern in span.Resulting.OfType<MarkupPattern>()) {
-						if (pattern.GetBuilderDetails() is MarkupBuilderDetails builderDetails && builderDetails.DeclaringType != typeof(ErrorPattern) && builderDetails.Name != null) {
+						if (pattern.GetBuilderDetails() is MarkupBuilderDetails builderDetails && !builderDetails.DeclaringType.IsSimple<ErrorPattern>() && builderDetails.Name != null) {
 							contents.AddRange(TooltipBuilder.MakeBuilderEntry(pattern.GetBuilderDetails(), null, true, null));
 						}
 					}
@@ -173,7 +173,7 @@ namespace SharpEditor.CodeHelpers {
 							contents.Add(attrDescriptionBlock);
 						}
 
-						if (XMLContentBuilder.GetAttributeType(attrArg.Type) is Type attrType && attrType.IsEnum && SharpDocumentation.GetEnumDoc(attrType) is EnumDoc enumDoc) {
+						if (XMLContentBuilder.GetAttributeType(attrArg.Type) is DisplayType attrDisplayType && attrDisplayType.IsEnum && SharpDocumentation.GetEnumDoc(attrDisplayType) is EnumDoc enumDoc) {
 							contents.Add(TooltipBuilder.MakeEnumOptionsBlock(enumDoc, true));
 						}
 

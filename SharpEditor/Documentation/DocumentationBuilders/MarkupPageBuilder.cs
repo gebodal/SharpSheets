@@ -55,7 +55,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		private static Control MakeSingleMarkupArgumentBlocks(BuilderArgumentDetails argument, DocumentationWindow window) {
 			StackPanel argPanel = new StackPanel() { Orientation = Orientation.Vertical };
 
-			Type resolvedType = GetArgumentType(argument.ArgumentType, out bool isExpression);
+			DisplayType resolvedType = GetArgumentType(argument.ArgumentType, out bool isExpression);
 
 			argPanel.Children.Add(MakeMarkupArgumentHeaderBlock(argument, resolvedType, isExpression, window));
 
@@ -80,7 +80,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return argPanel;
 		}
 
-		private static TextBlock MakeMarkupArgumentHeaderBlock(BuilderArgumentDetails argument, Type resolvedType, bool isExpression, DocumentationWindow window) {
+		private static TextBlock MakeMarkupArgumentHeaderBlock(BuilderArgumentDetails argument, DisplayType resolvedType, bool isExpression, DocumentationWindow window) {
 			TextBlock argumentBlock = GetContentTextBlock(TextBlockMargin);
 
 			string typeName = XMLContentBuilder.GetTypeName(argument.ArgumentType, out _);
@@ -112,8 +112,8 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return argumentBlock;
 		}
 
-		private static Type GetArgumentType(Type argType, out bool isExpression) {
-			if (XMLContentBuilder.ResolveExpressionType(argType) is Type exprType) {
+		private static DisplayType GetArgumentType(DisplayType argType, out bool isExpression) {
+			if (XMLContentBuilder.ResolveExpressionType(argType) is DisplayType exprType) {
 				isExpression = true;
 				return exprType;
 			}
@@ -124,7 +124,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 		}
 
-		private static Type GetArgumentType(ArgumentType argType, out bool isExpression) {
+		private static DisplayType GetArgumentType(ArgumentType argType, out bool isExpression) {
 			return GetArgumentType(argType.DisplayType, out isExpression);
 		}
 

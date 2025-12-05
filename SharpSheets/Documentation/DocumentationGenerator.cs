@@ -12,16 +12,16 @@ namespace SharpSheets.Documentation {
 
 			IShape? exampleValue = ShapeFactory.GetDefaultShape(argumentType);
 
-			yield return new ArgumentDetails(name, styleDescription, ArgumentType.Simple(argumentType), isOptional, useLocal, styleDefaultValue, exampleValue, "style");
+			yield return new ArgumentDetails(name, styleDescription, new ArgumentType(DisplayType.Create(argumentType), argumentType), isOptional, useLocal, styleDefaultValue, exampleValue, "style");
 
 			if (argumentType == typeof(IContainerShape)) {
 				if (includeNameArg) {
-					yield return new ArgumentDetails("name", new DocumentationString("Text to use for shape titles."), ArgumentType.Simple(typeof(string)), true, true, "NAME", "NAME", null);
+					yield return new ArgumentDetails("name", new DocumentationString("Text to use for shape titles."), ArgumentType.Simple<string>(), true, true, "NAME", "NAME", null);
 				}
 
 				string titleStyleDefaultValue = ShapeFactory.GetDefaultStyle(typeof(ITitleStyledBox))!.Name;
 				ITitleStyledBox exampleTitleStyle = (ITitleStyledBox)ShapeFactory.GetDefaultShape(typeof(ITitleStyledBox))!;
-				yield return new ArgumentDetails("title", new DocumentationString($"Title style to be used with {name} if a name is provided."), ArgumentType.Simple(typeof(ITitleStyledBox)), true, false, titleStyleDefaultValue, exampleTitleStyle, "style").Prefixed(name);
+				yield return new ArgumentDetails("title", new DocumentationString($"Title style to be used with {name} if a name is provided."), ArgumentType.Simple<ITitleStyledBox>(), true, false, titleStyleDefaultValue, exampleTitleStyle, "style").Prefixed(name);
 			}
 		}
 
@@ -30,7 +30,7 @@ namespace SharpSheets.Documentation {
 			DocumentationString? styleDescription = description is not null ? new DocumentationString(description) : null;
 			string? styleDefaultValue = ShapeFactory.GetDefaultStyle(argumentType)?.Name;
 			IDetail exampleDetail = (IDetail)ShapeFactory.GetDefaultShape(typeof(IDetail))!;
-			yield return new ArgumentDetails(name, styleDescription, ArgumentType.Simple(argumentType), isOptional, useLocal, styleDefaultValue, exampleDetail, "style");
+			yield return new ArgumentDetails(name, styleDescription, new ArgumentType(DisplayType.Create(argumentType), argumentType), isOptional, useLocal, styleDefaultValue, exampleDetail, "style");
 		}
 
 	}

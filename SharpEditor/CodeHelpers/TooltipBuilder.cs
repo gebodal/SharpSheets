@@ -75,7 +75,7 @@ namespace SharpEditor.CodeHelpers {
 							yield return MakeSeparator();
 
 							List<Inline> headerInlines = new List<Inline>();
-							headerInlines.AddRange(BuilderContentBuilder.MakeBuilderHeaderBlock(impliedArg.Name, impliedArg.Name, impliedArg.Type.DisplayType, impliedArg.Type.DisplayType));
+							headerInlines.AddRange(BuilderContentBuilder.MakeBuilderHeaderBlock(impliedArg.Name, impliedArg.Name, impliedArg.Type.DisplayType));
 							headerInlines.AddRange(BuilderContentBuilder.GetArgumentDefaultInlines(impliedArg, builderContext));
 
 							yield return BaseContentBuilder.GetContentTextBlock(headerInlines, TextBlockMargin);
@@ -168,7 +168,7 @@ namespace SharpEditor.CodeHelpers {
 					yield return descriptionBlock;
 				}
 
-				if (descriptionGrouping.Select(a => a.ArgumentType.DisplayType).First() is Type argType && argType.IsEnum && SharpDocumentation.GetEnumDoc(argType) is EnumDoc enumDoc) {
+				if (descriptionGrouping.Select(a => a.ArgumentType.DisplayType).First() is DisplayType argDisplayType && argDisplayType.IsEnum && SharpDocumentation.GetEnumDoc(argDisplayType) is EnumDoc enumDoc) {
 					yield return TooltipBuilder.MakeEnumOptionsBlock(enumDoc, true);
 				}
 

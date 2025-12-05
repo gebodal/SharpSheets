@@ -85,7 +85,7 @@ namespace SharpEditor.ContentBuilders {
 				yield return new Run("none") { Foreground = SharpEditorPalette.MarkupPunctuationBrush };
 			}
 
-			if(GetAttributeType(attributeArg.Type) is Type attrType && (attrType.GetUnderlyingType() == typeof(SharpSheets.Colors.Color) || attrType.IsAssignableTo(typeof(ICanvasPaint)))) {
+			if(GetAttributeType(attributeArg.Type) is DisplayType attrType && (attrType.IsSimple<SharpSheets.Colors.Color>() || attrType.IsAssignableTo(typeof(ICanvasPaint)))) {
 				Color? color = BaseContentBuilder.GetColorFromValue(attrValue);
 				if (color.HasValue) {
 					yield return new Run(SharpValueHandler.NO_BREAK_SPACE.ToString());
@@ -125,24 +125,28 @@ namespace SharpEditor.ContentBuilders {
 		/// </summary>
 		/// <param name="type">Type to resolve.</param>
 		/// <returns></returns>
-		public static Type? ResolveExpressionType(Type type) {
-			Type? exprType = type.GetInterfacesOrSelf().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IExpression<>))?.GetGenericArguments()?.SingleOrDefault();
-			return exprType;
+		public static DisplayType? ResolveExpressionType(DisplayType type) {
+			if (type.GetSingle() is Type systemType && ExpressionUsageMap.TryGetExpressionType(systemType, out Type? expressionResultType)) {
+				return DisplayType.Create(expressionResultType);
+			}
+			else {
+				return null;
+			}
 		}
 
-		public static Type? ResolveExpressionType(ArgumentType type) {
+		public static DisplayType? ResolveExpressionType(ArgumentType type) {
 			return ResolveExpressionType(type.DisplayType);
 		}
 
-		public static Type GetAttributeType(ArgumentType type) {
+		public static DisplayType GetAttributeType(ArgumentType type) {
 			return ResolveExpressionType(type.DisplayType) ?? type.DisplayType;
 		}
 
-		public static string GetTypeName(Type type, out bool concrete) {
+		public static string GetTypeName(DisplayType type, out bool concrete) {
 			string typeStr;
 			concrete = false;
 
-			if (type == typeof(DrawPointExpression[])) {
+			if (type.IsSequence<DrawPointExpression>(out _)) {
 				typeStr = "DrawPoints";
 			}
 			/*
@@ -150,46 +154,46 @@ namespace SharpEditor.ContentBuilders {
 				typeStr = "{" + SharpEditorDetails.GetTypeName(typeof(float)) + "[]}";
 			}
 			*/
-			else if (type == typeof(SharpSheets.Markup.Elements.Path.DrawOperation[])) {
+			else if (type.IsSequence<SharpSheets.Markup.Elements.Path.DrawOperation>(out _)) {
 				typeStr = "PathData";
 			}
-			else if (type == typeof(ForEachExpression)) {
+			else if (type.IsSimple<ForEachExpression>()) {
 				typeStr = "ForEach";
 			}
-			else if (type == typeof(IShapeElement)) {
+			else if (type.IsSimple<IShapeElement>()) {
 				typeStr = "PathSource";
 			}
-			else if (type.IsArray && type.GetElementType() is Type elementType) {
+			else if (type.IsSequence(out DisplayType? elementType, out _)) {
 				string elementName = GetTypeName(elementType, out concrete);
 				typeStr = elementName + "[]";
 			}
-			else if(type == typeof(XLengthExpression)) {
+			else if(type.IsSimple<XLengthExpression>()) {
 				typeStr = "X-Length";
 			}
-			else if (type == typeof(YLengthExpression)) {
+			else if (type.IsSimple<YLengthExpression>()) {
 				typeStr = "Y-Length";
 			}
-			else if (type == typeof(BoundingBoxLengthExpression)) {
+			else if (type.IsSimple<BoundingBoxLengthExpression>()) {
 				typeStr = "BBox-Length";
 			}
-			else if (ResolveExpressionType(type) is Type exprType) {
+			else if (ResolveExpressionType(type) is DisplayType exprType) {
 				typeStr = GetTypeName(exprType, out _);
 			}
-			else if (type == typeof(EvaluationNode)) {
+			else if (type.IsSimple<EvaluationNode>()) {
 				typeStr = "Expression";
 			}
-			else if(type == typeof(ClipPath)) {
+			else if(type.IsSimple<ClipPath>()) {
 				typeStr = "ClipPath";
 			}
-			else if(type == typeof(ICanvasPaint)) {
+			else if(type.IsSimple<ICanvasPaint>()) {
 				typeStr = "Paint";
 			}
-			else if (type == typeof(MarkupPatternType)) {
+			else if (type.IsSimple<MarkupPatternType>()) {
 				typeStr = "PatternType";
 				concrete = true;
 			}
-			else if(type == typeof(EvaluationName) || type == typeof(EvaluationName?)) {
-				typeStr = SharpValueHandler.GetTypeName(typeof(string));
+			else if(type.IsSimple<EvaluationName>()) { // || type.IsSimple<Nullable<EvaluationName>>()
+				typeStr = SharpValueHandler.GetTypeName(DisplayType.FromSystem<string>());
 				concrete = true;
 			}
 			else {

@@ -110,7 +110,7 @@ namespace SharpEditor.Documentation {
 		}
 
 		public void NavigateTo(BuilderDetails builder, Func<BuilderDetails?>? refreshAction) {
-			if (typeof(IMarkupElement).IsAssignableFrom(builder.DeclaringType)) {
+			if (builder.DeclaringType.IsAssignableTo(typeof(IMarkupElement))) {
 				NavigateTo(MarkupPageBuilder.GetMarkupElementPage(builder, this, refreshAction));
 			}
 			else {
@@ -134,7 +134,7 @@ namespace SharpEditor.Documentation {
 		}
 
 		public EventHandler<PointerPressedEventArgs> MakeNavigationDelegate(BuilderDetails builder, Func<BuilderDetails?>? refreshAction) {
-			if (typeof(IMarkupElement).IsAssignableFrom(builder.DeclaringType)) {
+			if (builder.DeclaringType.IsAssignableTo(typeof(IMarkupElement))) {
 				return delegate { NavigateTo(MarkupPageBuilder.GetMarkupElementPage(builder, this, refreshAction)); };
 			}
 			else {

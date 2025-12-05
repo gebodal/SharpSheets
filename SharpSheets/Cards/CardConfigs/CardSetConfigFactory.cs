@@ -69,10 +69,10 @@ namespace SharpSheets.Cards.CardConfigs {
 
 			BuilderDetails baseDivBuilder = WidgetFactory.DivBuilder;
 			ArgumentDetails[] configDivArgs = ConditionArgument.Yield().Concat(baseDivBuilder.Arguments).ToArray();
-			BackgroundBuilder = new BuilderDetails(typeof(SharpWidget), typeof(SharpWidget), "Background", "Background", configDivArgs,
+			BackgroundBuilder = new BuilderDetails(DisplayType.FromSystem<SharpWidget>(), DisplayType.FromSystem<SharpWidget>(), "Background", "Background", configDivArgs,
 				new DocumentationString("This element contains the content to be drawn as the card background, behind all other card content."),
 				new SharpSheets.Layouts.Rectangle(0f, 0f), null);
-			OutlineBuilder = new BuilderDetails(typeof(SharpWidget), typeof(SharpWidget), "Outline", "Outline", configDivArgs,
+			OutlineBuilder = new BuilderDetails(DisplayType.FromSystem<SharpWidget>(), DisplayType.FromSystem<SharpWidget>(), "Outline", "Outline", configDivArgs,
 				new DocumentationString("This element contains the content to be drawn as an outline/background for a card element, behind that element's main content."),
 				new SharpSheets.Layouts.Rectangle(0f, 0f), null);
 
@@ -511,7 +511,7 @@ namespace SharpSheets.Cards.CardConfigs {
 			"condition",
 			new DocumentationString("A boolean expression used to determine if this part of the configuration " +
 				"should be used, based on the card subject data. If no expression is provided, it is assumed to be true."),
-			ArgumentType.Simple(typeof(BoolExpression)), true, true, "True", new BoolExpression(true, CardEnvironments.Context), null);
+			ArgumentType.Simple<BoolExpression>(), true, true, "True", new BoolExpression(true, CardEnvironments.Context), null);
 
 		public static readonly ArgumentDetails ForEachArgument = new ArgumentDetails(
 			"foreach",
@@ -519,13 +519,13 @@ namespace SharpSheets.Cards.CardConfigs {
 				"entry of a specified array of values, with each of those entries available as a variable in the " +
 				"corresponding repetition. Must be of the pattern \"loopVar in arrayExpr\", where \"arrayExpr\" is " +
 				"an expression which evaluates to an array, and \"loopVar\" is the name to use for the loop variable."),
-			ArgumentType.Simple(typeof(ContextForEach)), true, true, null, null, null);
+			ArgumentType.Simple<ContextForEach>(), true, true, null, null, null);
 
 		private static BuilderDetails MakeConfigBuilder(BuilderDetails builder) {
-			if (builder.DeclaringType == typeof(CardSetConfig)) {
+			if (builder.DeclaringType.IsSimple<CardSetConfig>()) {
 				return builder; // The top-level card set config has no condition
 			}
-			else if (typeof(IWidget).IsAssignableFrom(builder.DeclaringType) && builder != OutlineBuilder && builder != BackgroundBuilder) {
+			else if (builder.DeclaringType.IsAssignableTo(typeof(IWidget)) && builder != OutlineBuilder && builder != BackgroundBuilder) {
 				if(builder.Arguments.Length > 1 && ArgumentComparer.Instance.Equals(builder.Arguments[0], ConditionArgument) && ArgumentComparer.Instance.Equals(builder.Arguments[1], ForEachArgument)) {
 					return builder;
 				}

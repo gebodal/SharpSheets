@@ -26,23 +26,9 @@ namespace SharpEditor.ContentBuilders {
 		}
 
 		private static IEnumerable<Inline> VariableInlines(string name, EvaluationType type) {
-			if (type.DisplayType != null && typeof(Dictionary<EvaluationName, object>).IsAssignableFrom(type.DisplayType)) {
-				// TODO What on earth is this doing?
-				bool first = true;
-				foreach (TypeField field in type.FieldNames.Select(f => type.GetField(f)).WhereNotNull()) {
-					if (first) { first = false; }
-					else { yield return new Run(", "); }
-
-					foreach(Inline inline in VariableInlines(name + "." + field.Name, field.Type)) {
-						yield return inline;
-					}
-				}
-			}
-			else {
-				yield return new Run(SharpValueHandler.GetTypeName(type)) { Foreground = SharpEditorPalette.TypeBrush };
-				yield return new Run(SharpValueHandler.NO_BREAK_SPACE.ToString());
-				yield return new Run(name);
-			}
+			yield return new Run(SharpValueHandler.GetTypeName(type)) { Foreground = SharpEditorPalette.TypeBrush };
+			yield return new Run(SharpValueHandler.NO_BREAK_SPACE.ToString());
+			yield return new Run(name);
 		}
 
 	}

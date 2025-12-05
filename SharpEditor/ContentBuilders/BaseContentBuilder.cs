@@ -13,6 +13,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Data;
 using System.Linq;
+using SharpSheets.Evaluations;
 
 namespace SharpEditor.ContentBuilders {
 
@@ -109,7 +110,7 @@ namespace SharpEditor.ContentBuilders {
 			return color;
 		}
 
-		public static Inline GetValueInline(Type type, object? value, bool isDefault) { // TextBlock parent
+		public static Inline GetValueInline(DisplayType type, object? value, bool isDefault) { // TextBlock parent
 			string currentValueString = SharpValueHandler.GetValueString(type, value);
 			Run valueRun = new Run(currentValueString);
 
@@ -120,7 +121,7 @@ namespace SharpEditor.ContentBuilders {
 				valueRun.Foreground = valueBrush;
 			}
 
-			if (type.GetUnderlyingType() == typeof(SharpSheets.Colors.Color)) {
+			if (type.IsSimple<SharpSheets.Colors.Color>()) {
 				Color? color = GetColorFromValue(value);
 
 				Span valueSpan = new Span();
@@ -134,6 +135,10 @@ namespace SharpEditor.ContentBuilders {
 
 			// If no other additions are to be made, simply return the value inline
 			return valueRun;
+		}
+
+		public static Inline GetValueInline(EvaluationType type, object? value, bool isDefault) {
+			return GetValueInline(DisplayType.FromEvaluation(type), value, isDefault);
 		}
 
 		public static Inline GetColorInline(Color? color, bool isDefault, bool unknown) {
@@ -224,8 +229,8 @@ namespace SharpEditor.ContentBuilders {
 					}
 				}
 
-				return new Run(span.Type is not null ? SharpValueHandler.GetTypeName(span.Type) : span.Name) {
-					Foreground = SharpEditorPalette.GetTypeBrush(span.Type)
+				return new Run(span.Type is not null ? SharpValueHandler.GetTypeName(DisplayType.Create(span.Type)) : span.Name) {
+					Foreground = SharpEditorPalette.GetTypeBrush(span.Type is null ? null : DisplayType.Create(span.Type))
 				};
 			}
 

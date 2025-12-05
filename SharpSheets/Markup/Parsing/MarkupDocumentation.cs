@@ -22,13 +22,13 @@ namespace SharpSheets.Markup.Parsing {
 			DivBuilder = BuilderDocs.SharpSheets_Markup_Elements_DivElement;
 
 			PatternBuilder = new BuilderDetails(
-				typeof(MarkupPattern), typeof(MarkupPattern),
+				DisplayType.FromSystem<MarkupPattern>(), DisplayType.FromSystem<MarkupPattern>(),
 				"pattern", "pattern",
 				new ArgumentDetails[] {
-					new ArgumentDetails("type", new DocumentationString("The type for this pattern. This determines what kind of object is represented by this pattern, and determines where it will be made available within configuration files."), ArgumentType.Simple(typeof(MarkupPatternType)), false, true, null, MarkupPatternType.BOX, null), // TODO Box example value is highly misleading here
-					new ArgumentDetails("name", new DocumentationString("The name for this pattern. This is the identifier that will be used to specify this pattern in configuration files. Ideally it should be unique, but this is not a requirement."), ArgumentType.Simple(typeof(string)), false, true, null, null, null),
-					new ArgumentDetails("example-size", new DocumentationString(new TextSpan("The size (and optionally position) for the example pattern (the position will be ignored unless "), new ParameterSpan("example-canvas"), new TextSpan(" is also specified) displayed in the designer and documentation.")), ArgumentType.Simple(typeof(Rectangle)), true, true, null, null, null),
-					new ArgumentDetails("example-canvas", new DocumentationString("The page size that the example pattern will be drawn on in the designer and documentation."), ArgumentType.Simple(typeof(Size)), true, true, null, null, null)
+					new ArgumentDetails("type", new DocumentationString("The type for this pattern. This determines what kind of object is represented by this pattern, and determines where it will be made available within configuration files."), ArgumentType.Simple<MarkupPatternType>(), false, true, null, MarkupPatternType.BOX, null), // TODO Box example value is highly misleading here
+					new ArgumentDetails("name", new DocumentationString("The name for this pattern. This is the identifier that will be used to specify this pattern in configuration files. Ideally it should be unique, but this is not a requirement."), ArgumentType.Simple<string>(), false, true, null, null, null),
+					new ArgumentDetails("example-size", new DocumentationString(new TextSpan("The size (and optionally position) for the example pattern (the position will be ignored unless "), new ParameterSpan("example-canvas"), new TextSpan(" is also specified) displayed in the designer and documentation.")), ArgumentType.Simple<Rectangle>(), true, true, null, null, null),
+					new ArgumentDetails("example-canvas", new DocumentationString("The page size that the example pattern will be drawn on in the designer and documentation."), ArgumentType.Simple<Size>(), true, true, null, null, null)
 				}.Concat(DivBuilder.Arguments).ToArray(),
 				new DocumentationString(new TextSpan("This is the base element for a Markup pattern. Every pattern " +
 					"must have a "), new TypeSpan("pattern", typeof(MarkupPattern)), new TextSpan(" element as its root. " +
@@ -40,10 +40,10 @@ namespace SharpSheets.Markup.Parsing {
 				);
 
 			BuilderDetails libraryBuilder = new BuilderDetails(
-				typeof(IMarkupElement), typeof(IMarkupElement),
+				DisplayType.FromSystem<IMarkupElement>(), DisplayType.FromSystem<IMarkupElement>(),
 				"patternLibrary", "patternLibrary",
 				new ArgumentDetails[] {
-					new ArgumentDetails("name", new DocumentationString("The name for this pattern library, which can be used to distinguish child patterns in configuration files (and in the documentation). The Markup file name will be used as a default value."), ArgumentType.Simple(typeof(string)), true, true, null, null, null),
+					new ArgumentDetails("name", new DocumentationString("The name for this pattern library, which can be used to distinguish child patterns in configuration files (and in the documentation). The Markup file name will be used as a default value."), ArgumentType.Simple<string>(), true, true, null, null, null),
 				},
 				new DocumentationString(new TextSpan("This element is a container for other pattern elements. It can be used " +
 				"as the root of a Markup document, and should only have other "), new TypeSpan("patternLibrary", typeof(IMarkupElement)),
@@ -53,14 +53,14 @@ namespace SharpSheets.Markup.Parsing {
 				);
 
 			BuilderDetails useBuilder = new BuilderDetails(
-				typeof(IDrawableElement), typeof(IDrawableElement),
+				DisplayType.FromSystem<IDrawableElement>(), DisplayType.FromSystem<IDrawableElement>(),
 				"use", "use",
 				new ArgumentDetails[] {
-					new ArgumentDetails("href", new DocumentationString("A reference to the drawable element to duplicate here."), ArgumentType.Simple(typeof(IDrawableElement)), true, true, null, null, null),
-					new ArgumentDetails("x", new DocumentationString("The x-coordinate at which to draw the duplicate element."), ArgumentType.Simple(typeof(XLengthExpression)), true, true, markupContext.ZeroWidthExpression, null, null),
-					new ArgumentDetails("y", new DocumentationString("The y-coordinate at which to draw the duplicate element."), ArgumentType.Simple(typeof(YLengthExpression)), true, true, markupContext.ZeroHeightExpression, null, null),
-					new ArgumentDetails("width", new DocumentationString(new TextSpan("The width to use for the duplicate element. This will only be used if the referenced element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element.")), ArgumentType.Simple(typeof(XLengthExpression)), true, true, markupContext.ZeroWidthExpression, null, null),
-					new ArgumentDetails("height", new DocumentationString(new TextSpan("The height to use for the duplicate element. This will only be used if the referenced element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element.")), ArgumentType.Simple(typeof(YLengthExpression)), true, true, markupContext.ZeroHeightExpression, null, null),
+					new ArgumentDetails("href", new DocumentationString("A reference to the drawable element to duplicate here."), ArgumentType.Simple<IDrawableElement>(), true, true, null, null, null),
+					new ArgumentDetails("x", new DocumentationString("The x-coordinate at which to draw the duplicate element."), ArgumentType.Simple<XLengthExpression>(), true, true, markupContext.ZeroWidthExpression, null, null),
+					new ArgumentDetails("y", new DocumentationString("The y-coordinate at which to draw the duplicate element."), ArgumentType.Simple<YLengthExpression>(), true, true, markupContext.ZeroHeightExpression, null, null),
+					new ArgumentDetails("width", new DocumentationString(new TextSpan("The width to use for the duplicate element. This will only be used if the referenced element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element.")), ArgumentType.Simple<XLengthExpression>(), true, true, markupContext.ZeroWidthExpression, null, null),
+					new ArgumentDetails("height", new DocumentationString(new TextSpan("The height to use for the duplicate element. This will only be used if the referenced element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element.")), ArgumentType.Simple<YLengthExpression>(), true, true, markupContext.ZeroHeightExpression, null, null),
 				}.Concat(BuilderDocs.SharpSheets_Markup_Elements_StyleSheet.Arguments).ToArray(),
 				new DocumentationString(new TextSpan("This element duplicates another drawable element at a specified location. " +
 				"If the duplicated element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element, then a new " +
@@ -70,11 +70,11 @@ namespace SharpSheets.Markup.Parsing {
 				); // "width" and "height" ignored unless "href" is a <symbol>
 
 			BuilderDetails optionBuilder = new BuilderDetails(
-				typeof(IMarkupElement), typeof(IMarkupElement),
+				DisplayType.FromSystem<IMarkupElement>(), DisplayType.FromSystem<IMarkupElement>(),
 				"option", "option",
 				new ArgumentDetails[] {
-					new ArgumentDetails("name", new DocumentationString("The name for this option, which will be used as the enumeration name by the user."), ArgumentType.Simple(typeof(string)), false, true, null, null, null),
-					new ArgumentDetails("desc", new DocumentationString("A description of this option, to be displayed to the user as hints or documentation."), ArgumentType.Simple(typeof(string)), true, true, null, null, null)
+					new ArgumentDetails("name", new DocumentationString("The name for this option, which will be used as the enumeration name by the user."), ArgumentType.Simple<string>(), false, true, null, null, null),
+					new ArgumentDetails("desc", new DocumentationString("A description of this option, to be displayed to the user as hints or documentation."), ArgumentType.Simple<string>(), true, true, null, null, null)
 				},
 				new DocumentationString(new TextSpan("This element represents an option for a custom enumeration Markup argument. " +
 				"This element should only be a child of "), new TypeSpan("arg", typeof(MarkupSingleArgument)), new TextSpan(" elements.")), 
@@ -82,7 +82,7 @@ namespace SharpSheets.Markup.Parsing {
 				);
 
 			BuilderDetails argsBuilder = new BuilderDetails(
-				typeof(IMarkupElement), typeof(IMarkupElement),
+				DisplayType.FromSystem<IMarkupElement>(), DisplayType.FromSystem<IMarkupElement>(),
 				"args", "args",
 				Array.Empty<ArgumentDetails>(),
 				new DocumentationString(
@@ -97,7 +97,7 @@ namespace SharpSheets.Markup.Parsing {
 				);
 
 			BuilderDetails defsBuilder = new BuilderDetails(
-				typeof(IMarkupElement), typeof(IMarkupElement),
+				DisplayType.FromSystem<IMarkupElement>(), DisplayType.FromSystem<IMarkupElement>(),
 				"defs", "defs",
 				Array.Empty<ArgumentDetails>(),
 				new DocumentationString("This element is a holder for other graphical elements which " +
@@ -106,7 +106,7 @@ namespace SharpSheets.Markup.Parsing {
 				);
 
 			BuilderDetails descBuilder = new BuilderDetails(
-				typeof(IMarkupElement), typeof(IMarkupElement),
+				DisplayType.FromSystem<IMarkupElement>(), DisplayType.FromSystem<IMarkupElement>(),
 				"desc", "desc",
 				Array.Empty<ArgumentDetails>(),
 				new DocumentationString(new TextSpan("This element is used to provide a description for a pattern. " +
@@ -117,11 +117,11 @@ namespace SharpSheets.Markup.Parsing {
 				);
 
 			BuilderDetails stopBuilder = new BuilderDetails(
-				typeof(IMarkupElement), typeof(IMarkupElement),
+				DisplayType.FromSystem<IMarkupElement>(), DisplayType.FromSystem<IMarkupElement>(),
 				"stop", "stop",
 				new ArgumentDetails[] {
-					new ArgumentDetails("offset", new DocumentationString("The location of this stop in the gradient, expressed as a percentage (e.g. \"50%\") or float value (in the range 0-1)."), ArgumentType.Simple(typeof(FloatExpression)), true, true, new FloatExpression(0f, markupContext.TypeSystem), null, null),
-					new ArgumentDetails("stop-color", new DocumentationString(new TextSpan("The color for this gradient stop, indicating the color value at the specified "), new ParameterSpan("offset"), new TextSpan(" in the gradient.")), ArgumentType.Simple(typeof(ColorExpression)), true, true, new ColorExpression(Colors.Color.Black, markupContext.TypeSystem), null, null)
+					new ArgumentDetails("offset", new DocumentationString("The location of this stop in the gradient, expressed as a percentage (e.g. \"50%\") or float value (in the range 0-1)."), ArgumentType.Simple<FloatExpression>(), true, true, new FloatExpression(0f, markupContext.TypeSystem), null, null),
+					new ArgumentDetails("stop-color", new DocumentationString(new TextSpan("The color for this gradient stop, indicating the color value at the specified "), new ParameterSpan("offset"), new TextSpan(" in the gradient.")), ArgumentType.Simple<ColorExpression>(), true, true, new ColorExpression(Colors.Color.Black, markupContext.TypeSystem), null, null)
 				},
 				new DocumentationString("This element defines a color and its position in a gradient."),
 				null, null

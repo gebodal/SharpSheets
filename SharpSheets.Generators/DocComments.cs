@@ -715,7 +715,7 @@ namespace SharpSheets.Generators {
 			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 			string? defaultValue = argDoc?.DefaultValue ?? param.DefaultValue;
 			string? exampleValue = argDoc?.ExampleValue;
-			return new SharpSheetsParameterData(name, descriptionContent, ArgumentTypeSimple(param.Type.CompilerFullName), param.IsOptional, useLocal, defaultValue, exampleValue, null);
+			return new SharpSheetsParameterData(name, descriptionContent, GetArgumentType(param.Type.CompilerFullName), param.IsOptional, useLocal, defaultValue, exampleValue, null);
 		}
 
 		public static IEnumerable<SharpSheetsParameterData> GetAreaShapeArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal, bool includeNameArg, SharpSheetsParameterResolverData resolverData) {
@@ -751,8 +751,36 @@ namespace SharpSheets.Generators {
 			yield return new SharpSheetsParameterData(name, argDoc?.Description, ArgumentTypeSimple(argumentType), isOptional, useLocal, styleDefaultValue, exampleDetail, "style");
 		}
 
+		private static readonly Regex listRegex = new Regex(@"^System\.Collections\.Generic\.List<(?<elemType>.+)>$");
+		private static readonly Regex numberedRegex = new Regex(@"^SharpSheets\.Parsing\.Numbered<(?<elemType>.+)>$");
+		private static string GetArgumentType(string typeName) {
+			if (listRegex.Match(typeName) is Match listMatch && listMatch.Success) {
+				string elemType = listMatch.Groups[1].Value;
+				return ArgumentTypeStructured(typeName, elemType, "Entried");
+			}
+			else if (numberedRegex.Match(typeName) is Match numberedMatch && numberedMatch.Success) {
+				string elemType = numberedMatch.Groups[1].Value;
+				return ArgumentTypeStructured(typeName, elemType, "Numbered");
+			}
+			else {
+				return ArgumentTypeSimple(typeName);
+			}
+		}
+
 		public static string ArgumentTypeSimple(string typeName) {
-			return $"SharpSheets.Documentation.ArgumentType.Simple(typeof({typeName}))";
+			return $"SharpSheets.Documentation.ArgumentType.Simple<{typeName}>()";
+		}
+
+		public static string ArgumentTypeStructured(string typeName, string elemType, string structure) {
+			return $"new SharpSheets.Documentation.ArgumentType(SharpSheets.Documentation.DisplayType.FromSystem<{elemType}>(SharpSheets.Documentation.DisplayTypeStructure.{structure}), typeof({typeName}))";
+		}
+
+		public static string DisplayTypeSimple(string typeName) {
+			return $"SharpSheets.Documentation.DisplayType.FromSystem<{typeName}>()";
+		}
+
+		public static string DisplayTypeStructured(string elemType, string structure) {
+			return $"SharpSheets.Documentation.DisplayType.FromSystem<{elemType}>(SharpSheets.Documentation.DisplayTypeStructure.{structure})";
 		}
 
 	}

@@ -40,26 +40,26 @@ namespace SharpSheets.Documentation {
 			}
 
 			foreach (ArgumentDetails arg in builder.Arguments) {
-				if (arg.Type.DisplayType.TryGetGenericTypeDefinition() == typeof(List<>)) { // Use DisplayType here to be sure...
+				if (arg.Type.IsEntried) { // Use DisplayType here to be sure...
 					if (arg.ExampleValue is IEnumerable exampleEnumerable) {
 						entries = exampleEnumerable.Cast<object>().Select(v => ValueSerialization.ToString(v)).ToList();
 					}
 				}
-				else if (arg.Type.DisplayType.TryGetGenericTypeDefinition() == typeof(Numbered<>)) {
+				else if (arg.Type.IsNumbered) {
 					if (arg.ExampleValue is INumbered exampleNumbered) {
 						foreach (KeyValuePair<int, object?> entry in exampleNumbered) {
 							properties[arg.Name + (entry.Key + 1).ToString()] = ValueSerialization.ToString(entry.Value);
 						}
 					}
 				}
-				else if (arg.Type.DisplayType == typeof(bool)) {
+				else if (arg.Type.DisplayType.IsBool) {
 					if (arg.ExampleValue is bool exampleBool) {
 						flags[arg.Name] = exampleBool;
 					}
 				}
 				else if (arg.Implied != null) {
 					//Console.WriteLine("Implied: " + arg.Implied);
-					if (typeof(IShape).IsAssignableFrom(arg.Type.DisplayType) && arg.ExampleValue != null) {
+					if (typeof(IShape).IsAssignableFrom(arg.Type.DisplayType.SystemType) && arg.ExampleValue != null) {
 						properties[arg.Name + "." + arg.Implied] = arg.ExampleValue.GetType().Name;
 					}
 				}

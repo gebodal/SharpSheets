@@ -39,15 +39,7 @@ namespace SharpEditor.ContentBuilders {
 		}
 
 		public static bool IsEnum(ArgumentType argumentType, [MaybeNullWhen(false)] out EnumDoc enumDoc) {
-			Type? enumType = null;
-			if (argumentType.DisplayType.IsEnum) {
-				enumType = argumentType.DisplayType;
-			}
-			else if (Nullable.GetUnderlyingType(argumentType.DisplayType) is Type nulledType && nulledType.IsEnum) {
-				enumType = nulledType;
-			}
-
-			if (enumType is Type foundType && SharpDocumentation.GetEnumDoc(foundType) is EnumDoc foundDoc) {
+			if (argumentType.DisplayType.IsSingle && argumentType.DisplayType.IsEnum && SharpDocumentation.GetEnumDoc(argumentType.DisplayType) is EnumDoc foundDoc) {
 				enumDoc = foundDoc;
 				return true;
 			}

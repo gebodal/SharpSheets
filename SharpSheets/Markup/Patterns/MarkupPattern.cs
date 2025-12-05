@@ -1,9 +1,6 @@
 ﻿using SharpSheets.Evaluations;
 using SharpSheets.Utilities;
 using SharpSheets.Layouts;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using SharpSheets.Shapes;
 using SharpSheets.Parsing;
 using SharpSheets.Documentation;
@@ -91,11 +88,11 @@ namespace SharpSheets.Markup.Patterns {
 				if (arg is MarkupSingleArgument singleArg) {
 					string argName = singleArg.ArgumentName.ToString().ToLowerInvariant();
 					ArgumentType singleArgType = GetArgDocumentationType(singleArg);
-					object? exampleValue = GetArgExampleValue(singleArg, singleArgType.DataType);
+					object? exampleValue = GetArgExampleValue(singleArg, singleArgType.DataType, singleArgType);
 
 					if (typeof(IAreaShape).IsAssignableFrom(singleArgType.DataType)) {
 						bool nameGiven = arguments.Any(a => a.ArgumentName.Equals(new EvaluationName("name")));
-						foreach (ArgumentDetails shapeArg in DocumentationGenerator.GetAreaShapeArguments(argName, "", singleArgType.DisplayType, singleArg.Description, singleArg.IsOptional, singleArg.UseLocal, !nameGiven)) {
+						foreach (ArgumentDetails shapeArg in DocumentationGenerator.GetAreaShapeArguments(argName, "", singleArgType.DataType, singleArg.Description, singleArg.IsOptional, singleArg.UseLocal, !nameGiven)) {
 							yield return new ArgumentDetails(
 								shapeArg.Name,
 								shapeArg.Description,
@@ -108,7 +105,7 @@ namespace SharpSheets.Markup.Patterns {
 						}
 					}
 					else if (typeof(IDetail).IsAssignableFrom(singleArgType.DataType)) {
-						foreach (ArgumentDetails detailArg in DocumentationGenerator.GetDetailArguments(argName, "", singleArgType.DisplayType, singleArg.Description, singleArg.IsOptional, singleArg.UseLocal)) {
+						foreach (ArgumentDetails detailArg in DocumentationGenerator.GetDetailArguments(argName, "", singleArgType.DataType, singleArg.Description, singleArg.IsOptional, singleArg.UseLocal)) {
 							yield return new ArgumentDetails(
 								detailArg.Name,
 								detailArg.Description,
@@ -145,43 +142,39 @@ namespace SharpSheets.Markup.Patterns {
 			if (arg.FromEntries) {
 				// This is here to abide by SharpFactory conventions
 				EvaluationType knownArgElemType = argElemType ?? throw new InvalidOperationException("Entries argument types must be iterable.");
-				Type entriesListDisplayType = typeof(List<>).MakeGenericType(knownArgElemType.DisplayType);
 				Type entriesListDataType = typeof(List<>).MakeGenericType(knownArgElemType.DataType); // TODO Should this just be the raw DataType?
-				return new ArgumentType(entriesListDisplayType, entriesListDataType);
+				return new ArgumentType(DisplayType.FromEvaluation(knownArgElemType, DisplayTypeStructure.Entried), entriesListDataType);
 			}
 			else if (arg.Type.DataType == typeof(IWidget)) {
-				return new ArgumentType(typeof(ChildHolder), arg.Type.DataType); // TODO Is this the right option now?
+				return new ArgumentType(DisplayType.FromSystem<ChildHolder>(), arg.Type.DataType); // TODO Is this the right option now?
 			}
 			else if (arg.IsNumbered) {
 				EvaluationType knownArgElemType = argElemType ?? throw new InvalidOperationException("Numbered argument types must be iterable.");
 				if (knownArgElemType.DataType == typeof(IWidget)) {
-					Type numberedDisplayType = typeof(Numbered<>).MakeGenericType(typeof(ChildHolder));
 					Type numberedDataType = typeof(Numbered<>).MakeGenericType(knownArgElemType.DataType); // TODO Should this just be the raw DataType?
-					return new ArgumentType(numberedDisplayType, numberedDataType);
+					return new ArgumentType(DisplayType.FromSystem<ChildHolder>(DisplayTypeStructure.Numbered), numberedDataType);
 				}
 				else {
-					Type numberedDisplayType = typeof(Numbered<>).MakeGenericType(knownArgElemType.DisplayType);
 					Type numberedDataType = typeof(Numbered<>).MakeGenericType(knownArgElemType.DataType); // TODO Should this just be the raw DataType?
-					return new ArgumentType(numberedDisplayType, numberedDataType);
+					return new ArgumentType(DisplayType.FromEvaluation(knownArgElemType, DisplayTypeStructure.Numbered), numberedDataType);
 				}
 			}
 			else {
-				return new ArgumentType(arg.Type.DisplayType, arg.Type.DataType); // TODO Is this the right option now?
+				return new ArgumentType(DisplayType.FromEvaluation(arg.Type), arg.Type.DataType); // TODO Is this the right option now?
 			}
 		}
 
-		private static object? GetArgExampleValue(MarkupSingleArgument arg, Type argType) {
-			object? exampleValue = arg.ExampleValue ?? arg.DefaultValue;
+		private static object? GetArgExampleValue(MarkupSingleArgument arg, Type argDataType, ArgumentType argType) {
+			object? exampleValue = (arg.ExampleValue ?? arg.DefaultValue) ?? arg.Type.DefaultValue().Value;
 
 			if (arg.IsNumbered) {
-				Type numberedElementType = argType.GetGenericArguments().Single();
+				Type numberedElementType = argDataType.GetGenericArguments().Single();
 				Type numberedType = typeof(Numbered<>).MakeGenericType(numberedElementType);
 				INumbered? numbered = (INumbered?)Activator.CreateInstance(numberedType) ?? throw new ArgumentException("Could not instantiate provided numbered type.");
 
 				if (exampleValue is Array exampleArray) {
 					for (int i=0; i<exampleArray.Length; i++) {
-						object? processed = ProcessExampleValue(exampleArray.GetValue(i), numberedElementType);
-						numbered.Add(i, processed);
+						numbered.Add(i, exampleArray.GetValue(i));
 					}
 				}
 				else if (exampleValue is not null) {
@@ -191,14 +184,13 @@ namespace SharpSheets.Markup.Patterns {
 				return numbered;
 			}
 			else if (arg.FromEntries) {
-				Type listElementType = argType.GetGenericArguments().Single();
+				Type listElementType = argDataType.GetGenericArguments().Single();
 				Type listType = typeof(List<>).MakeGenericType(listElementType);
 				IList entries = Activator.CreateInstance(listType)! as IList ?? throw new ArgumentException("Could not instantiate provided entires type.");
 
 				if (exampleValue is Array exampleArray) {
 					foreach (object entry in exampleArray) {
-						object? processed = ProcessExampleValue(entry, listElementType);
-						entries.Add(processed);
+						entries.Add(entry);
 					}
 				}
 				else if(exampleValue is not null) {
@@ -208,70 +200,7 @@ namespace SharpSheets.Markup.Patterns {
 				return entries;
 			}
 			else {
-				return ProcessExampleValue(exampleValue, argType);
-			}
-		}
-
-		private static object? ProcessExampleValue(object? value, Type type) {
-			// TODO Need to decide what kind of exception this is going to throw on failure.
-			// Is ArgumentException the most sensible?
-			// Where exactly are the exceptions being caught?
-
-			if (type.IsEnum && value is string strValue) {
-				if (type is MarkupEnumType) {
-					return Activator.CreateInstance(type); // TODO What the hell is going on here?
-				}
-				else {
-					return EnumUtils.ParseEnum(type, strValue);
-				}
-			}
-			else if (value is null && type.IsValueType) {
-				return Activator.CreateInstance(type);
-			}
-			else if(value is null) {
-				return value;
-			}
-			else if (type.IsArray) {
-				if(value is Array array) {
-					Type elementType = type.GetElementType()!;
-					List<object?> values = new List<object?>();
-					foreach(object entry in array) {
-						object? processed = ProcessExampleValue(entry, elementType);
-						values.Add(processed);
-					}
-
-					Array final = Array.CreateInstance(elementType, values.Count);
-					Array.Copy(values.ToArray(), final, final.Length);
-					return final;
-				}
-				else {
-					throw new ArgumentException($"Array value expected (got {(value?.GetType()?.Name ?? "null")}).");
-				}
-			}
-			else if (TupleUtils.IsTupleType(type)) {
-				if (TupleUtils.IsTupleObject(value)) {
-					Type[] elemTypes = type.GenericTypeArguments;
-					
-					if(TupleUtils.GetTupleLength(value) != elemTypes.Length) {
-						throw new ArgumentException($"ValueTuple of length {elemTypes.Length} expected (got {TupleUtils.GetTupleLength(value)}).");
-					}
-
-					object?[] processed = new object[elemTypes.Length];
-					for(int i=0; i<elemTypes.Length; i++) {
-						processed[i] = ProcessExampleValue(TupleUtils.Index(value, i), elemTypes[i]);
-					}
-
-					return TupleUtils.CreateTuple(type, processed);
-				}
-				else {
-					throw new ArgumentException($"ValueTuple value expected (got {value.GetType().Name}).");
-				}
-			}
-			else if(type.IsAssignableFrom(value.GetType())) { // Already checked "value is null"
-				return value;
-			}
-			else {
-				throw new ArgumentException($"Invalid data type: {(value?.GetType()?.Name ?? "null")} (expected {type.Name})");
+				return exampleValue;
 			}
 		}
 
@@ -288,7 +217,7 @@ namespace SharpSheets.Markup.Patterns {
 
 		public MarkupPattern Pattern { get; }
 
-		public MarkupBuilderDetails(MarkupPattern pattern, Type displayType, Type declaringType, ArgumentDetails[] arguments, DocumentationString? description) : base(displayType, declaringType, pattern.Name, pattern.FullName, arguments, description, pattern.exampleRect, pattern.exampleCanvas) {
+		public MarkupBuilderDetails(MarkupPattern pattern, DisplayType displayType, DisplayType declaringType, ArgumentDetails[] arguments, DocumentationString? description) : base(displayType, declaringType, pattern.Name, pattern.FullName, arguments, description, pattern.exampleRect, pattern.exampleCanvas) {
 			this.Pattern = pattern;
 		}
 

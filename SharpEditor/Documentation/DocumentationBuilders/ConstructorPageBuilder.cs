@@ -61,7 +61,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				stack.Children.Add(descriptionBlock);
 			}
 
-			if (typeof(IShape).IsAssignableFrom(builder.DeclaringType) || typeof(IWidget).IsAssignableFrom(builder.DeclaringType)) {
+			if (builder.DeclaringType.IsAssignableTo(typeof(IShape)) || builder.DeclaringType.IsAssignableTo(typeof(IWidget))) {
 				Control? graphicElement = MakeExampleGraphic(builder);
 				if (graphicElement != null) {
 					stack.Children.Add(graphicElement);
@@ -89,7 +89,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				argPanel.Children.Add(desctionBlock);
 			}
 
-			if (argument.ArgumentType.IsEnum && SharpDocumentation.GetEnumDoc(argument.ArgumentType.DisplayType) is EnumDoc enumDoc) {
+			if (argument.ArgumentType.DisplayType.IsEnum && SharpDocumentation.GetEnumDoc(argument.ArgumentType.DisplayType) is EnumDoc enumDoc) {
 				argPanel.Children.Add(EnumContentBuilder.MakeEnumOptionsBlock(enumDoc, ArgumentDetailsMargin));
 			}
 
@@ -137,7 +137,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 		private static readonly float ExampleGraphicDefaultMargin = 0.1f;
 		public static Control? MakeExampleGraphic(BuilderDetails builder) {
-			if (!typeof(IShape).IsAssignableFrom(builder.DeclaringType) && !typeof(IWidget).IsAssignableFrom(builder.DeclaringType)) {
+			if (!builder.DeclaringType.IsAssignableTo(typeof(IShape)) && !builder.DeclaringType.IsAssignableTo(typeof(IWidget))) {
 				return null;
 			}
 
@@ -160,36 +160,26 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					return new Rectangle(pageArea.Width, pageArea.Height).Margins(margin, false);
 				}
 
-				if (typeof(IShape).IsAssignableFrom(builder.DeclaringType)) {
+				if (builder.DeclaringType.IsAssignableTo(typeof(IShape))) {
 					IContext shapeContext = Context.Simple("example", new Dictionary<string, string>() { { "style", builder.FullName } }, new Dictionary<string, bool>());
 					DirectoryPath source = new DirectoryPath(SharpEditorPathInfo.TemplateDirectory);
 					string exampleName = builder.Name; // "NAME";
 
-					/*
 					IShape shape;
-					if (constructor.DeclaringType == typeof(BoxedTitle)) {
-						shape = new BoxedTitle(new Simple(-1), exampleName, new Rounded(-1));
-					}
-					else if (typeof(ITitleStyledBox).IsAssignableFrom(constructor.DeclaringType)) {
-						shape = SharpEditorRegistries.ShapeFactoryInstance.MakeTitleStyle(shapeContext, new Simple(-1, dashes: new float[] { 3f, 3f }, stroke: SharpSheets.Colors.Color.Black), exampleName, source);
-					}
-					else {
-						shape = SharpEditorRegistries.ShapeFactoryInstance.MakeShape(constructor.DisplayType, shapeContext, exampleName, source);
-					}
-					*/
-
-					IShape shape;
-					if (builder.DeclaringType == typeof(BoxedTitle)) {
+					if (builder.DeclaringType.IsSimple<BoxedTitle>()) {
 						shape = new BoxedTitle(new Simple(-1), exampleName, new Rounded(-1), trim: new Margins(1f));
 					}
-					else if (builder.DeclaringType == typeof(TabTitle)) {
+					else if (builder.DeclaringType.IsSimple<TabTitle>()) {
 						shape = new TabTitle(new Simple(-1), exampleName, new Rounded(-1), trim: new Margins(1f), includeProtrusion: true);
 					}
-					else if (typeof(ITitleStyledBox).IsAssignableFrom(builder.DeclaringType)) {
+					else if (builder.DeclaringType.IsAssignableTo(typeof(ITitleStyledBox))) {
 						shape = SharpEditorRegistries.ShapeFactoryInstance.MakeTitleStyle(shapeContext, new Simple(-1, dashes: new float[] { 3f, 3f }, stroke: SharpSheets.Colors.Color.Black), exampleName, source, out _);
 					}
+					else if (builder.DisplayType.GetSingle() is Type builderSystemType) {
+						shape = SharpEditorRegistries.ShapeFactoryInstance.MakeExample(builderSystemType, builder.FullName, source, out _); // .MakeShape(constructor.DisplayType, shapeContext, exampleName, source);
+					}
 					else {
-						shape = SharpEditorRegistries.ShapeFactoryInstance.MakeExample(builder.DisplayType, builder.FullName, source, out _); // .MakeShape(constructor.DisplayType, shapeContext, exampleName, source);
+						shape = ShapeFactory.MakeDefault_IBox();
 					}
 
 					SharpSheets.Layouts.Size pageSize;
@@ -223,11 +213,11 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 							shapeRect = GetShape(pageSize);
 						}
 					}
-					else if (typeof(IBar).IsAssignableFrom(builder.DeclaringType) || typeof(IUsageBar).IsAssignableFrom(builder.DeclaringType)) {
+					else if (builder.DeclaringType.IsAssignableTo(typeof(IBar)) || builder.DeclaringType.IsAssignableTo(typeof(IUsageBar))) {
 						pageSize = GetPage(new Rectangle(140, 30));
 						shapeRect = GetShape(pageSize);
 					}
-					else if (typeof(IDetail).IsAssignableFrom(builder.DeclaringType)) {
+					else if (builder.DeclaringType.IsAssignableTo(typeof(IDetail))) {
 						pageSize = GetPage(new Rectangle(90, 20));
 						shapeRect = GetShape(pageSize);
 					}
@@ -257,7 +247,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 						displayRects.AddRange(entried.EntryRects(canvas, shapeRect));
 					}
 				}
-				else if (typeof(IWidget).IsAssignableFrom(builder.DeclaringType)) {
+				else if (builder.DeclaringType.IsAssignableTo(typeof(IWidget))) {
 					//IContext context = Context.Simple("example", new Dictionary<string, string>(), new Dictionary<string, bool>());
 					DirectoryPath source = new DirectoryPath(SharpEditorPathInfo.TemplateDirectory);
 

@@ -109,7 +109,7 @@ namespace SharpSheets.Markup.Patterns {
 		}
 
 		public override MarkupBuilderDetails GetBuilderDetails() {
-			return new MarkupBuilderDetails(this, typeof(IWidget), typeof(MarkupWidget), GetArgumentDetails().ToArray(), Description is not null ? new DocumentationString(Description) : null);
+			return new MarkupBuilderDetails(this, DisplayType.FromSystem<IWidget>(), DisplayType.FromSystem<MarkupWidget>(), GetArgumentDetails().ToArray(), Description is not null ? new DocumentationString(Description) : null);
 		}
 
 		private static MarkupCanvasGraphicsData GetGraphicsData(WidgetSetup setup) {

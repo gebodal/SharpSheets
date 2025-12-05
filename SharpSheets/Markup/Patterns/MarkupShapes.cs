@@ -49,7 +49,7 @@ namespace SharpSheets.Markup.Patterns {
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
 		public sealed override MarkupBuilderDetails GetBuilderDetails() {
-			return new MarkupBuilderDetails(this, typeof(T), InstanceType, GetArgumentDetails().ToArray(), Description is not null ? new DocumentationString(Description) : null);
+			return new MarkupBuilderDetails(this, DisplayType.FromSystem<T>(), DisplayType.Create(InstanceType), GetArgumentDetails().ToArray(), Description is not null ? new DocumentationString(Description) : null);
 		}
 
 		protected virtual IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {

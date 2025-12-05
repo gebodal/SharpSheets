@@ -106,7 +106,7 @@ namespace SharpSheets.Markup.Parsing {
 
 				object? elementDefaultValue;
 				if (numberedElementType.IsValueType) {
-					elementDefaultValue = Activator.CreateInstance(numberedElementType);
+					elementDefaultValue = numberedElementEvalType.DefaultValue().Value; // Activator.CreateInstance(numberedElementType);
 				}
 				else {
 					elementDefaultValue = null;
@@ -258,7 +258,7 @@ namespace SharpSheets.Markup.Parsing {
 			}
 			else if (!arg.IsOptional) {
 				//errors.Add(new SharpParsingException(context.Location, $"No value for required argument \"{arg.Name}\" for {Name}.")); // context.Location good here?
-				errors.Add(new MissingParameterException(context.Location, arg.ArgumentName.ToString(), arg.Type.DisplayType, $"No value for required argument \"{arg.ArgumentName}\".")); // context.Location good here?
+				errors.Add(new MissingParameterException(context.Location, arg.ArgumentName.ToString(), arg.Type.DataType, $"No value for required argument \"{arg.ArgumentName}\".")); // context.Location good here?
 			}
 
 			value = default;

@@ -2108,8 +2108,8 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				*/
 
-				if (type.GetInterfacesOrSelf().FirstOrDefault(i => i.TryGetGenericTypeDefinition() == typeof(IExpression<>)) is Type expressionType) {
-					return TypeName(expressionType.GenericTypeArguments[0]) + " expression";
+				if (ExpressionUsageMap.TryGetExpressionType(type, out Type? expressionType)) {
+					return TypeName(expressionType) + " expression";
 				}
 				/*
 				if (type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(IExpression<>))) {

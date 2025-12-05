@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Colors;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace SharpSheets.Parsing {
 
@@ -112,11 +113,11 @@ namespace SharpSheets.Parsing {
 				rank += 1;
 				return string.Join(ValueParsers.GetArraySeparator(rank), parts);
 			}
-			else if (TupleUtils.IsTupleType(value.GetType())) {
+			else if (value is ITuple tupleValue) {
 				List<string> parts = new List<string>();
 				rank = 0;
-				foreach (object? i in value.GetType().GetFields().Select(f => f.GetValue(value))) {
-					parts.Add(ArrayToString(i, out int iRank));
+				for (int i = 0; i < tupleValue.Length; i++) {
+					parts.Add(ArrayToString(tupleValue[i], out int iRank));
 					rank = Math.Max(rank, iRank);
 				}
 				rank += 1;

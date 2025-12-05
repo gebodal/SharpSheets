@@ -53,18 +53,18 @@ namespace SharpSheets.Markup.Patterns {
 		static PatternData() {
 
 			WidgetVariables = new ArgumentDetails[] {
-				new ArgumentDetails("gutter", new DocumentationString("Gutter size for this widget."), ArgumentType.Simple(typeof(float)), true, false, 8f, 8f, null),
-				new ArgumentDetails("layout", new DocumentationString("Layout for this widgets children."), ArgumentType.Simple(typeof(LayoutDirection)), true, false, LayoutDirection.ROWS, LayoutDirection.ROWS, null),
+				new ArgumentDetails("gutter", new DocumentationString("Gutter size for this widget."), ArgumentType.Simple<float>(), true, false, 8f, 8f, null),
+				new ArgumentDetails("layout", new DocumentationString("Layout for this widgets children."), ArgumentType.Simple<LayoutDirection>(), true, false, LayoutDirection.ROWS, LayoutDirection.ROWS, null),
 			};
 
-			aspectArg = new ArgumentDetails("aspect", new DocumentationString("Aspect ratio for this shape."), ArgumentType.Simple(typeof(float)), true, true, -1f, -1f, null);
-			shapeArg = new ArgumentDetails("shape", new DocumentationString("eriufvbeirugv."), ArgumentType.Simple(typeof(IContainerShape)), true, false, null, null, null);
-			nameArg = new ArgumentDetails("name", new DocumentationString("Name to use for the title of this shape."), ArgumentType.Simple(typeof(string)), true, true, "NAME", "NAME", null);
-			partsArg = new ArgumentDetails("parts", new DocumentationString("Parts of the name to use for the title of this shape, split on newlines."), ArgumentType.Simple(typeof(string[])), true, true, new string[] { "NAME" }, new string[] { "NAME" }, null);
-			formatArg = new ArgumentDetails("format", new DocumentationString("Font format to use for the title of this shape."), ArgumentType.Simple(typeof(TextFormat)), true, false, TextFormat.BOLD, TextFormat.BOLD, null);
-			fontsizeArg = new ArgumentDetails("fontSize", new DocumentationString("Font size to use for the title of this shape."), ArgumentType.Simple(typeof(float)), true, false, 6f, 6f, null);
+			aspectArg = new ArgumentDetails("aspect", new DocumentationString("Aspect ratio for this shape."), ArgumentType.Simple<float>(), true, true, -1f, -1f, null);
+			shapeArg = new ArgumentDetails("shape", new DocumentationString("eriufvbeirugv."), ArgumentType.Simple<IContainerShape>(), true, false, null, null, null);
+			nameArg = new ArgumentDetails("name", new DocumentationString("Name to use for the title of this shape."), ArgumentType.Simple<string>(), true, true, "NAME", "NAME", null);
+			partsArg = new ArgumentDetails("parts", new DocumentationString("Parts of the name to use for the title of this shape, split on newlines."), ArgumentType.Simple<string[]>(), true, true, new string[] { "NAME" }, new string[] { "NAME" }, null);
+			formatArg = new ArgumentDetails("format", new DocumentationString("Font format to use for the title of this shape."), ArgumentType.Simple<TextFormat>(), true, false, TextFormat.BOLD, TextFormat.BOLD, null);
+			fontsizeArg = new ArgumentDetails("fontSize", new DocumentationString("Font size to use for the title of this shape."), ArgumentType.Simple<float>(), true, false, 6f, 6f, null);
 			
-			ArgumentDetails detailLayoutArg = new ArgumentDetails("layout", new DocumentationString("The current layout of the detail shape."), ArgumentType.Simple(typeof(LayoutDirection)), false, true, LayoutDirection.ROWS, LayoutDirection.ROWS, null);
+			ArgumentDetails detailLayoutArg = new ArgumentDetails("layout", new DocumentationString("The current layout of the detail shape."), ArgumentType.Simple<LayoutDirection>(), false, true, LayoutDirection.ROWS, LayoutDirection.ROWS, null);
 
 			AreaShapeVariables = new ArgumentDetails[] { aspectArg };
 

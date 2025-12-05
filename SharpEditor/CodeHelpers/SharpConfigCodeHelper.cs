@@ -75,7 +75,7 @@ namespace SharpEditor.CodeHelpers {
 			else if(impliedBuilders.TryGetValue(type, out BuilderDetails? impliedBuilder)) {
 				return impliedBuilder;
 			}
-			else if(fallbackType.DeclaringType == type) {
+			else if(fallbackType.DeclaringType.GetSingle() == type) {
 				return fallbackType;
 			}
 			else {
@@ -193,7 +193,7 @@ namespace SharpEditor.CodeHelpers {
 
 			bool ArgIsMatch(BuilderArgumentDetails arg) {
 
-				bool isNumbered = arg.ArgumentType.DisplayType.IsNumbered(out _);
+				bool isNumbered = arg.ArgumentType.IsNumbered;
 
 				Regex argRegex = new Regex(@"^" + Regex.Escape(arg.ArgumentName) + (isNumbered ? @"[0-9]+" : @"") + (arg.Implied is not null ? Regex.Escape("." + arg.Implied) : @"") + @"$", RegexOptions.IgnoreCase);
 
@@ -380,7 +380,7 @@ namespace SharpEditor.CodeHelpers {
 		}
 
 		private IEnumerable<BuilderArgumentDetails> ExpandCompletionArguments(IEnumerable<BuilderArgumentDetails> arguments, IContext? context) {
-			foreach (BuilderArgumentDetails argument in arguments.Distinct(ArgumentComparer.Instance).Where(a => !a.ArgumentType.IsList)) {
+			foreach (BuilderArgumentDetails argument in arguments.Distinct(ArgumentComparer.Instance).Where(a => !a.ArgumentType.IsEntried)) {
 				yield return argument;
 
 				if (argument.Implied != null && context != null) {
@@ -439,13 +439,13 @@ namespace SharpEditor.CodeHelpers {
 					}
 					*/
 				}
-				else if (argGroup.Key.ArgumentType.DisplayType == typeof(bool)) {
+				else if (argGroup.Key.ArgumentType.DisplayType.IsSimple<bool>()) {
 					yield return new CompletionEntry(FinalText(argGroup.Key.ArgumentName.ToLowerInvariant())) {
 						//DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context)
 						DescriptionElements = TooltipBuilder.MakeMultipleArgumentBlocks(argGroup, context).ToArray()
 					};
 				}
-				else if (argGroup.Key.ArgumentType.DisplayType == typeof(Margins) || argGroup.Key.ArgumentType.DisplayType == typeof(Position) || argGroup.Key.ArgumentType.DisplayType == typeof(FontTags)) {
+				else if (argGroup.Key.ArgumentType.DisplayType.IsSimple<Margins>() || argGroup.Key.ArgumentType.DisplayType.IsSimple<Position>() || argGroup.Key.ArgumentType.DisplayType.IsSimple<FontTags>()) {
 					yield return new CompletionEntry(FinalText(argGroup.Key.ArgumentName.ToLowerInvariant()) + ":") {
 						//DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context),
 						DescriptionElements = TooltipBuilder.MakeMultipleArgumentBlocks(argGroup, context).ToArray(),
@@ -453,7 +453,7 @@ namespace SharpEditor.CodeHelpers {
 						AfterCaretAppend = "}"
 					};
 				}
-				else if (argGroup.Key.ArgumentType.DisplayType == typeof(ChildHolder)) {
+				else if (argGroup.Key.ArgumentType.DisplayType.IsSimple<ChildHolder>()) {
 					yield return new CompletionEntry("&" + FinalText(argGroup.Key.ArgumentName.ToLowerInvariant()) + ":") {
 						//DescriptionElements = TooltipBuilder.GetArgumentDescription(argument, context),
 						DescriptionElements = TooltipBuilder.MakeMultipleArgumentBlocks(argGroup, context).ToArray(),
@@ -521,9 +521,9 @@ namespace SharpEditor.CodeHelpers {
 			}
 			else if(currentLine.text == "!") {
 				// Start of negative flag
-				data.AddRange(GetArgumentNameCompletionEntries(currentLine.GetApplicableBuilderArgs().Where(a => a.ArgumentType.DisplayType == typeof(bool)), currentLine.context));
+				data.AddRange(GetArgumentNameCompletionEntries(currentLine.GetApplicableBuilderArgs().Where(a => a.ArgumentType.DisplayType.IsBool), currentLine.context));
 			}
-			else if (currentLine.text.EndsWith(":") && currentLine.argument != null && currentLine.argument.Type.DisplayType is Type argType) {
+			else if (currentLine.text.EndsWith(':') && currentLine.argument != null && currentLine.argument.Type.DisplayType.GetBase() is Type argType) {
 				// Previous character is colon, so check to see if this is an argument where we can suggest values (enum or implied builder)
 				if (Nullable.GetUnderlyingType(argType) is Type nulledType) {
 					argType = nulledType;
@@ -697,10 +697,10 @@ namespace SharpEditor.CodeHelpers {
 			}
 
 			bool ArgIsMatch(BuilderArgumentDetails arg) {
-				if(arg.ArgumentType.DisplayType == typeof(ChildHolder)) {
+				if(arg.ArgumentType.DisplayType.IsSimple<ChildHolder>()) {
 					return SharpDocuments.StringEquals(span.Name, arg.ArgumentName); // TODO Need to deal with stray underscores here?
 				}
-				else if(arg.ArgumentType.DisplayType.IsNumbered(out Type? numberedType) && numberedType == typeof(ChildHolder)) {
+				else if(arg.ArgumentType.DisplayType.IsNumbered && arg.ArgumentType.DisplayType.IsBase<ChildHolder>()) {
 					Regex childRegex = new Regex(@"^" + Regex.Escape(arg.ArgumentName) + @"[0-9]+$", RegexOptions.IgnoreCase);
 					return childRegex.IsMatch(span.Name);
 				}
@@ -736,7 +736,7 @@ namespace SharpEditor.CodeHelpers {
 			BuilderDetails builder = divTypes.Get(context.SimpleName) ?? fallbackType;
 
 			BuilderArgumentDetails[] arguments = builder.BuilderArguments
-				.Where(a => a.ArgumentType.IsList).ToArray() ?? Array.Empty<BuilderArgumentDetails>();
+				.Where(a => a.ArgumentType.IsEntried).ToArray() ?? Array.Empty<BuilderArgumentDetails>();
 
 			if (arguments.Length == 0) { return Enumerable.Empty<Control>(); }
 
@@ -747,7 +747,7 @@ namespace SharpEditor.CodeHelpers {
 
 			BuilderArgumentDetails[] allArgs = GetAllArguments(span, GetOwnerBuilders(span));
 
-			Type[] enumTypes = allArgs.Select(t => t.ArgumentType.DisplayType.GetUnderlyingType()).Where(t => t.IsEnum).ToArray();
+			Type[] enumTypes = allArgs.Select(t => t.ArgumentType.DisplayType.SystemType).WhereNotNull().Select(t => t.GetUnderlyingType()).Where(t => t.IsEnum).ToArray();
 			EnumDoc[] enumDocs = enumTypes
 				.Select(t => SharpDocumentation.GetEnumDoc(t))
 				.WhereNotNull()
@@ -777,14 +777,13 @@ namespace SharpEditor.CodeHelpers {
 			ConfigLineInfo lineInfo = GetLineInfo(Document.GetLineByOffset(offset));
 
 			if (lineInfo.argument is ArgumentDetails arg && !string.IsNullOrWhiteSpace(lineInfo.argText?.value)) {
-				if (typeof(FontPath).IsAssignableFrom(arg.Type.DisplayType)
-					&& FontPathRegistry.FindFontPath(lineInfo.argText.Value.value) is not null) {
+				if (arg.Type.DisplayType.IsSimple<FontPath>() && FontPathRegistry.FindFontPath(lineInfo.argText.Value.value) is not null) {
 
 					MenuItem item = new MenuItem() { Header = lineInfo.argText.Value.value + " Documentation..." };
 					item.Click += delegate { SharpEditorWindow.Instance?.controller?.ActivateDocumentationWindow().NavigateTo(new FontName(lineInfo.argText.Value.value)); };
 					items.Add(item);
 				}
-				else if (typeof(FontPathGrouping).IsAssignableFrom(arg.Type.DisplayType)) {
+				else if (arg.Type.DisplayType.IsSimple<FontPathGrouping>()) {
 
 					string[] familyParts = lineInfo.argText.Value.value.SplitAndTrim(',');
 

@@ -265,7 +265,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		}
 
 		private static string GetBuilderPrintedName(BuilderDetails builder) {
-			if (typeof(IMarkupElement).IsAssignableFrom(builder.DeclaringType)) {
+			if (builder.DeclaringType.IsAssignableTo(typeof(IMarkupElement))) {
 				return "<" + builder.Name + ">";
 			}
 			else {

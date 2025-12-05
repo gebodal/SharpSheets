@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace SharpSheets.Fonts {
 
-	public class FontPath : IEquatable<FontPath> {
+	public sealed class FontPath : IEquatable<FontPath> {
 
 		/// <summary>
 		/// The system path for this font.
@@ -58,7 +58,7 @@ namespace SharpSheets.Fonts {
 
 	}
 
-	public class FontPathGrouping : IEquatable<FontPathGrouping> {
+	public sealed class FontPathGrouping : IEquatable<FontPathGrouping> {
 
 		public FontPath? Regular { get; }
 		public FontPath? Bold { get; }

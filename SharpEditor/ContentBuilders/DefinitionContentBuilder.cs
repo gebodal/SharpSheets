@@ -110,7 +110,7 @@ namespace SharpEditor.ContentBuilders {
 
 				if (result != null) {
 					yield return new Run(SharpValueHandler.NO_BREAK_SPACED_EQUALS) { };
-					yield return BaseContentBuilder.GetValueInline(definition.Type.ReturnType.DisplayType, result, false);
+					yield return BaseContentBuilder.GetValueInline(definition.Type.ReturnType, result, false);
 					//printedValue = true;
 				}
 			}
@@ -187,7 +187,7 @@ namespace SharpEditor.ContentBuilders {
 			Inline resultText;
 			if (result.HasValue && result.Value.Value is Array a) {
 				if (a.Length > 0) {
-					resultText = BaseContentBuilder.GetValueInline(definition.Type.ReturnType.DisplayType, a, false);
+					resultText = BaseContentBuilder.GetValueInline(definition.Type.ReturnType, a, false);
 				}
 				else {
 					resultText = new Run("empty") { Foreground = SharpEditorPalette.DefaultValueBrush };
@@ -202,7 +202,7 @@ namespace SharpEditor.ContentBuilders {
 				}
 			}
 			else if (result != null) {
-				resultText = BaseContentBuilder.GetValueInline(definition.Type.ReturnType.DisplayType, result, false);
+				resultText = BaseContentBuilder.GetValueInline(definition.Type.ReturnType, result, false);
 			}
 			else {
 				resultText = new Run("null") { Foreground = SharpEditorPalette.DefaultValueBrush };

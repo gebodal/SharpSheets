@@ -45,12 +45,18 @@ namespace SharpSheets.Documentation {
 			}
 		}
 
+		public static EnumDoc? GetEnumDoc(DisplayType type) {
+			if (type.GetSingle() is Type systemType) {
+				return GetEnumDoc(systemType);
+			}
+			else {
+				return null;
+			}
+		}
+
 		public static EnumDoc? GetBuiltInEnumDocFromName(string name) {
 			if (EnumDocs.TryGetDocumentation(name, out EnumDoc? enumDoc)) {
 				return enumDoc;
-			}
-			else if(TypeUtils.GetTypeByName(name, StringComparison.OrdinalIgnoreCase) is Type namedType) {
-				return GetEnumDoc(namedType);
 			}
 			else {
 				return null;

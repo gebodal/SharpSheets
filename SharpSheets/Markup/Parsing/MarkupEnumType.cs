@@ -1,6 +1,7 @@
 ﻿using SharpSheets.Documentation;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -98,32 +99,54 @@ namespace SharpSheets.Markup.Parsing {
 		public override string AssemblyQualifiedName => FullName + ", " + Assembly.FullName;
 		public override string FullName => Namespace + "." + Name;
 
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
 		public override ConstructorInfo[] GetConstructors(BindingFlags bindingAttr) { return Array.Empty<ConstructorInfo>(); }
 		public override object[] GetCustomAttributes(bool inherit) { return Array.Empty<object>(); }
 		public override object[] GetCustomAttributes(Type attributeType, bool inherit) { return Array.Empty<object>(); }
 		public override Type? GetElementType() { return null; }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents)]
 		public override EventInfo? GetEvent(string name, BindingFlags bindingAttr) { return null; }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents)]
 		public override EventInfo[] GetEvents(BindingFlags bindingAttr) { return Array.Empty<EventInfo>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)]
 		public override FieldInfo? GetField(string name, BindingFlags bindingAttr) { return null; }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)]
 		public override FieldInfo[] GetFields(BindingFlags bindingAttr) { return Array.Empty<FieldInfo>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+		[return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
 		public override Type? GetInterface(string name, bool ignoreCase) { return null; }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
 		public override Type[] GetInterfaces() { return Array.Empty<Type>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields |
+			DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods |
+			DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents |
+			DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties |
+			DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors |
+			DynamicallyAccessedMemberTypes.PublicNestedTypes | DynamicallyAccessedMemberTypes.NonPublicNestedTypes)]
 		public override MemberInfo[] GetMembers(BindingFlags bindingAttr) { return Array.Empty<MemberInfo>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
 		public override MethodInfo[] GetMethods(BindingFlags bindingAttr) { return Array.Empty<MethodInfo>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicNestedTypes | DynamicallyAccessedMemberTypes.NonPublicNestedTypes)]
 		public override Type? GetNestedType(string name, BindingFlags bindingAttr) { return null; }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicNestedTypes | DynamicallyAccessedMemberTypes.NonPublicNestedTypes)]
 		public override Type[] GetNestedTypes(BindingFlags bindingAttr) { return Array.Empty<Type>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
 		public override PropertyInfo[] GetProperties(BindingFlags bindingAttr) { return Array.Empty<PropertyInfo>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 		public override object InvokeMember(string name, BindingFlags invokeAttr, Binder? binder, object? target, object?[]? args, ParameterModifier[]? modifiers, CultureInfo? culture, string[]? namedParameters) {
 			throw new MissingMethodException();
 		}
 		public override bool IsDefined(Type attributeType, bool inherit) => false;
 		protected override TypeAttributes GetAttributeFlagsImpl() { return default; }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
 		protected override ConstructorInfo? GetConstructorImpl(BindingFlags bindingAttr, Binder? binder, CallingConventions callConvention, Type[] types, ParameterModifier[]? modifiers) {
 			return null;
 		}
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
 		protected override MethodInfo? GetMethodImpl(string name, BindingFlags bindingAttr, Binder? binder, CallingConventions callConvention, Type[]? types, ParameterModifier[]? modifiers) {
 			return null;
 		}
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
 		protected override PropertyInfo? GetPropertyImpl(string name, BindingFlags bindingAttr, Binder? binder, Type? returnType, Type[]? types, ParameterModifier[]? modifiers) {
 			return null;
 		}
@@ -186,31 +209,53 @@ namespace SharpSheets.Markup.Parsing {
 		public override string AssemblyQualifiedName => FullName + ", " + Assembly.FullName;
 		public override string FullName => Namespace + "." + Name;
 
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
 		public override ConstructorInfo[] GetConstructors(BindingFlags bindingAttr) { return Array.Empty<ConstructorInfo>(); }
 		public override object[] GetCustomAttributes(bool inherit) { return Array.Empty<object>(); }
 		public override object[] GetCustomAttributes(Type attributeType, bool inherit) { return Array.Empty<object>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents)]
 		public override EventInfo? GetEvent(string name, BindingFlags bindingAttr) { return null; }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents)]
 		public override EventInfo[] GetEvents(BindingFlags bindingAttr) { return Array.Empty<EventInfo>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)]
 		public override FieldInfo? GetField(string name, BindingFlags bindingAttr) { return null; }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)]
 		public override FieldInfo[] GetFields(BindingFlags bindingAttr) { return Array.Empty<FieldInfo>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+		[return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
 		public override Type? GetInterface(string name, bool ignoreCase) { return null; }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
 		public override Type[] GetInterfaces() { return Array.Empty<Type>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields |
+			DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods |
+			DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents |
+			DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties |
+			DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors |
+			DynamicallyAccessedMemberTypes.PublicNestedTypes | DynamicallyAccessedMemberTypes.NonPublicNestedTypes)]
 		public override MemberInfo[] GetMembers(BindingFlags bindingAttr) { return Array.Empty<MemberInfo>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
 		public override MethodInfo[] GetMethods(BindingFlags bindingAttr) { return Array.Empty<MethodInfo>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicNestedTypes | DynamicallyAccessedMemberTypes.NonPublicNestedTypes)]
 		public override Type? GetNestedType(string name, BindingFlags bindingAttr) { return null; }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicNestedTypes | DynamicallyAccessedMemberTypes.NonPublicNestedTypes)]
 		public override Type[] GetNestedTypes(BindingFlags bindingAttr) { return Array.Empty<Type>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
 		public override PropertyInfo[] GetProperties(BindingFlags bindingAttr) { return Array.Empty<PropertyInfo>(); }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 		public override object? InvokeMember(string name, BindingFlags invokeAttr, Binder? binder, object? target, object?[]? args, ParameterModifier[]? modifiers, CultureInfo? culture, string[]? namedParameters) {
 			throw new MissingMethodException();
 		}
 		public override bool IsDefined(Type attributeType, bool inherit) => false;
 		protected override TypeAttributes GetAttributeFlagsImpl() { return default; }
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
 		protected override ConstructorInfo? GetConstructorImpl(BindingFlags bindingAttr, Binder? binder, CallingConventions callConvention, Type[] types, ParameterModifier[]? modifiers) {
 			return null;
 		}
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
 		protected override MethodInfo? GetMethodImpl(string name, BindingFlags bindingAttr, Binder? binder, CallingConventions callConvention, Type[]? types, ParameterModifier[]? modifiers) {
 			return null;
 		}
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
 		protected override PropertyInfo? GetPropertyImpl(string name, BindingFlags bindingAttr, Binder? binder, Type? returnType, Type[]? types, ParameterModifier[]? modifiers) {
 			return null;
 		}

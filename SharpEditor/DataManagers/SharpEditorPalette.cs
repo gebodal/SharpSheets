@@ -270,29 +270,30 @@ namespace SharpEditor.DataManagers {
 			CardFeatureListBrush = new SolidColorBrush(highlightingColors["CardSubject_ListMarker"].Color);
 		}
 
-		public static Brush GetTypeBrush(Type? type) {
-			if (typeof(SharpWidget).IsAssignableFrom(type)) {
-				return WidgetBrush;
+		public static Brush GetTypeBrush(SharpSheets.Documentation.DisplayType? type) {
+			if (type is not null) {
+				if (type.IsAssignableTo(typeof(SharpWidget))) {
+					return WidgetBrush;
+				}
+				else if (type.IsAssignableTo(typeof(IShape))) {
+					return ShapeStyleBrush;
+				}
+				else if (type.IsAssignableTo(typeof(ICardConfigComponent))) {
+					return WidgetBrush;
+				}
 			}
-			else if (typeof(IShape).IsAssignableFrom(type)) {
-				return ShapeStyleBrush;
-			}
-			else if (typeof(ICardConfigComponent).IsAssignableFrom(type)) {
-				return WidgetBrush;
-			}
-			else {
-				return TypeBrush; // StyleBrush; // TypeBrush?
-			}
+			
+			return TypeBrush; // StyleBrush; // TypeBrush?
 		}
 
-		public static Brush? GetValueBrush(Type type) {
-			if (typeof(SharpWidget).IsAssignableFrom(type)) {
+		public static Brush? GetValueBrush(SharpSheets.Documentation.DisplayType type) {
+			if (type.IsAssignableTo(typeof(SharpWidget))) {
 				return WidgetBrush;
 			}
-			else if (typeof(IShape).IsAssignableFrom(type)) {
+			else if (type.IsAssignableTo(typeof(IShape))) {
 				return ShapeStyleBrush;
 			}
-			else if (typeof(ICardConfigComponent).IsAssignableFrom(type)) {
+			else if (type.IsAssignableTo(typeof(ICardConfigComponent))) {
 				return WidgetBrush;
 			}
 			else {

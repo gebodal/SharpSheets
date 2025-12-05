@@ -35,6 +35,17 @@ namespace SharpSheets.Generators {
 			}
 		}
 
+		public string StrippedFullName {
+			get {
+				if (IsValueType) {
+					return IsNullable ? $"Nullable<{Minimal}>" : Minimal;
+				}
+				else {
+					return Minimal + (IsNullable ? "?" : "");
+				}
+			}
+		}
+
 		public TypeData(string type, string name, string minimal, bool nullable, SpecialType specialType, bool isEnum, bool isValueType) {
 			Type = type;
 			Name = name;

@@ -1,30 +1,27 @@
 ﻿using SharpSheets.Layouts;
 using SharpSheets.Parsing;
 using SharpSheets.Utilities;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 namespace SharpSheets.Documentation {
 
 	public class ArgumentType : IEquatable<ArgumentType> {
-		public Type DisplayType { get; }
+		public DisplayType DisplayType { get; }
 		public Type DataType { get; }
 
 		public bool IsEnum => DisplayType.IsEnum;
-		public bool IsList => DisplayType.TryGetGenericTypeDefinition() == typeof(List<>);
-		public bool IsNumbered => DisplayType.TryGetGenericTypeDefinition() == typeof(Numbered<>);
+		public bool IsEntried => DisplayType.IsEntried;
+		public bool IsNumbered => DisplayType.IsNumbered;
 
-		public ArgumentType(Type displayType, Type dataType) {
+		public ArgumentType(DisplayType displayType, Type dataType) {
 			DisplayType = displayType;
 			DataType = dataType;
 		}
 
-		public static ArgumentType Simple(Type type) {
-			return new ArgumentType(type, type);
+		public static ArgumentType Simple<T>() {
+			return new ArgumentType(DisplayType.FromSystem<T>(), typeof(T));
 		}
 
 		public bool Equals(ArgumentType? other) {
@@ -43,6 +40,7 @@ namespace SharpSheets.Documentation {
 
 	[DebuggerDisplay("{Name} ({Type.Name})")]
 	public class ArgumentDetails {
+
 		public virtual string Name { get; }
 		public ArgumentType Type { get; }
 		public DocumentationString? Description { get; }
@@ -51,6 +49,7 @@ namespace SharpSheets.Documentation {
 		public object? DefaultValue { get; }
 		public object? ExampleValue { get; }
 		public string? Implied { get; }
+
 		public ArgumentDetails(string name, DocumentationString? description, ArgumentType type, bool isOptional, bool useLocal, object? defaultValue, object? exampleValue, string? implied) {
 			this.Name = name;
 			this.Description = description;
@@ -60,31 +59,12 @@ namespace SharpSheets.Documentation {
 			this.DefaultValue = defaultValue == System.DBNull.Value ? null : defaultValue;
 			this.ExampleValue = exampleValue == System.DBNull.Value ? this.DefaultValue : exampleValue;
 			this.Implied = implied;
-
-			// Dealing with ExampleValue
-			/*
-			if (exampleValue != System.DBNull.Value && exampleValue != null) {
-				if (type.DataType.IsAssignableFrom(exampleValue.GetType())) {
-					this.ExampleValue = exampleValue;
-				}
-				else {
-					throw new ArgumentException($"Invalid data type for exampleValue: {exampleValue.GetType().FullName} (expected {type.DataType.FullName})");
-				}
-			}
-			else {
-				if (type.DataType.IsValueType && !(type.DataType.TryGetGenericTypeDefinition() is Type generic && generic == typeof(Nullable<>))) {
-					throw new ArgumentException($"Invalid null value for exampleValue: expected {type.DataType.FullName}");
-				}
-				else {
-					ExampleValue = null;
-				}
-			}
-			*/
 		}
 
 		public ArgumentDetails Prefixed(string prefix, string separator = ".") {
 			return new PrefixedArgumentDetails(this, prefix, separator: separator);
 		}
+
 	}
 
 	[DebuggerDisplay("{Name} ({Basis.Type.Name})")]
@@ -105,15 +85,16 @@ namespace SharpSheets.Documentation {
 
 	[DebuggerDisplay("{Name} ({DeclaringType.Name}), Arg Count = {Arguments.Length}")]
 	public class BuilderDetails {
-		public Type DisplayType { get; }
-		public Type DeclaringType { get; }
+
+		public DisplayType DisplayType { get; }
+		public DisplayType DeclaringType { get; }
 		public string Name { get; }
 		public string FullName { get; }
 		public ArgumentDetails[] Arguments { get; }
 		public DocumentationString? Description { get; }
 		public Rectangle? Rect { get; } // TODO Rename back to Size?
 		public Size? Canvas { get; }
-		public BuilderDetails(Type displayType, Type declaringType, string name, string fullName, ArgumentDetails[] arguments, DocumentationString? description, Rectangle? size, Size? canvas) {
+		public BuilderDetails(DisplayType displayType, DisplayType declaringType, string name, string fullName, ArgumentDetails[] arguments, DocumentationString? description, Rectangle? size, Size? canvas) {
 			this.DisplayType = displayType;
 			this.DeclaringType = declaringType;
 			this.Name = name;
@@ -163,8 +144,8 @@ namespace SharpSheets.Documentation {
 			this.Argument = argument;
 		}
 
-		public Type MethodDisplayType => Builder.DisplayType;
-		public Type DeclaringType => Builder.DeclaringType;
+		public DisplayType MethodDisplayType => Builder.DisplayType;
+		public DisplayType DeclaringType => Builder.DeclaringType;
 		public string BuilderName => Builder.Name;
 		public DocumentationString? MethodDescription => Builder.Description;
 
@@ -205,34 +186,30 @@ namespace SharpSheets.Documentation {
 		}
 
 		public static IEnumerable<BuilderDetails> FindBuilders<T>(this ITypeDetailsCollection collection) {
-			//return collection.Where(c => typeof(T).IsAssignableFrom(c.DeclaringType));
 			foreach (BuilderDetails c in collection) {
-				if (typeof(T).IsAssignableFrom(c.DeclaringType)) {
+				if (c.DeclaringType.IsAssignableTo(typeof(T))) {
 					yield return c;
 				}
 			}
 		}
 		public static IEnumerable<BuilderDetails> FindBuilders(this ITypeDetailsCollection collection, Type parentType) {
-			//return collection.Where(c => parentType.IsAssignableFrom(c.DeclaringType));
 			foreach (BuilderDetails c in collection) {
-				if (parentType.IsAssignableFrom(c.DeclaringType)) {
+				if (c.DeclaringType.IsAssignableTo(parentType)) {
 					yield return c;
 				}
 			}
 		}
 
 		public static IEnumerable<KeyValuePair<string, BuilderDetails>> GetBuilderNames<T>(this ITypeDetailsCollection collection) {
-			//return collection.Where(c => typeof(T).IsAssignableFrom(c.DeclaringType));
 			foreach (KeyValuePair<string, BuilderDetails> entry in collection.GetBuilderNames()) {
-				if (typeof(T).IsAssignableFrom(entry.Value.DeclaringType)) {
+				if (entry.Value.DeclaringType.IsAssignableTo(typeof(T))) {
 					yield return entry;
 				}
 			}
 		}
 		public static IEnumerable<KeyValuePair<string, BuilderDetails>> GetBuilderNames(this ITypeDetailsCollection collection, Type parentType) {
-			//return collection.Where(c => parentType.IsAssignableFrom(c.DeclaringType));
 			foreach (KeyValuePair<string, BuilderDetails> entry in collection.GetBuilderNames()) {
-				if (parentType.IsAssignableFrom(entry.Value.DeclaringType)) {
+				if (entry.Value.DeclaringType.IsAssignableTo(parentType)) {
 					yield return entry;
 				}
 			}
@@ -251,15 +228,12 @@ namespace SharpSheets.Documentation {
 		}
 
 		public TypeDetailsCollection(IEnumerable<BuilderDetails> values, IEqualityComparer<string> nameComparer) {
-			typeCollection = values.Where(c => c.DeclaringType != null).ToDictionaryAllowRepeats(c => c.DeclaringType, false);
+			typeCollection = values.Select(b => (builder: b, type: b.DeclaringType.GetSingle())).Where(bt => bt.type != null).ToDictionaryAllowRepeats(bt => bt.type!, bt => bt.builder, false);
 			nameCollection = values.ToDictionaryAllowRepeats(c => c.FullName, nameComparer, false); // StringComparer.InvariantCultureIgnoreCase
 		}
 
-		//public ConstructorDetails this[Type type] { get { return typeCollection[type]; } }
-		//public ConstructorDetails this[string name] { get { return nameCollection[name]; } }
-
 		public void Add(BuilderDetails builder) {
-			if (builder.DeclaringType != null) typeCollection.Add(builder.DeclaringType, builder);
+			if (builder.DeclaringType.GetSingle() is Type singleType) typeCollection.Add(singleType, builder);
 			nameCollection.Add(builder.Name, builder);
 		}
 
@@ -270,7 +244,7 @@ namespace SharpSheets.Documentation {
 		}
 
 		public void Include(BuilderDetails builder) {
-			if (builder.DeclaringType != null && typeCollection.TryGetValue(builder.DeclaringType, out BuilderDetails? existing)) {
+			if (builder.DeclaringType.GetSingle() is Type singleType && typeCollection.TryGetValue(singleType, out BuilderDetails? existing)) {
 				if (existing != builder) throw new ArgumentException("Provided conflicting builder for existing type.");
 			}
 			else {
@@ -323,7 +297,6 @@ namespace SharpSheets.Documentation {
 			return SharpDocuments.StringComparer.Equals(x.FullName, y.FullName) && x.Arguments.Length == y.Arguments.Length;
 		}
 		public int GetHashCode(BuilderDetails obj) {
-			//return $"{obj.FullName.ToLowerInvariant()} {obj.DeclaringType.FullName} {obj.Arguments.Length}".GetHashCode();
 			return HashCode.Combine(obj.FullName.ToLowerInvariant(), obj.DeclaringType.FullName, obj.Arguments.Length);
 		}
 	}
@@ -340,7 +313,6 @@ namespace SharpSheets.Documentation {
 			return x.Type == y.Type && SharpDocuments.StringComparer.Equals(x.Name, y.Name);
 		}
 		public int GetHashCode(ArgumentDetails obj) {
-			//return $"{obj.Type.DisplayType.FullName} {obj.Type.DataType.FullName} {obj.Name.ToLowerInvariant()}".GetHashCode();
 			return HashCode.Combine(obj.Type.DisplayType.FullName, obj.Type.DataType.FullName, obj.Name.ToLowerInvariant());
 		}
 

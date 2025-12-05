@@ -12,7 +12,7 @@ namespace SharpEditor.ContentBuilders {
 
 	public static class BuilderContentBuilder {
 
-		public static IEnumerable<Inline> MakeBuilderHeaderBlock(string name, string fullName, Type displayType, Type declaringType) {
+		public static IEnumerable<Inline> MakeBuilderHeaderBlock(string name, string fullName, DisplayType displayType) {
 			string? prefix = fullName;
 			string displayName = name;
 			if (prefix == displayName) {
@@ -34,16 +34,16 @@ namespace SharpEditor.ContentBuilders {
 			}
 
 			yield return new Run(displayName) {
-				Foreground = typeof(SharpWidget).IsAssignableFrom(declaringType) ? SharpEditorPalette.WidgetBrush : SharpEditorPalette.ShapeStyleBrush
+				Foreground = displayType.IsSimple<SharpWidget>() ? SharpEditorPalette.WidgetBrush : SharpEditorPalette.ShapeStyleBrush
 			};
 		}
 
 		public static IEnumerable<Inline> MakeBuilderHeaderBlock(BuilderDetails builder) {
-			return MakeBuilderHeaderBlock(builder.Name, builder.FullName, builder.DisplayType, builder.DeclaringType);
+			return MakeBuilderHeaderBlock(builder.Name, builder.FullName, builder.DisplayType);
 		}
 
 		public static IEnumerable<Inline> GetArgumentDefaultInlines(ArgumentDetails arg, IContext? context) {
-			if (arg.Type.DisplayType.TryGetGenericTypeDefinition() == typeof(List<>)) {
+			if (arg.Type.DisplayType.IsEntried) {
 				yield break; // Don't print default if we're on the entries argument
 			}
 
@@ -51,7 +51,7 @@ namespace SharpEditor.ContentBuilders {
 			object? currentValue = null;
 			DocumentSpan? currentValueLocation = null;
 			if (context != null) {
-				if (arg.Type.DisplayType == typeof(bool)) {
+				if (arg.Type.DisplayType.IsSimple<bool>()) {
 					currentValue = context.GetFlag(arg.Name, arg.UseLocal, context, out currentValueLocation);
 				}
 				else if (arg.Implied != null) {

@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Collections;
 using SharpSheets.Parsing;
+using System.Collections.Specialized;
 
 namespace SharpSheets.Evaluations {
 
@@ -453,7 +454,6 @@ namespace SharpSheets.Evaluations {
 		public abstract string Name { get; }
 
 		public abstract Type DataType { get; }
-		public abstract Type DisplayType { get; }
 
 		private readonly Dictionary<EvaluationName, TypeField> fields = new Dictionary<EvaluationName, TypeField>();
 		public IEnumerable<EvaluationName> FieldNames { get { return fields.Keys; } }
@@ -759,7 +759,6 @@ namespace SharpSheets.Evaluations {
 		public override string Name { get; } = "type";
 
 		public override Type DataType { get; } = typeof(Type);
-		public override Type DisplayType => DataType;
 
 		public MetaEvaluationType(EvaluationContext context) : base(context) { }
 
@@ -789,7 +788,6 @@ namespace SharpSheets.Evaluations {
 	public abstract class SingleDataType<T> : EvaluationType where T : notnull {
 
 		public sealed override Type DataType { get; } = typeof(T);
-		public sealed override Type DisplayType => DataType;
 
 		protected SingleDataType(EvaluationContext context) : base(context) { }
 
@@ -1776,11 +1774,9 @@ namespace SharpSheets.Evaluations {
 	public class ArrayEvaluationType : SequentialCollectionEvaluationType {
 
 		public override Type DataType { get; }
-		public override Type DisplayType { get; }
 
 		internal ArrayEvaluationType(EvaluationContext context, EvaluationType elementType) : base(context, elementType) {
-			this.DataType = this.ElementType.DataType.MakeArrayType(1);
-			this.DisplayType = this.ElementType.DisplayType.MakeArrayType(1);
+			this.DataType = this.ElementType.DataType.MakeArrayType();
 
 			AddField(new TypeField("length", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((Array)value.Value!).Length, value.Type.Context.GetType<IntEvaluationType>())));
 		}
@@ -1798,20 +1794,12 @@ namespace SharpSheets.Evaluations {
 		}
 
 		protected override object? DefaultValueData() {
-			return MakeArray(ElementType, Array.Empty<EvaluationValue>());
+			return MakeArray(ElementType, Array.Empty<EvaluationValue>()).Value;
 		}
 
 		private static bool TryGetArray(EvaluationValue value, [MaybeNullWhen(false)] out Array array) {
 			if (value.Value is Array objArray) {
 				array = objArray;
-				return true;
-			}
-			else if (TupleUtils.IsTupleObject(value.Value, out Type? tupleType)) {
-				object[] values = new object[TupleUtils.GetTupleLength(tupleType)];
-				for (int i = 0; i < values.Length; i++) {
-					values[i] = TupleUtils.Index(value.Value!, i);
-				}
-				array = values;
 				return true;
 			}
 			else {
@@ -1963,12 +1951,11 @@ namespace SharpSheets.Evaluations {
 
 		protected override bool EqualTypeData(EvaluationType other) {
 			// This should be sufficient
-			return DataType == other.DataType
-				&& DisplayType == other.DisplayType;
+			return DataType == other.DataType;
 		}
 
 		protected override int GetTypeHashCode() {
-			return HashCode.Combine(DataType, DisplayType);
+			return DataType.GetHashCode();
 		}
 
 	}
@@ -1976,13 +1963,11 @@ namespace SharpSheets.Evaluations {
 	public class TupleEvaluationType : SequentialCollectionEvaluationType {
 
 		public override Type DataType { get; }
-		public override Type DisplayType { get; }
 
 		public int ElementCount { get; }
 
 		internal TupleEvaluationType(EvaluationContext context, EvaluationType elementType, int elementCount) : base(context, elementType) {
-			this.DataType = TupleUtils.MakeGenericTupleType(this.ElementType.DataType, elementCount);
-			this.DisplayType = TupleUtils.MakeGenericTupleType(this.ElementType.DisplayType, elementCount);
+			this.DataType = this.ElementType.DataType.MakeArrayType();
 
 			this.ElementCount = elementCount;
 
@@ -2011,12 +1996,28 @@ namespace SharpSheets.Evaluations {
 			for (int i = 0; i < ElementCount; i++) {
 				defaults[i] = defaultElemValue;
 			}
-			return MakeTuple(ElementType, defaults);
+			return MakeTuple(ElementType, defaults).Value;
+		}
+
+		private static bool TryGetTuple(EvaluationValue value, [MaybeNullWhen(false)] out Array array) {
+			if (value.Value is Array objArray) {
+				array = objArray;
+				return true;
+			}
+			else {
+				array = null;
+				return false;
+			}
 		}
 
 		public static EvaluationValue MakeTuple(EvaluationType elementType, IList<EvaluationValue> values) {
-			Type tupleType = TupleUtils.MakeGenericTupleType(elementType.DataType, values.Count);
-			return new EvaluationValue(TupleUtils.CreateTuple(tupleType, values.Select(v => v.Value).ToArray()), elementType.MakeTuple(values.Count));
+			return MakeTupleFromData(elementType, values.Select(v => v.Value).ToArray());
+		}
+
+		public static EvaluationValue MakeTupleFromData(EvaluationType elementType, object?[] values) {
+			Array final = Array.CreateInstance(elementType.DataType, values.Length);
+			Array.Copy(values, final, final.Length);
+			return new EvaluationValue(final, elementType.MakeTuple(values.Length));
 		}
 
 		public override bool CanImplicitCastFrom(EvaluationType other, [NotNullWhen(true)] out EvaluationType? lubType) {
@@ -2052,8 +2053,10 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 		public override EvaluationValue? Indexer(EvaluationValue subject, EvaluationValue index) {
-			if (IntEvaluationType.TryGetInt(index, out int indexVal)) {
-				return new EvaluationValue(TupleUtils.Index(subject.Value!, indexVal), ElementType);
+			if (TryGetTuple(subject, out Array? tupleData) && IntEvaluationType.TryGetInt(index, out int indexVal)) {
+				if (tupleData.Length != ElementCount) { throw new EvaluationTypeException($"Invalid tuple data (expected {ElementCount} entries, found {tupleData.Length})."); }
+				int indexFinal = EvaluationTypeHelpers.GetIndex(indexVal, ElementCount);
+				return new EvaluationValue(tupleData.GetValue(indexFinal), ElementType);
 			}
 			else {
 				return null;
@@ -2062,10 +2065,11 @@ namespace SharpSheets.Evaluations {
 
 		public override EvaluationType? IterationResult() => ElementType;
 		public override IEnumerable<EvaluationValue>? Iteration(EvaluationValue subject) {
-			if (TupleUtils.IsTupleObject(subject.Value, out Type? tupleType)) {
-				EvaluationValue[] values = new EvaluationValue[TupleUtils.GetTupleLength(tupleType)];
-				for (int i = 0; i < values.Length; i++) {
-					values[i] = new EvaluationValue(TupleUtils.Index(subject.Value!, i), ElementType);
+			if (TryGetTuple(subject, out Array? tupleData)) {
+				if (tupleData.Length != ElementCount) { throw new EvaluationTypeException($"Invalid tuple data (expected {ElementCount} entries, found {tupleData.Length})."); }
+				EvaluationValue[] values = new EvaluationValue[ElementCount];
+				for (int i = 0; i < ElementCount; i++) {
+					values[i] = new EvaluationValue(tupleData.GetValue(i), ElementType);
 				}
 				return values;
 			}
@@ -2077,12 +2081,11 @@ namespace SharpSheets.Evaluations {
 		protected override bool EqualTypeData(EvaluationType other) {
 			return other is TupleEvaluationType otherTuple
 				&& ElementCount == otherTuple.ElementCount
-				&& DataType == other.DataType
-				&& DisplayType == other.DisplayType;
+				&& DataType == other.DataType;
 		}
 
 		protected override int GetTypeHashCode() {
-			return HashCode.Combine(ElementCount, DataType, DisplayType);
+			return DataType.GetHashCode();
 		}
 
 	}
@@ -2091,14 +2094,10 @@ namespace SharpSheets.Evaluations {
 
 		public EvaluationType KeyType { get; }
 
-		public override Type DataType { get; }
-		public override Type DisplayType { get; }
+		public override Type DataType { get; } = typeof(OrderedDictionary);
 
 		internal DictionaryEvaluationType(EvaluationContext context, EvaluationType keyType, EvaluationType elementType) : base(context, elementType) {
 			this.KeyType = keyType;
-
-			this.DataType = MakeDictionaryType(this.KeyType.DataType, this.ElementType.DataType);
-			this.DisplayType = MakeDictionaryType(this.KeyType.DisplayType, this.ElementType.DisplayType);
 
 			AddField(new TypeField("keys", KeyType.MakeArray(), value => ArrayEvaluationType.MakeArrayFromData(KeyType, ((IDictionary)value.Value!).Keys.Cast<object>().ToArray())));
 			AddField(new TypeField("values", ElementType.MakeArray(), value => ArrayEvaluationType.MakeArrayFromData(ElementType, ((IDictionary)value.Value!).Values.Cast<object?>().ToArray())));
@@ -2129,7 +2128,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		protected override object? DefaultValueData() {
-			return MakeDictionary(KeyType, ElementType, Array.Empty<(EvaluationValue, EvaluationValue)>());
+			return MakeDictionary(KeyType, ElementType, Array.Empty<(EvaluationValue, EvaluationValue)>()).Value;
 		}
 
 		private static bool TryGetDictionary(EvaluationValue value, [MaybeNullWhen(false)] out IDictionary dict, [MaybeNullWhen(false)] out DictionaryEvaluationType dictType) {
@@ -2145,13 +2144,9 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
-		private static Type MakeDictionaryType(Type keyType, Type valueType) {
-			return typeof(OrderedDictionary<,>).MakeGenericType(keyType, valueType);
-		}
-
 		public static EvaluationValue MakeDictionary(EvaluationType keyType, EvaluationType elementType, IList<(EvaluationValue key, EvaluationValue value)> entries) {
 			EvaluationType dictType = new DictionaryEvaluationType(keyType.Context, keyType, elementType);
-			IDictionary dict = (IDictionary)(Activator.CreateInstance(dictType.DataType)!);
+			IDictionary dict = new OrderedDictionary();
 
 			foreach((EvaluationValue key, EvaluationValue value) in entries) {
 				dict.Add(
@@ -2245,7 +2240,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		protected override int GetTypeHashCode() {
-			return HashCode.Combine(DataType, DisplayType);
+			return DataType.GetHashCode();
 		}
 
 	}
@@ -2254,10 +2249,9 @@ namespace SharpSheets.Evaluations {
 
 		public override string Name { get; }
 
-		protected readonly Type SystemType;
+		public Type SystemType { get; }
 
 		public override Type DataType { get; } = typeof(string);
-		public override Type DisplayType => SystemType;
 
 		private readonly IReadOnlyDictionary<string, string> enumNames;
 		private readonly string defaultEnumName;
@@ -2426,7 +2420,6 @@ namespace SharpSheets.Evaluations {
 		public override string Name { get; }
 
 		public override Type DataType { get; }
-		public override Type DisplayType => DataType;
 
 		private readonly Func<string, DirectoryPath, object>? Parser;
 		private readonly object? defaultValue;
