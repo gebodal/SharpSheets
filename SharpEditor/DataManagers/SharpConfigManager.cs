@@ -12,21 +12,33 @@ using System.Text.Json.Serialization;
 
 namespace SharpEditor.DataManagers {
 
+	[JsonSourceGenerationOptions(WriteIndented = true)]
+	[JsonSerializable(typeof(SharpDataManager.SharpDataManagerContent))]
+	[JsonSerializable(typeof(HighlightData))]
+	[JsonSerializable(typeof(Dictionary<string, HighlightData>))]
+	[JsonSerializable(typeof(Dictionary<string, Avalonia.Media.Color>))]
+	internal partial class SharpConfigJsonContext : JsonSerializerContext { }
+
 	public static class SharpConfigManager {
 
 		public static string ConfigDir => GetCurrentConfigDir();
 
-		private static readonly JsonSerializerOptions jsonSerializeoptions = new JsonSerializerOptions() {
-			IncludeFields = false,
-			WriteIndented = true,
-			Converters = {
-				new AvaloniaColorJsonConverter(),
-				new FontStyleJsonConverter(),
-				new FontWeightJsonConverter()
-			}
-		};
+		private static readonly SharpConfigJsonContext Context;
 
 		static SharpConfigManager() {
+			JsonSerializerOptions jsonSerializeoptions = new JsonSerializerOptions() {
+				PropertyNameCaseInsensitive = true,
+				IncludeFields = false,
+				WriteIndented = true,
+				Converters = {
+					new AvaloniaColorJsonConverter(),
+					new FontStyleJsonConverter(),
+					new FontWeightJsonConverter()
+				}
+			};
+
+			Context = new SharpConfigJsonContext(jsonSerializeoptions);
+
 			string configDirPath = GetCurrentConfigDir();
 			if (!Directory.Exists(configDirPath)) {
 				Console.WriteLine($"Create config directory: {configDirPath}");
@@ -84,17 +96,19 @@ namespace SharpEditor.DataManagers {
 		public static void Save<T>(T value, ConfigName configName) {
 			string configPath = GetCurrentConfigPath(configName);
 			try {
-				string jsonText = JsonSerializer.Serialize(value, jsonSerializeoptions);
+				string jsonText = JsonSerializer.Serialize(value, typeof(T), Context);
 				File.WriteAllText(configPath, jsonText, System.Text.Encoding.UTF8);
 				//Console.WriteLine($"Save {configName.BaseName} config to: {configPath}");
 				return;
 			}
-			catch (IOException) {
+			catch (IOException e) {
 				Console.WriteLine($"Could not save settings to: {configPath}");
+				Console.WriteLine(e);
 				return;
 			}
-			catch (SystemException) {
+			catch (SystemException e) {
 				Console.WriteLine($"Could not save settings to: {configPath}");
+				Console.WriteLine(e);
 				return;
 			}
 		}
@@ -138,15 +152,18 @@ namespace SharpEditor.DataManagers {
 			//Console.WriteLine($"Load {path}");
 			try {
 				string jsonText = File.ReadAllText(path, System.Text.Encoding.UTF8);
-				return JsonSerializer.Deserialize<T>(jsonText, jsonSerializeoptions);
+				return JsonSerializer.Deserialize(jsonText, typeof(T), Context) as T;
 			}
-			catch (IOException) {
+			catch (IOException e) {
+				Console.WriteLine(e);
 				return null;
 			}
-			catch (SystemException) {
+			catch (SystemException e) {
+				Console.WriteLine(e);
 				return null;
 			}
-			catch (JsonException) {
+			catch (JsonException e) {
+				Console.WriteLine(e);
 				return null;
 			}
 		}

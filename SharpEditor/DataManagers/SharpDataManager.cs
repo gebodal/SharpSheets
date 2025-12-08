@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 
 namespace SharpEditor.DataManagers {
@@ -22,14 +23,14 @@ namespace SharpEditor.DataManagers {
 
 			Console.WriteLine("Calculated current config path: " + SharpConfigManager.GetCurrentConfigPath(ConfigName));
 
-			SharpDataManager? loaded = SharpConfigManager.Load<SharpDataManager>(ConfigName, out bool latest);
+			SharpDataManagerContent? loaded = SharpConfigManager.Load<SharpDataManagerContent>(ConfigName, out bool latest);
 
 			if(loaded is not null) {
-				Instance = loaded;
+				Instance = new SharpDataManager(loaded);
 			}
 			else {
 				Console.WriteLine("Create new config.");
-				Instance = new SharpDataManager();
+				Instance = new SharpDataManager(new SharpDataManagerContent());
 			}
 
 			if(latest && loaded is null) {
@@ -37,11 +38,9 @@ namespace SharpEditor.DataManagers {
 			}
 
 			if (!latest) {
-				SharpConfigManager.Save(Instance, ConfigName);
+				SharpConfigManager.Save(Instance.GetContent(), ConfigName);
 			}
 		}
-
-		public SharpDataManager() { } // I don't like this being public
 
 		protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
 			base.OnPropertyChanged(e);
@@ -50,7 +49,97 @@ namespace SharpEditor.DataManagers {
 		}
 
 		private void Save() {
-			SharpConfigManager.Save(this, ConfigName);
+			SharpConfigManager.Save(GetContent(), ConfigName);
+		}
+
+		public class SharpDataManagerContent {
+
+			// Designer properties
+			public bool DesignerDisplayFields { get; set; } = true;
+			public bool DesignerViewerOpenDefault { get; set; } = false;
+			public int ScreenDPI { get; set; } = 96;
+
+			// Generator settings
+			public bool OpenOnGenerate { get; set; } = false;
+
+			// Editor settings
+			public bool ShowLineNumbers { get; set; } = true;
+			public bool ShowEndOfLine { get; set; } = false;
+			public bool ShowWhitespace { get; set; } = false;
+			public bool WrapLines { get; set; } = false;
+			public double TextZoom { get; set; } = 1.0;
+			public int TabWidth { get; set; } = 4;
+
+			// Window settings
+			public bool WindowMaximized { get; set; } = true;
+
+			// Warning and error settings
+			public bool WarnFontLicensing { get; set; } = true;
+
+			// File system settings
+			public string LastFileDirectory { get; set; } = "";
+			public string TemplateDirectory { get; set; } = "";
+
+			public SharpDataManagerContent() { }
+
+		}
+
+		private SharpDataManager(SharpDataManagerContent content) {
+			// Designer properties
+			designerDisplayFields = content.DesignerDisplayFields;
+			designerViewerOpenDefault = content.DesignerViewerOpenDefault;
+			screenDPI = content.ScreenDPI;
+
+			// Generator settings
+			openOnGenerate = content.OpenOnGenerate;
+
+			// Editor settings
+			showLineNumbers = content.ShowLineNumbers;
+			showEndOfLine = content.ShowEndOfLine;
+			showWhitespace = content.ShowWhitespace;
+			wrapLines = content.WrapLines;
+			textZoom = content.TextZoom;
+			tabWidth = content.TabWidth;
+
+			// Window settings
+			windowMaximized = content.WindowMaximized;
+
+			// Warning and error settings
+			warnFontLicensing = content.WarnFontLicensing;
+
+			// File system settings
+			lastFileDirectory = content.LastFileDirectory;
+			templateDirectory = content.TemplateDirectory;
+		}
+
+		private SharpDataManagerContent GetContent() {
+			return new SharpDataManagerContent() {
+				// Designer properties
+				DesignerDisplayFields = DesignerDisplayFields,
+				DesignerViewerOpenDefault = DesignerViewerOpenDefault,
+				ScreenDPI = ScreenDPI,
+
+				// Generator settings
+				OpenOnGenerate = OpenOnGenerate,
+
+				// Editor settings
+				ShowLineNumbers = ShowLineNumbers,
+				ShowEndOfLine = ShowEndOfLine,
+				ShowWhitespace = ShowWhitespace,
+				WrapLines = WrapLines,
+				TextZoom = TextZoom,
+				TabWidth = TabWidth,
+
+				// Window settings
+				WindowMaximized = WindowMaximized,
+
+				// Warning and error settings
+				WarnFontLicensing = WarnFontLicensing,
+
+				// File system settings
+				LastFileDirectory = LastFileDirectory,
+				TemplateDirectory = TemplateDirectory,
+			};
 		}
 
 		#region Designer properties

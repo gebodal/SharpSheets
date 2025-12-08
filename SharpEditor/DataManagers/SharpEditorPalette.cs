@@ -14,6 +14,7 @@ using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Cards.CardConfigs;
 using Avalonia.Media;
 using SharpEditor.Utilities;
+using System.Text.Json.Serialization;
 
 namespace SharpEditor.DataManagers {
 
@@ -309,6 +310,7 @@ namespace SharpEditor.DataManagers {
 		public FontWeight FontWeight { get; }
 		public FontStyle FontStyle { get; }
 
+		[JsonConstructor]
 		public HighlightData(Color color, FontWeight fontWeight = FontWeight.Normal, FontStyle fontStyle = FontStyle.Normal) {
 			this.Color = color;
 			this.FontWeight = fontWeight;
