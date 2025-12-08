@@ -16,6 +16,7 @@ using System.Windows;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
+using SharpEditor.Utilities;
 
 namespace SharpEditor.ContentBuilders {
 
@@ -89,7 +90,7 @@ namespace SharpEditor.ContentBuilders {
 				Color? color = BaseContentBuilder.GetColorFromValue(attrValue);
 				if (color.HasValue) {
 					yield return new Run(SharpValueHandler.NO_BREAK_SPACE.ToString());
-					yield return BaseContentBuilder.GetColorInline(color, isDefault, false);
+					yield return new ColorInline(color, isDefault, false);
 				}
 			}
 		}

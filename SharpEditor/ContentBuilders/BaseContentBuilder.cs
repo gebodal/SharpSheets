@@ -14,6 +14,7 @@ using Avalonia.Layout;
 using Avalonia.Data;
 using System.Linq;
 using SharpSheets.Evaluations;
+using SharpEditor.Utilities;
 
 namespace SharpEditor.ContentBuilders {
 
@@ -128,7 +129,7 @@ namespace SharpEditor.ContentBuilders {
 				valueSpan.Inlines.Add(valueRun);
 				valueSpan.Inlines.Add(new Run(SharpValueHandler.NO_BREAK_SPACE.ToString()));
 				
-				valueSpan.Inlines.Add(GetColorInline(color, isDefault, false));
+				valueSpan.Inlines.Add(new ColorInline(color, isDefault, false));
 
 				return valueSpan;
 			}
@@ -139,64 +140,6 @@ namespace SharpEditor.ContentBuilders {
 
 		public static Inline GetValueInline(EvaluationType type, object? value, bool isDefault) {
 			return GetValueInline(DisplayType.FromEvaluation(type), value, isDefault);
-		}
-
-		public static Inline GetColorInline(Color? color, bool isDefault, bool unknown) {
-			Control finalColorSymbol;
-
-			Rectangle colorBlock = new Rectangle() { Width = 10.0, Height = 10.0, Fill = (!unknown && color.HasValue) ? new SolidColorBrush(color.Value) : Brushes.Transparent };
-			if (unknown || isDefault || !color.HasValue || color.Value.A < 100) {
-				colorBlock.Stroke = SharpEditorPalette.DefaultValueBrush;
-				colorBlock.StrokeThickness = 0.5;
-			}
-
-			if (unknown) {
-				Brush lineBrush = SharpEditorPalette.DefaultValueBrush;
-				Canvas canvas = new Canvas() { Height = 10.0, Width = 10.0 };
-				canvas.Children.Add(new Line() { StartPoint = new Point(5.0, 0.0), EndPoint = new Point(5.0, 10.0), Stroke = lineBrush });
-				canvas.Children.Add(new Line() { StartPoint = new Point(0.0, 5.0), EndPoint = new Point(10.0, 5.0), Stroke = lineBrush });
-				canvas.Children.Add(colorBlock);
-				finalColorSymbol = canvas;
-			}
-			else if (!color.HasValue || color.Value.A == 0) {
-				Brush lineBrush = color.HasValue ? SharpEditorPalette.DefaultValueBrush : new SolidColorBrush(Colors.Red);
-				Canvas canvas = new Canvas() { Height = 10.0, Width = 10.0 };
-				canvas.Children.Add(new Line() { StartPoint = new Point(0.0, 0.0), EndPoint = new Point(10.0, 10.0), Stroke = lineBrush });
-				canvas.Children.Add(new Line() { StartPoint = new Point(0.0, 10.0), EndPoint = new Point(10.0, 0.0), Stroke = lineBrush });
-				canvas.Children.Add(colorBlock);
-				finalColorSymbol = canvas;
-			}
-			else {
-				Canvas canvas = new Canvas() { Height = 10.0, Width = 10.0 };
-				canvas.Children.Add(colorBlock);
-				finalColorSymbol = canvas;
-			}
-
-			DockPanel panel = new DockPanel() { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-			Viewbox viewbox = new Viewbox() { Child = finalColorSymbol, Stretch = Stretch.Uniform, Margin = new Thickness(0.5, 0.0, 0.5, 1.0) };
-
-			/*
-			// Is this binding thing actually helping?
-			Binding parentFontSizeBinding = new Binding("FontSize") { Source = parent, RelativeSource = RelativeSource. };
-			viewbox.SetBinding(Viewbox.HeightProperty, parentFontSizeBinding);
-			*/
-
-			// TODO Is this right now?
-			Binding parentFontSizeBinding = new Binding("FontSize", BindingMode.OneWay) {
-				RelativeSource = new RelativeSource() {
-					Mode = RelativeSourceMode.FindAncestor,
-					AncestorLevel = 1,
-					AncestorType = typeof(TextBlock)
-				},
-			};
-			viewbox.Bind(Viewbox.HeightProperty, parentFontSizeBinding);
-
-			panel.Children.Add(viewbox);
-
-			//Canvas canvas = new Canvas() { VerticalAlignment = VerticalAlignment.Center };
-			//canvas.Children.Add(new Rectangle() { Height = 6, Width = 6, Fill = new SolidColorBrush(color.Value), VerticalAlignment = VerticalAlignment.Center });
-
-			return new InlineUIContainer(panel) { BaselineAlignment = BaselineAlignment.Bottom };
 		}
 
 		public class DocumentationInlineProcessor : IDocumentationSpanVisitor<Inline> {
