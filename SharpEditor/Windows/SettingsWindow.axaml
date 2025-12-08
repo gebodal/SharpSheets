@@ -185,11 +185,8 @@
 														</Grid.ColumnDefinitions>
 
 														<TextBlock Grid.Column="0" Text="{Binding DisplayName}" VerticalAlignment="Center"/>
-														<TextBox Grid.Column="2" FontFamily="{StaticResource EditorFont}" VerticalContentAlignment="Center">
-															<i:Interaction.Behaviors>
-																<local:LostFocusUpdateBindingBehavior Text="{Binding Color, Converter={StaticResource colorToStringConv}}"/>
-															</i:Interaction.Behaviors>
-														</TextBox>
+														<TextBox Grid.Column="2" FontFamily="{StaticResource EditorFont}" VerticalContentAlignment="Center"
+															Text="{Binding Color, Converter={StaticResource colorToStringConv}, UpdateSourceTrigger=LostFocus}"/>
 														<Border Grid.Column="4" Background="{StaticResource ThemeBackgroundBrush}"/>
 														<Border Grid.Column="4" BorderThickness="1" BorderBrush="{StaticResource ThemeBorderMidBrush}">
 															<Border.Background>
@@ -255,11 +252,8 @@
 										</Grid.ColumnDefinitions>
 
 										<TextBlock Grid.Column="0" Text="{Binding DisplayName}" VerticalAlignment="Center"/>
-										<TextBox Grid.Column="2" FontFamily="{StaticResource EditorFont}" VerticalContentAlignment="Center">
-											<i:Interaction.Behaviors>
-												<local:LostFocusUpdateBindingBehavior Text="{Binding Color, Converter={StaticResource colorToStringConv}}"/>
-											</i:Interaction.Behaviors>
-										</TextBox>
+										<TextBox Grid.Column="2" FontFamily="{StaticResource EditorFont}" VerticalContentAlignment="Center"
+											Text="{Binding Color, Converter={StaticResource colorToStringConv}, UpdateSourceTrigger=LostFocus}"/>
 										<Border Grid.Column="4" BorderThickness="1" BorderBrush="{StaticResource ThemeBorderMidBrush}">
 											<Border.Background>
 												<SolidColorBrush Color="{Binding Color}"/>

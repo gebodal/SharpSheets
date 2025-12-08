@@ -8,6 +8,8 @@ using SharpEditor.DataManagers;
 using SharpEditor.Documentation;
 using SharpEditor.Windows;
 using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace SharpEditor;
@@ -19,11 +21,26 @@ public partial class App : Application {
 		this.Name = SharpEditorData.GetEditorName();
 	}
 
+	[UnconditionalSuppressMessage(
+		"Trimming",
+		"IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code",
+		Justification = "Accessing Avalonia's DataValidators triggers ILLink warnings; we only remove the known DataAnnotationsValidationPlugin and have tested trimmed app.")]
+	private static void RemoveAvaloniaDataAnnotationsValidator() {
+		// Lines below needed to remove Avalonia data validation.
+		// Without it you will get duplicate validations from both Avalonia and CT
+
+		DataAnnotationsValidationPlugin[] toRemove = BindingPlugins.DataValidators
+			.OfType<DataAnnotationsValidationPlugin>()
+			.ToArray();
+
+		foreach (DataAnnotationsValidationPlugin plugin in toRemove) {
+			BindingPlugins.DataValidators.Remove(plugin);
+		}
+	}
+
 	public override async void OnFrameworkInitializationCompleted() {
-		// Line below is needed to remove Avalonia data validation.
-		// Without this line you will get duplicate validations from both Avalonia and CT
-		BindingPlugins.DataValidators.RemoveAt(0);
-		
+		RemoveAvaloniaDataAnnotationsValidator();
+
 		if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
 
 			// Create and show loading window while we're awaiting the main window
