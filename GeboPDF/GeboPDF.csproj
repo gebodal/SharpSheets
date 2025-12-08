@@ -7,6 +7,9 @@
 		<Version>0.1.0.0</Version>
 		<Title>GeboPDF</Title>
 		<Authors>Gebodal</Authors>
+
+		<IsTrimmable>true</IsTrimmable>
+		<EnableTrimAnalyzer>true</EnableTrimAnalyzer>
 	</PropertyGroup>
 
 	<ItemGroup>

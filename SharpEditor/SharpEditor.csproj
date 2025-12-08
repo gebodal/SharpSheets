@@ -11,6 +11,10 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationIcon>Assets\Icons\Icon.ico</ApplicationIcon>
     <Version>0.1.0.0</Version>
+
+	<PublishTrimmed>true</PublishTrimmed>
+	<TrimMode>link</TrimMode>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsPublishing)' == 'true'">
