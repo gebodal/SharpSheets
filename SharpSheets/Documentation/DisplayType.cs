@@ -24,8 +24,6 @@ namespace SharpSheets.Documentation {
 
 		public string FullName => SystemType?.FullName ?? EvaluationType!.Name;
 
-		public DisplayType Underlying => new DisplayType(SystemType, EvaluationType, DisplayTypeStructure.Single);
-
 		private DisplayType(Type? systemType, EvaluationType? evaluationType, DisplayTypeStructure structure) {
 			if (systemType is null && evaluationType is null) { throw new InvalidOperationException($"{nameof(DisplayType)} must be given at least one non-null type argument."); }
 			SystemType = systemType ?? GetEvalBase(evaluationType);
@@ -33,8 +31,23 @@ namespace SharpSheets.Documentation {
 			Structure = structure;
 		}
 
+		public DisplayType AsSingle() => new DisplayType(SystemType, EvaluationType, DisplayTypeStructure.Single);
+
+		private static readonly Dictionary<Type, DisplayType> systemTypeRegistry = new Dictionary<Type, DisplayType>();
+
+		private static DisplayType FromSystem(Type type, DisplayTypeStructure structure = DisplayTypeStructure.Single) {
+			if (systemTypeRegistry.TryGetValue(type, out DisplayType? existing)) {
+				return existing;
+			}
+			else {
+				DisplayType newInstance = new DisplayType(type, null, structure);
+				systemTypeRegistry[type] = newInstance;
+				return newInstance;
+			}
+		}
+
 		public static DisplayType FromSystem<T>(DisplayTypeStructure structure = DisplayTypeStructure.Single) {
-			return new DisplayType(typeof(T), null, structure);
+			return FromSystem(typeof(T), structure);
 		}
 
 		public static DisplayType FromEvaluation(EvaluationType evaluationType, DisplayTypeStructure structure = DisplayTypeStructure.Single) {
@@ -42,7 +55,12 @@ namespace SharpSheets.Documentation {
 		}
 
 		public static DisplayType Create(Type systemType, EvaluationType? evaluationType = null, DisplayTypeStructure structure = DisplayTypeStructure.Single) {
-			return new DisplayType(systemType, evaluationType, structure);
+			if (evaluationType is null) {
+				return FromSystem(systemType, structure);
+			}
+			else {
+				return new DisplayType(systemType, evaluationType, structure);
+			}
 		}
 
 		private static bool IsEvalBase<T>(EvaluationType evalType) where T : notnull {
@@ -57,12 +75,29 @@ namespace SharpSheets.Documentation {
 			}
 		}
 
+		private static bool IsSingleDataType(EvaluationType? type, [MaybeNullWhen(false)] out Type dataType) {
+			if (type is null) {
+				dataType = null;
+				return false;
+			}
+
+			for (Type? t = type.GetType(); t != null; t = t.BaseType) {
+				if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(SingleDataType<>)) {
+					dataType = type.DataType;
+					return true;
+				}
+			}
+
+			dataType = null;
+			return false;
+		}
+
 		private static Type? GetEvalBase(EvaluationType? evalType) {
 			if (evalType is EnumEvaluationType enumEval) {
 				return enumEval.SystemType;
 			}
-			else if (evalType?.GetType().TryGetGenericTypeDefinition() is Type genericEvalType && genericEvalType == typeof(SingleDataType<>)) {
-				return evalType.DataType;
+			else if (IsSingleDataType(evalType, out Type? dataType)) {
+				return dataType;
 			}
 			else {
 				return null;
@@ -101,6 +136,11 @@ namespace SharpSheets.Documentation {
 		}
 
 		public bool IsSequence<T>(out int length) where T : notnull {
+			if (Structure != DisplayTypeStructure.Single) {
+				length = -1;
+				return false;
+			}
+
 			if (SystemType is not null) {
 				length = -1;
 				return SystemType.IsArray && SystemType.GetElementType() == typeof(T);
@@ -120,10 +160,21 @@ namespace SharpSheets.Documentation {
 		}
 
 		public bool IsSequence([MaybeNullWhen(false)] out DisplayType elementType, out int length) {
-			if (SystemType is not null) {
+			if(Structure != DisplayTypeStructure.Single) {
+				elementType = null;
 				length = -1;
+				return false;
+			}
+
+			if (SystemType is not null) {
 				if (SystemType.IsArray && SystemType.GetElementType() is Type systemElemType) {
 					elementType = Create(systemElemType);
+					length = -1;
+					return true;
+				}
+				else if (TupleUtils.IsTupleType(SystemType) && TupleUtils.GetTupleTypes(SystemType) is Type[] tupleTypes && tupleTypes.Distinct().Count() == 1) {
+					elementType = Create(tupleTypes[0]);
+					length = TupleUtils.GetTupleLength(SystemType);
 					return true;
 				}
 			}
@@ -143,7 +194,34 @@ namespace SharpSheets.Documentation {
 			return false;
 		}
 
+		public bool IsTuple(out int length) {
+			if (Structure != DisplayTypeStructure.Single) {
+				length = -1;
+				return false;
+			}
+
+			if (SystemType is not null) {
+				if (TupleUtils.IsTupleType(SystemType)) {
+					length = TupleUtils.GetTupleLength(SystemType);
+					return true;
+				}
+			}
+			else if (EvaluationType is TupleEvaluationType tupleEval) {
+				length = tupleEval.ElementCount;
+				return true;
+			}
+
+			length = -1;
+			return false;
+		}
+
 		public bool IsDictionary([MaybeNullWhen(false)] out DisplayType keyType, [MaybeNullWhen(false)] out DisplayType valueType) {
+			if (Structure != DisplayTypeStructure.Single) {
+				keyType = null;
+				valueType = null;
+				return false;
+			}
+
 			if (EvaluationType is DictionaryEvaluationType dictEvalType) {
 				keyType = FromEvaluation(dictEvalType.KeyType);
 				valueType = FromEvaluation(dictEvalType.ElementType);

@@ -46,7 +46,7 @@ namespace SharpEditor.DataManagers {
 			else if (type.IsSimple<bool>()) {
 				return "Flag";
 			}
-			else if (type.IsSequence(out _, out _) || type.IsAssignableTo(typeof(IDictionary))) {
+			else if (type.IsSequence(out _, out _) || type.IsTuple(out _) || type.IsDictionary(out _, out _)) {
 				return GetCollectionTypeName(type, GetTypeName);
 			}
 			else if (type.GetSingle() is Type systemSingle && Nullable.GetUnderlyingType(systemSingle) is Type nulledType) {
@@ -56,10 +56,10 @@ namespace SharpEditor.DataManagers {
 				return "(numbered children) Div".Replace(' ', NO_BREAK_SPACE); // TODO Need better name
 			}
 			else if (type.IsEntried) {
-				return ("(list of) " + GetTypeName(type.Underlying)).Replace(' ', NO_BREAK_SPACE);
+				return ("(list of) " + GetTypeName(type.AsSingle())).Replace(' ', NO_BREAK_SPACE);
 			}
 			else if (type.IsNumbered) {
-				return ("(numbered) " + GetTypeName(type.Underlying)).Replace(' ', NO_BREAK_SPACE);
+				return ("(numbered) " + GetTypeName(type.AsSingle())).Replace(' ', NO_BREAK_SPACE);
 			}
 			else if (IsNamedChild(type)) {
 				return "(child) Div".Replace(' ', NO_BREAK_SPACE); // TODO Need better name
@@ -117,6 +117,9 @@ namespace SharpEditor.DataManagers {
 			}
 			else if (type.IsSimple<object>()) {
 				return "Value";
+			}
+			else if (type.GetSingle() is Type otherSingleType) {
+				return otherSingleType.Name;
 			}
 			else {
 				return type.Name;
@@ -257,7 +260,7 @@ namespace SharpEditor.DataManagers {
 					return value?.ToString() ?? "[Invalid]";
 				}
 			}
-			else if (type.GetSingle() is Type singleTupleType && TupleUtils.IsTupleType(singleTupleType)) {
+			else if (type.IsTuple(out _)) {
 				if (TupleUtils.IsTupleObject(value, out _)) {
 					return ArrayToString(type, value);
 				}
@@ -265,9 +268,9 @@ namespace SharpEditor.DataManagers {
 					return value?.ToString() ?? "[Invalid]";
 				}
 			}
-			else if (type.IsAssignableTo(typeof(IDictionary))) {
-				if (value is IDictionary) {
-					return DictionaryToString(type, value);
+			else if (type.IsDictionary(out _, out _)) {
+				if (value is IDictionary dict) {
+					return DictionaryToString(type, dict);
 				}
 				else {
 					return value?.ToString() ?? "[Invalid]";
@@ -331,6 +334,15 @@ namespace SharpEditor.DataManagers {
 			return ValueStringsMatch(type.IsEnum, a, b);
 		}
 
+		private static string JoinCollectionParts(IList<string> parts, string sep) {
+			if (parts.Count == 0) {
+				return "empty";
+			}
+			else {
+				return string.Join(sep, parts);
+			}
+		}
+
 		private static readonly int arrayMaxRank = 3;
 		private static readonly string[] arraySeparators = new string[] { ", ", "; ", " | " };
 		private static string ArrayToString(DisplayType type, object? value) => ArrayToString(type, value, out _);
@@ -347,7 +359,7 @@ namespace SharpEditor.DataManagers {
 					//throw new ArgumentException($"Cannot process arrays with a rank above {arrayMaxRank}."); // TODO Better exception type?
 					return "INVALID ARRAY RANK";
 				}
-				return string.Join(arraySeparators[rank - 1], parts);
+				return JoinCollectionParts(parts, arraySeparators[rank - 1]);
 			}
 			else if (value is ITuple tupleValue) {
 				List<string> parts = new List<string>();
@@ -367,7 +379,7 @@ namespace SharpEditor.DataManagers {
 					//throw new ArgumentException($"Cannot process arrays with a rank above {arrayMaxRank}."); // TODO Better exception type?
 					return "INVALID TUPLE RANK";
 				}
-				return string.Join(arraySeparators[rank - 1], parts);
+				return JoinCollectionParts(parts, arraySeparators[rank - 1]);
 			}
 			else {
 				rank = 0;
@@ -375,8 +387,8 @@ namespace SharpEditor.DataManagers {
 			}
 		}
 
-		private static string DictionaryToString(DisplayType type, object? value) {
-			if (value is IDictionary dict && type.IsDictionary(out DisplayType? dictKeyType, out DisplayType? dictValueType)) {
+		private static string DictionaryToString(DisplayType type, IDictionary dict) {
+			if (type.IsDictionary(out DisplayType? dictKeyType, out DisplayType? dictValueType)) {
 				List<string> parts = new List<string>();
 
 				foreach (object key in dict.Keys.Cast<object>()) {
@@ -389,7 +401,7 @@ namespace SharpEditor.DataManagers {
 					parts.Add($"{keyStr}: {valueStr}");
 				}
 
-				return string.Join(", ", parts);
+				return JoinCollectionParts(parts, ", ");
 			}
 			else {
 				return "INVALID DICTIONARY OBJECT";
