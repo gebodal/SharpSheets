@@ -106,7 +106,7 @@ namespace SharpSheets.Documentation {
 
 		public bool IsBase<T>() where T : notnull {
 			if (SystemType is not null) {
-				return SystemType == typeof(T);
+				return SystemType == typeof(T) || (Nullable.GetUnderlyingType(SystemType) is Type underlyingType && underlyingType == typeof(T));
 			}
 			else {
 				return IsEvalBase<T>(EvaluationType!);
@@ -120,7 +120,12 @@ namespace SharpSheets.Documentation {
 
 		public Type? GetBase() {
 			if (SystemType is not null) {
-				return SystemType;
+				if (Nullable.GetUnderlyingType(SystemType) is Type underlyingType) {
+					return underlyingType;
+				}
+				else {
+					return SystemType;
+				}
 			}
 			else if (GetEvalBase(EvaluationType) is Type evalBase) {
 				return evalBase;
