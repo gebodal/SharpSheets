@@ -1,25 +1,24 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
-using Avalonia.Data;
-using Avalonia.Data.Converters;
 using Avalonia.Input;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
-using Avalonia.Styling;
 using SharpEditor.DataManagers;
 using System;
-using System.Globalization;
 
 namespace SharpEditor.Utilities {
 
+	// This should really be called "ClickableInline"
 	public class ClickableRun : InlineUIContainer {
-
-		//public static readonly Brush HyperlinkColor = new SolidColorBrush(Color.FromRgb(142, 148, 251));
 
 		public event EventHandler<PointerPressedEventArgs>? MouseLeftButtonDown;
 
 		private readonly Border border;
 		private readonly TextBlock textBlock;
+
+		private IDisposable? parentForegroundSubscription;
+		private IDisposable? selfForegroundSubscription;
 
 		public string? Text {
 			get => textBlock.Text;
@@ -33,9 +32,9 @@ namespace SharpEditor.Utilities {
 
 			textBlock = new TextBlock() {
 				Text = text,
-				Foreground = hyperlinkBrush,
 				Classes = { "hyperlink" },
 				IsHitTestVisible = false
+				// Foreground set below
 			};
 
 			border = new Border() {
@@ -47,22 +46,93 @@ namespace SharpEditor.Utilities {
 
 			border.PointerEntered += OnPointerChanged;
 			border.PointerExited += OnPointerChanged;
-
 			border.PointerPressed += OnPointerPressed;
 
 			this.Child = border;
 
+			this.AttachedToLogicalTree += OnAttachedToLogicalTree;
+			this.DetachedFromLogicalTree += OnDetachedFromLogicalTree;
 
-			var binding = new Binding("Foreground") {
-				Source = this,
-				Mode = BindingMode.OneWay,
-				FallbackValue = hyperlinkBrush
-			};
-
-			textBlock.Bind(TextBlock.ForegroundProperty, binding);
+			UpdateForegroundFromNearestSource(hyperlinkBrush);
 		}
 
 		public ClickableRun() : this(null) { }
+
+		private void OnAttachedToLogicalTree(object? sender, Avalonia.LogicalTree.LogicalTreeAttachmentEventArgs e) {
+			SubscribeToForegroundChanges();
+		}
+
+		private void OnDetachedFromLogicalTree(object? sender, Avalonia.LogicalTree.LogicalTreeAttachmentEventArgs e) {
+			// Clean up subscriptions when detaching
+			UnsubscribeFromForegroundChanges();
+		}
+
+		private TextBlock? FindContainingTextBlock() {
+			ILogical? parent = this.Parent;
+			while (parent != null) {
+				if (parent is TextBlock tb) {
+					return tb;
+				}
+
+				parent = parent.LogicalParent;
+			}
+			return null;
+		}
+
+		private void SubscribeToForegroundChanges() {
+			UnsubscribeFromForegroundChanges(); // Clear existing
+
+			IBrush? hyperlinkBrush = Application.Current?.GetResource<IBrush>(SharpEditorThemeManager.HyperlinkBrush);
+
+			TextBlock? containingTextBlock = FindContainingTextBlock();
+			if (containingTextBlock != null) {
+				if(containingTextBlock.IsSet(TextBlock.ForegroundProperty)) {
+					textBlock.Foreground = containingTextBlock.Foreground ?? this.Foreground ?? hyperlinkBrush;
+				}
+				else {
+					textBlock.Foreground = this.IsSet(ForegroundProperty) ? this.Foreground : hyperlinkBrush;
+				}
+
+				// Subscribe to changes on the containingTextBlock Foreground
+				parentForegroundSubscription = containingTextBlock.GetObservable(TextBlock.ForegroundProperty)
+					.Subscribe(f => {
+						if (containingTextBlock.IsSet(TextBlock.ForegroundProperty)) {
+							textBlock.Foreground = containingTextBlock.Foreground ?? this.Foreground ?? hyperlinkBrush;
+						}
+						else {
+							textBlock.Foreground = this.IsSet(ForegroundProperty) ? this.Foreground : hyperlinkBrush;
+						}
+					});
+			}
+			else {
+				// No containing TextBlock found
+				textBlock.Foreground = this.Foreground ?? hyperlinkBrush;
+
+				// Observe our own Foreground for changes and update
+				selfForegroundSubscription = this.GetObservable(ForegroundProperty)
+					.Subscribe(f => {
+						textBlock.Foreground = this.IsSet(ForegroundProperty) ? this.Foreground : hyperlinkBrush;
+					});
+			}
+		}
+
+		private void UnsubscribeFromForegroundChanges() {
+			parentForegroundSubscription?.Dispose();
+			parentForegroundSubscription = null;
+
+			selfForegroundSubscription?.Dispose();
+			selfForegroundSubscription = null;
+		}
+
+		private void UpdateForegroundFromNearestSource(IBrush? fallback) {
+			TextBlock? containingTextBlock = FindContainingTextBlock();
+			if (containingTextBlock != null) {
+				textBlock.Foreground = containingTextBlock.Foreground ?? this.Foreground ?? fallback;
+			}
+			else {
+				textBlock.Foreground = this.Foreground ?? fallback;
+			}
+		}
 
 		protected void OnPointerChanged(object? sender, PointerEventArgs e) {
 			if (border.IsPointerOver) {
@@ -81,22 +151,6 @@ namespace SharpEditor.Utilities {
 				MouseLeftButtonDown?.Invoke(sender, e);
 				e.Handled = true;
 			}
-		}
-
-		private class FallbackColorConverter : IValueConverter {
-
-			public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) {
-				if (value is IBrush parentForeground) {
-					return parentForeground;
-				}
-
-				return parameter as IBrush;
-			}
-
-			public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) {
-				throw new NotImplementedException();
-			}
-
 		}
 
 	}
