@@ -57,7 +57,9 @@ for PLATFORM in ${RUNTIME_IDS[@]}; do
 	rm "$PLATFORM_OUTPUT_DIR/SharpSheets.xml" # Better way of doing this?
 
     echo "Zipping $PLATFORM output..."
-    zip -r "$OUTPUT_DIR/${PROJECT_NAME}-$VERSION-$PLATFORM.zip" "$PLATFORM_OUTPUT_DIR"
+	cd "$PLATFORM_OUTPUT_DIR"
+    zip -r "../${PROJECT_NAME}-$VERSION-$PLATFORM.zip" .
+	cd - > /dev/null
 
     echo "$PLATFORM build and zip completed."
 	echo
