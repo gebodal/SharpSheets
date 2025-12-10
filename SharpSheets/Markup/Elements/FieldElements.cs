@@ -28,6 +28,7 @@ namespace SharpSheets.Markup.Elements {
 		private readonly BoolExpression multiline;
 		private readonly BoolExpression rich;
 		private readonly EnumExpression<Justification> justification;
+		private readonly EnumExpression<FieldRotation> rotation;
 		private readonly IntExpression maxLen;
 
 		/// <summary>
@@ -50,6 +51,7 @@ namespace SharpSheets.Markup.Elements {
 		/// If false, all text will be on a single, vertically-centered line.</param>
 		/// <param name="_rich" default="false">A flag to indicate that the field should use rich text features.</param>
 		/// <param name="_justification" default="LEFT">The justification for the text field.</param>
+		/// <param name="_rotation" default="UP">The rotation for the content of the text field, relative to the document page.</param>
 		/// <param name="_max_len" default="-1">The maximum allowed length for the text field contents, in characters.</param>
 		/// <exception cref="EvaluationException"></exception>
 		public TextField(string? _id, StyleSheet styleSheet,
@@ -61,6 +63,7 @@ namespace SharpSheets.Markup.Elements {
 			BoolExpression _multiline,
 			BoolExpression _rich,
 			EnumExpression<Justification> _justification,
+			EnumExpression<FieldRotation> _rotation,
 			IntExpression _max_len) {
 
 			this.ID = _id;
@@ -74,6 +77,7 @@ namespace SharpSheets.Markup.Elements {
 			this.multiline = _multiline;
 			this.rich = _rich;
 			this.justification = _justification;
+			this.rotation = _rotation;
 			this.maxLen = _max_len;
 		}
 
@@ -94,6 +98,7 @@ namespace SharpSheets.Markup.Elements {
 		/// If false, all text will be on a single, vertically-centered line.</param>
 		/// <param name="rich">A flag to indicate that the field should use rich text features.</param>
 		/// <param name="justification">The justification for the text field.</param>
+		/// <param name="rotation">The rotation for the content of the text field, relative to the document page.</param>
 		/// <param name="max_len">The maximum allowed length for the text field contents, in characters.</param>
 		[FactoryBuilder(typeof(TextField), Name = "textField")]
 		public static TextField Build(
@@ -107,10 +112,11 @@ namespace SharpSheets.Markup.Elements {
 				[LocalProperty(Default = "false")] BoolExpression multiline,
 				[LocalProperty(Default = "false")] BoolExpression rich,
 				[LocalProperty(Default = "LEFT")] EnumExpression<Justification> justification,
+				[LocalProperty(Default = "UP")] EnumExpression<FieldRotation> rotation,
 				[LocalProperty(Default = "-1")] IntExpression max_len
 			) {
 
-			return new TextField(id, styleSheet, x, y, width, height, name, tooltip, field_type, value, multiline, rich, justification, max_len);
+			return new TextField(id, styleSheet, x, y, width, height, name, tooltip, field_type, value, multiline, rich, justification, rotation, max_len);
 		}
 
 		public void Draw(MarkupCanvas canvas) {
@@ -135,6 +141,7 @@ namespace SharpSheets.Markup.Elements {
 				multiline,
 				rich,
 				justification,
+				rotation,
 				maxLen);
 
 			if (canvas.CollectingDiagnostics) { canvas.RegisterArea(this, rect); }

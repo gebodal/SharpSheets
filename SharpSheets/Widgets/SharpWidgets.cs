@@ -239,7 +239,7 @@ namespace SharpSheets.Widgets {
 					canvas.RestoreState();
 				}
 				else {
-					canvas.TextField(remainingRect, fieldName ?? "Section", fieldDetails.tooltip, TextFieldType.STRING, "", fieldDetails.font, fieldDetails.fontsize, !fieldDetails.singleline, fieldDetails.rich, fieldDetails.justification);
+					canvas.TextField(remainingRect, fieldName ?? "Section", fieldDetails.tooltip, TextFieldType.STRING, "", fieldDetails.font, fieldDetails.fontsize, !fieldDetails.singleline, fieldDetails.rich, fieldDetails.justification, FieldRotation.UP);
 				}
 			}
 		}
@@ -392,7 +392,7 @@ namespace SharpSheets.Widgets {
 					canvas.CheckField(remainingRect, fieldName, fieldDetails.tooltip, fieldDetails.checkType.Value);
 				}
 				else {
-					canvas.TextField(remainingRect, fieldName, fieldDetails.tooltip, TextFieldType.STRING, "", fieldDetails.font, fieldDetails.fontsize, false, fieldDetails.rich, fieldDetails.justification);
+					canvas.TextField(remainingRect, fieldName, fieldDetails.tooltip, TextFieldType.STRING, "", fieldDetails.font, fieldDetails.fontsize, false, fieldDetails.rich, fieldDetails.justification, FieldRotation.UP);
 				}
 			}
 		}
@@ -633,7 +633,7 @@ namespace SharpSheets.Widgets {
 					canvas.CheckField(remainingRect, fieldName, fieldDetails.tooltip, fieldDetails.checkType.Value);
 				}
 				else {
-					canvas.TextField(remainingRect, fieldName, fieldDetails.tooltip, TextFieldType.STRING, "", fieldDetails.font, fieldDetails.fontsize, fieldDetails.multiline, fieldDetails.rich, fieldDetails.justification);
+					canvas.TextField(remainingRect, fieldName, fieldDetails.tooltip, TextFieldType.STRING, "", fieldDetails.font, fieldDetails.fontsize, fieldDetails.multiline, fieldDetails.rich, fieldDetails.justification, FieldRotation.UP);
 				}
 			}
 		}
@@ -1245,7 +1245,7 @@ namespace SharpSheets.Widgets {
 					canvas.CheckField(entryRect, barNames[barIdx], fieldTooltip, checkTypes[barIdx]);
 				}
 				else {
-					canvas.TextField(entryRect, barNames[barIdx], fieldTooltip, TextFieldType.STRING, "", TextFormat.REGULAR, 0f, false, rich, Justification.CENTRE);
+					canvas.TextField(entryRect, barNames[barIdx], fieldTooltip, TextFieldType.STRING, "", TextFormat.REGULAR, 0f, false, rich, Justification.CENTRE, FieldRotation.UP);
 				}
 			}
 		}
@@ -1482,14 +1482,14 @@ namespace SharpSheets.Widgets {
 						entry1.Draw(canvas, entry1Rect, cancellationToken);
 					}
 					else {
-						canvas.TextField(entry1Rect, $"{barNames[i]}_entry1", null, TextFieldType.STRING, "", TextFormat.REGULAR, 0f, false, rich, Justification.CENTRE); // TODO Tooltip?
+						canvas.TextField(entry1Rect, $"{barNames[i]}_entry1", null, TextFieldType.STRING, "", TextFormat.REGULAR, 0f, false, rich, Justification.CENTRE, FieldRotation.UP); // TODO Tooltip?
 					}
 
 					if (entry2 != null) {
 						entry2.Draw(canvas, entry2Rect, cancellationToken);
 					}
 					else {
-						canvas.TextField(entry2Rect, $"{barNames[i]}_entry2", null, TextFieldType.STRING, "", TextFormat.REGULAR, 0f, false, rich, Justification.CENTRE); // TODO Tooltip?
+						canvas.TextField(entry2Rect, $"{barNames[i]}_entry2", null, TextFieldType.STRING, "", TextFormat.REGULAR, 0f, false, rich, Justification.CENTRE, FieldRotation.UP); // TODO Tooltip?
 					}
 				}
 				else {
@@ -1741,6 +1741,7 @@ namespace SharpSheets.Widgets {
 		protected readonly bool rich;
 		protected readonly bool lined;
 		protected readonly Justification justification;
+		protected readonly FieldRotation rotation;
 		protected readonly TextFieldType type;
 
 		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(name) ? $" ({name})" : "");
@@ -1767,6 +1768,8 @@ namespace SharpSheets.Widgets {
 		/// spacing of 15 points.</param>
 		/// <param name="justification">Justification for the field, indicating if the field should be left, right,
 		/// or centre justified.</param>
+		/// <param name="rotation">Rotation for the field contents, indicating what direction "up" should be for
+		/// the text, relative to the document page.</param>
 		/// <param name="type">The content type of this field, indicating if the field should constrain
 		/// it's value to a floating point or integer number.</param>
 		/// <size>0 0</size>
@@ -1782,6 +1785,7 @@ namespace SharpSheets.Widgets {
 				bool rich = false,
 				bool lined = false,
 				Justification justification = Justification.LEFT,
+				FieldRotation rotation = FieldRotation.UP,
 				TextFieldType type = TextFieldType.STRING
 			) : base(setup) {
 
@@ -1796,6 +1800,7 @@ namespace SharpSheets.Widgets {
 			this.rich = rich;
 			this.lined = lined;
 			this.justification = justification;
+			this.rotation = rotation;
 			this.type = type;
 		}
 
@@ -1818,6 +1823,8 @@ namespace SharpSheets.Widgets {
 		/// spacing of 15 points.</param>
 		/// <param name="justification">Justification for the field, indicating if the field should be left, right,
 		/// or centre justified.</param>
+		/// <param name="rotation">Rotation for the field contents, indicating what direction "up" should be for
+		/// the text, relative to the document page.</param>
 		/// <param name="type">The content type of this field, indicating if the field should constrain
 		/// it's value to a floating point or integer number.</param>
 		/// <size>0 0</size>
@@ -1834,10 +1841,11 @@ namespace SharpSheets.Widgets {
 				bool rich = false,
 				bool lined = false,
 				Justification justification = Justification.LEFT,
+				FieldRotation rotation = FieldRotation.UP,
 				TextFieldType type = TextFieldType.STRING
 			) {
 
-			return new Field(setup, name, tooltip, aspect, value, fontsize, format, singleline, rich, lined, justification, type);
+			return new Field(setup, name, tooltip, aspect, value, fontsize, format, singleline, rich, lined, justification, rotation, type);
 		}
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
@@ -1858,7 +1866,7 @@ namespace SharpSheets.Widgets {
 				canvas.RestoreState();
 			}
 			else {
-				canvas.TextField(rect, name ?? "Field", tooltip, type, value, format, fontsize, multiline, rich, justification);
+				canvas.TextField(rect, name ?? "Field", tooltip, type, value, format, fontsize, multiline, rich, justification, rotation);
 			}
 		}
 
@@ -2132,7 +2140,7 @@ namespace SharpSheets.Widgets {
 			float entryStart = rect.X + (entryNameWidth > 0 ? entryNameWidth + canvas.GetWidth(" ", format, fontSize) * 2 : 0);
 			float entryWidth = rect.Width - (entryStart - rect.X);
 			Rectangle entryFieldRect = new Rectangle(entryStart, rect.Top - headerHeight, entryWidth, fontSize * 1.5f);
-			canvas.TextField(entryFieldRect, $"{fieldName}_{text ?? "top"}", null, TextFieldType.STRING, "", format, fontSize, false, rich, Justification.LEFT); // TODO Tooltip?
+			canvas.TextField(entryFieldRect, $"{fieldName}_{text ?? "top"}", null, TextFieldType.STRING, "", format, fontSize, false, rich, Justification.LEFT, FieldRotation.UP); // TODO Tooltip?
 
 			canvas.SetStrokeColor(entryColor);
 			canvas.MoveToRel(entryFieldRect, 0, 0).LineToRel(entryFieldRect, 1, 0).Stroke();
@@ -2141,7 +2149,7 @@ namespace SharpSheets.Widgets {
 
 			if (children.Count == 0 ) {
 				Rectangle remainingRect = GetContainerArea(canvas, rect);
-				canvas.TextField(remainingRect, fieldName, null, TextFieldType.STRING, "", TextFormat.REGULAR, 0, false, rich, Justification.CENTRE); // TODO Tooltip?
+				canvas.TextField(remainingRect, fieldName, null, TextFieldType.STRING, "", TextFormat.REGULAR, 0, false, rich, Justification.CENTRE, FieldRotation.UP); // TODO Tooltip?
 			}
 		}
 
@@ -2457,7 +2465,7 @@ namespace SharpSheets.Widgets {
 								}
 								else {
 									this.boxStyle.Draw(canvas, columns[j]!, out Rectangle cellRemaining);
-									canvas.TextField(cellRemaining, $"{(columnNames != null ? columnNames[j].Text : $"COLUMN{j + 1}")}", null, TextFieldType.STRING, "", fields.font, fields.fontsize ?? 0f, fields.color ?? canvas.GetTextColor(), false, fields.rich, justifications[j]); // TODO Tooltip?
+									canvas.TextField(cellRemaining, $"{(columnNames != null ? columnNames[j].Text : $"COLUMN{j + 1}")}", null, TextFieldType.STRING, "", fields.font, fields.fontsize ?? 0f, fields.color ?? canvas.GetTextColor(), false, fields.rich, justifications[j], FieldRotation.UP); // TODO Tooltip?
 								}
 							}
 						}
@@ -2470,7 +2478,7 @@ namespace SharpSheets.Widgets {
 			canvas.RestoreState();
 
 			if (children.Count == 0 && remainingRect != null) {
-				canvas.TextField(remainingRect, fieldName, null, TextFieldType.STRING, "", fields.font, fields.fontsize ?? 0f, true, fields.rich, Justification.LEFT); // TODO Tooltip?
+				canvas.TextField(remainingRect, fieldName, null, TextFieldType.STRING, "", fields.font, fields.fontsize ?? 0f, true, fields.rich, Justification.LEFT, FieldRotation.UP); // TODO Tooltip?
 			}
 			// else nothing
 		}

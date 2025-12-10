@@ -21,6 +21,28 @@ namespace SharpSheets.Canvas {
 	}
 
 	/// <summary>
+	/// Indicates the cardinal direction that should be "up" for a field.
+	/// </summary>
+	public enum FieldRotation {
+		/// <summary>
+		/// The field should be aligned with the top towards the top of the page.
+		/// </summary>
+		UP,
+		/// <summary>
+		/// The field should be aligned with the top towards the right of the page.
+		/// </summary>
+		RIGHT,
+		/// <summary>
+		/// The field should be aligned with the top towards the bottom of the page.
+		/// </summary>
+		DOWN,
+		/// <summary>
+		/// The field should be aligned with the top towards the left of the page.
+		/// </summary>
+		LEFT
+	}
+
+	/// <summary>
 	/// Indicates the symbol to be used in a check field to indicate an "On" state.
 	/// </summary>
 	public enum CheckType : int {

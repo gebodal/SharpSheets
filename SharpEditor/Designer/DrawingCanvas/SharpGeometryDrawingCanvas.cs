@@ -800,7 +800,7 @@ namespace SharpEditor.Designer.DrawingCanvas {
 
 		#region Fields
 
-		public string? TextField(Rectangle rect, string name, string? tooltip, TextFieldType fieldType, string? value, TextFormat font, float fontSize, SharpSheets.Colors.Color color, bool multiline, bool rich, Justification justification, int maxLen = -1) {
+		public string? TextField(Rectangle rect, string name, string? tooltip, TextFieldType fieldType, string? value, TextFormat font, float fontSize, SharpSheets.Colors.Color color, bool multiline, bool rich, Justification justification, FieldRotation rotation, int maxLen = -1) {
 			if (IsFieldsEnabled()) {
 				string fieldName = this.GetAvailableFieldName(name);
 				Rectangle pageSpaceRect = this.GetPageSpaceRect(rect);

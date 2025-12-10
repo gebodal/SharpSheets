@@ -15,8 +15,8 @@ namespace SharpSheets.Canvas {
 			return graphicsState;
 		}
 
-		public static string? TextField(this ISharpCanvas canvas, Layouts.Rectangle rect, string name, string? tooltip, TextFieldType fieldType, string? value, TextFormat font, float fontSize, bool multiline, bool rich, Justification justification, int maxLen = -1) {
-			return canvas.TextField(rect, name, tooltip, fieldType, value, font, fontSize, canvas.GetTextColor(), multiline, rich, justification, maxLen);
+		public static string? TextField(this ISharpCanvas canvas, Layouts.Rectangle rect, string name, string? tooltip, TextFieldType fieldType, string? value, TextFormat font, float fontSize, bool multiline, bool rich, Justification justification, FieldRotation rotation, int maxLen = -1) {
+			return canvas.TextField(rect, name, tooltip, fieldType, value, font, fontSize, canvas.GetTextColor(), multiline, rich, justification, rotation, maxLen);
 		}
 
 		public static string? CheckField(this ISharpCanvas canvas, Layouts.Rectangle rect, string name, string? tooltip, CheckType checkType) {

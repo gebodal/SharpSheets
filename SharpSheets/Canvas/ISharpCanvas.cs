@@ -170,7 +170,7 @@ namespace SharpSheets.Canvas {
 
 		ISharpCanvas DrawText(string text, float x, float y);
 
-		string? TextField(Rectangle rect, string name, string? tooltip, TextFieldType fieldType, string? value, TextFormat format, float fontSize, Color color, bool multiline, bool rich, Justification justification, int maxLen = -1);
+		string? TextField(Rectangle rect, string name, string? tooltip, TextFieldType fieldType, string? value, TextFormat format, float fontSize, Color color, bool multiline, bool rich, Justification justification, FieldRotation rotation, int maxLen = -1);
 		string? CheckField(Rectangle rect, string name, string? tooltip, CheckType checkType, Color color);
 
 

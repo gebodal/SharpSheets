@@ -719,7 +719,17 @@ namespace SharpSheets.PDFs {
 			return this;
 		}
 
-		public string? TextField(Rectangle rect, string name, string? tooltip, TextFieldType fieldType, string? value, TextFormat format, float fontSize, Color color, bool multiline, bool rich, Justification justification, int maxLen = -1) {
+		private static PdfWidgetRotation GetRotation(FieldRotation rotation) {
+			return rotation switch {
+				FieldRotation.UP => PdfWidgetRotation.R0,
+				FieldRotation.LEFT => PdfWidgetRotation.R90,
+				FieldRotation.DOWN => PdfWidgetRotation.R180,
+				FieldRotation.RIGHT => PdfWidgetRotation.R270,
+				_ => PdfWidgetRotation.R0
+			};
+		}
+
+		public string? TextField(Rectangle rect, string name, string? tooltip, TextFieldType fieldType, string? value, TextFormat format, float fontSize, Color color, bool multiline, bool rich, Justification justification, FieldRotation rotation, int maxLen = -1) {
 			if (IsFieldsEnabled()) {
 				string fieldName = this.GetAvailableFieldName(name);
 
@@ -731,7 +741,7 @@ namespace SharpSheets.PDFs {
 					PdfFieldFlags.None, textFieldFlags, (maxLen > 0 ? (int?)maxLen : null),
 					new PdfTextString(value ?? ""), new PdfTextString(value ?? ""),
 					state.fonts.GetPdfFont(format), fontSize, ConvertColor(color, out _, false), ConvertJustification(justification),
-					PdfWidgetRotation.R0 // TODO This should be editable
+					GetRotation(rotation)
 					);
 
 				// TODO Implement

@@ -1310,6 +1310,7 @@ namespace SharpSheets.Markup.Canvas {
 			BoolExpression multiline,
 			BoolExpression rich,
 			EnumExpression<Justification> justification,
+			EnumExpression<FieldRotation> rotation,
 			IntExpression maxLen) {
 
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
@@ -1325,9 +1326,10 @@ namespace SharpSheets.Markup.Canvas {
 			bool evalMultiline = Evaluate(multiline, false); // multiline?.Evaluate(Environment) ?? false;
 			bool evalRich = Evaluate(rich, false); // rich?.Evaluate(Environment) ?? false;
 			Justification evalJustification = Evaluate(justification, Justification.LEFT); // justification?.Evaluate(Environment) ?? Justification.LEFT;
+			FieldRotation evalRotation = Evaluate(rotation, FieldRotation.UP);
 			int evalMaxLen = Evaluate(maxLen, -1); // maxLen?.Evaluate(Environment) ?? -1;
 
-			Canvas.TextField(absRect, evalName, evalTooltip, evalFieldType, evalValue, evalFormat, evalFontSize, evalColor, evalMultiline, evalRich, evalJustification, evalMaxLen);
+			Canvas.TextField(absRect, evalName, evalTooltip, evalFieldType, evalValue, evalFormat, evalFontSize, evalColor, evalMultiline, evalRich, evalJustification, evalRotation, evalMaxLen);
 
 			return this;
 		}

@@ -796,7 +796,16 @@ namespace GeboPdf.Documents {
 
 	}
 
-	public enum PdfWidgetRotation { R0 = 0, R90 = 1, R180 = 2, R270 = 3 }
+	public enum PdfWidgetRotation {
+		/// <summary> No rotation. </summary>
+		R0 = 0,
+		/// <summary> 90 degrees counter-clockwise. </summary>
+		R90 = 1,
+		/// <summary> 180 degrees rotation. </summary>
+		R180 = 2,
+		/// <summary> 270 degrees counter-clockwise. </summary>
+		R270 = 3
+	}
 	public static class WidgetRotationUtils {
 		public static PdfInt GetRotation(this PdfWidgetRotation rotation) {
 			return new PdfInt(((int)rotation) * 90);

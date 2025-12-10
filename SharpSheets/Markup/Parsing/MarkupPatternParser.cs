@@ -1147,6 +1147,7 @@ namespace SharpSheets.Markup.Parsing {
 						GetAttribute(elem, "multiline", false, s => BoolExpression.Parse(s, variables), new BoolExpression(false, variables.Context)),
 						GetAttribute(elem, "rich", false, s => BoolExpression.Parse(s, variables), new BoolExpression(false, variables.Context)),
 						GetAttribute(elem, "justification", false, s => MarkupValueParsing.ParseEnum<Justification>(s, variables), new EnumExpression<Justification>(Justification.LEFT, variables.Context)),
+						GetAttribute(elem, "rotation", false, s => MarkupValueParsing.ParseEnum<FieldRotation>(s, variables), new EnumExpression<FieldRotation>(FieldRotation.UP, variables.Context)),
 						GetAttribute(elem, "max-len", false, s => IntExpression.Parse(s, variables), new IntExpression(-1, variables.Context))
 						);
 					AssertLeafNode(elem, true); // TODO Shouldn't we do something with text nodes here?

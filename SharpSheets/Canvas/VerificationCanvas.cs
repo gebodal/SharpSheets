@@ -441,7 +441,7 @@ namespace SharpSheets.Canvas {
 			return this;
 		}
 
-		public string? TextField(Rectangle rect, string name, string? tooltip, TextFieldType fieldType, string? value, TextFormat format, float fontSize, Color color, bool multiline, bool rich, Justification justification, int maxLen = -1) {
+		public string? TextField(Rectangle rect, string name, string? tooltip, TextFieldType fieldType, string? value, TextFormat format, float fontSize, Color color, bool multiline, bool rich, Justification justification, FieldRotation rotation, int maxLen = -1) {
 			if (IsFieldsEnabled()) {
 				string fieldName = this.GetAvailableFieldName(name);
 

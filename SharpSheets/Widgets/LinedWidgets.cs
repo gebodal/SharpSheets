@@ -483,7 +483,7 @@ namespace SharpSheets.Widgets {
 					for (int p = 0; p < parts.Count; p++) {
 						if (parts[p].fieldName != null) {
 							if (underline) canvas.MoveToRel(parts[p].rect, 0, 0).LineToRel(parts[p].rect, 1, 0).Stroke();
-							canvas.TextField(parts[p].rect.Margins(0, partSpacing / 2, 0, partSpacing / 2, false), parts[p].fieldName!, null, TextFieldType.STRING, "", field.font, field.fontsize ?? fontsize, fieldColor, false, field.rich, parts[p].justification); // TODO Tooltip?
+							canvas.TextField(parts[p].rect.Margins(0, partSpacing / 2, 0, partSpacing / 2, false), parts[p].fieldName!, null, TextFieldType.STRING, "", field.font, field.fontsize ?? fontsize, fieldColor, false, field.rich, parts[p].justification, FieldRotation.UP); // TODO Tooltip?
 						}
 						else {
 							canvas.DrawRichText(parts[p].text!, parts[p].rect.X, parts[p].rect.Y + textYoffset);
@@ -495,7 +495,7 @@ namespace SharpSheets.Widgets {
 			for (int i = detailParts.Length; i < rows.Length; i++) {
 				if (rows[i] != null) {
 					if (underline) canvas.MoveToRel(rows[i]!, 0, 0).LineToRel(rows[i]!, 1, 0).Stroke();
-					canvas.TextField(rows[i]!.Margins(0, partSpacing / 2, 0, partSpacing / 2, false), $"{name}_{i - detailParts.Length}", null, TextFieldType.STRING, "", field.font, field.fontsize ?? fontsize, fieldColor, false, field.rich, field.justification); // TODO Tooltip?
+					canvas.TextField(rows[i]!.Margins(0, partSpacing / 2, 0, partSpacing / 2, false), $"{name}_{i - detailParts.Length}", null, TextFieldType.STRING, "", field.font, field.fontsize ?? fontsize, fieldColor, false, field.rich, field.justification, FieldRotation.UP); // TODO Tooltip?
 				}
 			}
 
@@ -595,7 +595,7 @@ namespace SharpSheets.Widgets {
 			for (int i = 0; i < rows.Length; i++) {
 				if (rows[i] != null) {
 					if (underline) { canvas.MoveToRel(rows[i]!, 0, 0).LineToRel(rows[i]!, 1, 0).Stroke(); }
-					canvas.TextField(rows[i]!.Margins(0, sideSpacing, 0, sideSpacing, false), $"{name}_row_{i}", null, TextFieldType.STRING, "", field.font, field.fontsize ?? fontsize, fieldColor, false, field.rich, field.justification); // TODO Tooltip?
+					canvas.TextField(rows[i]!.Margins(0, sideSpacing, 0, sideSpacing, false), $"{name}_row_{i}", null, TextFieldType.STRING, "", field.font, field.fontsize ?? fontsize, fieldColor, false, field.rich, field.justification, FieldRotation.UP); // TODO Tooltip?
 				}
 			}
 
@@ -762,7 +762,7 @@ namespace SharpSheets.Widgets {
 						if (rowRects[j] is not null) {
 							string rowName = name + "_" + (columns != null ? columns[j].Text : "row") + "_" + (i + 1);
 							if (underline) { canvas.MoveToRel(rowRects[j]!, 0, 0).LineToRel(rowRects[j]!, 1, 0).Stroke(); }
-							canvas.TextField(rowRects[j]!.Margins(0, sideSpacing, 0, sideSpacing, false), rowName, null, TextFieldType.STRING, "", field.font, field.fontsize ?? fontsize, fieldColor, false, field.rich, field.justification); // TODO Tooltip?
+							canvas.TextField(rowRects[j]!.Margins(0, sideSpacing, 0, sideSpacing, false), rowName, null, TextFieldType.STRING, "", field.font, field.fontsize ?? fontsize, fieldColor, false, field.rich, field.justification, FieldRotation.UP); // TODO Tooltip?
 						}
 					}
 				}
@@ -990,7 +990,7 @@ namespace SharpSheets.Widgets {
 
 							canvas.DrawRichText(split[0], rowRect.X, rowRect.Y + textYoffset);
 							canvas.MoveToRel(splitSpace, 0, 0).LineToRel(splitSpace, 1, 0).Stroke();
-							canvas.TextField(splitSpace.Margins(0, columnSpacing / 2, 0, columnSpacing / 2, false), split[0].Text + split[1].Text + "_Blank", null, TextFieldType.STRING, "", field.font, field.fontsize ?? 0f, false, false, Justification.CENTRE); // TODO Tooltip?
+							canvas.TextField(splitSpace.Margins(0, columnSpacing / 2, 0, columnSpacing / 2, false), split[0].Text + split[1].Text + "_Blank", null, TextFieldType.STRING, "", field.font, field.fontsize ?? 0f, false, false, Justification.CENTRE, FieldRotation.UP); // TODO Tooltip?
 							canvas.DrawRichText(split[1], rowRect.X + canvas.GetWidth(split[0], fontsize) + splitSpacing.Absolute, rowRect.Y + textYoffset);
 
 							fieldName = split[0].Text + split[1].Text;
@@ -1020,12 +1020,12 @@ namespace SharpSheets.Widgets {
 						//canvas.SaveState().SetLineWidth(lineWidth).MoveToRel(rowRect, 0, 0).LineToRel(rowRect, 1, 0).Stroke().RestoreState();
 						canvas.MoveToRel(rowRect, 0, 0).LineToRel(rowRect, 1, 0).Stroke();
 						fieldName = $"{name}_Unassigned_{i - skills.Length + 1}";
-						canvas.TextField(columnRects[0]!, fieldName + "_Name", null, TextFieldType.STRING, "", field.font, field.fontsize ?? 0f, false, false, Justification.LEFT); // TODO Tooltip?
+						canvas.TextField(columnRects[0]!, fieldName + "_Name", null, TextFieldType.STRING, "", field.font, field.fontsize ?? 0f, false, false, Justification.LEFT, FieldRotation.UP); // TODO Tooltip?
 					}
 
 					canvas.MoveToRel(columnRects[1]!, 0, 0).LineToRel(columnRects[1]!, 1, 0).Stroke();
 
-					canvas.TextField(columnRects[1]!.Margins(0, columnSpacing / 2, 0, columnSpacing / 2, false), fieldName, null, TextFieldType.STRING, "", field.font, field.fontsize ?? 0f, false, false, field.justification); // TODO Tooltip?
+					canvas.TextField(columnRects[1]!.Margins(0, columnSpacing / 2, 0, columnSpacing / 2, false), fieldName, null, TextFieldType.STRING, "", field.font, field.fontsize ?? 0f, false, false, field.justification, FieldRotation.UP); // TODO Tooltip?
 
 					//canvas.Rectangle(checkRect).Stroke();
 					if (checkRect is not null) {
