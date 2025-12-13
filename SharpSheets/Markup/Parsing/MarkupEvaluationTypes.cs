@@ -148,20 +148,20 @@ namespace SharpSheets.Markup.Parsing {
 
 			// Widget types
 			// TODO Is this right?
-			builder.SetSystemType<IWidget, EvaluationType>(ctx => new CustomEvaluationType(ctx, "widget", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IWidget), null, null));
+			builder.SetSystemType<IWidget, EvaluationType>(ctx => new CustomEvaluationType<IWidget?>(ctx, "widget", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), null, null, null));
 
 			// Shape types
 			TypeField GetAspectField<TShape>(EvaluationContext ctx) where TShape : IAreaShape {
 				return new TypeField("aspect", ctx.GetType<FloatEvaluationType>(), v => ctx.GetType<FloatEvaluationType>().MakeValue(((TShape)v.Value!).Aspect));
 			}
 			// TODO There are missing types here
-			builder.SetSystemType<IContainerShape, EvaluationType>(ctx => new CustomEvaluationType(ctx, "TitledBox", [GetAspectField<IContainerShape>(ctx)], Enumerable.Empty<TypeField>(), typeof(IContainerShape), null, null));
-			builder.SetSystemType<IBox, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Box", [GetAspectField<IBox>(ctx)], Enumerable.Empty<TypeField>(), typeof(IBox), null, null));
-			builder.SetSystemType<ILabelledBox, EvaluationType>(ctx => new CustomEvaluationType(ctx, "LabelledBox", [GetAspectField<ILabelledBox>(ctx)], Enumerable.Empty<TypeField>(), typeof(ILabelledBox), null, null));
-			builder.SetSystemType<IEntriedShape, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Entried", [GetAspectField<IEntriedShape>(ctx)], Enumerable.Empty<TypeField>(), typeof(IEntriedShape), null, null));
-			builder.SetSystemType<IBar, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Bar", [GetAspectField<IBar>(ctx)], Enumerable.Empty<TypeField>(), typeof(IBar), null, null));
-			builder.SetSystemType<IUsageBar, EvaluationType>(ctx => new CustomEvaluationType(ctx, "UsageBar", [GetAspectField<IUsageBar>(ctx)], Enumerable.Empty<TypeField>(), typeof(IUsageBar), null, null));
-			builder.SetSystemType<IDetail, EvaluationType>(ctx => new CustomEvaluationType(ctx, "Detail", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), typeof(IDetail), null, null));
+			builder.SetSystemType<IContainerShape, EvaluationType>(ctx => new CustomEvaluationType<IContainerShape?>(ctx, "TitledBox", [GetAspectField<IContainerShape>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
+			builder.SetSystemType<IBox, EvaluationType>(ctx => new CustomEvaluationType<IBox?>(ctx, "Box", [GetAspectField<IBox>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
+			builder.SetSystemType<ILabelledBox, EvaluationType>(ctx => new CustomEvaluationType<ILabelledBox?>(ctx, "LabelledBox", [GetAspectField<ILabelledBox>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
+			builder.SetSystemType<IEntriedShape, EvaluationType>(ctx => new CustomEvaluationType<IEntriedShape?>(ctx, "Entried", [GetAspectField<IEntriedShape>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
+			builder.SetSystemType<IBar, EvaluationType>(ctx => new CustomEvaluationType<IBar?>(ctx, "Bar", [GetAspectField<IBar>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
+			builder.SetSystemType<IUsageBar, EvaluationType>(ctx => new CustomEvaluationType<IUsageBar?>(ctx, "UsageBar", [GetAspectField<IUsageBar>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
+			builder.SetSystemType<IDetail, EvaluationType>(ctx => new CustomEvaluationType<IDetail?>(ctx, "Detail", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), null, null, null));
 			
 			return builder;
 		}
@@ -252,7 +252,7 @@ namespace SharpSheets.Markup.Parsing {
 				fields.Add(field);
 			}
 
-			return new CustomEvaluationType(context, name, fields, Enumerable.Empty<TypeField>(), typeof(Dictionary<EvaluationName, EvaluationValue>), null, null);
+			return new CustomEvaluationType<Dictionary<EvaluationName, EvaluationValue>>(context, name, fields, Enumerable.Empty<TypeField>(), null, null, new Dictionary<EvaluationName, EvaluationValue>());
 		}
 
 		/// <summary></summary>

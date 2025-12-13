@@ -2415,18 +2415,18 @@ namespace SharpSheets.Evaluations {
 
 	}
 
-	public class CustomEvaluationType : EvaluationType {
+	public class CustomEvaluationType<T> : EvaluationType {
 		
 		public override string Name { get; }
 
 		public override Type DataType { get; }
 
-		private readonly Func<string, DirectoryPath, object>? Parser;
-		private readonly object? defaultValue;
+		private readonly Func<string, DirectoryPath, T>? Parser;
+		private readonly T defaultValue;
 
-		public CustomEvaluationType(EvaluationContext context, string name, IEnumerable<TypeField> fields, IEnumerable<TypeField> staticFields, Type systemType, Func<string, DirectoryPath, object>? parser, object? defaultValue) : base(context) {
+		public CustomEvaluationType(EvaluationContext context, string name, IEnumerable<TypeField> fields, IEnumerable<TypeField> staticFields, Func<string, DirectoryPath, T>? parser, T defaultValue) : base(context) {
 			this.Name = name;
-			this.DataType = systemType;
+			this.DataType = typeof(T);
 
 			this.Parser = parser;
 			this.defaultValue = defaultValue;
@@ -2438,7 +2438,7 @@ namespace SharpSheets.Evaluations {
 		protected override object ParseValueData(string text, DirectoryPath source) {
 			if(Parser is null) { throw new FormatException($"Cannot parse data of type {Name}."); }
 
-			return Parser(text, source);
+			return Parser(text, source)!;
 		}
 
 		protected override object? DefaultValueData() {
