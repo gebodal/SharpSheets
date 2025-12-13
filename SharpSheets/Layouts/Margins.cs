@@ -125,12 +125,21 @@ namespace SharpSheets.Layouts {
 		}
 
 		public override string ToString() {
+			return ToString(null);
+		}
+
+		public string ToString(IFormatProvider? formatProvider) {
+			float[] values;
 			if (Top == Right && Top == Bottom && Top == Left) {
-				return $"Margins({Top})";
+				values = new float[] { Top };
+			}
+			else if (Top == Bottom && Left == Right) {
+				values = new float[] { Top, Right };
 			}
 			else {
-				return $"Margins(top: {Top}, right: {Right}, bottom: {Bottom}, left: {Left})";
+				values = new float[] { Top, Right, Bottom, Left };
 			}
+			return string.Join(",", values.Select(f => f.ToString(formatProvider)));
 		}
 
 		public bool Equals(Margins other) {
