@@ -3,6 +3,7 @@ using SharpSheets.Parsing;
 using SharpSheets.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -156,22 +157,6 @@ namespace SharpSheets.Evaluations {
 			return new InterpolatedStringExpression(new ConstantNode(new EvaluationValue(str, context.GetType<StringEvaluationType>())), null);
 		}
 
-		public static string Format(string format, object? content) {
-			if (content is UFloat uFloat) { content = uFloat.Value; }
-
-			if (content is double || content is float || content is int || content is uint) {
-				format = format.Replace("?", "#");
-				// format = string.Join(";", format.Split(';').Select(f => f.Length == 0 ? "**" : f)); // ???
-				return string.Format($"{{0:{format}}}", content);
-			}
-			else if (!string.IsNullOrEmpty(format)) {
-				throw new EvaluationCalculationException("Format specifiers only allowed for numeric types.");
-			}
-			else {
-				return content?.ToString() ?? ""; // Good fallback here? Throw error instead?
-			}
-		}
-
 	}
 
 	public class InterpolatedStringExpression : IExpression<string> {
@@ -222,6 +207,35 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
+		private static bool TryGetNumeric(EvaluationValue value, [MaybeNullWhen(false)] out object numeric) {
+			object? content = value.Value;
+			if (content is UFloat uFloat) {
+				content = uFloat.Value;
+			}
+
+			if (content is double || content is float || content is int || content is uint) {
+				numeric = content;
+				return true;
+			}
+
+			numeric = null;
+			return false;
+		}
+
+		private static string Format(string format, EvaluationValue value) {
+			if (TryGetNumeric(value, out object? numeric)) {
+				format = format.Replace("?", "#");
+				// format = string.Join(";", format.Split(';').Select(f => f.Length == 0 ? "**" : f)); // ???
+				return string.Format($"{{0:{format}}}", numeric);
+			}
+			else if (!string.IsNullOrEmpty(format)) {
+				throw new EvaluationCalculationException("Format specifiers only allowed for numeric types.");
+			}
+			else {
+				return value.Value?.ToString() ?? ""; // Good fallback here? Throw error instead?
+			}
+		}
+
 		private static string EvaluateInterpolated(IEnvironment environment, EvaluationNode content, string? format) {
 			EvaluationValue contentEval = content.Evaluate(environment);
 
@@ -229,7 +243,7 @@ namespace SharpSheets.Evaluations {
 				return formatter.Format(format, contentEval.Value);
 			}
 			else if (format != null) {
-				return Interpolation.Format(format, contentEval.Value);
+				return Format(format, contentEval);
 			}
 			else {
 				return contentEval.Value?.ToString() ?? ""; // Good fallback?
