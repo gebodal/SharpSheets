@@ -758,7 +758,7 @@ namespace SharpSheets.Evaluations {
 
 		public override string Name { get; } = "type";
 
-		public override Type DataType { get; } = typeof(Type);
+		public override Type DataType { get; } = typeof(EvaluationType);
 
 		public MetaEvaluationType(EvaluationContext context) : base(context) { }
 
