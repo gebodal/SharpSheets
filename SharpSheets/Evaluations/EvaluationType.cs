@@ -2331,8 +2331,8 @@ namespace SharpSheets.Evaluations {
 				enumValue = enumData.ToString();
 				return true;
 			}
-			else if(value.Value is string stringData) {
-				enumValue = stringData;
+			else if(value.Value is string stringData && enumNames.TryGetValue(stringData, out string? enumName)) {
+				enumValue = enumName;
 				return true;
 			}
 			else {
