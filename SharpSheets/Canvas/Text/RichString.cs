@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using SharpSheets.Canvas;
+using SharpSheets.Utilities;
 
 namespace SharpSheets.Canvas.Text {
 
@@ -17,6 +18,12 @@ namespace SharpSheets.Canvas.Text {
 		public readonly TextFormat[] formats;
 
 		public int Length { get { return chars.Length; } }
+
+		public char this[int i] { get { return chars[i]; } }
+
+		public RichString Slice(int start, int end) {
+			return this.Substring(start, end - start);
+		}
 
 		/// <summary>
 		/// The unformatted and unescaped version of this string (i.e. without any markdown syntax indicating text format).
@@ -76,8 +83,6 @@ namespace SharpSheets.Canvas.Text {
 				return sb.ToString();
 			}
 		}
-
-		public char this[int i] { get { return chars[i]; } }
 
 		private RichString(char[] chars, TextFormat[] formats, string strippedText) {
 			this.chars = chars;
@@ -303,6 +308,14 @@ namespace SharpSheets.Canvas.Text {
 		}
 		public static RichString Join(string separator, TextFormat separatorFormat, IEnumerable<RichString> values) {
 			return Join(separator, separatorFormat, values.ToArray());
+		}
+
+		public static RichString Repeat(RichString str, int count) {
+			return Join("", TextFormat.REGULAR, str.Yield().Repeat(count));
+		}
+
+		public RichString Repeat(int count) {
+			return Repeat(this, count);
 		}
 
 		public RichString ApplyFormat(TextFormat format) {
