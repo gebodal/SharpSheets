@@ -1036,19 +1036,16 @@ namespace SharpSheets.Markup.Canvas {
 		public bool IsConstant { get { return value != null; } }
 		public EvaluationContext Context { get; }
 
-		public readonly EnumExpression<TextFormat>? startingFormat;
-		public readonly StringExpression? text;
+		public readonly (StringExpression text, EnumExpression<TextFormat>? startingFormat)? expressions;
 		private readonly RichString? value;
 
 		public RichStringExpression(StringExpression text, EnumExpression<TextFormat>? startingFormat) {
-			this.startingFormat = startingFormat;
-			this.text = text;
+			this.expressions = (text, startingFormat);
 			this.value = null;
 			this.Context = text.Context;
 		}
 		public RichStringExpression(RichString value, EvaluationContext context) {
-			this.startingFormat = null;
-			this.text = null;
+			this.expressions = null;
 			this.value = value;
 			this.Context = context;
 		}
@@ -1062,7 +1059,7 @@ namespace SharpSheets.Markup.Canvas {
 		*/
 
 		public IEnumerable<EvaluationName> GetVariables() {
-			return IsConstant ? Enumerable.Empty<EvaluationName>() : text!.GetVariables().ConcatOrNothing(startingFormat?.GetVariables());
+			return IsConstant ? Enumerable.Empty<EvaluationName>() : expressions!.Value.text!.GetVariables().ConcatOrNothing(expressions!.Value.startingFormat?.GetVariables());
 		}
 
 		public RichString Evaluate(IEnvironment environment) {
@@ -1070,12 +1067,12 @@ namespace SharpSheets.Markup.Canvas {
 				return value;
 			}
 			else {
-				return new RichString(text!.Evaluate(environment), startingFormat?.Evaluate(environment) ?? TextFormat.REGULAR);
+				return RichString.Parse(expressions!.Value.text!.Evaluate(environment), expressions!.Value.startingFormat?.Evaluate(environment) ?? TextFormat.REGULAR);
 			}
 		}
 
 		public override string ToString() {
-			return $"RichStringExpression(text: {value?.ToString() ?? text?.ToString()}, startingFormat: {startingFormat?.ToString() ?? TextFormat.REGULAR.ToString()})";
+			return $"RichStringExpression(text: {value?.ToString() ?? expressions?.text?.ToString()}, startingFormat: {expressions?.startingFormat?.ToString() ?? TextFormat.REGULAR.ToString()})";
 		}
 	}
 
