@@ -18,7 +18,7 @@ namespace SharpSheets.Markup.Elements {
 	/// (represented by an upper- or lower-case letter) with zero or more associated
 	/// argument values.
 	/// </summary>
-	public class Path : ShapeElement {
+	public partial class Path : ShapeElement {
 
 		private readonly DrawOperation[] data; // d
 
@@ -176,40 +176,48 @@ namespace SharpSheets.Markup.Elements {
 			}
 		}
 
-		private static readonly RegexChunker commandRegex = new RegexChunker(
-			new Regex(@"
-				(?<command>[MmLlHhVvCcSsQqTtAaZz])
-				(?<values>
+		[GeneratedRegex(@"
+			(?<command>[MmLlHhVvCcSsQqTtAaZz])
+			(?<values>
+				(?:
+					(?:\s*\,\s*|\s*)
 					(?:
-						(?:\s*\,\s*|\s*)
-						(?:
-							\{(?:[^\{\}]|\\[\{\}])+\}
-							|
-							(
-								[\-\+]?[0-9]+(?:\.[0-9]*)?
-								|
-								\.[0-9]+
-							)
-							([eE][\-\+]?[0-9]+)? # Exponent for standard notation
-						)
-					)*
-				)
-			", RegexOptions.IgnorePatternWhitespace),
-			new Regex(@"\s*"), true);
-		private static readonly RegexChunker valueRegex = new RegexChunker(
-			new Regex(@"
-				\{(?<expression>(?:[^\{\}]|\\[\{\}])+)\}
-				|
-				(?<number>
-					(
-						\-?[0-9]+(?:\.[0-9]*)?
+						\{(?:[^\{\}]|\\[\{\}])+\}
 						|
-						\.[0-9]+
+						(
+							[\-\+]?[0-9]+(?:\.[0-9]*)?
+							|
+							\.[0-9]+
+						)
+						([eE][\-\+]?[0-9]+)? # Exponent for standard notation
 					)
-					(e(?<exponent>[\-\+]?[0-9]+))?
+				)*
+			)
+			", RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex CommandRegexChunk();
+		[GeneratedRegex(@"\s*")]
+		private static partial Regex CommandRegexSeparator();
+		private static readonly RegexChunker commandRegex = new RegexChunker(
+			CommandRegexChunk(),
+			CommandRegexSeparator(), true);
+		[GeneratedRegex(@"
+			\{(?<expression>(?:[^\{\}]|\\[\{\}])+)\}
+			|
+			(?<number>
+				(
+					\-?[0-9]+(?:\.[0-9]*)?
+					|
+					\.[0-9]+
 				)
-			", RegexOptions.IgnorePatternWhitespace),
-			new Regex(@"\s*\,\s*|\s+"), true);
+				(e(?<exponent>[\-\+]?[0-9]+))?
+			)
+			", RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex ValueRegexChunk();
+		[GeneratedRegex(@"\s*\,\s*|\s+")]
+		private static partial Regex ValueRegexSeparator();
+		private static readonly RegexChunker valueRegex = new RegexChunker(
+			ValueRegexChunk(),
+			ValueRegexSeparator(), true);
 
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>

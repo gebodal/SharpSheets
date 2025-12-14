@@ -50,7 +50,7 @@ namespace SharpSheets.Markup.Canvas {
 	public enum Alignment { MID, MIN, MAX, NONE }
 	public enum PreserveType { MEET, SLICE }
 
-	public readonly struct PreserveAspectRatio {
+	public readonly partial struct PreserveAspectRatio {
 		public readonly Alignment xAlignment;
 		public readonly Alignment yAlignment;
 		public readonly PreserveType meetSlice;
@@ -119,9 +119,10 @@ namespace SharpSheets.Markup.Canvas {
 			return transform;
 		}
 
-		private static readonly Regex preserveAspectRatioRegex = new Regex(@"^(?:(?<none>none)|x(?<x>Min|Mid|Max)Y(?<y>Min|Mid|Max)(\s+(?<meetSlice>meet|slice)))$", RegexOptions.IgnoreCase);
+		[GeneratedRegex(@"^(?:(?<none>none)|x(?<x>Min|Mid|Max)Y(?<y>Min|Mid|Max)(\s+(?<meetSlice>meet|slice)))$", RegexOptions.IgnoreCase)]
+		private static partial Regex PreserveAspectRatioRegex();
 		public static bool TryParse(string value, out PreserveAspectRatio result) {
-			if (preserveAspectRatioRegex.Match(value.Trim()) is Match match && match.Success) {
+			if (PreserveAspectRatioRegex().Match(value.Trim()) is Match match && match.Success) {
 				if (match.Groups["none"].Success) {
 					result = PreserveAspectRatio.None;
 				}
@@ -160,7 +161,7 @@ namespace SharpSheets.Markup.Canvas {
 		}
 
 		public static bool IsValid(string value) {
-			return preserveAspectRatioRegex.IsMatch(value.Trim());
+			return PreserveAspectRatioRegex().IsMatch(value.Trim());
 		}
 	}
 

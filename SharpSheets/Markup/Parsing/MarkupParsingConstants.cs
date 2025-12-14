@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace SharpSheets.Markup.Parsing {
 
-	public static class MarkupParsingConstants {
+	public static partial class MarkupParsingConstants {
 
 		// TODO Need to check all these hard-coded values
 
@@ -20,16 +20,28 @@ namespace SharpSheets.Markup.Parsing {
 			"linearGradient", "radialGradient", "solidPaint"
 		};
 
+		[GeneratedRegex(@"^remaining$")]
+		private static partial Regex RemainingRegex();
+
+		[GeneratedRegex(@"^(?:remaining|label)$")]
+		private static partial Regex RemainingLabelRegex();
+
+		[GeneratedRegex(@"^entry[0-9]+$")]
+		private static partial Regex EntryRegex();
+
+		[GeneratedRegex(@"^(?:label|entry1|entry2)$")]
+		private static partial Regex UsageBarElementsRegex();
+
 		private static readonly Dictionary<string, Regex?> referenceElementComponents = new Dictionary<string, Regex?> {
-			{ "box", new Regex(@"^remaining$") },
-			{ "labelledBox", new Regex(@"^(?:remaining|label)$") },
-			{ "titledBox", new Regex(@"^remaining$") },
-			{ "entried", new Regex(@"^entry[0-9]+$") },
-			{ "bar", new Regex(@"^(?:remaining|label)$") },
-			{ "usageBar", new Regex(@"^(?:label|entry1|entry2)$") },
+			{ "box", RemainingRegex() },
+			{ "labelledBox", RemainingLabelRegex() },
+			{ "titledBox", RemainingRegex() },
+			{ "entried", EntryRegex() },
+			{ "bar", RemainingLabelRegex() },
+			{ "usageBar", UsageBarElementsRegex() },
 			{ "detail", null },
 			// TODO Add remaining types: TitleStylesBox?
-			{ "widget", new Regex(@"^remaining$") }
+			{ "widget", RemainingRegex() }
 		};
 
 		private static readonly HashSet<string> useElementIgnoredAttributes = new HashSet<string> {

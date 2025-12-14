@@ -5,25 +5,30 @@ using System.Text.RegularExpressions;
 
 namespace SharpSheets.Utilities {
 
-	public class RegexChunker {
+	public partial class RegexChunker {
 
 		private readonly bool trimStart;
 		private readonly Regex regex;
 		private readonly Regex separatorRegex;
 
+		/*
 		public RegexChunker(string regex, RegexOptions options, string separatorRegex, RegexOptions separatorOptions, bool trimStart) {
 			this.regex = new Regex(regex, options);
 			this.separatorRegex = new Regex(@"^(?:" + separatorRegex + @")", separatorOptions);
 			this.trimStart = trimStart;
 		}
+		*/
 
-		public RegexChunker(string regex, bool trimStart) : this(regex, RegexOptions.None, @"\s+", RegexOptions.None, trimStart) { }
-		public RegexChunker(string regex, string separatorRegex, bool trimStart) : this(regex, RegexOptions.None, separatorRegex, RegexOptions.None, trimStart) { }
-		public RegexChunker(string regex, RegexOptions options, bool trimStart) : this(regex, options, @"\s+", RegexOptions.None, trimStart) { }
+		//public RegexChunker(string regex, bool trimStart) : this(regex, RegexOptions.None, @"\s+", RegexOptions.None, trimStart) { }
+		//public RegexChunker(string regex, string separatorRegex, bool trimStart) : this(regex, RegexOptions.None, separatorRegex, RegexOptions.None, trimStart) { }
+		//public RegexChunker(string regex, RegexOptions options, bool trimStart) : this(regex, options, @"\s+", RegexOptions.None, trimStart) { }
+
+		[GeneratedRegex(@"\s+")]
+		private static partial Regex SpaceRegex();
 
 		public RegexChunker(Regex regex, bool trimStart) {
 			this.regex = regex;
-			this.separatorRegex = new Regex(@"\s+");
+			this.separatorRegex = SpaceRegex();
 			this.trimStart = trimStart;
 		}
 		public RegexChunker(Regex regex, Regex separatorRegex, bool trimStart) {

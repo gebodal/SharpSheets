@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace SharpSheets.Fonts {
 
-	public class FontTags : IEquatable<FontTags> {
+	public partial class FontTags : IEquatable<FontTags> {
 
 		private static readonly string defaultScriptTag = "latn";
 
@@ -26,10 +26,11 @@ namespace SharpSheets.Fonts {
 			this.featureTags = new HashSet<string>(featureTags);
 		}
 
-		private static readonly Regex pattern = new Regex(@"^\s*\{(?<content>[^\}]*)\}\s*$");
+		[GeneratedRegex(@"^\s*\{(?<content>[^\}]*)\}\s*$")]
+		private static partial Regex Pattern();
 
 		public static FontTags Parse(string text) {
-			Match match = pattern.Match(text);
+			Match match = Pattern().Match(text);
 			if (!match.Success) { throw new FormatException("Font tags string badly formatted."); }
 
 			string content = match.Groups["content"].Value;

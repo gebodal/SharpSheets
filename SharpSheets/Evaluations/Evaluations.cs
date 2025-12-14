@@ -9,7 +9,7 @@ using SharpSheets.Utilities;
 
 namespace SharpSheets.Evaluations {
 
-	public static class Evaluation {
+	public static partial class Evaluation {
 
 		public static readonly IReadOnlySet<EvaluationName> LangKeywords = new HashSet<EvaluationName>() {
 			"and", "or",
@@ -110,7 +110,7 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
-		private static readonly RegexChunker tokenRegex = new RegexChunker(new Regex(@"
+		[GeneratedRegex(@"
 			(?<comprehension>for \s+ \$?(?<compvar>[a-z][a-z0-9]*) \s+ in)
 			|
 			(?<if>(?<=\s|^|\b)if(?=\s|$|\b)) # For use in comprehensions
@@ -148,8 +148,9 @@ namespace SharpSheets.Evaluations {
 			(?<closeindexer>\])
 			|
 			(?<comma>\,)
-			",
-			RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase), true);
+			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex ChunkRegex();
+		private static readonly RegexChunker tokenRegex = new RegexChunker(ChunkRegex(), true);
 
 		private enum ParseExpressionState { START, OPERATOR, FUNCTION, VALUE }
 		private enum ParseState { OUTER, FUNCTION, INDEXER }

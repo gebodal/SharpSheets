@@ -8,24 +8,27 @@ using System.Threading.Tasks;
 
 namespace SharpSheets.Parsing {
 
-	public static class DictionaryContext {
+	public static partial class DictionaryContext {
 
 		public static readonly string EmptyContextString = "{}";
 
-		private static readonly Regex dictRegex = new Regex(@"(?<!\\)\{(?<dict>.+)(?<!\\)\}");
-		private static readonly Regex commaSplitRegex = new Regex(@"(?<!\\)\,");
-		private static readonly Regex argRegex = new Regex(@"
-				^(
-					(?<property>[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*) \s* \: \s* (?<value>.+)
-					|
-					(?<flag>\!?[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*)
-				)$
-			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+		[GeneratedRegex(@"(?<!\\)\{(?<dict>.+)(?<!\\)\}")]
+		private static partial Regex DictRegex();
+		[GeneratedRegex(@"(?<!\\)\,")]
+		private static partial Regex CommaSplitRegex();
+		[GeneratedRegex(@"
+			^(
+				(?<property>[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*) \s* \: \s* (?<value>.+)
+				|
+				(?<flag>\!?[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*)
+			)$
+			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex ArgRegex();
 
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
 		public static IContext CreateContext(string contextName, string value) {
-			Match dictMatch = dictRegex.Match(value);
+			Match dictMatch = DictRegex().Match(value);
 			if (dictMatch.Success) {
 				value = dictMatch.Groups["dict"].Value;
 			}
@@ -35,9 +38,9 @@ namespace SharpSheets.Parsing {
 
 			Dictionary<string, string> properties = new Dictionary<string, string>(SharpDocuments.StringComparer);
 			Dictionary<string, bool> flags = new Dictionary<string, bool>(SharpDocuments.StringComparer);
-			string[] argStrings = commaSplitRegex.Split(value);
+			string[] argStrings = CommaSplitRegex().Split(value);
 			foreach (string argStr in argStrings) {
-				Match match = argRegex.Match(argStr.Trim());
+				Match match = ArgRegex().Match(argStr.Trim());
 
 				if (match.Groups["flag"].Success) {
 					string flag = match.Groups["flag"].Value;

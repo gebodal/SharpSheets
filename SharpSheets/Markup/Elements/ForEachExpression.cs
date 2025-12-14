@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace SharpSheets.Markup.Elements {
 
-	public class ForEachExpression {
+	public partial class ForEachExpression {
 
 		public EnvironmentVariableInfo Variable { get; }
 		public EvaluationType ReturnType { get; }
@@ -66,13 +66,14 @@ namespace SharpSheets.Markup.Elements {
 			}
 		}
 
-		private static readonly Regex forEachRegex = new Regex(@"^(?<variable>[a-z][a-z0-9]*)\s+in\s+(?<expr>.+)$", RegexOptions.IgnoreCase);
+		[GeneratedRegex(@"^(?<variable>[a-z][a-z0-9]*)\s+in\s+(?<expr>.+)$", RegexOptions.IgnoreCase)]
+		private static partial Regex ForEachRegex();
 
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
 		/// <exception cref="EvaluationException"></exception>
 		public static ForEachExpression Parse(string text, IVariableBox variables) {
-			Match match = forEachRegex.Match(text.Trim());
+			Match match = ForEachRegex().Match(text.Trim());
 			if (!match.Success) {
 				throw new FormatException("Invalid for-each expression.");
 			}

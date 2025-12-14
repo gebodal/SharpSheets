@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 
 namespace SharpSheets.Evaluations {
 
-	public static class Interpolation {
+	public static partial class Interpolation {
 
 		private enum ParseState { TEXT, EXPRESSION_START, EXPRESSION, EXPRESSION_STRING, KEY, ESCAPE }
 
@@ -125,7 +125,8 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
-		private static readonly Regex formatRegex = new Regex(@"\:(?<format>[a-z0-9\,\;\%\+\-\'\,\.\?\\\ ]+)$");
+		[GeneratedRegex(@"\:(?<format>[a-z0-9\,\;\%\+\-\'\,\.\?\\\ ]+)$")]
+		private static partial Regex FormatRegex();
 		/// <summary></summary>
 		/// <exception cref="EvaluationSyntaxException"></exception>
 		/// <exception cref="EvaluationProcessingException"></exception>
@@ -133,7 +134,7 @@ namespace SharpSheets.Evaluations {
 		/// <exception cref="UndefinedVariableException"></exception>
 		/// <exception cref="UndefinedFunctionException"></exception>
 		private static InterpolatedStringExpression ProcessExpression(string expr, IVariableBox variables) {
-			Match formatMatch = formatRegex.Match(expr);
+			Match formatMatch = FormatRegex().Match(expr);
 			string? format = null;
 			if (formatMatch.Success) {
 				format = StringParsing.Parse(formatMatch.Groups["format"].Value);

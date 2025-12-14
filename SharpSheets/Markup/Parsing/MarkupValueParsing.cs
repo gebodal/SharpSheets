@@ -10,24 +10,28 @@ using SharpSheets.Evaluations.Nodes;
 namespace SharpSheets.Markup.Parsing {
 
 	// All the parsing methods in this class should throw only EvaluationException or FormatException errors
-	public static class MarkupValueParsing {
+	public static partial class MarkupValueParsing {
 
 		#region Basic Properties
 
-		private static readonly RegexChunker valueRegex = new RegexChunker(
-				new Regex(@"
-				\{(?<expression>(?:[^\{\}]|\\[\{\}])+)\}
-				|
-				(?<number>
-					(
-						\-?[0-9]+(?:\.[0-9]*)?
-						|
-						\.[0-9]+
-					)
-					([eE][\-\+]?[0-9]+)?
+		[GeneratedRegex(@"
+			\{(?<expression>(?:[^\{\}]|\\[\{\}])+)\}
+			|
+			(?<number>
+				(
+					\-?[0-9]+(?:\.[0-9]*)?
+					|
+					\.[0-9]+
 				)
-			", RegexOptions.IgnorePatternWhitespace),
-				new Regex(@"\s*\,\s*|\s+"), true);
+				([eE][\-\+]?[0-9]+)?
+			)
+			", RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex ValueRegexChunk();
+		[GeneratedRegex(@"\s*\,\s*|\s+")]
+		private static partial Regex ValueRegexSeparator();
+		private static readonly RegexChunker valueRegex = new RegexChunker(
+				ValueRegexChunk(),
+				ValueRegexSeparator(), true);
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
 		/// <exception cref="FormatException"></exception>
@@ -51,7 +55,8 @@ namespace SharpSheets.Markup.Parsing {
 			return valueRegex.IsMatch(str);
 		}
 
-		private static readonly Regex percentRegex = new Regex(@"^(?<percent>[\-\+]?[0-9]+(\.[0-9]*)?|\.[0-9]+)\s*\%$");
+		[GeneratedRegex(@"^(?<percent>[\-\+]?[0-9]+(\.[0-9]*)?|\.[0-9]+)\s*\%$")]
+		private static partial Regex PercentRegex();
 
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
@@ -65,7 +70,7 @@ namespace SharpSheets.Markup.Parsing {
 		/// <exception cref="FormatException"></exception>
 		public static FloatExpression ParsePercentage(string text, IVariableBox variables) {
 			text = text.Trim();
-			Match percentMatch = percentRegex.Match(text);
+			Match percentMatch = PercentRegex().Match(text);
 			if (percentMatch.Success) {
 				float percent = GetPercentValue(percentMatch);
 				return new FloatExpression(percent, variables.Context);
@@ -77,7 +82,7 @@ namespace SharpSheets.Markup.Parsing {
 
 		public static XLengthExpression ParseXLength(string text, IVariableBox variables, MarkupEvaluationContext markupContext) {
 			text = text.Trim();
-			Match percentMatch = percentRegex.Match(text);
+			Match percentMatch = PercentRegex().Match(text);
 			if (percentMatch.Success) {
 				float percent = GetPercentValue(percentMatch);
 				if (MarkupEvaluationContext.IsWidthDefined(variables)) {
@@ -94,7 +99,7 @@ namespace SharpSheets.Markup.Parsing {
 
 		public static YLengthExpression ParseYLength(string text, IVariableBox variables, MarkupEvaluationContext markupContext) {
 			text = text.Trim();
-			Match percentMatch = percentRegex.Match(text);
+			Match percentMatch = PercentRegex().Match(text);
 			if (percentMatch.Success) {
 				float percent = GetPercentValue(percentMatch);
 				if (MarkupEvaluationContext.IsHeightDefined(variables)) {
@@ -111,7 +116,7 @@ namespace SharpSheets.Markup.Parsing {
 
 		public static BoundingBoxLengthExpression ParseBoundingBoxLength(string text, IVariableBox variables, MarkupEvaluationContext markupContext) {
 			text = text.Trim();
-			Match percentMatch = percentRegex.Match(text);
+			Match percentMatch = PercentRegex().Match(text);
 			if (percentMatch.Success) {
 				float percent = GetPercentValue(percentMatch);
 				if (MarkupEvaluationContext.IsBoundingBoxDefined(variables)) {
@@ -131,7 +136,7 @@ namespace SharpSheets.Markup.Parsing {
 		/// <exception cref="FormatException"></exception>
 		public static LengthExpression ParsePercentOrLength(string text, IVariableBox variables) {
 			text = text.Trim();
-			Match percentMatch = percentRegex.Match(text);
+			Match percentMatch = PercentRegex().Match(text);
 			if (percentMatch.Success) {
 				float percent = GetPercentValue(percentMatch);
 				Length length = Length.FromPercentage(percent);
@@ -291,14 +296,16 @@ namespace SharpSheets.Markup.Parsing {
 			}
 		}
 
-		private static readonly RegexChunker transformRegex = new RegexChunker(@"
+		[GeneratedRegex(@"
 			(?<type>matrix|translate|scale|rotate|skewX|skewY) \s*
 			\( \s*
 				(?<values>
 					(?:(?:\{(?:[^\{\}]|\\[\{\}])+\} | \-?[0-9]+(?:\.[0-9]*)? | \.[0-9]+) (\,|\s)*)+
 				)
 			\)
-			", RegexOptions.IgnorePatternWhitespace, true);
+			", RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex TransformRegexChunk();
+		private static readonly RegexChunker transformRegex = new RegexChunker(TransformRegexChunk(), true);
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationException"></exception>
@@ -416,14 +423,15 @@ namespace SharpSheets.Markup.Parsing {
 
 		#region Pattern Properties
 
-		private static readonly Regex libraryRegex = new Regex(@"^\w+(?:\.\w+)*$", RegexOptions.IgnoreCase);
+		[GeneratedRegex(@"^\w+(?:\.\w+)*$", RegexOptions.IgnoreCase)]
+		private static partial Regex LibraryRegex();
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
 		public static string? ParseLibraryName(string text) {
 			if (string.IsNullOrWhiteSpace(text)) {
 				return null;
 			}
-			else if (libraryRegex.IsMatch(text)) {
+			else if (LibraryRegex().IsMatch(text)) {
 				return text;
 			}
 			else {

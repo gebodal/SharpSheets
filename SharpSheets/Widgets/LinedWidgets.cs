@@ -139,7 +139,7 @@ namespace SharpSheets.Widgets {
 	/// embedded fields (to a maximum of one per label part), by surrounding a Dimension with question marks ("?").
 	/// Each line will be underlined by default, but this can be specified.
 	/// </summary>
-	public class LinedDetails : AbstractLinedWidget {
+	public partial class LinedDetails : AbstractLinedWidget {
 
 		/// <summary>
 		/// Indicates how the field start positions should be aligned horizontally
@@ -317,7 +317,9 @@ namespace SharpSheets.Widgets {
 			}
 		}
 
-		private readonly RichRegex spaceRegex = new RichRegex(new Regex(@"(?<!\\)\?(?<width>[^\?]+)\?"));
+		[GeneratedRegex(@"(?<!\\)\?(?<width>[^\?]+)\?")]
+		private static partial Regex SpaceRegexInner();
+		private readonly RichRegex spaceRegex = new RichRegex(SpaceRegexInner());
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 
@@ -795,7 +797,7 @@ namespace SharpSheets.Widgets {
 	/// an option to append a number of unlabelled "extra" lines to the bottom, where the text label is replaced
 	/// with a text field. Each line will be underlined by default, but this can be specified.
 	/// </summary>
-	public class LinedCheckList : AbstractLinedWidget {
+	public partial class LinedCheckList : AbstractLinedWidget {
 
 		protected readonly RichString[] skills; // TODO RichString?
 		protected readonly uint extraRows;
@@ -918,7 +920,9 @@ namespace SharpSheets.Widgets {
 			return new LinedCheckList(setup, name, entries, height, extra, spacing, fontsize, field, check, checkType, width, underline, labelAlignment, labelOffset);
 		}
 
-		readonly RichRegex spaceRegex = new RichRegex(new Regex("(?<!\\\\)\\?(?<width>[^\\?]+)\\?"));
+		[GeneratedRegex("(?<!\\\\)\\?(?<width>[^\\?]+)\\?")]
+		private static partial Regex SpaceRegexInner();
+		readonly RichRegex spaceRegex = new RichRegex(SpaceRegexInner());
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
 			canvas.SaveState();

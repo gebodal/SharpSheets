@@ -6,9 +6,10 @@ using System.Text.RegularExpressions;
 
 namespace SharpSheets.Evaluations {
 
-	public static class SplitEvaluationParsing {
+	public static partial class SplitEvaluationParsing {
 
-		private static readonly Regex nameRegex = new Regex(@"[a-z]([a-z0-9 ]*[a-z0-9])?", RegexOptions.IgnoreCase); // Names can have whitespace
+		[GeneratedRegex(@"[a-z]([a-z0-9 ]*[a-z0-9])?", RegexOptions.IgnoreCase)]
+		private static partial Regex NameRegex(); // Names can have whitespace
 
 		private enum SplitState { NAME, VALUE_WAITING, VALUE, ROUND, SQUARE, CURLY, ESCAPE }
 		public static IList<ContextProperty<string>>? SplitDictionaryValues(ContextValue<string>? detailsValue, List<SharpParsingException> errors) {
@@ -69,7 +70,7 @@ namespace SharpSheets.Evaluations {
 							value = "true";
 						}
 						DocumentSpan flagLocation = new DocumentSpan(details.Location.Offset + start, details.Location.Line, details.Location.Column + start, end - start);
-						if (nameRegex.IsMatch(flagText)) {
+						if (NameRegex().IsMatch(flagText)) {
 							values.Add(new ContextProperty<string>(flagLocation, flagText, flagLocation, value));
 						}
 						else {
@@ -91,7 +92,7 @@ namespace SharpSheets.Evaluations {
 					int end = lastNonWhitespace + 1;
 					string valueText = details.Value.Substring(start, end - start);
 					DocumentSpan valueLocation = new DocumentSpan(details.Location.Offset + start, details.Location.Line, details.Location.Column + start, end - start);
-					if (nameRegex.IsMatch(name.Value)) {
+					if (NameRegex().IsMatch(name.Value)) {
 						values.Add(new ContextProperty<string>(name.Location, name.Value, valueLocation, valueText));
 					}
 					else {

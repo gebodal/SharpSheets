@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace SharpSheets.Layouts {
 
-	public readonly struct Dimension {
+	public readonly partial struct Dimension {
 
 		public static readonly Dimension Zero = new Dimension(0f, 0f, 0f, false);
 		public static readonly Dimension Single = new Dimension(1f, 0f, 0f, false);
@@ -106,7 +106,8 @@ namespace SharpSheets.Layouts {
 			return HashCode.Combine(Relative, Absolute, Percent, Auto);
 		}
 
-		private static readonly Regex dimensionRegex = new Regex(@"^(?<number>[\+\-]?[0-9]+\.[0-9]+|\.[0-9]+|[\+\-]?[0-9]+\.?)\s*(?<unit>pt|in|cm|mm|pc|\%)?$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+		[GeneratedRegex(@"^(?<number>[\+\-]?[0-9]+\.[0-9]+|\.[0-9]+|[\+\-]?[0-9]+\.?)\s*(?<unit>pt|in|cm|mm|pc|\%)?$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+		private static partial Regex DimensionRegex();
 
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
@@ -121,7 +122,7 @@ namespace SharpSheets.Layouts {
 
 			string[] parts = str.SplitAndTrim('+');
 			for (int i = 0; i < parts.Length; i++) {
-				Match match = dimensionRegex.Match(parts[i]);
+				Match match = DimensionRegex().Match(parts[i]);
 				if (match.Success) {
 					float number = float.Parse(match.Groups[1].Value, provider);
 					string unit = match.Groups[2].Value.ToLowerInvariant();

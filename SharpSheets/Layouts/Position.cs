@@ -86,7 +86,7 @@ namespace SharpSheets.Layouts {
 
 	}
 
-	public readonly struct Position {
+	public readonly partial struct Position {
 		public Anchor Anchor { get; }
 		public Dimension X { get; }
 		public Dimension Y { get; }
@@ -100,7 +100,8 @@ namespace SharpSheets.Layouts {
 			this.Height = height;
 		}
 
-		private static readonly Regex pattern = new Regex(@"\{?(?<match>[^\}]*)\}?");
+		[GeneratedRegex(@"\{?(?<match>[^\}]*)\}?")]
+		private static partial Regex Pattern();
 
 		// TODO This should ideally be a generic method (i.e., for any dict-style initializer) inside SharpFactory
 		/// <summary></summary>
@@ -108,7 +109,7 @@ namespace SharpSheets.Layouts {
 		public static Position Parse(string str, IFormatProvider? provider) {
 			Anchor anchor = Anchor.BOTTOMLEFT;
 			Dimension x = Dimension.FromPoints(0), y = Dimension.FromPoints(0), width = Dimension.FromPercent(100), height = Dimension.FromPercent(100);
-			foreach (string[] parts in pattern.Match(str).Groups[1].Value.SplitAndTrim(',').WhereNotEmpty().Select(s => s.SplitAndTrim(2, ':'))) {
+			foreach (string[] parts in Pattern().Match(str).Groups[1].Value.SplitAndTrim(',').WhereNotEmpty().Select(s => s.SplitAndTrim(2, ':'))) {
 				if (parts.Length != 2) {
 					throw new FormatException("Position string badly formatted.");
 				}

@@ -9,7 +9,7 @@ using SharpSheets.Exceptions;
 
 namespace SharpSheets.Cards.CardSubjects {
 
-	public class CardSubjectParser {
+	public partial class CardSubjectParser {
 
 		// This class can be created in one of two ways:
 		// With an ICardConfigRegistry that configs are drawn from
@@ -28,29 +28,33 @@ namespace SharpSheets.Cards.CardSubjects {
 			this.configRegistry = null;
 		}
 
-		private static readonly Regex commentRegex = new Regex(@"(?<!\\)(?:(\\\\)*)(?<comment>\%.+)$");
+		[GeneratedRegex(@"(?<!\\)(?:(\\\\)*)(?<comment>\%.+)$")]
+		private static partial Regex CommentRegex();
 
-		private static readonly Regex divisionRegex = new Regex(@"^(\=+|\s+\=\=+)\s*(?=\%|$)");
-		private static readonly Regex cardConfigRegex = new Regex(@"^(\#\=\s*(?<path>.+)|\#\!.*)$");
-		private static readonly Regex titleRegex = new Regex(@"
+		[GeneratedRegex(@"^(\=+|\s+\=\=+)\s*(?=\%|$)")]
+		private static partial Regex DivisionRegex();
+		[GeneratedRegex(@"^(\#\=\s*(?<path>.+)|\#\!.*)$")]
+		private static partial Regex CardConfigRegex();
+		[GeneratedRegex(@"
 			^ # Must be at start of string
 			(?<titlestyle>\#\>|\#+)
 			\s*
 			(?<title> # Captures the whole title string
-				(?<titletext>([^\(\)\[\]\#]*[^\s\(\)\[\]\#])?) # Title content (can be empty)
-				(\s*\((?<titlenote>[^\(\)\[\]]*)\))? # Optional note in ()-brackets
-				(\s*\[(?<titledetails>[^\[\]]*)\])? # Optional details in []-brackets
+				(?<titletext>([^\(\)\[\]\#]*[^\s\(\)\[\]\#])?) # Title content -- can be empty
+				(\s*\((?<titlenote>[^\(\)\[\]]*)\))? # Optional note in round brackets
+				(\s*\[(?<titledetails>[^\[\]]*)\])? # Optional details in square brackets
 			)
 			$ # Must be end of string
-			", RegexOptions.IgnorePatternWhitespace);
-		private static readonly Regex entryRegex = new Regex(@"
+			", RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex TitleRegex();
+		[GeneratedRegex(@"
 			^ # Must be at start of string
 			(?![\#\=]) # First character must not be # or =
 			(?<list>\+\s+)? # Optional list specifier
 			(?<entryname>
 				([^\(\)\[\]\{:\.]|(?<=\\)\{)* # All but last character may contain a space
 				([^\(\)\[\]\{:\.\ ]|(?<=\\)\{) # Last character must not be a space
-				(?=\s*[\(\[\:]) # Must be followed by '(', '[', or ':' to be an entry name
+				(?=\s*[\(\[\:]) # Must be followed by open bracket, open square bracket, or ':' to be an entry name
 			)
 			(
 				\s*
@@ -70,19 +74,24 @@ namespace SharpSheets.Cards.CardSubjects {
 				(?<entrytext>.+) # The actual entry text
 			)?
 			$ # Must be end of string
-			", RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase);
-		private static readonly Regex propertyNameRegex = new Regex(@"[a-z][a-z0-9\s]*", RegexOptions.IgnoreCase);
-		private static readonly Regex lineTerminatorRegex = new Regex(@"(?<escape>\\)?(?<terminator>\\\\)$");
-		private static readonly Regex listItemRegex = new Regex(@"^\+\s+(?<content>.+)$");
+			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex EntryRegex();
+		[GeneratedRegex(@"[a-z][a-z0-9\s]*", RegexOptions.IgnoreCase)]
+		private static partial Regex PropertyNameRegex();
+		[GeneratedRegex(@"(?<escape>\\)?(?<terminator>\\\\)$")]
+		private static partial Regex LineTerminatorRegex();
+		[GeneratedRegex(@"^\+\s+(?<content>.+)$")]
+		private static partial Regex ListItemRegex();
 
-		private static readonly Regex trimRegex = new Regex(@"^\s*(?<trimmed>.*\S)\s*$");
+		[GeneratedRegex(@"^\s*(?<trimmed>.*\S)\s*$")]
+		private static partial Regex TrimRegex();
 
 		private DocumentSpan GetGroupSpan(Group matchGroup, DocumentSpan textSpan) {
 			return new DocumentSpan(textSpan.Offset + matchGroup.Index, textSpan.Line, textSpan.Column + matchGroup.Index, matchGroup.Length);
 		}
 		private ContextValue<string>? GetGroupValue(Group matchGroup, DocumentSpan textSpan) {
 			if (matchGroup.Success) {
-				Match trimmed = trimRegex.Match(matchGroup.Value);
+				Match trimmed = TrimRegex().Match(matchGroup.Value);
 				Group trimmedGroup = trimmed.Groups[1];
 				if (trimmedGroup.Success) {
 					DocumentSpan matchSpan = GetGroupSpan(matchGroup, textSpan);
@@ -100,7 +109,7 @@ namespace SharpSheets.Cards.CardSubjects {
 		}
 		private ContextValue<string> TrimText(ContextValue<string> text) {
 			if (text.Value != null) {
-				Match trimmed = trimRegex.Match(text.Value);
+				Match trimmed = TrimRegex().Match(text.Value);
 				Group trimmedGroup = trimmed.Groups[1];
 				if (trimmedGroup.Success) {
 					DocumentSpan trimmedSpan = GetGroupSpan(trimmedGroup, text.Location);
@@ -170,7 +179,7 @@ namespace SharpSheets.Cards.CardSubjects {
 			bool useLastFeature = false;
 			foreach (ContextValue<string> lineValue in LineSplitting.SplitLines(description)) { // (int i = 0; i < lines.Length; i++) {
 				string lineText = lineValue.Value.TrimEnd();
-				if(commentRegex.Match(lineText) is Match commentMatch && commentMatch.Success) {
+				if(CommentRegex().Match(lineText) is Match commentMatch && commentMatch.Success) {
 					lineText = lineText.Substring(0, commentMatch.Groups["comment"].Index).TrimEnd();
 				}
 				lineText = StringParsing.Unescape(lineText, '%'); // Is this working properly?
@@ -185,7 +194,7 @@ namespace SharpSheets.Cards.CardSubjects {
 				Match match;
 				DocumentSpan lineSpan = new DocumentSpan(lineValue.Location.Offset, lineValue.Location.Line, lineValue.Location.Column, lineText.Length);
 
-				if ((match = cardConfigRegex.Match(lineText)).Success) {
+				if ((match = CardConfigRegex().Match(lineText)).Success) {
 					if (currentSubject != null) {
 						BuildCurrentSubject();
 					}
@@ -221,7 +230,7 @@ namespace SharpSheets.Cards.CardSubjects {
 						}
 					}
 				}
-				else if ((match = divisionRegex.Match(lineText)).Success) {
+				else if ((match = DivisionRegex().Match(lineText)).Success) {
 					// Indicates that a new segment is starting
 					if (currentSubject != null) {
 						BuildCurrentSubject();
@@ -230,7 +239,7 @@ namespace SharpSheets.Cards.CardSubjects {
 					parsedSubjectDocument.AddSubjectSet(currentParsedSubjectSet);
 					//parsedSubjects.Add(new List<CardSubjectConcrete>());
 				}
-				else if ((match = titleRegex.Match(lineText)).Success) {
+				else if ((match = TitleRegex().Match(lineText)).Success) {
 					string titleStyle = match.Groups["titlestyle"].Value.Trim();
 					int titleLevel = titleStyle.Length;
 
@@ -323,12 +332,12 @@ namespace SharpSheets.Cards.CardSubjects {
 						usedLines.Remove(lineSpan.Line);
 					}
 				}
-				else if (currentSubject != null && (match = entryRegex.Match(lineText)).Success) {
+				else if (currentSubject != null && (match = EntryRegex().Match(lineText)).Success) {
 					bool isListItem = match.Groups["list"].Success;
 
 					Group entryNameGroup = match.Groups["entryname"];
 					ContextValue<string> entryNameValue = GetGroupValue(entryNameGroup, lineSpan)!.Value; // Must exist if match was success
-					bool isValidPropertyName = propertyNameRegex.IsMatch(entryNameValue.Value); // (?? "")?
+					bool isValidPropertyName = PropertyNameRegex().IsMatch(entryNameValue.Value); // (?? "")?
 
 					Group entryNoteGroup = match.Groups["entrynote"];
 					ContextValue<string>? entryNoteValue = GetGroupValue(entryNoteGroup, lineSpan);
@@ -387,7 +396,7 @@ namespace SharpSheets.Cards.CardSubjects {
 
 					CheckForTerminator(new ContextValue<string>(lineSpan, lineText), out ContextValue<string> lineContentValue, out bool lineTerminated);
 
-					if ((match = listItemRegex.Match(lineText)).Success) {
+					if ((match = ListItemRegex().Match(lineText)).Success) {
 						Group listItemContentGroup = match.Groups["content"];
 						ContextValue<string> listItemContentValue = GetGroupValue(listItemContentGroup, lineSpan)!.Value; // Cannot be null if match was successful
 						//Console.WriteLine($"{i,3}: List item text provided. Create list item Feature. Text: {listItemContent}" + (lineTerminated ? " (line terminated)" : ""));
@@ -439,7 +448,7 @@ namespace SharpSheets.Cards.CardSubjects {
 
 		private static void CheckForTerminator(ContextValue<string> lineText, out ContextValue<string> lineContent, out bool lineTerminated) {
 			if (!string.IsNullOrEmpty(lineText.Value)) {
-				Match terminatorMatch = lineTerminatorRegex.Match(lineText.Value);
+				Match terminatorMatch = LineTerminatorRegex().Match(lineText.Value);
 
 				bool terminator = terminatorMatch.Groups["terminator"].Value.Length > 0;
 				bool escaped = terminatorMatch.Groups["escape"].Value.Length > 0;
@@ -479,7 +488,6 @@ namespace SharpSheets.Cards.CardSubjects {
 				lineTerminated = false;
 			}
 		}
-
 	}
 
 }

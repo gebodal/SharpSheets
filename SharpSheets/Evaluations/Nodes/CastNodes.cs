@@ -75,7 +75,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 	}
 
-	public class FloatCastFunction : AbstractFunction {
+	public partial class FloatCastFunction : AbstractFunction {
 
 		public static readonly FloatCastFunction Instance = new FloatCastFunction();
 		private FloatCastFunction() { }
@@ -133,17 +133,19 @@ namespace SharpSheets.Evaluations.Nodes {
 			}
 		}
 
-		private static readonly Regex floatRegex = new Regex(@"^\s*[\-\+]?\s*([0-9]+(\.[0-9]*)?|\.[0-9]+)\s*$");
-		private static readonly Regex fracRegex = new Regex(@"^\s*(?<numer>[\-\+]?\s*([0-9]+(\.[0-9]*)?|\.[0-9]+))\s*\/\s*(?<denom>([0-9]+(\.[0-9]*)?|\.[0-9]+))\s*");
+		[GeneratedRegex(@"^\s*[\-\+]?\s*([0-9]+(\.[0-9]*)?|\.[0-9]+)\s*$")]
+		private static partial Regex FloatRegex();
+		[GeneratedRegex(@"^\s*(?<numer>[\-\+]?\s*([0-9]+(\.[0-9]*)?|\.[0-9]+))\s*\/\s*(?<denom>([0-9]+(\.[0-9]*)?|\.[0-9]+))\s*")]
+		private static partial Regex FracRegex();
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>
 		private static float Parse(string str) {
 			try {
 				Match match;
-				if (floatRegex.IsMatch(str)) {
+				if (FloatRegex().IsMatch(str)) {
 					return float.Parse(str.Replace(" ", ""));
 				}
-				else if ((match = fracRegex.Match(str)).Success) {
+				else if ((match = FracRegex().Match(str)).Success) {
 					float numer = float.Parse(match.Groups["numer"].Value.Replace(" ", ""));
 					float denom = float.Parse(match.Groups["denom"].Value.Replace(" ", ""));
 					return numer / denom;

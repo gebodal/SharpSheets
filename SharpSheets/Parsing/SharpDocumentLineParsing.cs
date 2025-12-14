@@ -54,10 +54,11 @@ namespace SharpSheets.Parsing {
 
 	public enum LineType { DIV, NAMEDCHILD, PROPERTY, FLAG, ENTRY, DEFINITION, ERROR }
 
-	public static class SharpDocumentLineParsing {
+	public static partial class SharpDocumentLineParsing {
 
-		private static readonly Regex regex = new Regex(@"^(?:(?<definition>(?:def|fun)\s+.+)|(?<property>\@?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*\s*:.+)|(?<namedchild>\@?\&[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*)\:?|(?<div>[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*):|-\s*(?<entry>.+)|(?<flag>\@?\!?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*))$", RegexOptions.IgnoreCase);
 		private static readonly string[] types = new string[] { "div", "namedchild", "definition", "property", "entry", "flag" };
+		[GeneratedRegex(@"^(?:(?<definition>(?:def|fun)\s+.+)|(?<property>\@?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*\s*:.+)|(?<namedchild>\@?\&[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*)\:?|(?<div>[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*):|-\s*(?<entry>.+)|(?<flag>\@?\!?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*))$", RegexOptions.IgnoreCase)]
+		private static partial Regex LineRegex();
 
 		private static readonly bool removeComments = true;
 
@@ -80,15 +81,18 @@ namespace SharpSheets.Parsing {
 			return text?.Replace("\\n", "\n"); // TODO Should this account for other numbers of "\"s?
 		}
 		*/
+		[GeneratedRegex(@"\\#")]
+		private static partial Regex EscapedHashRegex();
 		[return: NotNullIfNotNull(nameof(text))]
 		private static string? DeEscapeHash(string? text) {
 			// TODO Needs improving
-			return text != null ? Regex.Replace(text, @"\\#", "#") : null; // TODO Should this account for other numbers of "\"s?
+			return text != null ? EscapedHashRegex().Replace(text, "#") : null; // TODO Should this account for other numbers of "\"s?
 		}
 
-		private static readonly Regex propertyRegex = new Regex(@"^(?<name>\@?[a-z][a-z0-9]+(\.[a-z][a-z0-9]+)*)\s*:\s*(?<value>.+)$", RegexOptions.IgnoreCase);
+		[GeneratedRegex(@"^(?<name>\@?[a-z][a-z0-9]+(\.[a-z][a-z0-9]+)*)\s*:\s*(?<value>.+)$", RegexOptions.IgnoreCase)]
+		private static partial Regex PropertyRegex();
 		private static void SplitProperty(string property, DocumentSpan location, out string nameStr, out DocumentSpan nameLocation, out string valueStr, out DocumentSpan valueLocation, out bool localOnly) {
-			Match match = propertyRegex.Match(property);
+			Match match = PropertyRegex().Match(property);
 			Group name = match.Groups["name"];
 			Group value = match.Groups["value"];
 			nameStr = name.Value;
@@ -133,6 +137,9 @@ namespace SharpSheets.Parsing {
 			}
 		}
 
+		[GeneratedRegex(@"(?<!\\)\#.*$")]
+		private static partial Regex CommentRegex();
+
 		public static IEnumerable<SharpDocumentLine> SplitLines(string document) {
 
 			// TODO Implement block comments #-- --#
@@ -150,14 +157,14 @@ namespace SharpSheets.Parsing {
 					string lineText = lineValue.Value.TrimEnd();
 					if (removeComments) {
 						// TODO Should this account for other numbers of "\"s?
-						lineText = Regex.Replace(lineText, @"(?<!\\)\#.*$", "").TrimEnd(); // Ignore comments
+						lineText = CommentRegex().Replace(lineText, "").TrimEnd(); // Ignore comments
 					}
 
 					if (!string.IsNullOrWhiteSpace(lineText)) {
 						int lineIndentLength = GetIndent(lineText);
 						string content = lineText.Substring(lineIndentLength);
 
-						Match match = regex.Match(content);
+						Match match = LineRegex().Match(content);
 						Group? group = match.Groups.Cast<Group>().Where(g => g.Success && types.Contains(g.Name)).FirstOrDefault();
 						content = (group?.Value ?? content).Trim();
 

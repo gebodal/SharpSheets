@@ -11,7 +11,7 @@ using System.Globalization;
 
 namespace SharpSheets.Cards.Definitions {
 
-	public abstract class Definition {
+	public abstract partial class Definition {
 		public EvaluationName name;
 		public EvaluationName[] aliases;
 		public virtual DefinitionType Type { get; }
@@ -62,12 +62,13 @@ namespace SharpSheets.Cards.Definitions {
 			}
 		}
 
-		private static readonly Regex defNameRegex = new Regex(@"
-				^(?:def|fun) \s+ (?<name>[a-z][a-z0-9]*) .+
-				", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+		[GeneratedRegex(@"
+			^(?:def|fun) \s+ (?<name>[a-z][a-z0-9]*) .+
+			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex DefNameRegex();
 
 		public static string? GetDefinitionName(string str) {
-			Match match = defNameRegex.Match(str);
+			Match match = DefNameRegex().Match(str);
 			if (match.Success) {
 				return match.Groups["name"].Value;
 			}
@@ -100,39 +101,41 @@ namespace SharpSheets.Cards.Definitions {
 		public override string ToString() {
 			return string.Join("|", AllNames);
 		}
+
 	}
 
-	public abstract class ValueDefinition : Definition {
+	public abstract partial class ValueDefinition : Definition {
 
 		public ValueDefinition(EvaluationName name, EvaluationName[] aliases, DefinitionType type, string? description)
 			: base(name, aliases, type, description) { }
 
-		private static readonly Regex defRegex = new Regex(@"
-				^ # Must be start of line
-				def \s+ (?<aliases>([a-z][a-z0-9]*) (\s*\|\s*[a-z][a-z0-9\s]*)*) # Declaration and aliases
+		[GeneratedRegex(@"
+			^ # Must be start of line
+			def \s+ (?<aliases>([a-z][a-z0-9]*) (\s*\|\s*[a-z][a-z0-9\s]*)*) # Declaration and aliases
+			(
+				\s*\:\s* # Colon separator
 				(
-					\s*\:\s* # Colon separator
-					(
-						(?<type>
-							(?<typename> # Main type name
-								int|uint|float|ufloat|bool # Basic type
-								|string (\s*\((?<regex>(.(?!\/\/\/))+)\))? # String type (optional regex)
-								|(?<rangetype>float|int)range \s* \( \s* (?<range>[\-\+]?(?:[0-9]+\.[0-9]+|[0-9]+\.|\.[0-9]+|\.[0-9]+|[0-9]+) \s* (?:\, \s* [\-\+]?(?:[0-9]+\.[0-9]+|[0-9]+\.|\.[0-9]+|\.[0-9]+|[0-9]+) )*) \s* \) # Range type
-							)
-							(\s*(?<array>\[\s*\](\s*\[\s*\])*))? # Optional array specification
+					(?<type>
+						(?<typename> # Main type name
+							int|uint|float|ufloat|bool # Basic type
+							|string (\s*\((?<regex>(.(?!\/\/\/))+)\))? # String type (optional regex)
+							|(?<rangetype>float|int)range \s* \( \s* (?<range>[\-\+]?(?:[0-9]+\.[0-9]+|[0-9]+\.|\.[0-9]+|\.[0-9]+|[0-9]+) \s* (?:\, \s* [\-\+]?(?:[0-9]+\.[0-9]+|[0-9]+\.|\.[0-9]+|\.[0-9]+|[0-9]+) )*) \s* \) # Range type
 						)
-						|
-						(?<multi>multi)?category \s* \( \s* (?<categories>[a-z0-9\ ]+ (\s* \, \s* [a-z0-9\ ]+)*) \)
+						(\s*(?<array>\[\s*\](\s*\[\s*\])*))? # Optional array specification
 					)
-				)? # Optional type specifier
-				(
-					(\s*\@\s*(?<example>(.(?!\/\/\/))+)) # Example value
 					|
-					(\s*\=\s*(?<expression>(.(?!\/\/\/))+)) # Expression (either default value or calculation expression)
-				)? # Optional example value or expression
-				(\s*\/\/\/\s*(?<description>.*))? # Optional description
-				$ # Must be end of line
-				", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+					(?<multi>multi)?category \s* \( \s* (?<categories>[a-z0-9\ ]+ (\s* \, \s* [a-z0-9\ ]+)*) \)
+				)
+			)? # Optional type specifier
+			(
+				(\s*\@\s*(?<example>(.(?!\/\/\/))+)) # Example value
+				|
+				(\s*\=\s*(?<expression>(.(?!\/\/\/))+)) # Expression (either default value or calculation expression)
+			)? # Optional example value or expression
+			(\s*\/\/\/\s*(?<description>.*))? # Optional description
+			$ # Must be end of line
+			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex DefRegex();
 
 		//private static readonly Regex defNameRegex = new Regex(@"^def\s+(?<name>[a-z][a-z0-9]*)\s*[\|\:\=]", RegexOptions.IgnoreCase);
 
@@ -140,8 +143,11 @@ namespace SharpSheets.Cards.Definitions {
 			return match.Groups["aliases"].Value.SplitAndTrim('|').Select(s => new EvaluationName(s)).Distinct().ToArray();
 		}
 
+		[GeneratedRegex(@"\s+")]
+		private static partial Regex WhitespaceRegex();
+
 		public static Definition ParseValueDefnition(string str, IVariableBox variables) {
-			Match match = defRegex.Match(str);
+			Match match = DefRegex().Match(str);
 			if (!match.Success) {
 				throw new FormatException("Cannot parse value definition.");
 			}
@@ -155,7 +161,7 @@ namespace SharpSheets.Cards.Definitions {
 			if (match.Groups["type"].Success) {
 				// TODO This seems restrictive. Can we allow more freedom of types?
 				string typeNameStr = match.Groups["typename"].Value.ToLowerInvariant();
-				int arrayRank = match.Groups["array"].Success ? Regex.Replace(match.Groups["array"].Value, @"\s+", "").Length / 2 : 0;
+				int arrayRank = match.Groups["array"].Success ? WhitespaceRegex().Replace(match.Groups["array"].Value, "").Length / 2 : 0;
 				if (arrayRank > 2) { throw new FormatException("Definition value types cannot be arrays with a rank greater than 2."); }
 				if (typeNameStr.StartsWith("string")) {
 					if (match.Groups["regex"].Success) {
@@ -311,7 +317,7 @@ namespace SharpSheets.Cards.Definitions {
 
 	}
 
-	public class FunctionDefinition : Definition, IEnvironmentFunction {
+	public partial class FunctionDefinition : Definition, IEnvironmentFunction {
 
 		public EnvironmentVariableInfo[] Arguments { get; }
 		public EvaluationNode Expression { get; }
@@ -366,42 +372,44 @@ namespace SharpSheets.Cards.Definitions {
 			return Expression.Evaluate(evaluationEnvironment);
 		}
 
-		private static readonly Regex funRegex = new Regex(@"
-				^ # Must be start of line
-				fun \s+ (?<name>[a-z][a-z0-9]*) # Declaration and name
-				\s* \( \s* # Opening argument brace
-				(?<args>
-					(?: # First argument
-						[a-z][a-z0-9]* # First arg name
-						\s* \: \s* # Colon separator
-						(?:[a-z]+) # First arg type name
-						(?:\s*(?:\[\s*\](?:\s*\[\s*\])*))? # Optional array specification
-					) # End first argument
-					(?: # Follow-on argument
-						\s* \, \s*
-						[a-z][a-z0-9]* # Follow-on arg name
-						\s* \: \s* # Colon separator
-						(?:[a-z]+) # Follow-on arg type name
-						(?:\s*(?:\[\s*\](?:\s*\[\s*\])*))? # Optional array specification
-					)* # End follow-on argument
-				)? # Function argument list
-				\s* \) # Closing argument brace
-				(?:\s*\=\s*(?<expression>(?:.(?!\/\/\/))+)) # Function expression
-				(?:\s*\/\/\/\s*(?<description>.*))? # Optional description
-				$ # Must be end of line
-				", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+		[GeneratedRegex(@"
+			^ # Must be start of line
+			fun \s+ (?<name>[a-z][a-z0-9]*) # Declaration and name
+			\s* \( \s* # Opening argument brace
+			(?<args>
+				(?: # First argument
+					[a-z][a-z0-9]* # First arg name
+					\s* \: \s* # Colon separator
+					(?:[a-z]+) # First arg type name
+					(?:\s*(?:\[\s*\](?:\s*\[\s*\])*))? # Optional array specification
+				) # End first argument
+				(?: # Follow-on argument
+					\s* \, \s*
+					[a-z][a-z0-9]* # Follow-on arg name
+					\s* \: \s* # Colon separator
+					(?:[a-z]+) # Follow-on arg type name
+					(?:\s*(?:\[\s*\](?:\s*\[\s*\])*))? # Optional array specification
+				)* # End follow-on argument
+			)? # Function argument list
+			\s* \) # Closing argument brace
+			(?:\s*\=\s*(?<expression>(?:.(?!\/\/\/))+)) # Function expression
+			(?:\s*\/\/\/\s*(?<description>.*))? # Optional description
+			$ # Must be end of line
+			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex FunRegex();
 
-		private static readonly Regex argRegex = new Regex(@"
-				^ # Must be start of string
-				(?<name>[a-z][a-z0-9]*) # Arg name
-				\s* \: \s*
-				(?<type>[a-z]+) # Arg type name
-				(\s*(?<array>\[\s*\](?:\s*\[\s*\])*))? # Optional array specification
-				$ # Must be end of string
-				", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+		[GeneratedRegex(@"
+			^ # Must be start of string
+			(?<name>[a-z][a-z0-9]*) # Arg name
+			\s* \: \s*
+			(?<type>[a-z]+) # Arg type name
+			(\s*(?<array>\[\s*\](?:\s*\[\s*\])*))? # Optional array specification
+			$ # Must be end of string
+			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex ArgRegex();
 
 		internal static FunctionDefinition ParseFunctionDefinition(string str, IVariableBox variables) {
-			Match match = funRegex.Match(str);
+			Match match = FunRegex().Match(str);
 			if (!match.Success) {
 				throw new FormatException("Cannot parse function definition.");
 			}
@@ -416,7 +424,7 @@ namespace SharpSheets.Cards.Definitions {
 			string[] argsValues = !string.IsNullOrWhiteSpace(match.Groups["args"].Value) ? match.Groups["args"].Value.SplitAndTrim(',') : Array.Empty<string>();
 			List<EnvironmentVariableInfo> args = new List<EnvironmentVariableInfo>();
 			foreach(string argVal in argsValues) {
-				Match argMatch = argRegex.Match(argVal);
+				Match argMatch = ArgRegex().Match(argVal);
 
 				if (!argMatch.Success) {
 					throw new FormatException($"Cannot parse function argument: \"{argVal}\"");

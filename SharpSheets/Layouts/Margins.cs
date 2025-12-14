@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace SharpSheets.Layouts {
 
-	public readonly struct Margins : IEquatable<Margins> {
+	public readonly partial struct Margins : IEquatable<Margins> {
 
 		public static Margins Zero { get; } = new Margins(0f);
 
@@ -25,9 +25,6 @@ namespace SharpSheets.Layouts {
 
 		public Margins(float margin) : this(margin, margin, margin, margin) { }
 
-		private static readonly Regex arrayPattern = new Regex(@"^(?:[\-\+]?[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:\s*\,\s*(?:[\-\+]?[0-9]+(?:\.[0-9]*)?|\.[0-9]+))*$");
-		private static readonly Regex dictPattern = new Regex(@"^\{(?<match>[^\}]*)\}$");
-
 		public static Margins operator +(Margins a, Margins b) {
 			return new Margins(a.Top + b.Top, a.Right + b.Right, a.Bottom + b.Bottom, a.Left + b.Left);
 		}
@@ -41,12 +38,17 @@ namespace SharpSheets.Layouts {
 			return new Margins(a.Top / b, a.Right / b, a.Bottom / b, a.Left / b);
 		}
 
+		[GeneratedRegex(@"^(?:[\-\+]?[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:\s*\,\s*(?:[\-\+]?[0-9]+(?:\.[0-9]*)?|\.[0-9]+))*$")]
+		private static partial Regex ArrayPattern();
+		[GeneratedRegex(@"^\{(?<match>[^\}]*)\}$")]
+		private static partial Regex DictPattern();
+
 		// TODO This should ideally be a generic method (i.e., for any dict-style initializer) inside SharpFactory
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
 		public static Margins Parse(string str, float defaultValue, IFormatProvider? provider) {
 			// TODO This whole method probably needs updating...?
-			if (arrayPattern.IsMatch(str.Trim())) {
+			if (ArrayPattern().IsMatch(str.Trim())) {
 				float[] parts = str.Trim().SplitAndTrim(',').Select(s => float.Parse(s, provider)).ToArray();
 				if (parts.Length == 1) {
 					return new Margins(parts[0]);
@@ -61,7 +63,7 @@ namespace SharpSheets.Layouts {
 					throw new FormatException("Margins string badly formatted (comma-separated format must have 1, 2, or 4 values).");
 				}
 			}
-			else if (dictPattern.Match(str.Trim()) is Match dictMatch && dictMatch.Success) {
+			else if (DictPattern().Match(str.Trim()) is Match dictMatch && dictMatch.Success) {
 				Dictionary<string, float> values = new Dictionary<string, float>();
 
 				foreach (string[] parts in dictMatch.Groups[1].Value.SplitAndTrim(',').WhereNotEmpty().Select(s => s.SplitAndTrim(2, ':'))) {

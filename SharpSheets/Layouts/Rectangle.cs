@@ -385,7 +385,7 @@ namespace SharpSheets.Layouts {
 		}
 	}
 
-	public class PageSize : Size {
+	public partial class PageSize : Size {
 		public PageSize(float width, float height) : base(width, height) { }
 
 		public PageSize Rotate() {
@@ -420,7 +420,8 @@ namespace SharpSheets.Layouts {
 		public static readonly PageSize LEDGER = new PageSize(1224, 792);
 		public static readonly PageSize EXECUTIVE = new PageSize(522, 756);
 
-		private static readonly Regex pageSizeRegex = new Regex(@"^(?<width>[0-9]+(\.[0-9]+)?|\.[0-9]+) \s* x \s* (?<height>[0-9]+(\.[0-9]+)?|\.[0-9]+) (\s* (?<unit>pt|in|cm|mm))?$", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+		[GeneratedRegex(@"^(?<width>[0-9]+(\.[0-9]+)?|\.[0-9]+) \s* x \s* (?<height>[0-9]+(\.[0-9]+)?|\.[0-9]+) (\s* (?<unit>pt|in|cm|mm))?$", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex PageSizeRegex();
 
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
@@ -459,7 +460,7 @@ namespace SharpSheets.Layouts {
 			else if (size == "ledger") { return PageSize.LEDGER; }
 			else if (size == "tabloid") { return PageSize.TABLOID; }
 			else if (size == "executive") { return PageSize.EXECUTIVE; }
-			else if (pageSizeRegex.Match(size) is Match match) {
+			else if (PageSizeRegex().Match(size) is Match match) {
 				float width = float.Parse(match.Groups["width"].Value, provider);
 				float height = float.Parse(match.Groups["height"].Value, provider);
 				string unit = match.Groups["unit"].Value.ToLowerInvariant();

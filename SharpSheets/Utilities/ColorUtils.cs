@@ -5,9 +5,10 @@ using System.Text.RegularExpressions;
 using SharpSheets.Colors;
 
 namespace SharpSheets.Utilities {
-	public static class ColorUtils {
+	public static partial class ColorUtils {
 
-		private static readonly Regex hexColorRegex = new Regex(@"\#?(?:[0-9abcdef]{8}|[0-9abcdef]{6})", RegexOptions.IgnoreCase);
+		[GeneratedRegex(@"\#?(?:[0-9abcdef]{8}|[0-9abcdef]{6})", RegexOptions.IgnoreCase)]
+		private static partial Regex HexColorRegex();
 
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
@@ -19,7 +20,7 @@ namespace SharpSheets.Utilities {
 				return namedColor;
 			}
 
-			if (hexColorRegex.IsMatch(colorStr)) {
+			if (HexColorRegex().IsMatch(colorStr)) {
 				string hexString = colorStr;
 				if (hexString.StartsWith("#")) { hexString = hexString.Substring(1); }
 				byte[] values = hexString.Chunk(2).Select(h => (byte)int.Parse(h, System.Globalization.NumberStyles.HexNumber)).ToArray();

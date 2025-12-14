@@ -17,7 +17,10 @@ using SharpSheets.Evaluations.Nodes;
 
 namespace SharpSheets.Markup.Elements {
 
-	public static class StyledDivUtils {
+	public static partial class StyledDivUtils {
+
+		[GeneratedRegex(@"entry[0-9]+")]
+		private static partial Regex EntryNameRegex();
 
 		public static bool IsValidChildName(Type shapeType, string name) {
 			if (string.Equals(name, "remaining") && typeof(IFramedArea).IsAssignableFrom(shapeType)) {
@@ -26,7 +29,7 @@ namespace SharpSheets.Markup.Elements {
 			else if (string.Equals(name, "label") && typeof(ILabelledArea).IsAssignableFrom(shapeType)) {
 				return true;
 			}
-			else if (Regex.IsMatch(name, @"entry[0-9]+") && typeof(IEntriedArea).IsAssignableFrom(shapeType)) {
+			else if (EntryNameRegex().IsMatch(name) && typeof(IEntriedArea).IsAssignableFrom(shapeType)) {
 				return true;
 			}
 

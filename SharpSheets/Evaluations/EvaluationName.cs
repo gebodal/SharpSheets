@@ -2,7 +2,7 @@
 using System.Text.RegularExpressions;
 
 namespace SharpSheets.Evaluations {
-	public readonly struct EvaluationName : IEquatable<EvaluationName>, IComparable<EvaluationName> {
+	public readonly partial struct EvaluationName : IEquatable<EvaluationName>, IComparable<EvaluationName> {
 
 		private readonly string name;
 		public bool Valid { get { return IsValid(name); } }
@@ -15,13 +15,14 @@ namespace SharpSheets.Evaluations {
 			return new EvaluationName(name);
 		}
 
-		private static readonly Regex pattern = new Regex(@"[a-z][a-z0-9]*", RegexOptions.IgnoreCase);
+		[GeneratedRegex(@"[a-z][a-z0-9]*", RegexOptions.IgnoreCase)]
+		private static partial Regex Pattern();
 		public static bool IsValid(string name) {
 			if (name == null) {
 				return false;
 			}
 			else {
-				return pattern.IsMatch(name);
+				return Pattern().IsMatch(name);
 			}
 		}
 

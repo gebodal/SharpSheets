@@ -18,7 +18,7 @@ using System.Globalization;
 
 namespace SharpSheets.Markup.Parsing {
 
-	public static class MarkupEvaluationTypes {
+	public static partial class MarkupEvaluationTypes {
 
 		public static readonly EvaluationContext BaseContext;
 
@@ -212,14 +212,18 @@ namespace SharpSheets.Markup.Parsing {
 		//public static readonly EvaluationType USAGE_BAR = EvaluationType.CustomType("UsageBar", Enumerable.Empty<TypeField>(), typeof(IUsageBar));
 		//public static readonly EvaluationType DETAIL = EvaluationType.CustomType("Detail", Enumerable.Empty<TypeField>(), typeof(IDetail));
 
-		private static readonly Regex arrayTupleRegex = new Regex(@"\[(?:(?<tuple>[0-9]+)|(?<dictKey>[a-z][a-z0-9_]*))?\]", RegexOptions.IgnoreCase);
+		[GeneratedRegex(@"\[(?:(?<tuple>[0-9]+)|(?<dictKey>[a-z][a-z0-9_]*))?\]", RegexOptions.IgnoreCase)]
+		private static partial Regex ArrayTupleRegex();
+		[GeneratedRegex(@"\s+")]
+		private static partial Regex SpaceRegex();
+
 		/// <summary></summary>
 		/// <exception cref="FormatException"></exception>
 		public static EvaluationType ParseArgumentType(string text, string? description, EvaluationContext context) {
-			text = Regex.Replace(text, @"\s+", "");
+			text = SpaceRegex().Replace(text, "");
 			string textKey = text.ToLowerInvariant();
 			
-			Match arrayMatch = arrayTupleRegex.Match(text);
+			Match arrayMatch = ArrayTupleRegex().Match(text);
 			if (arrayMatch.Success) {
 				// The "top level" array specification comes first, followed by descreasingly significant "[]"
 				string baseTypeStr = text.Substring(0, arrayMatch.Index) + text.Substring(arrayMatch.Index + arrayMatch.Length);

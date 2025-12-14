@@ -13,7 +13,7 @@ using SharpSheets.Cards.CardSubjects;
 
 namespace SharpSheets.Cards.Card.SegmentRects {
 
-	public class NewCardTableSegmentRect : AbstractSegmentRect<TableCardSegmentConfig> {
+	public partial class NewCardTableSegmentRect : AbstractSegmentRect<TableCardSegmentConfig> {
 
 		private readonly RichString[,] entries;
 		private readonly CardFeature[] features;
@@ -23,7 +23,8 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 		private readonly bool[] numericColumns;
 		private (float column, float row) TableSpacing => Config.tableSpacing;
 
-		private static readonly Regex numberColumnRegex = new Regex(@"^[0-9\-\+\.]+$");
+		[GeneratedRegex(@"^[0-9\-\+\.]+$")]
+		private static partial Regex NumberColumnRegex();
 		public TextHeightStrategy CellHeightStrategy => Config.cellHeightStrategy;
 
 		protected int StartRow { get; set; } = 0;
@@ -35,7 +36,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 			numericColumns = new bool[entries.GetLength(1)];
 			justifications = new Justification[entries.GetLength(1)];
 			for (int c = 0; c < entries.GetLength(1); c++) {
-				numericColumns[c] = entries.GetColumn2D(c).Skip(1).Select(e => numberColumnRegex.IsMatch(e.Text)).All(b => b);
+				numericColumns[c] = entries.GetColumn2D(c).Skip(1).Select(e => NumberColumnRegex().IsMatch(e.Text)).All(b => b);
 				justifications[c] = numericColumns[c] ? Justification.CENTRE : Justification.LEFT;
 			}
 		}

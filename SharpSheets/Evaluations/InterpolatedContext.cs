@@ -285,7 +285,7 @@ namespace SharpSheets.Evaluations {
 
 	}
 
-	public class ContextForEach {
+	public partial class ContextForEach {
 
 		public readonly EnvironmentVariableInfo LoopVariable;
 		private readonly EvaluationNode array;
@@ -316,13 +316,14 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
-		private static readonly Regex forEachRegex = new Regex(@"
-				^ \s*
-				(?<loopVar>[a-z][a-z0-9]*)
-				\s+ in \s+
-				(?<expr>.+)
-				$
-				", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+		[GeneratedRegex(@"
+			^ \s*
+			(?<loopVar>[a-z][a-z0-9]*)
+			\s+ in \s+
+			(?<expr>.+)
+			$
+			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex ForEachRegex();
 
 		/// <summary>
 		/// 
@@ -333,7 +334,7 @@ namespace SharpSheets.Evaluations {
 		/// <exception cref="FormatException"></exception>
 		/// <exception cref="EvaluationException"></exception>
 		public static ContextForEach Parse(string text, IVariableBox variables) {
-			Match match = forEachRegex.Match(text);
+			Match match = ForEachRegex().Match(text);
 			if (!match.Success) {
 				throw new FormatException("Could not parse for-each.");
 			}

@@ -195,7 +195,7 @@ namespace SharpSheets.Markup.Parsing {
 
 	}
 
-	public static class XMLParsing {
+	public static partial class XMLParsing {
 
 		private enum ParseState { AwaitNode, AwaitElementType, AwaitElementTag, ElementTag, AwaitAttributeName, AttributeName, AwaitAttributeEquals, AwaitAttributeValue, AttributeValue, AttributeEscapeSequence, AwaitEmptyTagEnd, AwaitEndTag, EndTag, AwaitEndTagClose, Text, TextEscapeSequence, Comment }
 
@@ -842,7 +842,7 @@ namespace SharpSheets.Markup.Parsing {
 
 		}
 
-		private class TextNodeBuilder : NodeBuilder {
+		private partial class TextNodeBuilder : NodeBuilder {
 
 			private readonly StringBuilder text;
 
@@ -862,10 +862,13 @@ namespace SharpSheets.Markup.Parsing {
 				return location;
 			}
 
+			[GeneratedRegex(@"\s+")]
+			private static partial Regex WhitespaceRegex();
+
 			public XMLText? Build(XMLElement parent) {
 				DocumentSpan location = GetLocation();
 				//string finalText = text.ToString();
-				string finalText = Regex.Replace(text.ToString(), @"\s+", " ");
+				string finalText = WhitespaceRegex().Replace(text.ToString(), " ");
 				if (!string.IsNullOrWhiteSpace(finalText)) {
 					return new XMLText(parent, location, finalText);
 				}
@@ -876,7 +879,7 @@ namespace SharpSheets.Markup.Parsing {
 
 		}
 
-		private class CommentNodeBuiler : NodeBuilder {
+		private partial class CommentNodeBuiler : NodeBuilder {
 
 			private readonly StringBuilder text;
 
@@ -893,9 +896,14 @@ namespace SharpSheets.Markup.Parsing {
 				return location;
 			}
 
+			[GeneratedRegex(@"[^\S\n]+")]
+			private static partial Regex NotWhitespaceRegex(); // Correct name?
+			[GeneratedRegex(@"[^\S\n]+\n[^\S\n]+")]
+			private static partial Regex ParagraphBreakRegex();
+
 			public XMLComment Build(XMLElement parent) {
 				DocumentSpan location = GetLocation();
-				string finalText = Regex.Replace(Regex.Replace(text.ToString(), @"[^\S\n]+\n[^\S\n]+", "\n"), @"[^\S\n]+", " ").Trim();
+				string finalText = NotWhitespaceRegex().Replace(ParagraphBreakRegex().Replace(text.ToString(), "\n"), " ").Trim();
 				return new XMLComment(parent, location, finalText);
 			}
 
@@ -927,7 +935,7 @@ namespace SharpSheets.Markup.Parsing {
 
 		#region Utilities
 
-		private static readonly Regex urlRegex = new Regex(@"
+		[GeneratedRegex(@"
 				\# (?<simple> [a-z] [a-z0-9\-\._]* )
 			|
 				url\(
@@ -939,11 +947,12 @@ namespace SharpSheets.Markup.Parsing {
 					\# (?<noquotes> [a-z] [a-z0-9\-\._]* )
 				)
 				\)
-			", RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase);
+			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace)]
+		private static partial Regex UrlRegex();
 
 		public static string? NormaliseURL(string value) {
 			value = value.Trim();
-			Match match = urlRegex.Match(value);
+			Match match = UrlRegex().Match(value);
 			if (match.Success && match.Length == value.Length) {
 				if (match.Groups[1].Success) {
 					return match.Groups[1].Value;
