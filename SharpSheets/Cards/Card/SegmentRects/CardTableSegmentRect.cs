@@ -129,7 +129,7 @@ namespace SharpSheets.Cards.Card.SegmentRects {
 		}
 
 		protected static float ColumnGutter(ISharpGraphicsState graphicsState, float fontSize) {
-			return graphicsState.GetWidth(new RichString("M"), fontSize);
+			return graphicsState.GetWidth((RichString)"M", fontSize);
 		}
 
 		protected Color GetRowColor(int i) {

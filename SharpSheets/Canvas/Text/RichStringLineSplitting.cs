@@ -24,7 +24,7 @@ namespace SharpSheets.Canvas.Text {
 		/// <summary>Splits a single line of <c>RichString</c> (i.e. no newlines) into lines below a fixed width.</summary>
 		public static RichString[] SplitLines(ISharpGraphicsData graphicsData, RichString text, float width, float fontSize, float indent, float hangingIndent) {
 			RichString[] parts = text.Split(' ');
-			float space = graphicsData.GetWidth(new RichString(" ", TextFormat.REGULAR), fontSize);
+			float space = graphicsData.GetWidth((RichString)" ", fontSize);
 			float[] widths = new float[parts.Length];
 			for (int i = 0; i < parts.Length; i++) {
 				widths[i] = graphicsData.GetWidth(parts[i], fontSize);
@@ -40,7 +40,7 @@ namespace SharpSheets.Canvas.Text {
 				while (end > (skip + 1) && (lineIndent + GetWidth(widths, skip, end, space)) > width) {
 					end--;
 				}
-				lines.Add(RichString.Join(" ", TextFormat.REGULAR, parts.Skip(skip).Take(end - skip)));
+				lines.Add(RichString.Join((RichString)" ", parts.Skip(skip).Take(end - skip)));
 				skip += end - skip;
 			}
 

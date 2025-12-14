@@ -8,7 +8,7 @@ namespace SharpSheets.Canvas.Text {
 	public class RichParagraph {
 
 		private readonly RichString[] tokens;
-		private readonly RichString delimiter = new RichString(" ", TextFormat.REGULAR);
+		private readonly RichString delimiter = (RichString)" ";
 
 		public int TokenCount => tokens.Length;
 
@@ -201,7 +201,7 @@ namespace SharpSheets.Canvas.Text {
 	public class RichParagraphs {
 
 		private readonly RichString[][] parts;
-		private readonly RichString delimiter = new RichString(" ", TextFormat.REGULAR);
+		private readonly RichString delimiter = (RichString)" ";
 
 		public int ParagraphCount { get; }
 		public int TokenCount { get; }

@@ -121,7 +121,7 @@ namespace SharpSheets.Cards.Card {
 			BulletArg? bullet = null
 		) : base(setup) {
 
-			this.text = RichString.Join("\n", TextFormat.REGULAR, text ?? Enumerable.Empty<RichString>());
+			this.text = RichString.Join((RichString)"\n", text ?? Enumerable.Empty<RichString>());
 			this.justification = justification;
 			this.alignment = alignment;
 			this.heightStrategy = heightStrategy;

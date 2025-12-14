@@ -92,9 +92,19 @@ namespace SharpSheets.Canvas.Text {
 
 		public RichString(char[] chars, TextFormat[] formats) : this(chars, formats, new string(chars)) { }
 
-		public RichString(string text) : this(text, TextFormat.REGULAR) { }
+		public static RichString Create(string text, TextFormat format) {
+			char[] chars = new char[text.Length];
+			TextFormat[] formats = new TextFormat[text.Length];
 
-		public RichString(string text, TextFormat startingFormat) {
+			for(int i=0; i<text.Length; i++) {
+				chars[i] = text[i];
+				formats[i] = format;
+			}
+
+			return new RichString(chars, formats, text);
+		}
+
+		public static RichString Parse(string text, TextFormat startingFormat) {
 
 			// TODO Does this properly take account of escape backslashes "\"? (Do they cause null chars?)
 
@@ -157,25 +167,11 @@ namespace SharpSheets.Canvas.Text {
 				}
 			}
 
-			this.chars = chars.ToArray();
-			this.formats = formats.ToArray();
-			Text = new string(this.chars);
-		}
-
-		public static RichString Create(string text, TextFormat format) {
-			char[] chars = new char[text.Length];
-			TextFormat[] formats = new TextFormat[text.Length];
-
-			for(int i=0; i<text.Length; i++) {
-				chars[i] = text[i];
-				formats[i] = format;
-			}
-
-			return new RichString(chars, formats, text);
+			return new RichString(chars.ToArray(), formats.ToArray());
 		}
 
 		public static explicit operator RichString(string input) {
-			return new RichString(input);
+			return Create(input, TextFormat.REGULAR);
 		}
 
 		public static RichString operator +(RichString a, RichString b) {
@@ -300,7 +296,7 @@ namespace SharpSheets.Canvas.Text {
 		}
 
 		public static RichString Join(string separator, TextFormat separatorFormat, params RichString[] values) {
-			return Join(new RichString(separator, separatorFormat), values);
+			return Join(Create(separator, separatorFormat), values);
 		}
 
 		public static RichString Join(RichString separator, IEnumerable<RichString> values) {

@@ -776,7 +776,7 @@ namespace SharpSheets.Widgets {
 				bool singleline = false
 			) : base(setup) {
 
-			this.text = RichString.Join("\n", TextFormat.REGULAR, text ?? Enumerable.Empty<RichString>());
+			this.text = RichString.Join((RichString)"\n", text ?? Enumerable.Empty<RichString>());
 
 			if (format.HasValue) {
 				this.text = this.text.ApplyFormat(format.Value);
