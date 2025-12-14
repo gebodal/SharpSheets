@@ -138,6 +138,7 @@ namespace SharpSheets.Markup.Parsing {
 			builder.SetDataType<DimensionEvaluationType, Dimension>(ctx => new DimensionEvaluationType(ctx));
 			builder.SetDataType<MarginsEvaluationType, Margins>(ctx => new MarginsEvaluationType(ctx));
 			builder.SetDataType<FilePathEvaluationType, SharpSheets.Utilities.FilePath>(ctx => new FilePathEvaluationType(ctx));
+			builder.SetDataType<RichStringEvaluationType, RichString>(ctx => new RichStringEvaluationType(ctx));
 
 			// Enum types
 			builder.SetSystemType<TextFormat, EnumEvaluationType>(ctx => EnumEvaluationType.FromSystemType<TextFormat>(ctx));
@@ -574,7 +575,7 @@ namespace SharpSheets.Markup.Parsing {
 		public override string Name { get; } = "filepath";
 
 		public FilePathEvaluationType(EvaluationContext context) : base(context) { }
-			
+
 		protected override FilePath ParseValueDataSingle(string text, DirectoryPath source) {
 			return ValueParsers.ParseFilePath(text, source);
 		}
@@ -620,6 +621,157 @@ namespace SharpSheets.Markup.Parsing {
 		public override EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) {
 			if (TryGetFilePath(left, out SharpSheets.Utilities.FilePath? leftPath) && TryGetFilePath(right, out SharpSheets.Utilities.FilePath? rightPath)) {
 				return new EvaluationValue(leftPath != rightPath, Context.GetType<BoolEvaluationType>());
+			}
+			else {
+				return null;
+			}
+		}
+
+	}
+
+	public sealed class RichStringEvaluationType : SingleDataType<RichString> {
+
+		public override string Name { get; } = "richstr";
+
+		public RichStringEvaluationType(EvaluationContext context) : base(context) {
+			AddField(new TypeField("length", Context.GetType<IntEvaluationType>(), value => value.Type.Context.GetValue<IntEvaluationType>(((RichString)value.Value!).Length)));
+		}
+
+		protected override RichString ParseValueDataSingle(string text, DirectoryPath source) {
+			return ValueParsers.ParseRichString(text);
+		}
+
+		protected override string GetEvaluationSingleString(RichString value) {
+			return value.Formatted;
+		}
+
+		protected override RichString DefaultValueDataSingle() {
+			return RichString.Empty;
+		}
+
+		public static bool IsRichString(EvaluationType other) {
+			return other is RichStringEvaluationType || StringEvaluationType.IsString(other);
+		}
+
+		public static bool AllRichString(params EvaluationType[] types) {
+			for (int i = 0; i < types.Length; i++) {
+				if (!IsRichString(types[i])) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		public static bool TryGetRichString(EvaluationValue value, [NotNullWhen(true)] out RichString? str) {
+			if (value.Type is RichStringEvaluationType && value.Value is RichString richStringVal) {
+				str = richStringVal;
+				return true;
+			}
+			else if (StringEvaluationType.TryGetString(value, out string? stringVal)) {
+				str = RichString.Create(stringVal, TextFormat.REGULAR);
+				return true;
+			}
+
+			str = null;
+			return false;
+		}
+
+		public override bool CanImplicitCastFrom(EvaluationType other) => IsRichString(other);
+
+		public override EvaluationValue? Cast(EvaluationValue other) {
+			if (TryGetRichString(other, out RichString? value)) {
+				return MakeValue(value);
+			}
+			else {
+				return null;
+			}
+		}
+
+		private EvaluationType? AddResultAny(EvaluationType other) {
+			if (IsRichString(other)) { // Another string
+				return this;
+			}
+			else {
+				return null;
+			}
+		}
+
+		private EvaluationValue? AddAny(EvaluationValue left, EvaluationValue right) {
+			if (TryGetRichString(left, out RichString? leftVal) && TryGetRichString(right, out RichString? rightVal)) {
+				return MakeValue(leftVal + rightVal);
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? AddResult(EvaluationType right) => AddResultAny(right);
+		public override EvaluationValue? Add(EvaluationValue left, EvaluationValue right) => AddAny(left, right);
+		public override EvaluationType? RAddResult(EvaluationType left) => AddResultAny(left);
+		public override EvaluationValue? RAdd(EvaluationValue left, EvaluationValue right) => AddAny(left, right);
+
+		private EvaluationType? MulResultAny(EvaluationType other) {
+			if (IntEvaluationType.IsIntegral(other)) { // An int-like
+				return this;
+			}
+			else {
+				return null;
+			}
+		}
+
+		private static RichString RepeatString(RichString str, int count) {
+			return str.Repeat(count);
+		}
+
+		public override EvaluationType? MulResult(EvaluationType right) => MulResultAny(right);
+		public override EvaluationType? RMulResult(EvaluationType left) => MulResultAny(left);
+		public override EvaluationValue? Mul(EvaluationValue left, EvaluationValue right) {
+			if (TryGetRichString(left, out RichString? stringVal) && IntEvaluationType.TryGetInt(right, out int intVal)) {
+				return new EvaluationValue(RepeatString(stringVal, intVal), this);
+			}
+			else {
+				return null;
+			}
+		}
+		public override EvaluationValue? RMul(EvaluationValue left, EvaluationValue right) {
+			if (IntEvaluationType.TryGetInt(left, out int intVal) && TryGetRichString(right, out RichString? stringVal)) {
+				return MakeValue(RepeatString(stringVal, intVal));
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? IndexerResult(EvaluationType index) {
+			if (IntEvaluationType.IsIntegral(index)) {
+				return this;
+			}
+			else {
+				return null;
+			}
+		}
+		public override EvaluationValue? Indexer(EvaluationValue subject, EvaluationValue index) {
+			if (TryGetRichString(subject, out RichString? subjectVal) && IntEvaluationType.TryGetInt(index, out int indexVal)) {
+				int indexFinal = EvaluationTypeHelpers.GetIndex(indexVal, subjectVal.Length);
+				return MakeValue(new RichString(subjectVal.chars[indexFinal].Yield().ToArray(), subjectVal.formats[indexFinal].Yield().ToArray()));
+			}
+			else {
+				return null;
+			}
+		}
+
+		public override EvaluationType? IndexerSliceResult(EvaluationType start, EvaluationType end) {
+			if (IntEvaluationType.IsIntegral(start) && IntEvaluationType.IsIntegral(end)) {
+				return this;
+			}
+			else {
+				return null;
+			}
+		}
+		public override EvaluationValue? IndexerSlice(EvaluationValue subject, EvaluationValue start, EvaluationValue end) {
+			if (TryGetRichString(subject, out RichString? subjectVal) && IntEvaluationType.TryGetInt(start, out int startVal) && IntEvaluationType.TryGetInt(end, out int endVal)) {
+				EvaluationTypeHelpers.GetSliceIndexes(startVal, endVal, subjectVal.Length, out int startFinal, out int endFinal);
+				return MakeValue(subjectVal[startFinal..endFinal]);
 			}
 			else {
 				return null;
