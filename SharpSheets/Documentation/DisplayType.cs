@@ -10,14 +10,13 @@ namespace SharpSheets.Documentation {
 	public sealed class DisplayType : IEquatable<DisplayType> {
 		public Type? SystemType { get; }
 		public EvaluationType? EvaluationType { get; }
+		public DisplayTypeStructure Structure { get; }
 
 		public string Name => SystemType?.Name ?? EvaluationType!.Name;
 
 		public bool IsEnum => SystemType?.IsEnum ?? EvaluationType is EnumEvaluationType;
 		public bool IsBool => SystemType is not null ? (SystemType == typeof(bool)) : (EvaluationType is BoolEvaluationType);
 		
-		public DisplayTypeStructure Structure { get; }
-
 		public bool IsSingle => Structure == DisplayTypeStructure.Single;
 		public bool IsEntried => Structure == DisplayTypeStructure.Entried;
 		public bool IsNumbered => Structure == DisplayTypeStructure.Numbered;
@@ -33,15 +32,15 @@ namespace SharpSheets.Documentation {
 
 		public DisplayType AsSingle() => new DisplayType(SystemType, EvaluationType, DisplayTypeStructure.Single);
 
-		private static readonly Dictionary<Type, DisplayType> systemTypeRegistry = new Dictionary<Type, DisplayType>();
+		private static readonly Dictionary<(Type, DisplayTypeStructure), DisplayType> systemTypeRegistry = new Dictionary<(Type, DisplayTypeStructure), DisplayType>();
 
 		private static DisplayType FromSystem(Type type, DisplayTypeStructure structure = DisplayTypeStructure.Single) {
-			if (systemTypeRegistry.TryGetValue(type, out DisplayType? existing)) {
+			if (systemTypeRegistry.TryGetValue((type, structure), out DisplayType? existing)) {
 				return existing;
 			}
 			else {
 				DisplayType newInstance = new DisplayType(type, null, structure);
-				systemTypeRegistry[type] = newInstance;
+				systemTypeRegistry[(type, structure)] = newInstance;
 				return newInstance;
 			}
 		}
@@ -210,6 +209,10 @@ namespace SharpSheets.Documentation {
 					length = TupleUtils.GetTupleLength(SystemType);
 					return true;
 				}
+				else if (Nullable.GetUnderlyingType(SystemType) is Type underlyingType && TupleUtils.IsTupleType(underlyingType)) {
+					length = TupleUtils.GetTupleLength(underlyingType);
+					return true;
+				}
 			}
 			else if (EvaluationType is TupleEvaluationType tupleEval) {
 				length = tupleEval.ElementCount;
@@ -280,7 +283,7 @@ namespace SharpSheets.Documentation {
 		}
 
 		public override int GetHashCode() {
-			return HashCode.Combine(SystemType, EvaluationType, IsEntried, IsNumbered);
+			return HashCode.Combine(SystemType, EvaluationType, Structure);
 		}
 	}
 

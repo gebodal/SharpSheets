@@ -7,13 +7,23 @@ namespace SharpSheets.Generators {
 
 	public static class TypeNameUtils {
 
-		public static string ReduceParameterTypeName(string typeStr) {
+		public static string RemoveNullable(string typeStr, out bool isNullable) {
 			if (typeStr.EndsWith("?")) {
-				typeStr = typeStr.Substring(0, typeStr.Length - 1);
+				isNullable = true;
+				return typeStr.Substring(0, typeStr.Length - 1);
 			}
 			else if (typeStr.StartsWith("Nullable<") && typeStr.EndsWith(">")) {
-				typeStr = typeStr.Substring(9, typeStr.Length - 10);
+				isNullable = true;
+				return typeStr.Substring(9, typeStr.Length - 10);
 			}
+			else {
+				isNullable = false;
+				return typeStr;
+			}
+		}
+
+		public static string ReduceParameterTypeName(string typeStr) {
+			typeStr = RemoveNullable(typeStr, out _);
 
 			static IEnumerable<string> SplitTypeParts(string text, char delim) {
 				int roundCount = 0, angleCount = 0, squareCount = 0;

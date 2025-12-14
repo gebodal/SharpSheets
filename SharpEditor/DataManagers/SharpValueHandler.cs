@@ -12,10 +12,8 @@ using SharpSheets.Widgets;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace SharpEditor.DataManagers {
@@ -48,9 +46,6 @@ namespace SharpEditor.DataManagers {
 			}
 			else if (type.IsSequence(out _, out _) || type.IsTuple(out _) || type.IsDictionary(out _, out _)) {
 				return GetCollectionTypeName(type, GetTypeName);
-			}
-			else if (type.GetSingle() is Type systemSingle && Nullable.GetUnderlyingType(systemSingle) is Type nulledType) {
-				return GetTypeName(DisplayType.Create(nulledType));
 			}
 			else if (type.IsNumbered && type.IsBase<ChildHolder>()) {
 				return "(numbered children) Div".Replace(' ', NO_BREAK_SPACE); // TODO Need better name

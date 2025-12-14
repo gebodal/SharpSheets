@@ -31,7 +31,7 @@ namespace SharpSheets.Generators {
 
 		public string CompilerFullName {
 			get {
-				return (IsValueType && IsNullable) ? $"Nullable<{Type}>" : Type;
+				return (IsValueType && IsNullable) ? $"Nullable<{Minimal}>" : Minimal;
 			}
 		}
 
@@ -58,14 +58,15 @@ namespace SharpSheets.Generators {
 
 		public static TypeData Create(ITypeSymbol symbol) { // Compilation compilation
 			string fullName = symbol.ToFullDisplayString();
+			string nonNullable = TypeNameUtils.RemoveNullable(fullName, out bool nullable);
 			return new TypeData(
-					fullName.TrimEnd('?'),
-					symbol.Name,
-					TypeNameUtils.ReduceParameterTypeName(fullName), //compilation.ReduceParameterType(symbol).ToFullDisplayString(),
-					fullName.EndsWith("?"),
-					symbol.SpecialType,
-					symbol is INamedTypeSymbol named && named.IsEnum(),
-					symbol.IsValueType
+					type: nonNullable,
+					name: symbol.Name,
+					minimal: TypeNameUtils.ReduceParameterTypeName(nonNullable),
+					nullable: nullable,
+					specialType: symbol.SpecialType,
+					isEnum: symbol is INamedTypeSymbol named && named.IsEnum(),
+					isValueType: symbol.IsValueType
 				);
 		}
 
