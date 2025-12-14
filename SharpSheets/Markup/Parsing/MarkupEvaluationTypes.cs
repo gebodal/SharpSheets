@@ -14,6 +14,7 @@ using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Markup.Patterns;
 using SharpSheets.Colors;
 using SharpSheets.Parsing;
+using System.Globalization;
 
 namespace SharpSheets.Markup.Parsing {
 
@@ -290,6 +291,14 @@ namespace SharpSheets.Markup.Parsing {
 			return ValueParsers.ParseColor(text);
 		}
 
+		protected override string GetEvaluationSingleString(Color value) {
+			return value.IsNamedColor ? value.Name : value.ToHexString();
+		}
+
+		protected override Color DefaultValueDataSingle() {
+			return Color.None;
+		}
+
 		public static bool IsColor(EvaluationType type) {
 			return type is ColorEvaluationType;
 		}
@@ -351,6 +360,14 @@ namespace SharpSheets.Markup.Parsing {
 
 		protected override Dimension ParseValueDataSingle(string text, DirectoryPath source) {
 			return ValueParsers.ParseDimension(text);
+		}
+
+		protected override string GetEvaluationSingleString(Dimension value) {
+			return value.ToString(CultureInfo.InvariantCulture);
+		}
+
+		protected override Dimension DefaultValueDataSingle() {
+			return Dimension.Zero;
 		}
 
 		public static bool IsDimension(EvaluationType type) {
@@ -456,6 +473,14 @@ namespace SharpSheets.Markup.Parsing {
 			return ValueParsers.ParseMargins(text);
 		}
 
+		protected override string GetEvaluationSingleString(Margins value) {
+			return value.ToString(CultureInfo.InvariantCulture);
+		}
+
+		protected override Margins DefaultValueDataSingle() {
+			return Margins.Zero;
+		}
+
 		public static bool IsMargins(EvaluationType type) {
 			return type is MarginsEvaluationType;
 		}
@@ -548,12 +573,18 @@ namespace SharpSheets.Markup.Parsing {
 
 		public override string Name { get; } = "filepath";
 
-		public FilePathEvaluationType(EvaluationContext context) : base(context) {
+		public FilePathEvaluationType(EvaluationContext context) : base(context) { }
 			
-		}
-
 		protected override FilePath ParseValueDataSingle(string text, DirectoryPath source) {
 			return ValueParsers.ParseFilePath(text, source);
+		}
+
+		protected override string GetEvaluationSingleString(FilePath value) {
+			return value.Path;
+		}
+
+		protected override FilePath DefaultValueDataSingle() {
+			return null!;
 		}
 
 		public static bool IsFilePath(EvaluationType type) {

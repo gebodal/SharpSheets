@@ -232,7 +232,7 @@ namespace SharpSheets.Evaluations {
 				throw new EvaluationCalculationException("Format specifiers only allowed for numeric types.");
 			}
 			else {
-				return value.Value?.ToString() ?? ""; // Good fallback here? Throw error instead?
+				return value.ToEvaluationString();
 			}
 		}
 
@@ -246,7 +246,7 @@ namespace SharpSheets.Evaluations {
 				return Format(format, contentEval);
 			}
 			else {
-				return contentEval.Value?.ToString() ?? ""; // Good fallback?
+				return contentEval.ToEvaluationString();
 			}
 		}
 
