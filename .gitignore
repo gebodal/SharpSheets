@@ -4,6 +4,8 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # SharpSheets Project Specific Files
+## Solution Filter
+*.slnf
 ## Scratch Testing project
 /Testing
 ## XML documentation build artefact
