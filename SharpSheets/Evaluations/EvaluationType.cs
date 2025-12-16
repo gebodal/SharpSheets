@@ -1979,7 +1979,12 @@ namespace SharpSheets.Evaluations {
 		public override EvaluationValue? Indexer(EvaluationValue subject, EvaluationValue index) {
 			if (TryGetArray(subject, out Array? array) && IntEvaluationType.TryGetInt(index, out int indexVal)) {
 				int indexFinal = EvaluationTypeHelpers.GetIndex(indexVal, array.Length);
+				try {
 				return new EvaluationValue(array.GetValue(indexFinal), ElementType);
+			}
+				catch (IndexOutOfRangeException) {
+					throw new EvaluationCalculationException($"Index out of range for array indexer ({indexVal} not in {array.Length}).");
+				}
 			}
 			else {
 				return null;
