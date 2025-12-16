@@ -117,9 +117,9 @@ namespace SharpSheets.Markup.Elements {
 			}
 		}
 
-		protected override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool diagnostic) {
+		protected override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
 			T shape = GetShape(evaluationEnvironment, shapeFactory, source, out _); // TODO Should we pass these errors up the chain somehow?
-			DrawableStyledDivElement<T> drawable = new DrawableStyledDivElement<T>(this, shape, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, diagnostic);
+			DrawableStyledDivElement<T> drawable = new DrawableStyledDivElement<T>(this, shape, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, diagnostic);
 
 			foreach (KeyValuePair<string, DivElement> namedChild in namedChildren) {
 				string name = namedChild.Key;
@@ -531,8 +531,8 @@ namespace SharpSheets.Markup.Elements {
 		//public override IList<IGridElement> Children => childrenProvidedOrder.Select(n => namedChildren[n]).ToList<IGridElement>();
 		public override bool ProvidesRemaining { get { return divProvideRemaining || namedChildren.Values.Any(c => c.ProvidesRemaining); } }
 
-		public DrawableStyledDivElement(StyledDivElement<T> pattern, T shape, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool drawConstructionLines)
-			: base(pattern, environment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, false, drawConstructionLines) {
+		public DrawableStyledDivElement(StyledDivElement<T> pattern, T shape, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines)
+			: base(pattern, environment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, false, drawConstructionLines) {
 
 			this.shape = shape;
 

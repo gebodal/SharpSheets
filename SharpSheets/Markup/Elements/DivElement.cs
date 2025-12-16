@@ -19,6 +19,8 @@ namespace SharpSheets.Markup.Elements {
 	public readonly struct DivSetup {
 		public readonly FloatExpression? gutter;
 		public readonly DimensionExpression? size;
+		public readonly FloatExpression? minWidth;
+		public readonly FloatExpression? minHeight;
 		public readonly PositionExpression? position;
 		public readonly MarginsExpression? margins;
 		public readonly EnumExpression<LayoutDirection>? layout;
@@ -45,6 +47,10 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="_size" default="1">Size of the div, either as a absolute dimension (e.g. pt, cm, in),
 		/// a relative size (in percent or arbitrary units), or auto-sized (with "auto"). Note that if
 		/// specific positioning is provided, <paramref name="_size"/> will be ignored.</param>
+		/// /// <param name="_min_width">The minimum width for this element, for use when determining
+		/// minimum size.</param>
+		/// <param name="_min_height">The minimum height for this element, for use when determining
+		/// minimum size.</param>
 		/// <param name="_position">The position for the <see cref="DivElement"/>. Note that if
 		/// <paramref name="_position"/> is provided, then <paramref name="_size"/> will be
 		/// ignored.</param>
@@ -78,6 +84,8 @@ namespace SharpSheets.Markup.Elements {
 			FilePath source,
 			FloatExpression? gutter = null,
 			DimensionExpression? _size = null,
+			FloatExpression? _min_width = null,
+			FloatExpression? _min_height = null,
 			PositionExpression? _position = null,
 			MarginsExpression? _margins = null,
 			EnumExpression<LayoutDirection>? layout = null,
@@ -92,6 +100,8 @@ namespace SharpSheets.Markup.Elements {
 		) {
 			this.gutter = gutter;
 			this.size = _size;
+			this.minWidth = _min_width;
+			this.minHeight = _min_height;
 			this.position = _position;
 			this.margins = _margins;
 			this.layout = layout;
@@ -112,6 +122,10 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="size">Size of the div, either as a absolute dimension (e.g. pt, cm, in),
 		/// a relative size (in percent or arbitrary units), or auto-sized (with "auto"). Note that if
 		/// specific positioning is provided, <paramref name="size"/> will be ignored.</param>
+		/// <param name="min_width">The minimum width for this element, for use when determining
+		/// minimum size.</param>
+		/// <param name="min_height">The minimum height for this element, for use when determining
+		/// minimum size.</param>
 		/// <param name="position">The position for the <see cref="DivElement"/>. Note that if
 		/// <paramref name="position"/> is provided, then <paramref name="size"/> will be
 		/// ignored.</param>
@@ -147,6 +161,8 @@ namespace SharpSheets.Markup.Elements {
 				[Property(Exclude = true)] FilePath source,
 				[Property(Default = "0")] FloatExpression? gutter = null,
 				[LocalProperty(Default = "1")] DimensionExpression? size = null,
+				[LocalProperty] FloatExpression? min_width = null,
+				[LocalProperty] FloatExpression? min_height = null,
 				[LocalProperty] PositionExpression? position = null,
 				[LocalProperty(Default = "0,0,0,0")] MarginsExpression? margins = null,
 				[Property(Default = "rows")] EnumExpression<LayoutDirection>? layout = null,
@@ -160,7 +176,7 @@ namespace SharpSheets.Markup.Elements {
 				[LocalProperty] ForEachExpression? for_each = null
 			) {
 
-			return new DivSetup(source, gutter, size, position, margins, layout, arrangement, order, provide_remaining, canvas, aspect_ratio, enabled, repeat, for_each);
+			return new DivSetup(source, gutter, size, min_width, min_height, position, margins, layout, arrangement, order, provide_remaining, canvas, aspect_ratio, enabled, repeat, for_each);
 		}
 
 		/// <summary></summary>
@@ -271,8 +287,8 @@ namespace SharpSheets.Markup.Elements {
 			return slicingValueElements.Where(e => e?.Enabled.Evaluate(environment) ?? false).Select(e => e.NSliceValues).FirstOrDefault();
 		}
 
-		protected virtual DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool diagnostic) {
-			return new DrawableDivElement(this, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, provideRemaining, diagnostic);
+		protected virtual DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
+			return new DrawableDivElement(this, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, provideRemaining, diagnostic);
 		}
 
 		/// <summary></summary>
@@ -314,11 +330,12 @@ namespace SharpSheets.Markup.Elements {
 
 						float aspectRatio = setup.aspectRatio?.Evaluate(evaluationEnvironment) ?? -1f;
 						NSliceValuesExpression? slicingValues = GetSlicingValues(evaluationEnvironment);
+						(float? width, float? height) minSize = (setup.minWidth?.Evaluate(evaluationEnvironment), setup.minHeight?.Evaluate(evaluationEnvironment));
 						bool provideRemaining = setup.provideRemaining?.Evaluate(evaluationEnvironment) ?? false;
 
 						// The environment we pass here shouldn't include the MarkupCanvas environment
 						//DrawableDivElement drawable = new DrawableDivElement(this, finalDivEnvironment, size, position, margins, layout, gutter, aspectRatio, provideRemaining);
-						DrawableDivElement drawable = CreateDrawable(evaluationEnvironment, finalDivEnvironment, graphicsData, shapeFactory, setup.source.GetDirectory()!, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, provideRemaining, diagnostic);
+						DrawableDivElement drawable = CreateDrawable(evaluationEnvironment, finalDivEnvironment, graphicsData, shapeFactory, setup.source.GetDirectory()!, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, provideRemaining, diagnostic);
 
 						foreach (IIdentifiableMarkupElement element in elements) {
 							if (element is DivElement divElement) {
@@ -363,7 +380,7 @@ namespace SharpSheets.Markup.Elements {
 			}
 			else {
 				// TODO Check this works in all cases
-				DrawableDivElement singular = new DrawableDivElement(this, outerEnvironment, null, null, Margins.Zero, LayoutDirection.ROWS, Arrangement.FRONT, LayoutOrder.FORWARD, 0f, -1f, null, true, diagnostic);
+				DrawableDivElement singular = new DrawableDivElement(this, outerEnvironment, null, null, Margins.Zero, LayoutDirection.ROWS, Arrangement.FRONT, LayoutOrder.FORWARD, 0f, -1f, null, (null, null), true, diagnostic);
 				singular.AddElements(components);
 				return singular;
 			}
@@ -400,6 +417,7 @@ namespace SharpSheets.Markup.Elements {
 		public float AspectRatio { get; }
 
 		private readonly NSliceValuesExpression? slicingValues;
+		private readonly (float? width, float? height) minSize;
 
 		// TODO This isn't really being used properly anymore
 		protected readonly bool divProvideRemaining;
@@ -421,9 +439,10 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="gutter"> The gutter spacing for this Divs children in the grid layout. </param>
 		/// <param name="aspectRatio"> The aspect ratio for this Div in the layout. </param>
 		/// <param name="slicingValues"> The slicing values expression for this Div for laying out shapes in the Markup engine. </param>
+		/// <param name="minSize"> The minimum size (if provided) to use for this Div. </param>
 		/// <param name="provideRemaining"> A flag to indicate if this Div should provide remaining area in the grid layout. </param>
 		/// <param name="diagnostic"> A flag to indicate that this Div should draw and record diagnostic information when drawn to the canvas. </param>
-		public DrawableDivElement(DivElement pattern, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, bool provideRemaining, bool diagnostic) {
+		public DrawableDivElement(DivElement pattern, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
 			this.pattern = pattern;
 			this.environment = environment;
 			this.elements = new List<IIdentifiableMarkupElement>();
@@ -439,6 +458,7 @@ namespace SharpSheets.Markup.Elements {
 			this.Gutter = gutter;
 			this.AspectRatio = aspectRatio;
 			this.slicingValues = slicingValues;
+			this.minSize = minSize;
 			this.divProvideRemaining = provideRemaining;
 			this.diagnostic = diagnostic;
 		}
@@ -472,7 +492,16 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		public virtual Size? MinimumContentSize(ISharpGraphicsState graphicsState, Size availableSpace) {
-			return GridElements.OverallMinimumSize(children.ToList<IGridElement>(), graphicsState, availableSpace, Layout, Gutter);
+			if (minSize.width.HasValue && minSize.height.HasValue) { return new Layouts.Size(minSize.width.Value, minSize.height.Value); }
+
+			Size? gridMinimum = GridElements.OverallMinimumSize(children.ToList<IGridElement>(), graphicsState, availableSpace, Layout, Gutter);
+
+			if (gridMinimum is not null || minSize.width.HasValue || minSize.height.HasValue) {
+				return new Size(minSize.width ?? gridMinimum?.Width ?? 0f, minSize.height ?? gridMinimum?.Height ?? 0f);
+				//return new Size(Math.Max(minSize.width ?? 0f, gridMinimum?.Width ?? 0f), Math.Max(minSize.height ?? 0f, gridMinimum?.Height ?? 0f));
+			}
+
+			return null;
 		}
 
 		public virtual Rectangle? ContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {

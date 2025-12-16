@@ -548,6 +548,8 @@ namespace SharpSheets.Markup.Parsing {
 				// Get setup information for this div, using complete variables (including foreach loop variable)
 				FloatExpression? gutter = GetAttribute(divElem, "gutter", true, s => FloatExpression.Parse(s, setupVariables), null);
 				DimensionExpression size = GetAttribute(divElem, "size", false, s => MarkupValueParsing.ParseDimension(s, setupVariables), new DimensionExpression(Dimension.Single, setupVariables.Context));
+				FloatExpression? minWidth = GetAttribute(divElem, "min-width", false, s => FloatExpression.Parse(s, setupVariables), null);
+				FloatExpression? minHeight = GetAttribute(divElem, "min-height", false, s => FloatExpression.Parse(s, setupVariables), null);
 				PositionExpression? position = MakePositionExpression(divElem, setupVariables);
 				MarginsExpression? margins = GetAttribute(divElem, "margins", false, s => MarkupValueParsing.ParseMargins(s, setupVariables), null);
 				EnumExpression<LayoutDirection>? layout = GetAttribute(divElem, "layout", true, s => MarkupValueParsing.ParseEnum<LayoutDirection>(s, setupVariables), null);
@@ -561,7 +563,7 @@ namespace SharpSheets.Markup.Parsing {
 				//EnumExpression<DrawingCoords> drawingCoords = GetAttribute(elem, "coords", true, s => ParseEnum<DrawingCoords>(s, variables), null);
 				//BoolExpression keepAspectRatio = GetAttribute(elem, "keepAspectRatio", false, ParseSimpleBool, false);
 
-				return new DivSetup(origin, gutter, size, position, margins, layout, arrangement, order, provideRemaining, canvasArea, aspectRatio, enabled, repeat, forEach);
+				return new DivSetup(origin, gutter, size, minWidth, minHeight, position, margins, layout, arrangement, order, provideRemaining, canvasArea, aspectRatio, enabled, repeat, forEach);
 				//setup = MakeDivSetup(divElem, setupVariables);
 			}
 
