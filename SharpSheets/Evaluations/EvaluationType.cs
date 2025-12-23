@@ -1626,6 +1626,7 @@ namespace SharpSheets.Evaluations {
 		}
 
 		protected override string GetEvaluationSingleString(string value) {
+			//return $"\"{value}\"";
 			return value;
 		}
 

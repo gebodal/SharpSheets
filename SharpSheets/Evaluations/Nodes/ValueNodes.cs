@@ -67,6 +67,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 		*/
 
+		/*
 		private static string ValueString(object? value) {
 			// TODO This logic shouldn't be here
 			if (value is string s) {
@@ -85,9 +86,11 @@ namespace SharpSheets.Evaluations.Nodes {
 				return value?.ToString() ?? "";
 			}
 		}
+		*/
 
 		protected override string GetRepresentation() {
-			return ValueString(Value); // TODO This probably should change
+			//return ValueString(Value); // TODO This probably should change
+			return Value.ToEvaluationString();
 		}
 	}
 
