@@ -1,8 +1,6 @@
-﻿using System.Threading;
-using SharpSheets.Canvas;
+﻿using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Colors;
-using SharpSheets.Fonts;
 
 namespace SharpSheets.Layouts {
 

@@ -1,9 +1,5 @@
-﻿using System.Collections.Generic;
-using System;
-using System.Linq;
-using SharpSheets.Shapes;
+﻿using SharpSheets.Shapes;
 using SharpSheets.Colors;
-using System.Threading;
 using SharpSheets.Utilities;
 using SharpSheets.Layouts;
 using SharpSheets.Parsing;

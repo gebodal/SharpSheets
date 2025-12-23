@@ -1,8 +1,6 @@
 ﻿using SharpSheets.Cards.Card;
 using SharpSheets.Layouts;
 using SharpSheets.Canvas.Text;
-using System.Collections.Generic;
-using System.Linq;
 using SharpSheets.Cards.Card.SegmentRects;
 using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Cards.CardSubjects;

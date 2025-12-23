@@ -1,13 +1,5 @@
 ﻿using GeboPdf.Fonts.TrueType;
-using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
-using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.IO;
-using System.Linq;
 
 namespace SharpSheets.Fonts {
 

@@ -1,9 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using SharpSheets.Evaluations;
+﻿using SharpSheets.Evaluations;
 using SharpSheets.Utilities;
 using SharpSheets.Layouts;
-using System;
 using SharpSheets.Parsing;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;

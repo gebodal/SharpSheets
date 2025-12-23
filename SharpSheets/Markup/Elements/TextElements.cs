@@ -1,8 +1,6 @@
 ﻿using SharpSheets.Evaluations;
 using SharpSheets.Utilities;
 using SharpSheets.Layouts;
-using System.Collections.Generic;
-using System.Linq;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Markup.Canvas;

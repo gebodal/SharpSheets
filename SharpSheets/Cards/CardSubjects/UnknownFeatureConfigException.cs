@@ -3,8 +3,6 @@ using SharpSheets.Cards.Definitions;
 using SharpSheets.Exceptions;
 using SharpSheets.Parsing;
 using SharpSheets.Utilities;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace SharpSheets.Cards.CardSubjects {
@@ -59,7 +57,7 @@ namespace SharpSheets.Cards.CardSubjects {
 					}
 
 					string featureReq = string.Join("; and ", parts);
-					message.Append(char.ToUpper(featureReq[0]) + featureReq.Substring(1));
+					message.Append(char.ToUpper(featureReq[0]) + featureReq[1..]);
 				}
 
 				return message.ToString();

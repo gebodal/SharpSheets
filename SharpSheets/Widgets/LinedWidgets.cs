@@ -1,11 +1,7 @@
 ﻿using SharpSheets.Layouts;
 using SharpSheets.Colors;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Parsing;
@@ -347,8 +343,8 @@ namespace SharpSheets.Widgets {
 				if (rows[i] != null) {
 
 					Rectangle?[] columns;
-					if (widths.ContainsKey(details[i].Length)) {
-						columns = Divisions.Columns(rows[i]!, widths[details[i].Length], columnSpacing, false, Arrangement.FRONT, LayoutOrder.FORWARD);
+					if (widths.TryGetValue(details[i].Length, out Dimension[]? specifiedWidths)) {
+						columns = Divisions.Columns(rows[i]!, specifiedWidths, columnSpacing, false, Arrangement.FRONT, LayoutOrder.FORWARD);
 					}
 					else {
 						columns = Divisions.Columns(rows[i]!, details[i].Length, columnSpacing);
@@ -804,7 +800,7 @@ namespace SharpSheets.Widgets {
 
 		protected readonly Dimension? width;
 
-		protected readonly Shapes.IBox checkBoxStyle;
+		protected readonly IBox checkBoxStyle;
 		protected readonly CheckType checkType;
 
 		/// <summary>
@@ -847,7 +843,7 @@ namespace SharpSheets.Widgets {
 				(float column, float row)? spacing = null,
 				float fontsize = 6f,
 				FieldDetails? field = null,
-				Shapes.IBox? check = null,
+				IBox? check = null,
 				CheckType checkType = CheckType.CHECK,
 				Dimension? width = null,
 				bool underline = true,
@@ -909,7 +905,7 @@ namespace SharpSheets.Widgets {
 				[Property(Default = "3, 3", Example = "5,5")] (float column, float row)? spacing = null,
 				[Property(Example = "12")] float fontsize = 6f,
 				FieldDetails? field = null,
-				[Property(Example = "Simple")] Shapes.IBox? check = null,
+				[Property(Example = "Simple")] IBox? check = null,
 				CheckType checkType = CheckType.CHECK,
 				Dimension? width = null,
 				bool underline = true,

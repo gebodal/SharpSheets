@@ -1,15 +1,12 @@
 ﻿using SharpSheets.Evaluations;
 using SharpSheets.Layouts;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Fonts;
 using SharpSheets.Colors;
 using SharpSheets.Markup.Parsing;
 using SharpSheets.Evaluations.Nodes;
-using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Canvas {

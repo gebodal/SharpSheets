@@ -1,13 +1,11 @@
 ﻿using SharpSheets.Layouts;
 using SharpSheets.Widgets;
-using System;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Colors;
 using System.Text.RegularExpressions;
 using SharpSheets.Utilities;
-using System.Linq;
 using SharpSheets.Cards.Layouts;
 using SharpSheets.Cards.CardSubjects;
 

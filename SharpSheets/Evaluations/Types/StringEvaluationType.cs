@@ -66,7 +66,7 @@ namespace SharpSheets.Evaluations.Types {
 			}
 		}
 
-		private EvaluationType? AddResultAny(EvaluationType other) {
+		private StringEvaluationType? AddResultAny(EvaluationType other) {
 			if (IsString(other)) { // Another string
 				return this;
 			}
@@ -89,7 +89,7 @@ namespace SharpSheets.Evaluations.Types {
 		public override EvaluationType? RAddResult(EvaluationType left) => AddResultAny(left);
 		public override EvaluationValue? RAdd(EvaluationValue left, EvaluationValue right) => AddAny(left, right);
 
-		private EvaluationType? MulResultAny(EvaluationType other) {
+		private StringEvaluationType? MulResultAny(EvaluationType other) {
 			if (IntEvaluationType.IsIntegral(other)) { // An int-like
 				return this;
 			}
@@ -121,7 +121,7 @@ namespace SharpSheets.Evaluations.Types {
 			}
 		}
 
-		private EvaluationType? BinaryComparisonResult(EvaluationType other) {
+		private BoolEvaluationType? BinaryComparisonResult(EvaluationType other) {
 			if (IsString(other)) { // Another string
 				return Context.GetType<BoolEvaluationType>();
 			}

@@ -1,8 +1,6 @@
 ﻿using SharpSheets.Canvas;
 using SharpSheets.Layouts;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
 
 namespace SharpSheets.Markup.Elements {
 

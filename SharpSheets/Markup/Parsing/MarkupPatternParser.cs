@@ -2,10 +2,7 @@
 using SharpSheets.Parsing;
 using SharpSheets.Utilities;
 using SharpSheets.Layouts;
-using System;
-using System.Collections.Generic;
 using SharpSheets.Colors;
-using System.Linq;
 using System.Text.RegularExpressions;
 using SharpSheets.Shapes;
 using SharpSheets.Canvas;
@@ -16,7 +13,6 @@ using SharpSheets.Markup.Canvas;
 using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Exceptions;
 using System.Diagnostics.CodeAnalysis;
-using System.Xml.Linq;
 using SharpSheets.Documentation;
 using SharpSheets.Evaluations.Types;
 
@@ -148,11 +144,12 @@ namespace SharpSheets.Markup.Parsing {
 				visitedNodes.Add(node.Original);
 			}
 			private void LogVisit(XMLElement elem, string attributeName) {
-				if (!visitedAttributes.ContainsKey(elem.Original)) {
-					visitedAttributes.Add(elem.Original, new HashSet<string>(XMLElement.AttributeNameComparer));
+				if (!visitedAttributes.TryGetValue(elem.Original, out HashSet<string>? visited)) {
+					visited = new HashSet<string>(XMLElement.AttributeNameComparer);
+					visitedAttributes.Add(elem.Original, visited);
 					LogVisit(elem);
 				}
-				visitedAttributes[elem.Original].Add(attributeName);
+				visited.Add(attributeName);
 			}
 			private bool CheckVisited(XMLNode node) {
 				return visitedNodes.Contains(node.Original);
@@ -219,24 +216,24 @@ namespace SharpSheets.Markup.Parsing {
 				this.origins.Add(pattern, origin.Original);
 			}
 
-			private SharpParsingException LogError(MarkupParsingException error) {
+			private MarkupParsingException LogError(MarkupParsingException error) {
 				if (!errors.ContainsKey(error.Location)) { errors.Add(error.Location, new List<SharpParsingException>()); }
 				errors.GetValueOrFallback(error.Location, null)?.Add(error);
 				return error;
 			}
-			private SharpParsingException LogError(DocumentSpan location, string message, Exception? innerException = null) {
+			private MarkupParsingException LogError(DocumentSpan location, string message, Exception? innerException = null) {
 				if (!errors.ContainsKey(location)) { errors.Add(location, new List<SharpParsingException>()); }
 				MarkupParsingException error = new MarkupParsingException(location, message, innerException);
 				return LogError(error);
 			}
-			private SharpParsingException LogError(XMLNode node, string message, Exception? innerException = null) {
+			private MarkupParsingException LogError(XMLNode node, string message, Exception? innerException = null) {
 				return LogError(GetXMLNodeErrorLocation(node), message, innerException);
 			}
-			private SharpParsingException LogError<T>(ContextProperty<T> contextProperty, string message, Exception? innerException = null) {
+			private MarkupParsingException LogError<T>(ContextProperty<T> contextProperty, string message, Exception? innerException = null) {
 				return LogError(contextProperty.ValueLocation, message, innerException);
 			}
-			private void LogError(XMLNode node, Exception error) {
-				LogError(node, error.Message, error);
+			private MarkupParsingException LogError(XMLNode node, Exception error) {
+				return LogError(node, error.Message, error);
 			}
 
 			private void AddError(SharpParsingException error) {
@@ -1328,7 +1325,7 @@ namespace SharpSheets.Markup.Parsing {
 				return null;
 			}
 
-			private IEnumerable<EvaluationType> CollectArgumentTypes(XMLElement elem, EvaluationContext.Builder contextBuilder) {
+			private List<EvaluationType> CollectArgumentTypes(XMLElement elem, EvaluationContext.Builder contextBuilder) {
 				if (elem.Name != "arg" && elem.Name != "grouparg") {
 					throw new InvalidOperationException("Invalid argument element tag."); // This should never happen
 				}
@@ -1462,7 +1459,7 @@ namespace SharpSheets.Markup.Parsing {
 						}
 					}
 
-					if((format == MarkupArgumentFormat.ENTRIES || format == MarkupArgumentFormat.NUMBERED) && !(type is ArrayEvaluationType)) { // TODO Is this check right?
+					if((format == MarkupArgumentFormat.ENTRIES || format == MarkupArgumentFormat.NUMBERED) && type is not ArrayEvaluationType) { // TODO Is this check right?
 						if (GetAttribute(elem, "format", false) is ContextProperty<string> attr) {
 							if (format == MarkupArgumentFormat.ENTRIES) {
 								LogError(attr, $"Values taken from context entries must be parsed into a variable length array, not {type.Name}.");
@@ -1840,6 +1837,7 @@ namespace SharpSheets.Markup.Parsing {
 
 			#region Basic Properties
 
+			/*
 			/// <summary></summary>
 			/// <exception cref="EvaluationException"></exception>
 			private DrawPointExpression GetDrawPoint(XMLElement elem, string x, string y, IVariableBox variables, MarkupEvaluationContext markupContext, DrawPointExpression defaultValue) {
@@ -1848,6 +1846,7 @@ namespace SharpSheets.Markup.Parsing {
 					GetAttribute(elem, y, false, s => MarkupValueParsing.ParseYLength(s, variables, markupContext), defaultValue.Y)
 					);
 			}
+			*/
 
 			/// <summary></summary>
 			/// <exception cref="EvaluationException"></exception>
@@ -1927,7 +1926,7 @@ namespace SharpSheets.Markup.Parsing {
 				foreach (ContextProperty<string> attribute in elem.Attributes) {
 					// Using a name.variable system
 					if (attribute.Name.StartsWith(contextName + ".")) {
-						string valueName = attribute.Name.Substring(contextName.Length + 1);
+						string valueName = attribute.Name[(contextName.Length + 1)..];
 						if (!string.IsNullOrEmpty(valueName)) {
 							/*
 							try {
@@ -2053,16 +2052,18 @@ namespace SharpSheets.Markup.Parsing {
 			}
 
 			// TODO Is this practical?
-			private IExpression<V> GetAttribute<T,V>(XMLElement elem, string name, bool inheritable, Func<string, T> parser, V defaultValue, EvaluationContext context) where T : IExpression<V> {
+			/*
+			private IExpression<V> GetAttribute<V>(XMLElement elem, string name, bool inheritable, Func<string, IExpression<V>> parser, V defaultValue, EvaluationContext context) {
 				ContextProperty<string>? attribute = GetAttribute(elem, name, inheritable);
 
-				if (attribute.HasValue && TryParseAttribute(name, attribute.Value, parser, out T? result)) {
+				if (attribute.HasValue && TryParseAttribute(name, attribute.Value, parser, out IExpression<V>? result)) {
 					return result;
 				}
 				else {
 					return new ConstantExpression<V>(defaultValue, context);
 				}
 			}
+			*/
 
 			private bool RequiredAttribute<T>(XMLElement elem, string name, bool inheritable, Func<string, T> parser, out ContextProperty<T> required) {
 				ContextProperty<string>? attribute = GetAttribute(elem, name, inheritable);

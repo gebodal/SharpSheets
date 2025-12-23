@@ -1,11 +1,4 @@
-﻿using SharpSheets.Layouts;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SharpSheets.Canvas.Text {
+﻿namespace SharpSheets.Canvas.Text {
 
 	public static class StringDrawingUtils {
 

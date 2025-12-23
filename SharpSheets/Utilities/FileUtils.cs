@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-
-namespace SharpSheets.Utilities {
+﻿namespace SharpSheets.Utilities {
 	public static class FileUtils {
 
 		public static string IndexedFilename(string stub, string extension) {
-			if (extension.StartsWith(".")) { extension = extension.Substring(1); }
+			if (extension.StartsWith('.')) { extension = extension[1..]; }
 			int i = 0;
 			string filename = $"{stub}.{extension}";
 			if (!File.Exists(filename)) {

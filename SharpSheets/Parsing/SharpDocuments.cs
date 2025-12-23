@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SharpSheets.Parsing {
+﻿namespace SharpSheets.Parsing {
 
 	public static class SharpDocuments {
 

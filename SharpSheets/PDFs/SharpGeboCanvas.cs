@@ -1,5 +1,4 @@
 ﻿using GeboPdf.Documents;
-using GeboPdf.Fonts;
 using GeboPdf.Graphics;
 using GeboPdf.IO;
 using GeboPdf.Objects;
@@ -11,10 +10,6 @@ using SharpSheets.Fonts;
 using SharpSheets.Layouts;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using GeboPdf.Patterns;
 
 namespace SharpSheets.PDFs {
@@ -34,7 +29,7 @@ namespace SharpSheets.PDFs {
 
 			this.pages = new List<SharpGeboCanvas>();
 
-			this.FieldValues = fieldValues != null ? fieldValues : new Dictionary<string, PdfObject>();
+			this.FieldValues = fieldValues ?? new Dictionary<string, PdfObject>();
 		}
 
 		public SharpGeboDocument(PdfDocument pdf) : this(pdf, null) { }
@@ -148,7 +143,7 @@ namespace SharpSheets.PDFs {
 		#region Converters
 
 		private static GeboPdf.Objects.PdfRectangle ConvertRectangle(Rectangle rectangle) {
-			return GeboPdf.Objects.PdfRectangle.FromDimensions(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
+			return PdfRectangle.FromDimensions(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
 		}
 
 		private static GeboPdf.Graphics.PdfDeviceColor ConvertColor(Color color, out float alpha, bool forceRGB) {
@@ -342,6 +337,11 @@ namespace SharpSheets.PDFs {
 			return new float[] { color.R / (float)255, color.G / (float)255, color.B / (float)255 };
 		}
 
+		private static readonly (float start, float end) DefaultDomain01 = (0f, 1f);
+		private static readonly (float start, float end)[] Default3ComponentRange01 = new (float, float)[] { (0, 1), (0, 1), (0, 1) };
+		private static readonly float[] Default3ComponentZero = new float[] { 0f, 0f, 0f };
+		private static readonly float[] Default3ComponentOne = new float[] { 1f, 1f, 1f };
+
 		private static PdfFunction MakeGradientInterpolationFunction(IReadOnlyList<ColorStop> stops) {
 
 			stops = stops.Select(s => new ColorStop(s.Stop, s.Color.WithOpacity(1.0f))).OrderBy(s => s.Stop).ToList();
@@ -357,14 +357,14 @@ namespace SharpSheets.PDFs {
 			if (stops.Count == 0) {
 				// Return a simple interpolation between black and white
 				return PdfExponentialInterpolationFunction.MakeFunction(
-					(0f, 1f), new (float, float)[] { (0, 1), (0, 1), (0, 1) },
-					new float[] { 0f, 0f, 0f }, new float[] { 1f, 1f, 1f }, GradientInterpolationExponent);
+					DefaultDomain01, Default3ComponentRange01,
+					Default3ComponentZero, Default3ComponentOne, GradientInterpolationExponent);
 			}
 			else if(stops.Count == 1) {
 				// Return a fake interpolation between the same two values
 				float[] colorValues = GetColorValues(stops[0].Color);
 				return PdfExponentialInterpolationFunction.MakeFunction(
-					(0f, 1f), new (float, float)[] { (0, 1), (0, 1), (0, 1) },
+					DefaultDomain01, Default3ComponentRange01,
 					colorValues, colorValues, GradientInterpolationExponent);
 			}
 			else if(stops.Count == 2) {
@@ -372,7 +372,7 @@ namespace SharpSheets.PDFs {
 				float[] colorValues2 = GetColorValues(stops[1].Color);
 				(float, float) domain = (stops[0].Stop, stops[1].Stop);
 				return PdfExponentialInterpolationFunction.MakeFunction(
-					domain, new (float, float)[] { (0, 1), (0, 1), (0, 1) },
+					domain, Default3ComponentRange01,
 					colorValues1, colorValues2, GradientInterpolationExponent);
 			}
 			else {
@@ -387,7 +387,7 @@ namespace SharpSheets.PDFs {
 					float[] colorValues2 = GetColorValues(stops[i + 1].Color);
 
 					functions[i] = PdfExponentialInterpolationFunction.MakeFunction(
-						(0f, 1f), new (float, float)[] { (0, 1), (0, 1), (0, 1) },
+						DefaultDomain01, Default3ComponentRange01,
 						colorValues1, colorValues2, GradientInterpolationExponent);
 
 					if (i < bounds.Length) {
@@ -399,7 +399,7 @@ namespace SharpSheets.PDFs {
 				}
 
 				PdfStitchingFunction stitch = PdfStitchingFunction.MakeFunction(
-					domain, new (float, float)[] { (0, 1), (0, 1), (0, 1) },
+					domain, Default3ComponentRange01,
 					functions,
 					bounds, encode);
 
@@ -683,7 +683,7 @@ namespace SharpSheets.PDFs {
 			else {
 				PdfImageXObject imageObj = new PdfImageXObject(image.Path.Path, 100, true); // TODO Need a way of setting Quality and Interpolate
 
-				float aspect = imageAspect ?? (float)imageObj.Width / (float)imageObj.Height;
+				float aspect = imageAspect ?? imageObj.Width / (float)imageObj.Height;
 				if (aspect > 0) {
 					rect = rect.Aspect(aspect);
 				}
@@ -734,11 +734,11 @@ namespace SharpSheets.PDFs {
 				string fieldName = this.GetAvailableFieldName(name);
 
 				PdfTextFieldFlags textFieldFlags = PdfTextFieldFlags.DoNotScroll;
-				if (multiline) { textFieldFlags = textFieldFlags | PdfTextFieldFlags.Multiline; }
+				if (multiline) { textFieldFlags |= PdfTextFieldFlags.Multiline; }
 
 				PdfAcroField textField = PdfAcroFormManager.AddTextField(pdf.AcroForm, pdfPage, ConvertRectangle(this.GetPageSpaceRect(rect)),
 					PdfAnnotationFlags.Print, fieldName, tooltip,
-					PdfFieldFlags.None, textFieldFlags, (maxLen > 0 ? (int?)maxLen : null),
+					PdfFieldFlags.None, textFieldFlags, (maxLen > 0 ? maxLen : null),
 					new PdfTextString(value ?? ""), new PdfTextString(value ?? ""),
 					state.fonts.GetPdfFont(format), fontSize, ConvertColor(color, out _, false), ConvertJustification(justification),
 					GetRotation(rotation)
@@ -829,7 +829,7 @@ namespace SharpSheets.PDFs {
 					else {
 						PdfImageXObject imageObj = new PdfImageXObject(defaultImage.Path.Path, 100, true); // Add some way to adjust quality and interpolation?
 
-						float imageAspect = (float)imageObj.Width / (float)imageObj.Height;
+						float imageAspect = imageObj.Width / (float)imageObj.Height;
 						Rectangle imageAppearanceRect = new Rectangle(pageSpaceRect.Width, pageSpaceRect.Height).Aspect(imageAspect);
 
 						buttonField.Appearance.graphics.SaveState();

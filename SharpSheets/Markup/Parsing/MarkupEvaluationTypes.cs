@@ -2,12 +2,8 @@
 using SharpSheets.Layouts;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Shapes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using SharpSheets.Canvas;
-using SharpSheets.Documentation;
 using SharpSheets.Utilities;
 using SharpSheets.Widgets;
 using System.Diagnostics.CodeAnalysis;
@@ -228,7 +224,7 @@ namespace SharpSheets.Markup.Parsing {
 			Match arrayMatch = ArrayTupleRegex().Match(text);
 			if (arrayMatch.Success) {
 				// The "top level" array specification comes first, followed by descreasingly significant "[]"
-				string baseTypeStr = text.Substring(0, arrayMatch.Index) + text.Substring(arrayMatch.Index + arrayMatch.Length);
+				string baseTypeStr = text[..arrayMatch.Index] + text[(arrayMatch.Index + arrayMatch.Length)..];
 				// A bit clunky, but it should work
 				EvaluationType baseType = ParseArgumentType(baseTypeStr, description, context);
 				if (arrayMatch.Groups["tuple"].Success) {
@@ -501,7 +497,7 @@ namespace SharpSheets.Markup.Parsing {
 			}
 		}
 
-		private EvaluationType? AddResultAny(EvaluationType other) {
+		private DimensionEvaluationType? AddResultAny(EvaluationType other) {
 			return this == other ? this : null;
 		}
 		private EvaluationValue? AddAny(EvaluationValue left, EvaluationValue right) {
@@ -518,7 +514,7 @@ namespace SharpSheets.Markup.Parsing {
 		public override EvaluationType? RAddResult(EvaluationType left) => AddResultAny(left);
 		public override EvaluationValue? RAdd(EvaluationValue left, EvaluationValue right) => AddAny(left, right);
 
-		private EvaluationType? MulResultAny(EvaluationType other) {
+		private DimensionEvaluationType? MulResultAny(EvaluationType other) {
 			return FloatEvaluationType.IsReal(other) ? this : null;
 		}
 		private EvaluationValue? MulAny(EvaluationValue dimension, EvaluationValue factor) {
@@ -612,7 +608,7 @@ namespace SharpSheets.Markup.Parsing {
 			}
 		}
 
-		private EvaluationType? AddResultAny(EvaluationType other) {
+		private MarginsEvaluationType? AddResultAny(EvaluationType other) {
 			return this == other ? this : null;
 		}
 		private EvaluationValue? AddAny(EvaluationValue left, EvaluationValue right) {
@@ -629,7 +625,7 @@ namespace SharpSheets.Markup.Parsing {
 		public override EvaluationType? RAddResult(EvaluationType left) => AddResultAny(left);
 		public override EvaluationValue? RAdd(EvaluationValue left, EvaluationValue right) => AddAny(left, right);
 
-		private EvaluationType? MulResultAny(EvaluationType other) {
+		private MarginsEvaluationType? MulResultAny(EvaluationType other) {
 			return FloatEvaluationType.IsReal(other) ? this : null;
 		}
 		private EvaluationValue? MulAny(EvaluationValue margins, EvaluationValue factor) {
@@ -804,7 +800,7 @@ namespace SharpSheets.Markup.Parsing {
 			}
 		}
 
-		private EvaluationType? AddResultAny(EvaluationType other) {
+		private RichStringEvaluationType? AddResultAny(EvaluationType other) {
 			if (IsRichString(other)) { // Another string
 				return this;
 			}
@@ -827,7 +823,7 @@ namespace SharpSheets.Markup.Parsing {
 		public override EvaluationType? RAddResult(EvaluationType left) => AddResultAny(left);
 		public override EvaluationValue? RAdd(EvaluationValue left, EvaluationValue right) => AddAny(left, right);
 
-		private EvaluationType? MulResultAny(EvaluationType other) {
+		private RichStringEvaluationType? MulResultAny(EvaluationType other) {
 			if (IntEvaluationType.IsIntegral(other)) { // An int-like
 				return this;
 			}

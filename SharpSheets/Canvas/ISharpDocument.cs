@@ -1,5 +1,4 @@
 ﻿using SharpSheets.Layouts;
-using System.Collections.Generic;
 
 namespace SharpSheets.Canvas {
 

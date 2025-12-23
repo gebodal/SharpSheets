@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SharpSheets.Canvas {
+﻿namespace SharpSheets.Canvas {
 
 	public static class ISharpCanvasShapes {
 

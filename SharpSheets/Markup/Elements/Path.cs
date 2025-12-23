@@ -1,12 +1,8 @@
 ﻿using SharpSheets.Canvas;
 using SharpSheets.Evaluations;
-using SharpSheets.Exceptions;
 using SharpSheets.Markup.Canvas;
 using SharpSheets.Parsing;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace SharpSheets.Markup.Elements {

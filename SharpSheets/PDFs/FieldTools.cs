@@ -1,10 +1,5 @@
 ﻿using GeboPdf.IO;
 using GeboPdf.Objects;
-using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace SharpSheets.PDFs {
 

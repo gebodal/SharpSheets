@@ -6,7 +6,6 @@ using SharpSheets.Markup.Parsing;
 using SharpSheets.Shapes;
 using SharpSheets.Utilities;
 using SharpSheets.Widgets;
-using System;
 
 namespace SharpSheets.Markup.Patterns {
 

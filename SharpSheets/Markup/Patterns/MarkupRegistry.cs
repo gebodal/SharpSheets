@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using SharpSheets.Documentation;
+﻿using SharpSheets.Documentation;
 
 namespace SharpSheets.Markup.Patterns {
 

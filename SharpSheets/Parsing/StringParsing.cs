@@ -1,7 +1,5 @@
 ﻿using SharpSheets.Canvas.Text;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace SharpSheets.Parsing {

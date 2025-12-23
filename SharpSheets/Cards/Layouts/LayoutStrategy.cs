@@ -2,9 +2,6 @@
 using SharpSheets.Cards.Card;
 using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Exceptions;
-using SharpSheets.Layouts;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace SharpSheets.Cards.Layouts {
 

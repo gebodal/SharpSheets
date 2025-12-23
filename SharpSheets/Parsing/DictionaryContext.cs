@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace SharpSheets.Parsing {
 
@@ -45,9 +40,9 @@ namespace SharpSheets.Parsing {
 				if (match.Groups["flag"].Success) {
 					string flag = match.Groups["flag"].Value;
 					bool flagVal = true;
-					if (flag.StartsWith("!")) {
+					if (flag.StartsWith('!')) {
 						flagVal = false;
-						flag = flag.Substring(1);
+						flag = flag[1..];
 					}
 					if (flags.ContainsKey(flag)) {
 						throw new FormatException("Repeated argument in dictionary.");

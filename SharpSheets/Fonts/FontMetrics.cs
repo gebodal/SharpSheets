@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using GeboPdf.Fonts;
-using SharpSheets.Canvas;
-using SharpSheets.PDFs;
-using SharpSheets.Canvas.Text;
+﻿using SharpSheets.Canvas.Text;
 
 namespace SharpSheets.Fonts {
 

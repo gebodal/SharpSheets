@@ -1,16 +1,9 @@
-﻿using GeboPdf.Fonts;
-using GeboPdf.Fonts.TrueType;
+﻿using GeboPdf.Fonts.TrueType;
 using SharpSheets.Canvas.Text;
-using SharpSheets.PDFs;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SharpSheets.Fonts {
 
@@ -204,13 +197,13 @@ namespace SharpSheets.Fonts {
 
 						//Console.WriteLine($"Family name:    {familyName}");
 
-						if (!families.ContainsKey(familyName)) {
-							families.Add(familyName, new Dictionary<TextFormat, FontPath>());
+						if (!families.TryGetValue(familyName, out Dictionary<TextFormat, FontPath>? family)) {
+							family = new Dictionary<TextFormat, FontPath>();
+							families.Add(familyName, family);
 						}
 
 						TextFormat? format = GetTextFormat(fontFile);
 						if (format.HasValue) {
-							Dictionary<TextFormat, FontPath> family = families[familyName];
 							if (!family.ContainsKey(format.Value)) {
 								family[format.Value] = fontPath;
 							}

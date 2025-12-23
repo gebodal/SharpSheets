@@ -2,9 +2,6 @@
 using SharpSheets.Shapes;
 using SharpSheets.Utilities;
 using SharpSheets.Layouts;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using SharpSheets.Parsing;
 using SharpSheets.Cards.Definitions;
 using SharpSheets.Canvas.Text;
@@ -14,7 +11,6 @@ using SharpSheets.Cards.Layouts;
 using SharpSheets.Cards.CardSubjects;
 using SharpSheets.Colors;
 using System.Diagnostics.CodeAnalysis;
-using SharpSheets.Widgets;
 using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Cards.CardConfigs {

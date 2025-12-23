@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
+﻿using System.Globalization;
 
 namespace SharpSheets.Utilities {
 	public static class StringUtils {
@@ -24,10 +21,10 @@ namespace SharpSheets.Utilities {
 			int pos = 0;
 
 			for (int i = 0; i < indexes.Length; pos = indexes[i++]) {
-				output[i] = source.Substring(pos, indexes[i] - pos);
+				output[i] = source[pos..indexes[i]];
 			}
 
-			output[indexes.Length] = source.Substring(pos);
+			output[indexes.Length] = source[pos..];
 			return output;
 		}
 

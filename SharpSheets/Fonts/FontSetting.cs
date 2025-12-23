@@ -80,13 +80,8 @@ namespace SharpSheets.Fonts {
 			BoldItalic = boldItalicPath;
 		}
 
-		public FontSettingGrouping(FontSettingGrouping source) {
-			Regular = source.Regular;
-			Bold = source.Bold;
-			Italic = source.Italic;
-			BoldItalic = source.BoldItalic;
-		}
-
+		public FontSettingGrouping(FontSettingGrouping source) : this(source.Regular, source.Bold, source.Italic, source.BoldItalic) { }
+		
 		public FontSettingGrouping() : this(null, null, null, null) { }
 
 		public bool Equals(FontSettingGrouping? other) {

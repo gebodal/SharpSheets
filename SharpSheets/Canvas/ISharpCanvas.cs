@@ -1,9 +1,5 @@
 ﻿using SharpSheets.Layouts;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using SharpSheets.Fonts;
 using SharpSheets.Exceptions;
 using SharpSheets.Colors;
@@ -70,7 +66,7 @@ namespace SharpSheets.Canvas {
 		public static readonly LineJoinStyle LineJoinStyle = LineJoinStyle.MITER;
 		public static readonly float MitreLimit = 10.0f;
 
-		public static readonly FontSettingGrouping Fonts = new FontSettingGrouping((FontSetting?)null, (FontSetting?)null, (FontSetting?)null, (FontSetting?)null);
+		public static readonly FontSettingGrouping Fonts = new FontSettingGrouping();
 		public static readonly TextFormat TextFormat = TextFormat.REGULAR;
 		public static readonly float Fontsize = 0f;
 		public static readonly TextRenderingMode TextRenderingMode = TextRenderingMode.FILL;

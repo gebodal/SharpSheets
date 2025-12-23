@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-
-namespace SharpSheets.Utilities {
+﻿namespace SharpSheets.Utilities {
 	public static class EnumUtils {
 
 		/// <summary></summary>

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace SharpSheets.Utilities {
 
@@ -42,7 +39,7 @@ namespace SharpSheets.Utilities {
 
 			if (trimStart) {
 				Match initialSeparatorMatch;
-				while (index < input.Length && (initialSeparatorMatch = separatorRegex.Match(input.Substring(index))).Success) {
+				while (index < input.Length && (initialSeparatorMatch = separatorRegex.Match(input[index..])).Success) {
 					if (initialSeparatorMatch.Length == 0 || initialSeparatorMatch.Index != 0) { break; }
 					index += initialSeparatorMatch.Length;
 				}
@@ -54,7 +51,7 @@ namespace SharpSheets.Utilities {
 					index = match.Index + match.Length;
 
 					Match separatorMatch;
-					while (index < input.Length && (separatorMatch = separatorRegex.Match(input.Substring(index))).Success) {
+					while (index < input.Length && (separatorMatch = separatorRegex.Match(input[index..])).Success) {
 						if (separatorMatch.Length == 0 || separatorMatch.Index != 0) { break; }
 						index += separatorMatch.Length;
 					}
@@ -79,7 +76,7 @@ namespace SharpSheets.Utilities {
 
 			if (trimStart) {
 				Match initialSeparatorMatch;
-				while (index < input.Length && (initialSeparatorMatch = separatorRegex.Match(input.Substring(index))).Success) {
+				while (index < input.Length && (initialSeparatorMatch = separatorRegex.Match(input[index..])).Success) {
 					if (initialSeparatorMatch.Length == 0 || initialSeparatorMatch.Index != 0) { break; }
 					index += initialSeparatorMatch.Length;
 				}
@@ -92,7 +89,7 @@ namespace SharpSheets.Utilities {
 					index = match.Index + match.Length;
 
 					Match separatorMatch;
-					while (index < input.Length && (separatorMatch = separatorRegex.Match(input.Substring(index))).Success) {
+					while (index < input.Length && (separatorMatch = separatorRegex.Match(input[index..])).Success) {
 						if (separatorMatch.Length == 0 || separatorMatch.Index != 0) { break; }
 						index += separatorMatch.Length;
 					}

@@ -1,12 +1,6 @@
 ﻿using GeboPdf.IO;
 using GeboPdf.XObjects;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SharpSheets.Canvas {
 

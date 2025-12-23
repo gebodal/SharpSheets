@@ -1,5 +1,4 @@
-﻿using System.Threading;
-using SharpSheets.Exceptions;
+﻿using SharpSheets.Exceptions;
 
 namespace SharpSheets.Canvas {
 

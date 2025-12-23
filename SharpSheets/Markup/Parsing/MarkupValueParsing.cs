@@ -1,8 +1,6 @@
 ﻿using SharpSheets.Evaluations;
 using SharpSheets.Evaluations.Types;
 using SharpSheets.Utilities;
-using System;
-using System.Linq;
 using System.Text.RegularExpressions;
 using SharpSheets.Layouts;
 using SharpSheets.Markup.Canvas;

@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SharpSheets.Canvas;
-using SharpSheets.Fonts;
-
-namespace SharpSheets.Canvas.Text {
+﻿namespace SharpSheets.Canvas.Text {
 
 	/// <summary>
 	/// Strategy to use for calculating the height of a block of text, given a specific font.

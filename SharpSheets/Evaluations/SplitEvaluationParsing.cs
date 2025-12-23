@@ -1,7 +1,5 @@
 ﻿using SharpSheets.Exceptions;
 using SharpSheets.Parsing;
-using System;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace SharpSheets.Evaluations {
@@ -52,7 +50,7 @@ namespace SharpSheets.Evaluations {
 						stateStack.Push(SplitState.VALUE_WAITING);
 
 						int end = lastNonWhitespace + 1;
-						string nameText = details.Value.Substring(start, end - start);
+						string nameText = details.Value[start..end];
 						DocumentSpan nameLocation = new DocumentSpan(details.Location.Offset + start, details.Location.Line, details.Location.Column + start, end - start);
 						name = new ContextValue<string>(nameLocation, nameText);
 					}
@@ -60,10 +58,10 @@ namespace SharpSheets.Evaluations {
 						// TODO Need to account for empty names, e.g. "[name1: value, , name2: value]"
 						stateStack.Pop();
 						int end = lastNonWhitespace + 1;
-						string flagText = details.Value.Substring(start, end - start);
+						string flagText = details.Value[start..end];
 						string value;
-						if (flagText.StartsWith("!")) {
-							flagText = flagText.Substring(1);
+						if (flagText.StartsWith('!')) {
+							flagText = flagText[1..];
 							value = "false";
 						}
 						else {
@@ -90,7 +88,7 @@ namespace SharpSheets.Evaluations {
 
 					// TODO Need to account for empty values, e.g. "[name: , name2: value]"
 					int end = lastNonWhitespace + 1;
-					string valueText = details.Value.Substring(start, end - start);
+					string valueText = details.Value[start..end];
 					DocumentSpan valueLocation = new DocumentSpan(details.Location.Offset + start, details.Location.Line, details.Location.Column + start, end - start);
 					if (NameRegex().IsMatch(name.Value)) {
 						values.Add(new ContextProperty<string>(name.Location, name.Value, valueLocation, valueText));
@@ -173,7 +171,7 @@ namespace SharpSheets.Evaluations {
 
 					int end = lastNonWhitespace + 1;
 					if (end > start) {
-						string valueText = details.Value.Substring(start, end - start);
+						string valueText = details.Value[start..end];
 						DocumentSpan valueLocation = new DocumentSpan(details.Location.Offset + start, details.Location.Line, details.Location.Column + start, end - start);
 						values.Add(new ContextValue<string>(valueLocation, valueText));
 					}

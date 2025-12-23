@@ -1,6 +1,4 @@
-﻿using System;
-using SharpSheets.Colors;
-using System.Threading;
+﻿using SharpSheets.Colors;
 using SharpSheets.Layouts;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;

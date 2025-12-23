@@ -4,8 +4,6 @@ using SharpSheets.Evaluations;
 using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Parsing;
 using SharpSheets.Canvas.Text;
-using System.Collections.Generic;
-using System.Linq;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Evaluations.Types;
 

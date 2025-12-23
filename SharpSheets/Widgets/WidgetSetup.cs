@@ -1,5 +1,4 @@
 ﻿using SharpSheets.Shapes;
-using SharpSheets.Utilities;
 using SharpSheets.Layouts;
 using SharpSheets.Parsing;
 using SharpSheets.Canvas;

@@ -1,8 +1,6 @@
 ﻿using SharpSheets.Evaluations;
 using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Utilities;
-using System.Collections.Generic;
-using System.Linq;
 using SharpSheets.Colors;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Cards.Definitions;

@@ -1,10 +1,7 @@
 ﻿using SharpSheets.Cards.Definitions;
 using SharpSheets.Exceptions;
 using SharpSheets.Utilities;
-using SharpSheets.Widgets;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace SharpSheets.Parsing {
@@ -100,7 +97,7 @@ namespace SharpSheets.Parsing {
 			valueStr = value.Value.TrimEnd();
 			valueLocation = new DocumentSpan(location.Offset + value.Index, location.Line, location.Column + value.Index, value.Length);
 
-			if (nameStr.StartsWith("@")) {
+			if (nameStr.StartsWith('@')) {
 				localOnly = true;
 				nameStr = nameStr[1..];
 				//nameLocation = new DocumentSpan(nameLocation.Offset + 1, nameLocation.Line, nameLocation.Column + 1, name.Length - 1);
@@ -111,7 +108,7 @@ namespace SharpSheets.Parsing {
 		}
 
 		private static string SplitLocalOnly(string text, out bool localOnly) {
-			if (text.StartsWith("@")) {
+			if (text.StartsWith('@')) {
 				localOnly = true;
 				return text[1..];
 			}
@@ -162,7 +159,7 @@ namespace SharpSheets.Parsing {
 
 					if (!string.IsNullOrWhiteSpace(lineText)) {
 						int lineIndentLength = GetIndent(lineText);
-						string content = lineText.Substring(lineIndentLength);
+						string content = lineText[lineIndentLength..];
 
 						Match match = LineRegex().Match(content);
 						Group? group = match.Groups.Cast<Group>().Where(g => g.Success && types.Contains(g.Name)).FirstOrDefault();

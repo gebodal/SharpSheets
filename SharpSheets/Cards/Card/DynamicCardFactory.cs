@@ -1,5 +1,4 @@
-﻿using SharpSheets.Canvas;
-using SharpSheets.Cards.CardConfigs;
+﻿using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Cards.CardSubjects;
 using SharpSheets.Cards.Definitions;
 using SharpSheets.Evaluations;
@@ -9,11 +8,7 @@ using SharpSheets.Parsing;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Utilities;
 using SharpSheets.Widgets;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Diagnostics.CodeAnalysis;
-using System.Xml.Linq;
 using SharpSheets.Cards.Card.SegmentRects;
 
 namespace SharpSheets.Cards.Card {

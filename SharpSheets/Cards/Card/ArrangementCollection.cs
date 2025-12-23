@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SharpSheets.Cards.Card {
+﻿namespace SharpSheets.Cards.Card {
 
 	public class ArrangementCollection<T> where T : class {
 

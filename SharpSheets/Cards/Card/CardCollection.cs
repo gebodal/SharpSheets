@@ -2,9 +2,6 @@
 using SharpSheets.Layouts;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Utilities;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using SharpSheets.Colors;
 using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Exceptions;
@@ -70,11 +67,12 @@ namespace SharpSheets.Cards.Card
 						errorCards.Add(card);
 					}
 					else {
-						if (!separated.ContainsKey(card.CardSetConfig)) {
+						if (!separated.TryGetValue(card.CardSetConfig, out List<DynamicCard>? configCards)) {
 							configurations.Add(card.CardSetConfig);
-							separated.Add(card.CardSetConfig, new List<DynamicCard>());
+							configCards = new List<DynamicCard>();
+							separated.Add(card.CardSetConfig, configCards);
 						}
-						separated[card.CardSetConfig].Add(card);
+						configCards.Add(card);
 					}
 				}
 				foreach(CardSetConfig config in configurations) {

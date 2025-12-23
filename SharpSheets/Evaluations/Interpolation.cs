@@ -2,10 +2,7 @@
 using SharpSheets.Evaluations.Types;
 using SharpSheets.Parsing;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace SharpSheets.Evaluations {
@@ -43,7 +40,7 @@ namespace SharpSheets.Evaluations {
 						}
 						else if (c == '$' || (c == '{' && !requireEscape)) {
 							if (i - start > 0) {
-								string textPart = text.Substring(start, i - start);
+								string textPart = text[start..i];
 								parts.Add(ProcessText(textPart, variables.Context));
 							}
 							lastEnd = i;
@@ -74,7 +71,7 @@ namespace SharpSheets.Evaluations {
 					}
 					else if (state == ParseState.KEY) {
 						if (!char.IsLetterOrDigit(c) && c != '.') {
-							string keyText = text.Substring(start, i - start);
+							string keyText = text[start..i];
 							parts.Add(ProcessKey(keyText, variables));
 							lastEnd = i;
 
@@ -87,7 +84,7 @@ namespace SharpSheets.Evaluations {
 							stateStack.Push(ParseState.EXPRESSION_STRING);
 						}
 						else if (c == '}') {
-							string expressionText = text.Substring(start, i - start);
+							string expressionText = text[start..i];
 							parts.Add(ProcessExpression(expressionText, variables));
 							lastEnd = i + 1;
 
@@ -110,7 +107,7 @@ namespace SharpSheets.Evaluations {
 						throw new EvaluationSyntaxException($"Error in parsing text for interpolation: empty key at position {text.Length - 1}.");
 					}
 					else if (stateStack.Count > 0 && stateStack.Peek() == ParseState.KEY) {
-						string keyText = text.Substring(start, text.Length - start);
+						string keyText = text[start..];
 						parts.Add(ProcessKey(keyText, variables));
 					}
 					else {
@@ -139,7 +136,7 @@ namespace SharpSheets.Evaluations {
 			string? format = null;
 			if (formatMatch.Success) {
 				format = StringParsing.Parse(formatMatch.Groups["format"].Value);
-				expr = expr.Substring(0, formatMatch.Index);
+				expr = expr[..formatMatch.Index];
 			}
 			return new InterpolatedStringExpression(Evaluation.Parse(expr, variables), format);
 		}

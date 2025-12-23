@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace SharpSheets.Parsing {
+﻿namespace SharpSheets.Parsing {
 
 	public interface IDocumentEntity {
 		/// <summary> A single word that describes the type of entity this is. </summary>

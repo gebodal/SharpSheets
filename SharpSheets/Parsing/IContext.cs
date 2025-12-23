@@ -1,9 +1,6 @@
 ﻿using SharpSheets.Exceptions;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 namespace SharpSheets.Parsing {
 
@@ -537,7 +534,7 @@ namespace SharpSheets.Parsing {
 		}
 
 		protected string StripKey(string key) {
-			return (prefix.Length > 0 && IsNamed(key)) ? key.Substring(prefix.Length) : key;
+			return (prefix.Length > 0 && IsNamed(key)) ? key[prefix.Length..] : key;
 		}
 
 		protected bool IsNamed(string key) {

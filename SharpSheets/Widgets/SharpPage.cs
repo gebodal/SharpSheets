@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading;
-using SharpSheets.Utilities;
+﻿using SharpSheets.Utilities;
 using SharpSheets.Layouts;
 using SharpSheets.Canvas;
 using SharpSheets.Exceptions;
@@ -197,7 +195,7 @@ namespace SharpSheets.Widgets {
 			canvas.RegisterAreas(this, rect, pageContentsRect, new Rectangle?[] { headerRect, footerRect }.WhereNotNull().ToArray());
 
 			if (backgroundimage != null) {
-				float? backgroundAspect = backgroundLayout == ImageLayout.STRETCH ? pageSize.AspectRatio : (float?)null;
+				float? backgroundAspect = backgroundLayout == ImageLayout.STRETCH ? pageSize.AspectRatio : null;
 				Rectangle imageRect = rect;
 				if(backgroundLayout == ImageLayout.COVER) {
 					imageRect = rect.ContainAspect(backgroundimage.Width / backgroundimage.Height);

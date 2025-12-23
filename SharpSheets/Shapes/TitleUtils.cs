@@ -2,11 +2,6 @@
 using SharpSheets.Canvas.Text;
 using SharpSheets.Layouts;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SharpSheets.Shapes {
 

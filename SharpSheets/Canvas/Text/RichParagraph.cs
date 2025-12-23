@@ -1,7 +1,4 @@
-﻿using SharpSheets.Canvas;
-using System.Collections.Generic;
-
-namespace SharpSheets.Canvas.Text {
+﻿namespace SharpSheets.Canvas.Text {
 
 	// TODO Is the layout here properly taking account of TextHeightStrategy, and being drawn correctly downstream?
 

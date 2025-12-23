@@ -1,8 +1,5 @@
 ﻿using SharpSheets.Canvas;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
 using System.Text.RegularExpressions;
 
 namespace SharpSheets.Layouts {
@@ -427,7 +424,7 @@ namespace SharpSheets.Layouts {
 		/// <exception cref="FormatException"></exception>
 		public static PageSize ParsePageSize(string sizeStr, IFormatProvider? provider) {
 			string size = sizeStr.ToLower();
-			if (size.StartsWith("a")) {
+			if (size.StartsWith('a')) {
 				if (size == "a0") { return PageSize.A0; }
 				else if (size == "a1") { return PageSize.A1; }
 				else if (size == "a2") { return PageSize.A2; }
@@ -441,7 +438,7 @@ namespace SharpSheets.Layouts {
 				else if (size == "a10") { return PageSize.A10; }
 				else { throw new FormatException(string.Format("Size \"{0}\" not supported (use sizes A0-A10).", sizeStr)); }
 			}
-			else if (size.StartsWith("b")) {
+			else if (size.StartsWith('b')) {
 				if (size == "b0") { return PageSize.B0; }
 				else if (size == "b1") { return PageSize.B1; }
 				else if (size == "b2") { return PageSize.B2; }

@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System;
-using System.Text.RegularExpressions;
-using System.Linq;
+﻿using System.Text.RegularExpressions;
 using SharpSheets.Utilities;
 using SharpSheets.Parsing;
 using SharpSheets.Cards.CardConfigs;
@@ -180,7 +177,7 @@ namespace SharpSheets.Cards.CardSubjects {
 			foreach (ContextValue<string> lineValue in LineSplitting.SplitLines(description)) { // (int i = 0; i < lines.Length; i++) {
 				string lineText = lineValue.Value.TrimEnd();
 				if(CommentRegex().Match(lineText) is Match commentMatch && commentMatch.Success) {
-					lineText = lineText.Substring(0, commentMatch.Groups["comment"].Index).TrimEnd();
+					lineText = lineText[..commentMatch.Groups["comment"].Index].TrimEnd();
 				}
 				lineText = StringParsing.Unescape(lineText, '%'); // Is this working properly?
 

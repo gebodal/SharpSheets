@@ -1,8 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using SharpSheets.Shapes;
+﻿using SharpSheets.Shapes;
 using System.Collections;
-using SharpSheets.Utilities;
 using SharpSheets.Parsing;
 using System.Diagnostics.CodeAnalysis;
 

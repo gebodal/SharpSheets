@@ -2,11 +2,6 @@
 using SharpSheets.Evaluations;
 using SharpSheets.Layouts;
 using SharpSheets.Canvas.Text;
-using System;
-using System.Linq;
-using SharpSheets.Markup.Parsing;
-using SharpSheets.Widgets;
-using SharpSheets.Utilities;
 using SharpSheets.Shapes;
 using SharpSheets.Evaluations.Types;
 

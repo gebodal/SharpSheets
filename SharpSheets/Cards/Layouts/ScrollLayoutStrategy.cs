@@ -2,11 +2,7 @@
 using SharpSheets.Cards.Card;
 using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Exceptions;
-using SharpSheets.Fonts;
 using SharpSheets.Layouts;
-using System;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace SharpSheets.Cards.Layouts {
 

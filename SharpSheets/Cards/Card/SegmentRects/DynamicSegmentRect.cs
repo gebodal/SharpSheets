@@ -1,9 +1,6 @@
 ﻿using SharpSheets.Layouts;
 using SharpSheets.Widgets;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Cards.Layouts;

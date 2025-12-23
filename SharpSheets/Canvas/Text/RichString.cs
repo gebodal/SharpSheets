@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
-using SharpSheets.Canvas;
 using SharpSheets.Utilities;
 
 namespace SharpSheets.Canvas.Text {

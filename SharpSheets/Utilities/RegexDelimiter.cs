@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace SharpSheets.Utilities {
 
@@ -25,7 +23,7 @@ namespace SharpSheets.Utilities {
 				yield break;
 			}
 
-			yield return spanFunc(text.Substring(0, matches[0].Index));
+			yield return spanFunc(text[..matches[0].Index]);
 
 			for (int i = 0; i < matches.Count; i++) {
 
@@ -34,10 +32,10 @@ namespace SharpSheets.Utilities {
 				int thisEnd = matches[i].Index + matches[i].Length;
 				if (i+1 < matches.Count) {
 					int nextStart = matches[i + 1].Index;
-					yield return spanFunc(text.Substring(thisEnd, nextStart - thisEnd));
+					yield return spanFunc(text[thisEnd..nextStart]);
 				}
 				else {
-					yield return spanFunc(text.Substring(thisEnd, text.Length - thisEnd));
+					yield return spanFunc(text[thisEnd..]);
 				}
 
 			}

@@ -1,7 +1,5 @@
 ﻿using SharpSheets.Layouts;
 using SharpSheets.Utilities;
-using System;
-using System.Linq;
 using SharpSheets.Canvas;
 
 namespace SharpSheets.Markup.Canvas {

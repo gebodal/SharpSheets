@@ -1,8 +1,5 @@
 ﻿using SharpSheets.Evaluations.Types;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace SharpSheets.Evaluations.Nodes {
 
@@ -374,7 +371,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		);
 		}
 
-		private static bool IsSortable(EvaluationContext context, EvaluationType elemType) {
+		private static bool IsSortable(EvaluationType elemType) {
 			return EvaluationOps.LessThanResult(elemType, elemType) is EvaluationType lessThanType
 				&& BoolEvaluationType.IsBool(lessThanType)
 				&& EvaluationOps.GreaterThanResult(elemType, elemType) is EvaluationType greaterThanType
@@ -394,12 +391,12 @@ namespace SharpSheets.Evaluations.Nodes {
 			}
 
 			if (argTypes.Length == 1) {
-				if (!IsSortable(context, elemTypes[0])) {
+				if (!IsSortable(elemTypes[0])) {
 					throw new EvaluationTypeException($"Provided values of type {elemTypes[0]} are not sortable.");
 				}
 			}
 			else { // argTypes.Length == 2
-				if (!IsSortable(context, elemTypes[1])) {
+				if (!IsSortable(elemTypes[1])) {
 					throw new EvaluationTypeException($"Provided keys of type {elemTypes[1]} are not sortable.");
 				}
 			}

@@ -1,18 +1,12 @@
 ﻿using SharpSheets.Canvas;
-using SharpSheets.Fonts;
 using SharpSheets.Layouts;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Cards.Card;
 using SharpSheets.Exceptions;
 using SharpSheets.Widgets;
 using SharpSheets.Cards.Card.SegmentRects;
-using System.Diagnostics.CodeAnalysis;
 
 namespace SharpSheets.Cards.Layouts {
 
@@ -322,12 +316,13 @@ namespace SharpSheets.Cards.Layouts {
 				for (int j = 0; j < possibleArrangements[i].Length; j++) {
 					for (int k = 0; k < possibleArrangements[i][j].Length; k++) {
 						if (possibleArrangements[i][j][k] is IPartialCardSegmentRects partial) {
-							if (!partials.ContainsKey(partial.Parent)) {
-								partials.Add(partial.Parent, partial.Clone());
+							if (!partials.TryGetValue(partial.Parent, out IPartialCardSegmentRects? existing)) {
+								existing = partial.Clone();
+								partials.Add(partial.Parent, existing);
 								partialCounts.Add(partials[partial.Parent], 0);
 							}
-							possibleArrangements[i][j][k] = partials[partial.Parent];
-							partialCounts[partials[partial.Parent]] += 1;
+							possibleArrangements[i][j][k] = existing;
+							partialCounts[existing] += 1;
 						}
 					}
 				}

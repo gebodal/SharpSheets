@@ -1,6 +1,5 @@
 ﻿using SharpSheets.Layouts;
 using SharpSheets.Utilities;
-using System;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 

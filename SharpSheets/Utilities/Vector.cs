@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SharpSheets.Utilities {
+﻿namespace SharpSheets.Utilities {
 	public readonly struct Vector {
 
 		public float X { get; }

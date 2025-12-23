@@ -1,8 +1,4 @@
-﻿using SharpSheets.Utilities;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text.RegularExpressions;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace SharpSheets.Parsing {
 
@@ -66,9 +62,9 @@ namespace SharpSheets.Parsing {
 			}
 
 			bool value;
-			if (flag.StartsWith("!")) {
+			if (flag.StartsWith('!')) {
 				value = false;
-				flag = flag.Substring(1);
+				flag = flag[1..];
 			}
 			else {
 				value = true;

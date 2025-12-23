@@ -1,5 +1,4 @@
 ﻿using SharpSheets.Layouts;
-using System.Collections.Generic;
 using SharpSheets.Canvas;
 using SharpSheets.Cards.Card.SegmentRects;
 

@@ -1,11 +1,5 @@
 ﻿using SharpSheets.Fonts;
-using SharpSheets.Layouts;
 using SharpSheets.Canvas.Text;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SharpSheets.Canvas {
 

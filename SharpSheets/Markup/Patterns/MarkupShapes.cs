@@ -1,9 +1,6 @@
 ﻿using SharpSheets.Evaluations;
 using SharpSheets.Shapes;
 using SharpSheets.Layouts;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using SharpSheets.Parsing;
 using SharpSheets.Canvas;
 using SharpSheets.Documentation;
@@ -12,7 +9,6 @@ using SharpSheets.Markup.Elements;
 using SharpSheets.Markup.Canvas;
 using SharpSheets.Utilities;
 using SharpSheets.Exceptions;
-using SharpSheets.Markup.Parsing;
 using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Patterns {

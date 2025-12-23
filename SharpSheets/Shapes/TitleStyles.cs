@@ -2,8 +2,6 @@
 using SharpSheets.Layouts;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Utilities;
-using System;
-using System.Linq;
 using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {

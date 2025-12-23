@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using SharpSheets.Canvas;
-using SharpSheets.Layouts;
+﻿using SharpSheets.Layouts;
 
 namespace SharpSheets.Canvas.Text {
 

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 
 namespace SharpSheets.Parsing {
 
@@ -44,12 +42,12 @@ namespace SharpSheets.Parsing {
 					escape = true;
 				}
 				else if (seps.Contains(str[i])) {
-					Add(str.Substring(start, i - start));
+					Add(str[start..i]);
 					start = i + 1;
 				}
 			}
 
-			Add(str.Substring(start, str.Length - start));
+			Add(str[start..]);
 
 			return split.ToArray();
 		}

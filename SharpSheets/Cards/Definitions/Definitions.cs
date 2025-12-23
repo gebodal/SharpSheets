@@ -1,8 +1,5 @@
 ﻿using SharpSheets.Evaluations;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using SharpSheets.Parsing;
 using SharpSheets.Evaluations.Nodes;
@@ -442,12 +439,12 @@ namespace SharpSheets.Cards.Definitions {
 
 				EvaluationType argType = (typeStr switch {
 					"int" => (EvaluationType)CardEnvironments.INT,
-					"uint" => (EvaluationType)CardEnvironments.UINT,
-					"float" => (EvaluationType)CardEnvironments.FLOAT,
-					"ufloat" => (EvaluationType)CardEnvironments.UFLOAT,
-					"bool" => (EvaluationType)CardEnvironments.BOOL,
+					"uint" => CardEnvironments.UINT,
+					"float" => CardEnvironments.FLOAT,
+					"ufloat" => CardEnvironments.UFLOAT,
+					"bool" => CardEnvironments.BOOL,
 					//"color" => EvaluationType.COLOR,
-					"string" => (EvaluationType)CardEnvironments.STRING,
+					"string" => CardEnvironments.STRING,
 					_ => throw new FormatException($"Unrecognized definition argument type: \"{argMatch.Groups["type"].Value}\"")
 				}).MakeArray(arrayRank);
 

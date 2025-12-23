@@ -1,10 +1,5 @@
-﻿using SharpSheets.Utilities;
-using System;
-using SharpSheets.Layouts;
-using SharpSheets.Colors;
-using System.Linq;
+﻿using SharpSheets.Layouts;
 using SharpSheets.Canvas;
-using SharpSheets.Exceptions;
 using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {

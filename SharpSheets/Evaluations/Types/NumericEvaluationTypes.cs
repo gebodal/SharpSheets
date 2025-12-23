@@ -1,9 +1,5 @@
 ﻿using SharpSheets.Utilities;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using System.Collections;
 using SharpSheets.Parsing;
-using System.Collections.Specialized;
 using System.Globalization;
 using SharpSheets.Evaluations.Nodes;
 using System.Text.RegularExpressions;
@@ -86,7 +82,7 @@ namespace SharpSheets.Evaluations.Types {
 			}
 		}
 
-		private EvaluationType? BinaryArithmeticResult(EvaluationType other) {
+		private FloatEvaluationType? BinaryArithmeticResult(EvaluationType other) {
 			if (IsReal(other)) { // Another float-like
 				return this;
 			}
@@ -113,7 +109,7 @@ namespace SharpSheets.Evaluations.Types {
 			}
 		}
 
-		private EvaluationType? BinaryComparisonResult(EvaluationType other) {
+		private BoolEvaluationType? BinaryComparisonResult(EvaluationType other) {
 			if (IsReal(other)) { // Another float-like
 				return Context.GetType<BoolEvaluationType>();
 			}
@@ -194,7 +190,7 @@ namespace SharpSheets.Evaluations.Types {
 
 			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
 				EvaluationType argType = args[0].GetReturnType();
-				if (FloatEvaluationType.IsReal(argType) || BoolEvaluationType.IsBool(argType) || StringEvaluationType.IsString(argType)) {
+				if (IsReal(argType) || BoolEvaluationType.IsBool(argType) || StringEvaluationType.IsString(argType)) {
 					return context.GetType<FloatEvaluationType>();
 				}
 				else {
@@ -209,11 +205,11 @@ namespace SharpSheets.Evaluations.Types {
 			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
 				EvaluationValue a = args[0].Evaluate(environment);
 
-				if (FloatEvaluationType.TryGetFloat(a, out float aFloat)) {
+				if (TryGetFloat(a, out float aFloat)) {
 					return MakeResult(aFloat, environment.Context);
 				}
 				else if (IntEvaluationType.TryGetInt(a, out int aInt)) {
-					return MakeResult((float)aInt, environment.Context);
+					return MakeResult(aInt, environment.Context);
 				}
 				else if (BoolEvaluationType.TryGetBool(a, out bool aBool)) {
 					return MakeResult(aBool ? 1f : 0f, environment.Context);
@@ -302,7 +298,7 @@ namespace SharpSheets.Evaluations.Types {
 				return true;
 			}
 			else if (UIntEvaluationType.TryGetUInt(value, out uint uintVal)) {
-				number = new UFloat((float)uintVal);
+				number = new UFloat(uintVal);
 				return true;
 			}
 
@@ -357,7 +353,7 @@ namespace SharpSheets.Evaluations.Types {
 			}
 		}
 
-		private EvaluationType? BinaryComparisonResult(EvaluationType other) {
+		private BoolEvaluationType? BinaryComparisonResult(EvaluationType other) {
 			if (IsPositiveReal(other)) { // Another UFloat-like
 				return Context.GetType<BoolEvaluationType>();
 			}
@@ -504,7 +500,7 @@ namespace SharpSheets.Evaluations.Types {
 			}
 		}
 
-		private EvaluationType? BinaryArithmeticResult(EvaluationType other) {
+		private IntEvaluationType? BinaryArithmeticResult(EvaluationType other) {
 			if (IsIntegral(other)) { // Another int-like
 				return this;
 			}
@@ -522,7 +518,7 @@ namespace SharpSheets.Evaluations.Types {
 			}
 		}
 
-		private EvaluationType? BinaryComparisonResult(EvaluationType other) {
+		private BoolEvaluationType? BinaryComparisonResult(EvaluationType other) {
 			if (IsIntegral(other)) { // Another float-like
 				return Context.GetType<BoolEvaluationType>();
 			}
@@ -627,7 +623,7 @@ namespace SharpSheets.Evaluations.Types {
 			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
 				EvaluationValue a = args[0].Evaluate(environment);
 
-				if (IntEvaluationType.TryGetInt(a, out int aInt)) {
+				if (TryGetInt(a, out int aInt)) {
 					return MakeResult(aInt, environment.Context);
 				}
 				else if (FloatEvaluationType.TryGetFloat(a, out float aFloat)) {
@@ -753,7 +749,7 @@ namespace SharpSheets.Evaluations.Types {
 			}
 		}
 
-		private EvaluationType? BinaryComparisonResult(EvaluationType other) {
+		private BoolEvaluationType? BinaryComparisonResult(EvaluationType other) {
 			if (IsPositiveIntegral(other)) { // Another uint-like
 				return Context.GetType<BoolEvaluationType>();
 			}
@@ -909,7 +905,7 @@ namespace SharpSheets.Evaluations.Types {
 			}
 		}
 
-		private EvaluationType? BinaryComparisonResult(EvaluationType other) {
+		private BoolEvaluationType? BinaryComparisonResult(EvaluationType other) {
 			if (IsBool(other)) { // Another bool
 				return this;
 			}
@@ -965,7 +961,7 @@ namespace SharpSheets.Evaluations.Types {
 
 			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
 				EvaluationType argType = args[0].GetReturnType();
-				if (FloatEvaluationType.IsReal(argType) || BoolEvaluationType.IsBool(argType) || StringEvaluationType.IsString(argType)) {
+				if (FloatEvaluationType.IsReal(argType) || IsBool(argType) || StringEvaluationType.IsString(argType)) {
 					return context.GetType<BoolEvaluationType>();
 				}
 				else {
@@ -980,7 +976,7 @@ namespace SharpSheets.Evaluations.Types {
 			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
 				EvaluationValue a = args[0].Evaluate(environment);
 
-				if (BoolEvaluationType.TryGetBool(a, out bool aBool)) {
+				if (TryGetBool(a, out bool aBool)) {
 					return MakeResult(aBool, environment.Context);
 				}
 				else if (IntEvaluationType.TryGetInt(a, out int aInt)) {

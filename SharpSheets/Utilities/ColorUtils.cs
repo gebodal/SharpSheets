@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using SharpSheets.Colors;
 
 namespace SharpSheets.Utilities {
@@ -22,7 +19,7 @@ namespace SharpSheets.Utilities {
 
 			if (HexColorRegex().IsMatch(colorStr)) {
 				string hexString = colorStr;
-				if (hexString.StartsWith("#")) { hexString = hexString.Substring(1); }
+				if (hexString.StartsWith('#')) { hexString = hexString[1..]; }
 				byte[] values = hexString.Chunk(2).Select(h => (byte)int.Parse(h, System.Globalization.NumberStyles.HexNumber)).ToArray();
 				if (values.Length == 3) {
 					return new Color(values[0], values[1], values[2]);

@@ -5,8 +5,6 @@ using SharpSheets.Parsing;
 using SharpSheets.Shapes;
 using SharpSheets.Utilities;
 using SharpSheets.Widgets;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace SharpSheets.Cards.Card {
 

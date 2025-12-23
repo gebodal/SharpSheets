@@ -1,10 +1,4 @@
-﻿using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace SharpSheets.Parsing {
 
@@ -146,14 +140,20 @@ namespace SharpSheets.Parsing {
 		}
 		private void VisitProperty(DocumentSpan propertyLocation, IContext? origin) {
 			if (origin != null) {
-				if (!propertyVisits.ContainsKey(propertyLocation.Line)) { propertyVisits[propertyLocation.Line] = new HashSet<int>(); }
-				propertyVisits[propertyLocation.Line].Add(origin.Location.Line);
+				if (!propertyVisits.TryGetValue(propertyLocation.Line, out HashSet<int>? visits)) {
+					visits = new HashSet<int>();
+					propertyVisits[propertyLocation.Line] = visits;
+				}
+				visits.Add(origin.Location.Line);
 			}
 		}
 		private void VisitFlag(DocumentSpan flagLocation, IContext? origin) {
 			if (origin != null) {
-				if (!flagVisits.ContainsKey(flagLocation.Line)) { flagVisits[flagLocation.Line] = new HashSet<int>(); }
-				flagVisits[flagLocation.Line].Add(origin.Location.Line);
+				if (!flagVisits.TryGetValue(flagLocation.Line, out HashSet<int>? visits)) {
+					visits = new HashSet<int>();
+					flagVisits[flagLocation.Line] = visits;
+				}
+				visits.Add(origin.Location.Line);
 			}
 		}
 		private void VisitEntries(IContext? origin) {
@@ -168,8 +168,11 @@ namespace SharpSheets.Parsing {
 		}
 		private void VisitNamedChild(VisitTrackingContext namedChild, IContext? origin) {
 			if (origin != null) {
-				if (!namedChildVisits.ContainsKey(namedChild.Location.Line)) { namedChildVisits[namedChild.Location.Line] = new HashSet<int>(); }
-				namedChildVisits[namedChild.Location.Line].Add(origin.Location.Line);
+				if (!namedChildVisits.TryGetValue(namedChild.Location.Line, out HashSet<int>? visits)) {
+					visits = new HashSet<int>();
+					namedChildVisits[namedChild.Location.Line] = visits;
+				}
+				visits.Add(origin.Location.Line);
 			}
 		}
 

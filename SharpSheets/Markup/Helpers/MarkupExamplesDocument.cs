@@ -1,9 +1,5 @@
 ﻿using SharpSheets.Utilities;
 using SharpSheets.Layouts;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using SharpSheets.Shapes;
 using SharpSheets.Widgets;
 using SharpSheets.Canvas;
@@ -34,6 +30,8 @@ namespace SharpSheets.Markup.Helpers {
 		public void Add(MarkupPattern pattern) {
 			this.patterns.Add(pattern);
 		}
+
+		private static readonly float[] exampleStrokeDashValues = new float[] { 1f, 4f };
 
 		public void DrawTo(ISharpDocument document, out SharpDrawingException[] errors, CancellationToken cancellationToken) {
 			//Console.WriteLine("Draw boxes");
@@ -98,7 +96,7 @@ namespace SharpSheets.Markup.Helpers {
 
 				canvas.SaveState();
 				canvas.SetLineWidth(0.2f * canvas.GetDefaultLineWidth());
-				canvas.SetStrokeDash(new StrokeDash(new float[] { 1f, 4f }, 0f));
+				canvas.SetStrokeDash(new StrokeDash(exampleStrokeDashValues, 0f));
 				canvas.SetStrokeColor(Color.Gray);
 				canvas.Rectangle(initialExampleRect).Stroke();
 				canvas.RestoreState();
@@ -193,7 +191,7 @@ namespace SharpSheets.Markup.Helpers {
 					canvas.LogError(pattern, e.Message, e);
 				}
 
-				canvas.SetStrokeDash(new StrokeDash(new float[] { 1f, 4f }, 0f));
+				canvas.SetStrokeDash(new StrokeDash(exampleStrokeDashValues, 0f));
 				canvas.SetStrokeColor(Color.Red);
 				canvas.Rectangle(exampleDrawRect).Stroke();
 				if (fullRect != null) {
@@ -205,7 +203,7 @@ namespace SharpSheets.Markup.Helpers {
 				if (remainingRects != null && remainingRects.Count > 0) {
 					canvas.SetStrokeColor(Color.Green);
 					for (int i=0; i<remainingRects.Count; i++) {
-						canvas.SetStrokeDash(new StrokeDash(new float[] { 1f, 4f }, 2f + i));
+						canvas.SetStrokeDash(new StrokeDash(exampleStrokeDashValues, 2f + i));
 						if (remainingRects[i] != null) {
 							canvas.Rectangle(remainingRects[i]!).Stroke();
 						}

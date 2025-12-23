@@ -1,6 +1,4 @@
-﻿using SharpSheets.Utilities;
-using System;
-using SharpSheets.Layouts;
+﻿using SharpSheets.Layouts;
 using SharpSheets.Canvas;
 using SharpSheets.Colors;
 using SharpSheets.Parsing;

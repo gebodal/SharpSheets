@@ -1,6 +1,4 @@
 ﻿using SharpSheets.Canvas;
-using System;
-using System.Linq;
 
 namespace SharpSheets.Utilities {
 	public static class MathUtils {

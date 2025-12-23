@@ -1,6 +1,4 @@
 ﻿using SharpSheets.Utilities;
-using System.Collections.Generic;
-using System.Linq;
 using SharpSheets.Exceptions;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
@@ -110,9 +108,7 @@ namespace SharpSheets.Parsing {
 
 			//Dictionary<int, IDocumentEntity> parents = rootEntry.TraverseChildren(true).Cast<IDocumentEntity>().ToDictionary(c => c.Location.Line);
 
-			List<SharpParsingException> allErrors = new List<SharpParsingException>();
-			allErrors.AddRange(parsingErrors);
-			allErrors.AddRange(buildErrors);
+			List<SharpParsingException> allErrors = [.. parsingErrors, .. buildErrors];
 
 			return new CompilationResult(rootEntry, origins, allErrors, usedLines, lineOwners, dependencies);
 		}
@@ -190,15 +186,17 @@ namespace SharpSheets.Parsing {
 		}
 
 		public void Add(int ownedLine, int owner) {
-			if (!lineOwners.ContainsKey(ownedLine)) {
-				lineOwners[ownedLine] = new HashSet<int>();
+			if (!lineOwners.TryGetValue(ownedLine, out HashSet<int>? owners)) {
+				owners = new HashSet<int>();
+				lineOwners[ownedLine] = owners;
 			}
-			lineOwners[ownedLine].Add(owner);
+			owners.Add(owner);
 
-			if (!lineChildren.ContainsKey(owner)) {
-				lineChildren[owner] = new HashSet<int>();
+			if (!lineChildren.TryGetValue(owner, out HashSet<int>? children)) {
+				children = new HashSet<int>();
+				lineChildren[owner] = children;
 			}
-			lineChildren[owner].Add(ownedLine);
+			children.Add(ownedLine);
 		}
 
 		public void Add(int ownedLine, IEnumerable<int> owners) {

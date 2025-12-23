@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System;
-using System.Linq;
-using SharpSheets.Widgets;
+﻿using SharpSheets.Widgets;
 using SharpSheets.Shapes;
 using SharpSheets.Utilities;
 using SharpSheets.Parsing;

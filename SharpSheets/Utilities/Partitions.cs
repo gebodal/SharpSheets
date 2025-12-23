@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace SharpSheets.Utilities {
+﻿namespace SharpSheets.Utilities {
 
 	public static class Partitioning {
 		public static IEnumerable<T[][]> GetAllPartitions<T>(T[] elements, int k) {

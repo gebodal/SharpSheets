@@ -1,13 +1,10 @@
 ﻿using SharpSheets.Layouts;
 using SharpSheets.Widgets;
-using System;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Cards.Layouts;
 using SharpSheets.Cards.CardSubjects;
-using System.Linq;
-using System.Collections.Generic;
 
 namespace SharpSheets.Cards.Card.SegmentRects {
 

@@ -1,10 +1,7 @@
 ﻿using SharpSheets.Canvas;
-using SharpSheets.Exceptions;
 using SharpSheets.Layouts;
 using SharpSheets.Parsing;
 using SharpSheets.Utilities;
-using System;
-using System.Linq;
 
 namespace SharpSheets.Shapes {
 

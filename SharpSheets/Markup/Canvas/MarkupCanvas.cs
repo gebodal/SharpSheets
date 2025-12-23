@@ -2,15 +2,11 @@
 using SharpSheets.Layouts;
 using SharpSheets.Shapes;
 using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Colors;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Exceptions;
-using System.Linq.Expressions;
 using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Canvas {

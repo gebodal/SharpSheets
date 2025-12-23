@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using System;
-using System.Linq;
-using SharpSheets.Colors;
-using System.Threading;
+﻿using SharpSheets.Colors;
 using SharpSheets.Layouts;
 using SharpSheets.Canvas;
 using SharpSheets.Exceptions;
@@ -115,7 +111,7 @@ namespace SharpSheets.Widgets {
 		}
 
 		/// <summary></summary>
-		/// <exception cref="Exceptions.SharpDrawingException"></exception>
+		/// <exception cref="SharpDrawingException"></exception>
 		/// <exception cref="InvalidRectangleException"></exception>
 		/// <exception cref="InvalidOperationException"></exception>
 		public virtual void Draw(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {

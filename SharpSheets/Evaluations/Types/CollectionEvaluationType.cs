@@ -4,9 +4,7 @@ using SharpSheets.Utilities;
 using System.Collections;
 using SharpSheets.Parsing;
 using System.Collections.Specialized;
-using System.Globalization;
 using SharpSheets.Evaluations.Nodes;
-using System.Text.RegularExpressions;
 
 namespace SharpSheets.Evaluations.Types {
 
@@ -139,7 +137,7 @@ namespace SharpSheets.Evaluations.Types {
 		public override EvaluationValue? RAdd(EvaluationValue left, EvaluationValue right) => null;
 		*/
 
-		private EvaluationType? MulResultAny(EvaluationType other) {
+		private ArrayEvaluationType? MulResultAny(EvaluationType other) {
 			if (IntEvaluationType.IsIntegral(other)) {
 				return this;
 			}
@@ -507,7 +505,7 @@ namespace SharpSheets.Evaluations.Types {
 
 		public static EvaluationValue MakeDictionary(EvaluationType keyType, EvaluationType elementType, IList<(EvaluationValue key, EvaluationValue value)> entries) {
 			EvaluationType dictType = new DictionaryEvaluationType(keyType.Context, keyType, elementType);
-			IDictionary dict = new OrderedDictionary();
+			OrderedDictionary dict = new OrderedDictionary();
 
 			foreach ((EvaluationValue key, EvaluationValue value) in entries) {
 				dict.Add(

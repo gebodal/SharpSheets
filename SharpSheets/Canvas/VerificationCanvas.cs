@@ -1,14 +1,8 @@
-﻿using SharpSheets.Canvas;
-using SharpSheets.Colors;
+﻿using SharpSheets.Colors;
 using SharpSheets.Exceptions;
 using SharpSheets.Fonts;
 using SharpSheets.Layouts;
 using SharpSheets.Canvas.Text;
-using SharpSheets.Utilities;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using GeboPdf.Fonts;
 
 namespace SharpSheets.Canvas {

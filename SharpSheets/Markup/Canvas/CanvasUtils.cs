@@ -1,6 +1,5 @@
 ﻿using SharpSheets.Canvas;
 using SharpSheets.Layouts;
-using System;
 using System.Text.RegularExpressions;
 
 namespace SharpSheets.Markup.Canvas {

@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-
-namespace SharpSheets.Utilities {
+﻿namespace SharpSheets.Utilities {
 
 	public class SystemPath {
 

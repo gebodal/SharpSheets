@@ -126,7 +126,7 @@ namespace SharpSheets.Evaluations.Types {
 		//public override bool CanImplicitCastFrom(EvaluationType other) => false;
 		//public override EvaluationValue? Cast(EvaluationValue other) => null; // Should this convert string values if possible?
 
-		private EvaluationType? EqualityResultAny(EvaluationType other) {
+		private BoolEvaluationType? EqualityResultAny(EvaluationType other) {
 			if (other == this) { // Is the same as us
 				return Context.GetType<BoolEvaluationType>();
 			}

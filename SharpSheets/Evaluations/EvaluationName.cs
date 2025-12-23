@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace SharpSheets.Evaluations {
 	public readonly partial struct EvaluationName : IEquatable<EvaluationName>, IComparable<EvaluationName> {

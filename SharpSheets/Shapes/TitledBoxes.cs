@@ -1,6 +1,5 @@
 ﻿using SharpSheets.Layouts;
 using SharpSheets.Utilities;
-using System.Linq;
 using SharpSheets.Canvas;
 using SharpSheets.Canvas.Text;
 using SharpSheets.Parsing;

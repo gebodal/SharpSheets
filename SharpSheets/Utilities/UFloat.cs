@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SharpSheets.Utilities {
+﻿namespace SharpSheets.Utilities {
 	
 	public readonly struct UFloat : IFormattable, IEquatable<UFloat> {
 

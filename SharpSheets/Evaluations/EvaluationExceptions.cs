@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SharpSheets.Evaluations {
+﻿namespace SharpSheets.Evaluations {
 
 	/// <summary>
 	/// Indicates that an error has been encountered relating to evaluations (parsing and calculating).
