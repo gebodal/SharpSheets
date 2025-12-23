@@ -35,6 +35,12 @@ namespace GeboPdf.Utilities {
 			destination.Write(bytes, 0, bytes.Length);
 		}
 
+		public static byte[] Read(this Stream destination, int numBytes) {
+			byte[] buffer = new byte[numBytes];
+			destination.ReadExactly(buffer, 0, numBytes);
+			return buffer;
+		}
+
 	}
 
 }
