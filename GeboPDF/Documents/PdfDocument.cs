@@ -23,10 +23,10 @@ namespace GeboPdf.Documents {
 		}
 
 		public IEnumerable<PdfObject> CollectObjects() {
-			foreach(PdfObject catalogueObj in catalogueDict.CollectObjects()) {
+			yield return metadataDict;
+			foreach (PdfObject catalogueObj in catalogueDict.CollectObjects()) {
 				yield return catalogueObj;
 			}
-			yield return metadataDict;
 		}
 
 		public PdfAcroForm AcroForm => catalogueDict.acroForm;
@@ -144,8 +144,10 @@ namespace GeboPdf.Documents {
 					yield return pageObj;
 				}
 			}
-			foreach (PdfObject resourcesObj in pagesResources.CollectObjects()) {
-				yield return resourcesObj;
+			if (pagesResources.Count > 0) {
+				foreach (PdfObject resourcesObj in pagesResources.CollectObjects()) {
+					yield return resourcesObj;
+				}
 			}
 		}
 	}
