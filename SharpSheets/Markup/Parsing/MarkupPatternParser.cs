@@ -597,7 +597,7 @@ namespace SharpSheets.Markup.Parsing {
 						}
 						else if(childElem.Name == "child") {
 							// This child is child div
-							DivElement child = MakeChildDivElement(childElem, divElement.Variables, markupContext, constructed, source);
+							DivElement child = MakeChildDivElement(childElem, divElement.Variables, markupContext);
 							if (child != null) {
 								divElement.AddElement(child);
 								LogOrigin(childElem, child);
@@ -669,7 +669,7 @@ namespace SharpSheets.Markup.Parsing {
 				return divElement;
 			}
 
-			private ChildDivElement MakeChildDivElement(XMLElement divElem, IVariableBox outerContext, MarkupEvaluationContext markupContext, Dictionary<XMLElement, IIdentifiableMarkupElement> constructed, DirectoryPath source) {
+			private ChildDivElement MakeChildDivElement(XMLElement divElem, IVariableBox outerContext, MarkupEvaluationContext markupContext) {
 
 				IVariableBox variables = markupContext.DrawingStateVariables().AppendVariables(outerContext);
 
