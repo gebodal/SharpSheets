@@ -45,7 +45,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		public static Control GetEnvironmentFunctionsContents(IVariableBox variables, DocumentationWindow window) {
 			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
 
-			foreach (IEnvironmentFunctionInfo funcInfo in variables.GetFunctionInfos().OrderBy(f => f.Name.ToString(), StringComparer.OrdinalIgnoreCase)) {
+			foreach (IEnvironmentFunctionInfo funcInfo in variables.GetFunctionInfos().Concat(variables.Context.GetRegisteredTypes().SelectNotNull(t => t.GetTypeFunction())).OrderBy(f => f.Name.ToString(), StringComparer.OrdinalIgnoreCase)) {
 				Control funcElem = MakeEnvironmentFunctionBlock(funcInfo, variables.Context, window);
 				funcElem.AddMargin(ParagraphSpacingMargin);
 				stack.Children.Add(funcElem);

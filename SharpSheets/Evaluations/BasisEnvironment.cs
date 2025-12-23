@@ -36,7 +36,7 @@ namespace SharpSheets.Evaluations {
 			ArrayAllFunction.Instance, ArrayAnyFunction.Instance,
 			ArraySortFunction.Instance,
 			ArrayReverseFunction.Instance,
-			IntCastFunction.Instance, FloatCastFunction.Instance, BoolCastFunction.Instance, StringCastFunction.Instance,
+			//IntCastFunction.Instance, FloatCastFunction.Instance, BoolCastFunction.Instance, StringCastFunction.Instance,
 			//ColorCreateFunction.Instance,
 			LengthFunction.Instance,
 			ExistsFunction.Instance, TryFunction.Instance,

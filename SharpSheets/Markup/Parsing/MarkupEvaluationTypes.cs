@@ -15,6 +15,7 @@ using SharpSheets.Markup.Patterns;
 using SharpSheets.Colors;
 using SharpSheets.Parsing;
 using System.Globalization;
+using SharpSheets.Evaluations.Nodes;
 
 namespace SharpSheets.Markup.Parsing {
 
@@ -319,6 +320,8 @@ namespace SharpSheets.Markup.Parsing {
 			}
 		}
 
+		public override IEnvironmentFunction GetTypeFunction() => ColorCreateFunction.Instance;
+
 		public override EvaluationType? EqualResult(EvaluationType other) {
 			return this == other ? Context.GetType<BoolEvaluationType>() : null;
 		}
@@ -341,6 +344,113 @@ namespace SharpSheets.Markup.Parsing {
 			else {
 				return null;
 			}
+		}
+
+		public class ColorCreateFunction : AbstractFunction {
+
+			public static readonly ColorCreateFunction Instance = new ColorCreateFunction();
+			private ColorCreateFunction() { }
+
+			public override EvaluationName Name { get; } = "color";
+			public override string? Description { get; } = "Creates a color from the arguments, either from a single greyscale value, 3 RGB values, 4 ARGB values, or a string to be parsed. All numeric arguments will be clamped between 0 and 1.";
+
+			public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+				FloatEvaluationType floatType = context.GetType<FloatEvaluationType>();
+				StringEvaluationType stringType = context.GetType<StringEvaluationType>();
+
+				return new EnvironmentFunctionArguments(
+						"Color must take 1, 3, or 4 real-valued arguments, or one string argument.",
+						new EnvironmentFunctionArgList(
+							new EnvironmentFunctionArg("a", floatType, null),
+							new EnvironmentFunctionArg("r", floatType, null),
+							new EnvironmentFunctionArg("g", floatType, null),
+							new EnvironmentFunctionArg("b", floatType, null)
+							),
+						new EnvironmentFunctionArgList(
+							new EnvironmentFunctionArg("r", floatType, null),
+							new EnvironmentFunctionArg("g", floatType, null),
+							new EnvironmentFunctionArg("b", floatType, null)
+							),
+						new EnvironmentFunctionArgList(
+							new EnvironmentFunctionArg("gray", floatType, null)
+							),
+						new EnvironmentFunctionArgList(
+							new EnvironmentFunctionArg("colorStr", stringType, null)
+							)
+					);
+			}
+
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+				EvaluationType[] argTypes = args.Select(a => a.GetReturnType()).ToArray();
+				if (argTypes.All(FloatEvaluationType.IsReal)) {
+					int count = args.Length;
+					if (count == 1 || count == 3 || count == 4) {
+						return context.GetType<ColorEvaluationType>();
+					}
+					else {
+						throw new EvaluationTypeException("Color must take 1, 3, or 4 real-valued arguments.");
+					}
+				}
+				else if (argTypes.Length == 1 && StringEvaluationType.IsString(argTypes[0])) {
+					return context.GetType<ColorEvaluationType>();
+				}
+				else {
+					string s = (args.Length > 1) ? "s" : "";
+					throw new EvaluationTypeException($"Cannot create a color from arguments with type{s}: " + string.Join(", ", args.Select(a => a.GetReturnType().ToString())));
+				}
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+				EvaluationValue[] argVals = args.Select(a => a.Evaluate(environment)).ToArray();
+
+				if (argVals.Length != 1 && argVals.Length != 3 && argVals.Length != 4) {
+					throw new EvaluationCalculationException("Color must take 1, 3, or 4 real-valued arguments, or a single string.");
+				}
+
+				Color result;
+
+				if (argVals.Length == 1 && StringEvaluationType.TryGetString(argVals[0], out string? colorStr)) {
+					try {
+						result = ColorUtils.Parse(colorStr);
+					}
+					catch (FormatException e) {
+						throw new EvaluationCalculationException(e.Message, e);
+					}
+				}
+				else {
+					bool badTypes = false;
+					float[] values = new float[argVals.Length];
+
+					for (int i = 0; i < argVals.Length; i++) {
+						if (FloatEvaluationType.TryGetFloat(argVals[i], out float realVal)) {
+							values[i] = realVal.Clamp(0f, 1f);
+						}
+						else {
+							badTypes = true;
+							break;
+						}
+					}
+
+					if (badTypes) {
+						Type[] types = argVals.Select(a => a.GetType()).Distinct().ToArray();
+						string s = (types.Length > 1) ? "s" : "";
+						throw new EvaluationTypeException($"Cannot create a color from arguments with type{s}: " + string.Join(", ", types.Select(t => t.Name)));
+	}
+
+					if (values.Length == 1) {
+						result = ColorUtils.FromGrayscale(values[0]);
+					}
+					else if (values.Length == 3) {
+						result = ColorUtils.FromRGB(values[0], values[1], values[2]);
+					}
+					else {
+						result = ColorUtils.FromRGBA(values[1], values[2], values[3], values[0]);
+					}
+				}
+
+				return environment.Context.MakeValue<ColorEvaluationType>(result);
+			}
+
 		}
 
 	}
@@ -680,6 +790,8 @@ namespace SharpSheets.Markup.Parsing {
 			return false;
 		}
 
+		public override IEnvironmentFunction GetTypeFunction() => RichStringCastFunction.Instance;
+
 		public override bool CanImplicitCastFrom(EvaluationType other) => IsRichString(other);
 
 		public override EvaluationValue? Cast(EvaluationValue other) {
@@ -780,6 +892,62 @@ namespace SharpSheets.Markup.Parsing {
 			else {
 				return null;
 			}
+		}
+
+		public class RichStringCastFunction : AbstractFunction {
+
+			public static readonly RichStringCastFunction Instance = new RichStringCastFunction();
+			private RichStringCastFunction() { }
+
+			public override EvaluationName Name { get; } = "richstr";
+			public override string? Description { get; } = "Convert a string into a rich string with some stated text format, or convert a rich string into a new rich string with some new starting text format.";
+
+			public override EnvironmentFunctionArguments GetArguments(EvaluationContext context) {
+				return new EnvironmentFunctionArguments(null,
+					new EnvironmentFunctionArgList(
+						new EnvironmentFunctionArg("text", context.GetType<StringEvaluationType>(), null),
+						new EnvironmentFunctionArg("format", context.GetSystemType<TextFormat>(), null)
+						),
+					new EnvironmentFunctionArgList(
+						new EnvironmentFunctionArg("richText", context.GetType<RichStringEvaluationType>(), null),
+						new EnvironmentFunctionArg("startingFormat", context.GetSystemType<TextFormat>(), null)
+						)
+				);
+			}
+
+			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
+				EvaluationType[] argTypes = args.Select(a => a.GetReturnType()).ToArray();
+				if (argTypes.Length == 2 && (IsRichString(argTypes[0]) || StringEvaluationType.IsString(argTypes[0])) && EnumEvaluationType.IsEnum<TextFormat>(argTypes[1])) {
+					return context.GetType<StringEvaluationType>();
+				}
+				else {
+					throw new EvaluationTypeException($"Invalid arguments to {Name}, expected a string-type and a text format.");
+				}
+			}
+
+			private static EvaluationValue MakeResult(RichString result, EvaluationContext context) {
+				return new EvaluationValue(result, context.GetType<RichStringEvaluationType>());
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
+				if (args.Length != 2) {
+					throw new EvaluationCalculationException($"Expected 2 arguments for {Name}, for {args.Length}.");
+				}
+
+				EvaluationValue a = args[0].Evaluate(environment);
+				EvaluationValue b = args[1].Evaluate(environment);
+
+				if (StringEvaluationType.TryGetString(a, out string? str) && EnumEvaluationType.TryGetEnumValue(b, out TextFormat? strFormat)) {
+					return MakeResult(RichString.Create(str, strFormat.Value), environment.Context);
+				}
+				else if (TryGetRichString(a, out RichString? richStr) && EnumEvaluationType.TryGetEnumValue(b, out TextFormat? startingFormat)) {
+					return MakeResult(richStr.ApplyFormat(startingFormat.Value), environment.Context);
+				}
+				else {
+					throw new EvaluationCalculationException($"Cannot convert argument of types {a.Type} and {b.Type} to rich string.");
+				}
+			}
+
 		}
 
 	}

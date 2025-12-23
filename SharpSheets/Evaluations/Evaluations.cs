@@ -57,7 +57,10 @@ namespace SharpSheets.Evaluations {
 		/// <summary></summary>
 		/// <exception cref="UndefinedFunctionException"></exception>
 		private static EnvironmentFunctionNode GetFunction(EvaluationName name, IVariableBox variables) {
-			if (variables.TryGetFunctionInfo(name, out IEnvironmentFunctionInfo? functionInfo)) {
+			if (variables.Context.TryGetType(name, out EvaluationType? type) && type.GetTypeFunction() is IEnvironmentFunction typeFunction) {
+				return new EnvironmentFunctionNode(typeFunction, variables.Context);
+			}
+			else if (variables.TryGetFunctionInfo(name, out IEnvironmentFunctionInfo? functionInfo)) {
 				return new EnvironmentFunctionNode(functionInfo, variables.Context);
 			}
 			else {

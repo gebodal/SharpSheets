@@ -171,7 +171,7 @@ namespace SharpSheets.Evaluations {
 					return new FormattedStringNode(content, format);
 				}
 				else {
-					return StringCastFunction.MakeStringCastNode(content);
+					return StringEvaluationType.StringCastFunction.MakeStringCastNode(content);
 				}
 			}
 		}
