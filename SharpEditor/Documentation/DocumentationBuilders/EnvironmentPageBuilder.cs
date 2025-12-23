@@ -51,13 +51,17 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				stack.Children.Add(funcElem);
 			}
 
-			/*
-			foreach ((IEnvironmentFunctionInfo funcInfo, EnvironmentFunctionArgList args) in markupVariables.GetFunctionInfos().SelectMany(f => f.Args.Select(a => (f, a))).OrderBy(i => i.f.Name.ToString(), StringComparer.OrdinalIgnoreCase).ThenBy(i => i.a.Arguments.Length)) {
-				FrameworkElement funcElem = MakeEnvironmentFunctionBlock(funcInfo, args, window);
-				funcElem.AddMargin(ParagraphSpacingMargin);
-				stack.Children.Add(funcElem);
+			return stack;
+		}
+
+		public static Control GetEnvironmentTypesContents(EvaluationContext context, DocumentationWindow window) {
+			StackPanel stack = new StackPanel() { Orientation = Orientation.Vertical };
+
+			foreach (EvaluationType type in context.GetRegisteredTypes().OrderBy(t => t.Name.ToString(), StringComparer.OrdinalIgnoreCase)) {
+				Control typeElem = MakeEvaluationTypeBlock(type, window);
+				typeElem.AddMargin(ParagraphSpacingMargin);
+				stack.Children.Add(typeElem);
 			}
-			*/
 
 			return stack;
 		}
@@ -86,57 +90,15 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return argPanel;
 		}
 
-		private static Control MakeEnvironmentFunctionBlock(IEnvironmentFunctionInfo functionInfo, EnvironmentFunctionArgList args, DocumentationWindow window) {
-			StackPanel argPanel = new StackPanel() { Orientation = Orientation.Vertical };
-
+		private static TextBlock MakeFunctionArgListsTextBlock(EvaluationName name, EnvironmentFunctionArgList[] funcArgLists) {
 			TextBlock titleBlock = GetContentTextBlock(TextBlockMargin);
-
-			titleBlock.Inlines?.Add(new Run(functionInfo.Name.ToString()) { Foreground = SharpEditorPalette.EnvironmentNameBrush });
-			titleBlock.Inlines?.Add(new Run("("));
-
-			for (int a = 0; a < args.Arguments.Length; a++) {
-				if (a > 0) {
-					//titleBlock.Inlines.Add(new Run("," + SharpValueHandler.NO_BREAK_SPACE.ToString()));
-					titleBlock.Inlines?.Add(new Run(", "));
-				}
-
-				string? argTypeName = SharpValueHandler.GetEnvironmentTypeName(args.Arguments[a].ArgType);
-
-				titleBlock.Inlines?.Add(new Run(args.Arguments[a].Name.ToString()) { Foreground = SharpEditorPalette.EnvironmentNameBrush });
-				titleBlock.Inlines?.Add(new Run(":" + SharpValueHandler.NO_BREAK_SPACE.ToString()));
-				titleBlock.Inlines?.Add(new Run(argTypeName) { Foreground = SharpEditorPalette.EnvironmentTypeBrush });
-			}
-
-			titleBlock.Inlines?.Add(new Run(")"));
-
-			titleBlock.MakeFontSizeRelative(TextBlockClass.H7);
-
-			argPanel.Children.Add(titleBlock);
-
-			argPanel.Children.Add(new Separator() {
-				Margin = new Thickness(0, 0.0, 0, 4.0)
-			});
-
-			if (functionInfo.Description is not null && MakeDescriptionTextBlock(new DocumentationString(functionInfo.Description), window) is TextBlock descriptionBlock) {
-				argPanel.Children.Add(descriptionBlock);
-			}
-
-			return argPanel;
-		}
-
-		private static Control MakeEnvironmentFunctionBlock(IEnvironmentFunctionInfo functionInfo, EvaluationContext context, DocumentationWindow window) {
-			StackPanel argPanel = new StackPanel() { Orientation = Orientation.Vertical };
-
-			TextBlock titleBlock = GetContentTextBlock(TextBlockMargin);
-
-			EnvironmentFunctionArgList[] funcArgLists = functionInfo.GetArguments(context).OrderBy(a => a.Arguments.Length).ToArray();
 
 			for (int i = 0; i < funcArgLists.Length; i++) {
 				EnvironmentFunctionArgList args = funcArgLists[i];
 
 				if (i > 0) { titleBlock.Inlines?.Add(new LineBreak()); }
 
-				titleBlock.Inlines?.Add(new Run(functionInfo.Name.ToString()) { Foreground = SharpEditorPalette.EnvironmentNameBrush });
+				titleBlock.Inlines?.Add(new Run(name.ToString()) { Foreground = SharpEditorPalette.EnvironmentNameBrush });
 				titleBlock.Inlines?.Add(new Run("("));
 
 				for (int a = 0; a < args.Arguments.Length; a++) {
@@ -159,19 +121,53 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				titleBlock.Inlines?.Add(new Run(")"));
 			}
 
+			return titleBlock;
+		}
+
+		private static TextBlock MakeFunctionArgListsTextBlock(IEnvironmentFunctionInfo functionInfo, EvaluationContext context) {
+			EnvironmentFunctionArgList[] funcArgLists = functionInfo.GetArguments(context).OrderBy(a => a.Arguments.Length).ToArray();
+			return MakeFunctionArgListsTextBlock(functionInfo.Name, funcArgLists);
+		}
+
+		private static TextBlock MakeFunctionArgListsTextBlock(IMethod method) {
+			EnvironmentFunctionArgList[] funcArgLists = method.GetArguments().OrderBy(a => a.Arguments.Length).ToArray();
+			return MakeFunctionArgListsTextBlock(method.Name, funcArgLists);
+		}
+
+		private static Control MakeEnvironmentFunctionBlock(IEnvironmentFunctionInfo functionInfo, EvaluationContext context, DocumentationWindow window) {
+			StackPanel funcPanel = new StackPanel() { Orientation = Orientation.Vertical };
+
+			TextBlock titleBlock = MakeFunctionArgListsTextBlock(functionInfo, context);
 			titleBlock.MakeFontSizeRelative(TextBlockClass.H7);
+			funcPanel.Children.Add(titleBlock);
 
-			argPanel.Children.Add(titleBlock);
-
-			argPanel.Children.Add(new Separator() {
+			funcPanel.Children.Add(new Separator() {
 				Margin = new Thickness(0, 0.0, 0, 4.0)
 			});
 
 			if (functionInfo.Description is not null && MakeDescriptionTextBlock(new DocumentationString(functionInfo.Description), window) is TextBlock descriptionBlock) {
-				argPanel.Children.Add(descriptionBlock);
+				funcPanel.Children.Add(descriptionBlock);
 			}
 
-			return argPanel;
+			return funcPanel;
+		}
+
+		private static Control MakeEvaluationMethodBlock(IMethod method, bool isStatic, DocumentationWindow window) {
+			StackPanel methodPanel = new StackPanel() { Orientation = Orientation.Vertical };
+
+			TextBlock titleBlock = MakeFunctionArgListsTextBlock(method);
+			titleBlock.MakeFontSizeRelative(TextBlockClass.H7);
+			methodPanel.Children.Add(titleBlock);
+
+			methodPanel.Children.Add(new Separator() {
+				Margin = new Thickness(0, 0.0, 0, 4.0)
+			});
+
+			if (method.Description is not null && MakeDescriptionTextBlock(new DocumentationString(method.Description), window) is TextBlock descriptionBlock) {
+				methodPanel.Children.Add(descriptionBlock);
+			}
+
+			return methodPanel;
 		}
 
 		private static Control MakeEnvironmentVariableBlock(EnvironmentVariableInfo variableInfo, DocumentationWindow window) {
@@ -192,6 +188,82 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 
 			return argPanel;
+		}
+
+		private static Control MakeEvaluationTypeFieldBlock(EvaluationType type, TypeField field, bool isStatic, DocumentationWindow window) {
+			StackPanel argPanel = new StackPanel() { Orientation = Orientation.Vertical };
+
+			string evalTypeName = SharpValueHandler.GetEnvironmentTypeName(type);
+			string fieldTypeName = SharpValueHandler.GetEnvironmentTypeName(field.Type);
+
+			TextBlock titleBlock = GetContentTextBlock(TextBlockMargin);
+			if (isStatic) {
+				titleBlock.Inlines?.Add(new Run(evalTypeName) { Foreground = SharpEditorPalette.EnvironmentTypeBrush });
+				titleBlock.Inlines?.Add(new Run("."));
+			}
+			titleBlock.Inlines?.Add(new Run(field.Name.ToString()) { Foreground = SharpEditorPalette.EnvironmentNameBrush });
+			//titleBlock.Inlines.Add(new Run(":" + SharpValueHandler.NO_BREAK_SPACE.ToString()));
+			titleBlock.Inlines?.Add(new Run(": "));
+			titleBlock.Inlines?.Add(new Run(fieldTypeName) { Foreground = SharpEditorPalette.EnvironmentTypeBrush });
+
+			argPanel.Children.Add(titleBlock);
+
+			if (field.Description is not null && MakeDescriptionTextBlock(new DocumentationString(field.Description), window) is TextBlock descriptionBlock) {
+				argPanel.Children.Add(descriptionBlock);
+			}
+
+			return argPanel;
+		}
+
+		private static Control MakeEvaluationTypeBlock(EvaluationType type, DocumentationWindow window) {
+			StackPanel typePanel = new StackPanel() { Orientation = Orientation.Vertical };
+
+			string typeName = SharpValueHandler.GetEnvironmentTypeName(type);
+
+			TextBlock titleBlock = GetContentTextBlock(TextBlockMargin);
+			titleBlock.Inlines?.Add(new Run(typeName) { Foreground = SharpEditorPalette.EnvironmentTypeBrush });
+
+			typePanel.Children.Add(titleBlock);
+
+			if (type.Fields.Any() || type.Methods.Any() || type.StaticFields.Any() || type.StaticMethods.Any()) {
+				typePanel.Children.Add(new Separator() {
+					Margin = new Thickness(0, 0.0, 0, 4.0)
+				});
+
+				/*
+				if (type.Description is not null && MakeDescriptionTextBlock(new DocumentationString(variableInfo.Description), window) is TextBlock descriptionBlock) {
+					argPanel.Children.Add(descriptionBlock);
+				}
+				*/
+
+				// I'm not sure about this ordering, it's a purely aesthetic choice.
+
+				foreach (TypeField field in type.StaticFields) {
+					Control fieldElem = MakeEvaluationTypeFieldBlock(type, field, true, window);
+					fieldElem.AddMargin(IndentedMargin);
+					typePanel.Children.Add(fieldElem);
+				}
+
+				foreach (TypeField field in type.Fields) {
+					Control fieldElem = MakeEvaluationTypeFieldBlock(type, field, false, window);
+					fieldElem.AddMargin(IndentedMargin);
+					typePanel.Children.Add(fieldElem);
+				}
+
+				foreach (IMethod method in type.Methods) {
+					Control funcElem = MakeEvaluationMethodBlock(method, false, window);
+					funcElem.AddMargin(IndentedMargin);
+					typePanel.Children.Add(funcElem);
+				}
+
+				foreach (IMethod method in type.StaticMethods) {
+					Control funcElem = MakeEvaluationMethodBlock(method, true, window);
+					funcElem.AddMargin(IndentedMargin);
+					typePanel.Children.Add(funcElem);
+				}
+			}
+
+			return typePanel;
 		}
 
 	}

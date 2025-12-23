@@ -161,8 +161,10 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					// Environments
 					DocumentationSectionContents.BasisEnvironmentVariables => EnvironmentPageBuilder.GetEnvironmentVariablesContents(SharpSheets.Evaluations.BasisEnvironment.MakeInstance(SharpSheets.Evaluations.EvaluationContext.BasisContext), window),
 					DocumentationSectionContents.BasisEnvironmentFunctions => EnvironmentPageBuilder.GetEnvironmentFunctionsContents(SharpSheets.Evaluations.BasisEnvironment.MakeInstance(SharpSheets.Evaluations.EvaluationContext.BasisContext), window),
+					DocumentationSectionContents.BasisEnvironmentTypes => EnvironmentPageBuilder.GetEnvironmentTypesContents(SharpSheets.Evaluations.EvaluationContext.BasisContext, window),
 					DocumentationSectionContents.MarkupEnvironmentVariables => EnvironmentPageBuilder.GetEnvironmentVariablesContents(new SharpSheets.Markup.Canvas.MarkupEvaluationContext(MarkupEvaluationTypes.BaseContext).DrawingStateVariables(), window),
 					DocumentationSectionContents.MarkupEnvironmentFunctions => EnvironmentPageBuilder.GetEnvironmentFunctionsContents(new SharpSheets.Markup.Canvas.MarkupEvaluationContext(MarkupEvaluationTypes.BaseContext).DrawingStateVariables(), window),
+					DocumentationSectionContents.MarkupEnvironmentTypes => EnvironmentPageBuilder.GetEnvironmentTypesContents(MarkupEvaluationTypes.BaseContext, window),
 					DocumentationSectionContents.CardSubjectEnvironmentVariables => EnvironmentPageBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardSubjectEnvironments.BaseDefinitions, window),
 					DocumentationSectionContents.CardOutlineEnvironmentVariables => EnvironmentPageBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardOutlinesEnvironments.BaseDefinitions, window),
 					DocumentationSectionContents.CardSegmentEnvironmentVariables => EnvironmentPageBuilder.GetEnvironmentVariablesContents(SharpSheets.Cards.Definitions.CardSegmentEnvironments.BaseDefinitions, window),

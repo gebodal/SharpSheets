@@ -35,7 +35,7 @@ These variables are available at the card feature level.
 
 ## Basic Environment
 
-The following environment variables and functions are available in expressions at all points in a configuration or subject file.
+The following environment variables, functions, and types are available in expressions at all points in a configuration or subject file.
 
 ### Variables
 
@@ -44,3 +44,7 @@ The following environment variables and functions are available in expressions a
 ### Functions
 
 [[BasisEnvironmentFunctions]]
+
+### Types
+
+[[BasisEnvironmentTypes]]

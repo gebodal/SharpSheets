@@ -1,6 +1,6 @@
 # Markup Environments
 
-This page contains a complete list of the variables and functions available in the built-in Markup environment.
+This page contains a complete list of the variables, functions, and types available in the built-in Markup environment.
 
 ## Variables
 
@@ -13,3 +13,7 @@ Note that not all variables are available for all attributes. The canvas area an
 In the below functions, a type of "any" means that the function accepts a variety of value types for this argument -- the function documentation may still list some restrictions on the input values, however.
 
 [[MarkupEnvironmentFunctions]]
+
+## Types
+
+[[MarkupEnvironmentTypes]]

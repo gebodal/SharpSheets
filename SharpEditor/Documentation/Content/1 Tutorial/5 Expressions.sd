@@ -137,7 +137,7 @@ Under certain conditions expressions can produce errors, notably in the cases wh
 
 ## Basic Environment
 
-Below is a list of the variables and functions available in most contexts in SharpSheets. There will likely be more available in any given context. Operators are always available, regardless of context.
+Below is a list of the variables, functions, and types available in most contexts in SharpSheets. There will likely be more available in any given context. Operators are always available, regardless of context.
 
 ### Variables
 
@@ -148,3 +148,9 @@ Below is a list of the variables and functions available in most contexts in Sha
 For functions, a type of "any" means that the function accepts a variety of value types for that argument -- the function documentation may still list some restrictions on the input values, however.
 
 [[BasisEnvironmentFunctions]]
+
+### Types
+
+Below you will find a list of the available types, along with their methods.
+
+[[BasisEnvironmentTypes]]
