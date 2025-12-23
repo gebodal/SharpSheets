@@ -782,6 +782,9 @@ namespace SharpSheets.Evaluations {
 		public static EvaluationType? NotEqualResult(EvaluationType left, EvaluationType right) => left.NotEqualResult(right) ?? right.NotEqualResult(left) ?? (GetPromoted(left, right) is EvaluationType promoted ? promoted.NotEqualResult(promoted) : null);
 		public static EvaluationValue? NotEqual(EvaluationValue left, EvaluationValue right) => left.Type.NotEqual(left, right) ?? right.Type.NotEqual(right, left) ?? (GetPromoted(left.Type, right.Type) is EvaluationType promoted ? promoted.NotEqual(left, right) : null);
 
+		public static EvaluationType? IterationResult(EvaluationType type) => type.IterationResult();
+		public static IEnumerable<EvaluationValue>? Iteration(EvaluationValue value) => value.Type.Iteration(value);
+
 	}
 
 	public static class EvaluationTypeHelpers {
@@ -876,6 +879,8 @@ namespace SharpSheets.Evaluations {
 		public FloatEvaluationType(EvaluationContext context) : base(context) {
 			AddStaticField(new TypeField("MINVALUE", this, t => new EvaluationValue(float.MinValue, this)));
 			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(float.MaxValue, this)));
+
+			AddMethod(new NumericClampMethod(this));
 		}
 
 		protected override float ParseValueDataSingle(string text, DirectoryPath source) {
@@ -1124,6 +1129,8 @@ namespace SharpSheets.Evaluations {
 
 		public UFloatEvaluationType(EvaluationContext context) : base(context) {
 			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(UFloat.MaxValue, this)));
+
+			AddMethod(new NumericClampMethod(this));
 		}
 
 		protected override UFloat ParseValueDataSingle(string text, DirectoryPath source) {
@@ -1294,6 +1301,8 @@ namespace SharpSheets.Evaluations {
 		public IntEvaluationType(EvaluationContext context) : base(context) {
 			AddStaticField(new TypeField("MINVALUE", this, t => new EvaluationValue(int.MinValue, this)));
 			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(int.MaxValue, this)));
+
+			AddMethod(new NumericClampMethod(this));
 		}
 
 		protected override int ParseValueDataSingle(string text, DirectoryPath source) {
@@ -1516,6 +1525,8 @@ namespace SharpSheets.Evaluations {
 
 		public UIntEvaluationType(EvaluationContext context) : base(context) {
 			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(uint.MaxValue, this)));
+
+			AddMethod(new NumericClampMethod(this));
 		}
 
 		protected override uint ParseValueDataSingle(string text, DirectoryPath source) {
@@ -1862,6 +1873,9 @@ namespace SharpSheets.Evaluations {
 
 		public StringEvaluationType(EvaluationContext context) : base(context) {
 			AddField(new TypeField("length", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((string)value.Value!).Length, value.Type.Context.GetType<IntEvaluationType>())));
+			AddMethod(new StringRepeatMethod(this));
+			AddMethod(new StringJoinMethod(this));
+			AddMethod(new StringContainsMethod(this));
 		}
 
 		protected override string ParseValueDataSingle(string text, DirectoryPath source) {
@@ -2101,6 +2115,107 @@ namespace SharpSheets.Evaluations {
 			}
 		}
 
+		public class StringRepeatMethod : AbstractSingleArgMethod {
+			public override EvaluationName Name { get; } = "repeat";
+			public override string? Description { get; } = "Repeat the string content a given number of times.";
+
+			protected override EnvironmentFunctionArg GetArgument() {
+				return new EnvironmentFunctionArg("count", ReceiverType.Context.GetType<IntEvaluationType>(), "The number of times the string should be repeated.");
+	}
+
+			protected override string? Warning { get; } = null;
+
+			public StringRepeatMethod(StringEvaluationType receiverType) : base(receiverType) { }
+
+			public override EvaluationType GetReturnType(EvaluationNode receiver, EvaluationNode arg) {
+				EvaluationType receiverType = receiver.GetReturnType();
+				EvaluationType argType = arg.GetReturnType();
+				return (IsString(receiverType) && IntEvaluationType.IsIntegral(argType)) ? receiver.Context.GetType<StringEvaluationType>() : throw new EvaluationTypeException($"{ReceiverType}.{Name} is not defined for argument of type {argType}.");
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode receiver, EvaluationNode arg) {
+				EvaluationValue r = receiver.Evaluate(environment);
+				EvaluationValue a = arg.Evaluate(environment);
+
+				if (TryGetString(r, out string? str) && IntEvaluationType.TryGetInt(a, out int count)) {
+					return new EvaluationValue(string.Join("", str.Yield().Repeat(count)), environment.GetType<StringEvaluationType>());
+				}
+				else {
+					throw new EvaluationTypeException($"Mathematical functions are not defined for value of type {a.Type}.");
+				}
+			}
+		}
+
+		public class StringJoinMethod : AbstractSingleArgMethod {
+			public override EvaluationName Name { get; } = "join";
+			public override string? Description { get; } = "Join the provided values together using the current string as a separator.";
+
+			protected override EnvironmentFunctionArg GetArgument() {
+				return new EnvironmentFunctionArg("values", ReceiverType.Context.GetType<StringEvaluationType>().MakeArray(), "The string values to be joined together.");
+			}
+
+			protected override string? Warning { get; } = null;
+
+			public StringJoinMethod(StringEvaluationType receiverType) : base(receiverType) { }
+
+			public override EvaluationType GetReturnType(EvaluationNode receiver, EvaluationNode arg) {
+				EvaluationType receiverType = receiver.GetReturnType();
+				EvaluationType argType = arg.GetReturnType();
+				return (IsString(receiverType) && argType.IterationResult() is EvaluationType argIterType && IsString(argIterType)) ? receiver.Context.GetType<StringEvaluationType>() : throw new EvaluationTypeException($"{ReceiverType}.{Name} is not defined for argument of type {argType}.");
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode receiver, EvaluationNode arg) {
+				EvaluationValue r = receiver.Evaluate(environment);
+				EvaluationValue a = arg.Evaluate(environment);
+
+				if (TryGetString(r, out string? separator) && a.Type.Iteration(a)?.ToArray() is EvaluationValue[] values) {
+					string[] parts = values.Select(v => TryGetString(v, out string? s) ? s : throw new EvaluationCalculationException($"Invalid data type for {Name} argument.")).ToArray();
+					string result = string.Join(separator, parts);
+					return new EvaluationValue(result, environment.GetType<StringEvaluationType>());
+				}
+				else {
+					throw new EvaluationTypeException($"{ReceiverType}.{Name} is not defined for argument of type {a.Type}.");
+				}
+			}
+		}
+
+		public class StringContainsMethod : AbstractSingleArgMethod {
+			public override EvaluationName Name { get; } = "contains";
+			public override string? Description { get; } = "Returns true of the string contains the provided substring, otherwise false.";
+
+			protected override EnvironmentFunctionArg GetArgument() {
+				return new EnvironmentFunctionArg("substring", ReceiverType.Context.GetType<StringEvaluationType>(), "The substring to check for.");
+			}
+
+			protected override string? Warning { get; } = null;
+
+			public StringContainsMethod(StringEvaluationType receiverType) : base(receiverType) { }
+
+			public override EvaluationType GetReturnType(EvaluationNode receiver, EvaluationNode arg) {
+				EvaluationType receiverType = receiver.GetReturnType();
+				EvaluationType argType = arg.GetReturnType();
+				if (IsString(receiverType) && IsString(argType)) {
+					return ReceiverType.Context.GetType<BoolEvaluationType>();
+				}
+				else {
+					throw new EvaluationTypeException($"{ReceiverType}.{Name} is not defined for argument of type {argType}.");
+				}
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode receiver, EvaluationNode arg) {
+				EvaluationValue str = receiver.Evaluate(environment);
+				EvaluationValue value = arg.Evaluate(environment);
+
+				if (TryGetString(str, out string? baseStr) && TryGetString(value, out string? substring)) {
+					return str.Type.Context.MakeValue<BoolEvaluationType>(baseStr.Contains(substring));
+				}
+				else {
+					throw new EvaluationCalculationException($"Cannot calculate {ReceiverType}.{Name} for argument of type {value.Type}.");
+				}
+			}
+
+		}
+
 	}
 
 	public abstract class CollectionEvaluationType : EvaluationType {
@@ -2156,6 +2271,7 @@ namespace SharpSheets.Evaluations {
 			this.DataType = this.ElementType.DataType.MakeArrayType();
 
 			AddField(new TypeField("length", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((Array)value.Value!).Length, value.Type.Context.GetType<IntEvaluationType>())));
+			AddMethod(new ArrayContainsMethod(this));
 		}
 
 		protected override string GetMyCollectionBrackets() {
@@ -2342,6 +2458,53 @@ namespace SharpSheets.Evaluations {
 
 		protected override int GetTypeHashCode() {
 			return DataType.GetHashCode();
+		}
+
+		public class ArrayContainsMethod : AbstractSingleArgMethod {
+			public override EvaluationName Name { get; } = "contains";
+			public override string? Description { get; } = "Returns true of the array contains the provided value, otherwise false.";
+
+			protected override EnvironmentFunctionArg GetArgument() {
+				return new EnvironmentFunctionArg("value", arrayReceiver.ElementType, "The value to check for presence in the array.");
+	}
+
+			protected override string? Warning { get; } = null;
+
+			private readonly ArrayEvaluationType arrayReceiver;
+
+			public ArrayContainsMethod(ArrayEvaluationType receiverType) : base(receiverType) {
+				arrayReceiver = receiverType;
+			}
+
+			public override EvaluationType GetReturnType(EvaluationNode receiver, EvaluationNode arg) {
+				EvaluationType receiverType = receiver.GetReturnType();
+				EvaluationType argType = arg.GetReturnType();
+				if (receiverType.IterationResult() is EvaluationType iterableType && EvaluationOps.EqualResult(iterableType, argType) is EvaluationType equalsType && BoolEvaluationType.IsBool(equalsType)) {
+					return ReceiverType.Context.GetType<BoolEvaluationType>();
+				}
+				else {
+					throw new EvaluationTypeException($"{ReceiverType}.{Name} is not defined for argument of type {argType}.");
+				}
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode receiver, EvaluationNode arg) {
+				EvaluationValue iterable = receiver.Evaluate(environment);
+				EvaluationValue value = arg.Evaluate(environment);
+
+				if (EvaluationOps.Iteration(iterable)?.ToArray() is EvaluationValue[] values) {
+					for (int i = 0; i < values.Length; i++) {
+						EvaluationValue equals = EvaluationOps.Equal(values[i], value) ?? throw new EvaluationCalculationException($"Cannot compares values of types {values[i].Type} and {value.Type}.");
+						if (BoolEvaluationType.TryGetBool(equals, out bool isMatch) && isMatch) {
+							return iterable.Type.Context.MakeValue<BoolEvaluationType>(true);
+						}
+					}
+					return iterable.Type.Context.MakeValue<BoolEvaluationType>(false);
+				}
+				else {
+					throw new EvaluationCalculationException($"Cannot calculate {ReceiverType}.{Name} for argument of type {value.Type}.");
+				}
+			}
+
 		}
 
 	}
@@ -2884,6 +3047,81 @@ namespace SharpSheets.Evaluations {
 
 		protected override int GetTypeHashCode() {
 			return HashCode.Combine(Name, DataType);
+		}
+
+	}
+
+	public class NumericClampMethod : AbstractMethod {
+		public override EvaluationName Name { get; } = "clamp";
+		public override string? Description { get; } = "Returns the current value clamped between a given minimum and maximum value.";
+
+		public NumericClampMethod(EvaluationType receiverType) : base(receiverType) { }
+
+		public override EnvironmentFunctionArguments GetArguments() {
+			return new EnvironmentFunctionArguments(null,
+				new EnvironmentFunctionArgList(
+					new EnvironmentFunctionArg("min", ReceiverType, null),
+					new EnvironmentFunctionArg("max", ReceiverType, null)
+				)
+			);
+		}
+
+		public override EvaluationType GetReturnType(EvaluationNode receiver, EvaluationNode[] args) {
+			EvaluationType receiverType = receiver.GetReturnType();
+			if (ReceiverType != receiverType) {
+				throw new EvaluationTypeException($"Invalid receiver type for {ReceiverType}.{Name}: {receiverType}.");
+			}
+
+			EvaluationType[] argTypes = args.Select(a => a.GetReturnType()).ToArray();
+			if (argTypes.Length == 2 && argTypes.All(t => ReceiverType.CanImplicitCastFrom(t))) {
+				EvaluationType? lessThanType = EvaluationOps.LessThanEqualResult(ReceiverType, argTypes[0]);
+				EvaluationType? greaterThanType = EvaluationOps.GreaterThanEqualResult(ReceiverType, argTypes[1]);
+				if (lessThanType is not null && BoolEvaluationType.IsBool(lessThanType) && greaterThanType is not null && BoolEvaluationType.IsBool(greaterThanType)) {
+					return ReceiverType;
+				}
+			}
+
+			throw new EvaluationTypeException($"{ReceiverType}.{Name} is not defined for arguments of types {string.Join(", ", argTypes.Select(t => t.ToString()))}.");
+		}
+
+		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode receiver, EvaluationNode[] args) {
+			EvaluationValue value = receiver.Evaluate(environment);
+			EvaluationValue[] argValues = args.Select(a => a.Evaluate(environment)).ToArray();
+
+			if (argValues.Length == 2 && ReceiverType.Cast(value) is EvaluationValue castValue) {
+				EvaluationValue? lessThan = EvaluationOps.LessThan(castValue, argValues[0]);
+				if (!lessThan.HasValue || !BoolEvaluationType.TryGetBool(lessThan.Value, out bool lessThanBool)) {
+					throw new EvaluationCalculationException($"Invalid first argument for {ReceiverType}.{Name}.");
+				}
+				
+				if (lessThanBool) {
+					if (ReceiverType.Cast(argValues[0]) is EvaluationValue minVal) {
+						return minVal;
+					}
+					else {
+						throw new EvaluationCalculationException($"Invalid first argument for {ReceiverType}.{Name}.");
+					}
+				}
+
+				EvaluationValue? greaterThan = EvaluationOps.GreaterThan(castValue, argValues[1]);
+				if (!greaterThan.HasValue || !BoolEvaluationType.TryGetBool(greaterThan.Value, out bool greaterThanBool)) {
+					throw new EvaluationCalculationException($"Invalid second argument for {ReceiverType}.{Name}.");
+				}
+
+				if (greaterThanBool) {
+					if (ReceiverType.Cast(argValues[1]) is EvaluationValue maxVal) {
+						return maxVal;
+					}
+					else {
+						throw new EvaluationCalculationException($"Invalid first argument for {ReceiverType}.{Name}.");
+					}
+				}
+
+				return castValue;
+			}
+			else {
+				throw new EvaluationCalculationException($"Cannot calculate {ReceiverType}.{Name} for value of type {value.Type} with arguments {string.Join(", ", argValues.Select(v => v.Type.ToString()))}.");
+			}
 		}
 
 	}
