@@ -120,6 +120,8 @@ namespace SharpSheets.Evaluations {
 			|
 			(?<andor>(?<=\s|^|\b)(?:and|or)(?=\s|$|\b)) # Text versions of Boolean operators
 			|
+			\.(?<method>[a-z_][a-z0-9_]*)(?=\s*\()
+			|
 			\.(?<accessor>[a-z_][a-z0-9_]*)
 			|
 			(?<value>
@@ -192,6 +194,7 @@ namespace SharpSheets.Evaluations {
 					else if (node is BinaryOperatorNode binary) { return binary.Symbol; }
 					else if (node is UnaryOperatorNode unary) { return unary.Symbol + "()"; }
 					else if (node is VariablePlaceholderNode placeholderNode) { return "$" + placeholderNode.Key; }
+					else if (node is AbstractFunctionNode functionNode) { return functionNode.Name.ToString(); }
 					else if (node is ValueNode) { return node.ToString(); }
 				}
 				catch (Exception) { }
@@ -286,7 +289,7 @@ namespace SharpSheets.Evaluations {
 
 						previousExpression = ParseExpressionState.START;
 					}
-					else if (match.Groups["operator"].Success || match.Groups["accessor"].Success || match.Groups["comprehension"].Success || match.Groups["if"].Success || match.Groups["andor"].Success) {
+					else if (match.Groups["operator"].Success || match.Groups["accessor"].Success || match.Groups["method"].Success || match.Groups["comprehension"].Success || match.Groups["if"].Success || match.Groups["andor"].Success) {
 						// Except for the null-coalescing operator, all allowed binary operators are left-associative
 
 						ParseExpressionState nextState = ParseExpressionState.OPERATOR;
@@ -296,6 +299,20 @@ namespace SharpSheets.Evaluations {
 							string fieldName = match.Groups["accessor"].Value;
 							operatorNode = new FieldAccessNode(fieldName, context);
 							nextState = ParseExpressionState.VALUE;
+						}
+						else if (match.Groups["method"].Success) {
+							string methodName = match.Groups["method"].Value;
+							operatorNode = new MethodPlaceholderNode(methodName, context);
+							nextState = ParseExpressionState.FUNCTION;
+
+							argCount.Push(0);
+							if (wereValues.Count > 0) {
+								wereValues.Pop();
+								wereValues.Push(true);
+							}
+							wereValues.Push(false);
+
+							state.Push(ParseState.FUNCTION);
 						}
 						else if (match.Groups["comprehension"].Success) {
 							string loopVariable = match.Groups["compvar"].Value;
@@ -359,8 +376,8 @@ namespace SharpSheets.Evaluations {
 							throw new EvaluationSyntaxException("Unbalanced brackets.");
 						}
 
-						if (operators.Count > 0 && typeof(EnvironmentFunctionNode).IsAssignableFrom(operators.Peek().GetType())) {
-							EnvironmentFunctionNode func = (EnvironmentFunctionNode)operators.Pop();
+						if (operators.Count > 0 && typeof(AbstractFunctionNode).IsAssignableFrom(operators.Peek().GetType())) {
+							AbstractFunctionNode func = (AbstractFunctionNode)operators.Pop();
 							int a = argCount.Pop();
 							bool w = wereValues.Pop();
 							if (w) { a++; }
@@ -461,9 +478,12 @@ namespace SharpSheets.Evaluations {
 						ternary.First = nodeStack.Pop();
 						nodeStack.Push(ternary);
 					}
-					else if (node is EnvironmentFunctionNode funcNode) {
-						for (int arg = funcNode.Operands - 1; arg >= 0; arg--) {
+					else if (node is AbstractFunctionNode funcNode) {
+						for (int arg = funcNode.Arguments.Length - 1; arg >= 0; arg--) {
 							funcNode.Arguments[arg] = nodeStack.Pop();
+						}
+						if (funcNode is MethodPlaceholderNode methodNode) {
+							methodNode.Receiver = nodeStack.Pop();
 						}
 						nodeStack.Push(funcNode);
 					}
@@ -525,10 +545,25 @@ namespace SharpSheets.Evaluations {
 							ternary[ternary.CalculationOrder[i]] = ReplaceVariableNodes(ternary[ternary.CalculationOrder[i]], providers);
 						}
 					}
-					else if (node is EnvironmentFunctionNode funcNode) {
-						for (int arg = funcNode.Operands - 1; arg >= 0; arg--) {
-							funcNode.Arguments[arg] = ReplaceVariableNodes(funcNode.Arguments[arg], providers);
+					else if (node is AbstractFunctionNode funcNode) {
+						AbstractFunctionNode concreteNode = funcNode;
+						if (funcNode is MethodPlaceholderNode methodPlaceholder) {
+							EvaluationNode receiverNode = ReplaceVariableNodes(methodPlaceholder.Receiver, providers);
+							EvaluationType receiverType = receiverNode.GetReturnType();
+							if (!(receiverNode is TypeLiteralNode typeNode && typeNode.TypeValue.GetStaticMethod(methodPlaceholder.Name) is IMethod method)) {
+								method = receiverType.GetMethod(methodPlaceholder.Name) ?? throw new UndefinedMethodException(receiverType.Name, methodPlaceholder.Name);
+							}
+							concreteNode = new MethodNode(method) {
+								Receiver = receiverNode
+							};
+							concreteNode.SetArgumentCount(methodPlaceholder.Arguments.Length);
 						}
+
+						for (int arg = concreteNode.Arguments.Length - 1; arg >= 0; arg--) {
+							concreteNode.Arguments[arg] = ReplaceVariableNodes(funcNode.Arguments[arg], providers);
+						}
+
+						return concreteNode;
 					}
 
 					return node;
@@ -622,6 +657,32 @@ namespace SharpSheets.Evaluations {
 				Console.WriteLine(new string(' ', indent * 4) + $"Variable: {Key}");
 			}
 			*/
+		}
+
+		private class MethodPlaceholderNode : AbstractFunctionNode {
+			public override bool IsConstant => true;
+			public override EvaluationType GetReturnType() => throw new NotImplementedException();
+			public sealed override int Operands => throw new NotImplementedException();
+			public sealed override int Precedence { get; } = 0;
+			public sealed override Associativity Associativity { get; } = Associativity.RIGHT;
+
+			public override EvaluationName Name { get; }
+
+			private EvaluationNode? _receiver;
+			public EvaluationNode Receiver {
+				get { return _receiver ?? throw new EvaluationCalculationException("Placeholder receiver not initialized."); }
+				set { _receiver = value; }
+			}
+
+			public MethodPlaceholderNode(EvaluationName name, EvaluationContext context) : base(context) {
+				Name = name;
+			}
+
+			public override EvaluationValue Evaluate(IEnvironment environment) { throw new NotImplementedException(); }
+			public override EvaluationNode Simplify() { throw new NotImplementedException(); }
+			public override EvaluationNode Clone() { return new MethodPlaceholderNode(Name, Context); }
+			public override IEnumerable<EvaluationName> GetVariables() { throw new NotImplementedException(); }
+			protected override string GetRepresentation() { throw new NotImplementedException(); }
 		}
 	}
 }

@@ -4,20 +4,82 @@ using System.Linq;
 
 namespace SharpSheets.Evaluations.Nodes {
 
-	public class EnvironmentFunctionNode : OperatorNode {
+	public abstract class AbstractFunctionNode : OperatorNode {
+
+		public abstract EvaluationName Name { get; }
+
+		/// <exception cref="EvaluationProcessingException"></exception>
+		public EvaluationNode[] Arguments { get { return arguments ?? throw new EvaluationProcessingException("Function arguments not initialized."); ; } }
+		private EvaluationNode[]? arguments;
+
+		public AbstractFunctionNode(EvaluationContext context) : base(context) { }
+
+		/// <exception cref="EvaluationProcessingException"></exception>
+		public virtual void SetArgumentCount(int count) {
+			arguments = new EvaluationNode[count];
+		}
+
+		public void SetArguments(params EvaluationNode[] arguments) {
+			SetArgumentCount(arguments.Length);
+			for (int i = 0; i < arguments.Length; i++) {
+				Arguments[i] = arguments[i];
+			}
+		}
+
+		protected override string GetRepresentation() {
+			return Name + "(" + string.Join(", ", Arguments.Select(a => a.ToString())) + ")";
+		}
+
+	}
+
+	public abstract class FunctionNode : AbstractFunctionNode {
+
+		public FunctionNode(EvaluationContext context) : base(context) { }
+
+		protected abstract EnvironmentFunctionArguments GetFunctionArguments();
+
+		/// <exception cref="EvaluationProcessingException"></exception>
+		public sealed override void SetArgumentCount(int count) {
+			EnvironmentFunctionArguments args = GetFunctionArguments();
+
+			if (args.Count > 0) {
+				foreach (EnvironmentFunctionArgList argList in args) {
+					if ((!argList.IsParams && count == argList.Arguments.Length) || (argList.IsParams && count >= argList.Arguments.Length)) {
+						base.SetArgumentCount(count);
+						return;
+					}
+				}
+			}
+			else if (count == 0) {
+				base.SetArgumentCount(count);
+				return;
+			}
+
+			string GetExpectedString() {
+				string[] expected = args.Select(args => $"{(args.IsParams ? ">=" : "")}{args.Arguments.Length}").ToArray();
+				if (expected.Length == 0) {
+					return "(expected 0)";
+				}
+				else if (expected.Length == 1) {
+					return "(expected " + expected[0] + ")";
+				}
+				else {
+					return "(expected " + string.Join(", ", expected[..^1]) + ", or " + expected[^1] + ")";
+				}
+			}
+
+			throw new EvaluationProcessingException($"Invalid number of arguments for {Name}: {count} {GetExpectedString()}");
+		}
+
+	}
+
+	public class EnvironmentFunctionNode : FunctionNode {
 
 		public sealed override int Precedence { get; } = 0;
 		public sealed override int Operands => Arguments.Length;
 		public sealed override Associativity Associativity { get; } = Associativity.RIGHT;
 		public override bool IsConstant { get { return functionInfo is IEnvironmentFunctionEvaluator && Arguments.All(a => a.IsConstant); } }
-		public string Name => functionInfo.Name.ToString(); // TODO This should be an EvaluationName
-
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <exception cref="EvaluationProcessingException"></exception>
-		public EvaluationNode[] Arguments { get { return arguments ?? throw new EvaluationProcessingException("Function arguments not initialized."); ; } }
-		private EvaluationNode[]? arguments;
+		public override EvaluationName Name => functionInfo.Name;
 
 		public override EvaluationType GetReturnType() => functionInfo.GetReturnType(Context, Arguments);
 
@@ -27,48 +89,8 @@ namespace SharpSheets.Evaluations.Nodes {
 			this.functionInfo = functionInfo;
 		}
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="count"></param>
-		/// <exception cref="EvaluationProcessingException"></exception>
-		public void SetArgumentCount(int count) {
-			EnvironmentFunctionArguments args = functionInfo.GetArguments(Context);
-
-			if (args.Count > 0) {
-				foreach (EnvironmentFunctionArgList argList in args) {
-					if ((!argList.IsParams && count == argList.Arguments.Length) || (argList.IsParams && count >= argList.Arguments.Length)) {
-						arguments = new EvaluationNode[count];
-						return;
-					}
-				}
-			}
-			else if (count == 0) {
-				arguments = Array.Empty<EvaluationNode>();
-				return;
-			}
-
-			string GetExpectedString() {
-				string[] expected = args.Select(args => $"{(args.IsParams ? ">=" : "")}{args.Arguments.Length}").ToArray();
-				if (expected.Length == 0) {
-					return " (expected 0)";
-				}
-				else if (expected.Length == 1) {
-					return " (expected " + expected[0] + ")";
-				}
-				else {
-					return " (expected " + string.Join(", ", expected[..^1]) + ", or " + expected[^1] + ")";
-				}
-			}
-
-			throw new EvaluationProcessingException($"Invalid number of arguments for function {Name}: {count} {GetExpectedString()}");
-		}
-
-		public void SetArguments(params EvaluationNode[] arguments) {
-			SetArgumentCount(arguments.Length);
-			for (int i = 0; i < arguments.Length; i++) {
-				Arguments[i] = arguments[i];
-			}
+		protected override EnvironmentFunctionArguments GetFunctionArguments() {
+			return functionInfo.GetArguments(Context);
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment) {
@@ -79,10 +101,6 @@ namespace SharpSheets.Evaluations.Nodes {
 			EvaluationValue result = func.Evaluate(environment, Arguments);
 
 			return result;
-		}
-
-		protected override string GetRepresentation() {
-			return Name + "(" + string.Join(", ", Arguments.Select(a => a.ToString())) + ")";
 		}
 
 		public sealed override EvaluationNode Simplify() {

@@ -477,6 +477,14 @@ namespace SharpSheets.Evaluations {
 		public IEnumerable<EvaluationName> StaticFieldNames { get { return staticFields.Keys; } }
 		public IEnumerable<TypeField> StaticFields { get { return staticFields.Values; } }
 
+		private readonly Dictionary<EvaluationName, IMethod> methods = new Dictionary<EvaluationName, IMethod>();
+		public IEnumerable<EvaluationName> MethodNames { get { return methods.Keys; } }
+		public IEnumerable<IMethod> Methods { get { return methods.Values; } }
+
+		private readonly Dictionary<EvaluationName, IMethod> staticMethods = new Dictionary<EvaluationName, IMethod>();
+		public IEnumerable<EvaluationName> StaticMethodNames { get { return staticMethods.Keys; } }
+		public IEnumerable<IMethod> StaticMethods { get { return staticMethods.Values; } }
+
 		protected EvaluationType(EvaluationContext context) {
 			this.Context = context;
 		}
@@ -508,6 +516,13 @@ namespace SharpSheets.Evaluations {
 		}
 		protected void AddStaticField(TypeField field) {
 			staticFields.Add(field.Name, field);
+		}
+
+		protected void AddMethod(IMethod method) {
+			methods.Add(method.Name, method);
+		}
+		protected void AddStaticMethod(IMethod method) {
+			staticMethods.Add(method.Name, method);
 		}
 
 		public static bool SharedContext(EvaluationType a, EvaluationType b) {
@@ -550,6 +565,20 @@ namespace SharpSheets.Evaluations {
 
 		public TypeField? GetStaticField(EvaluationName field) {
 			return staticFields.GetValueOrFallback(field, null);
+		}
+
+		public bool IsMethod(EvaluationName method) {
+			return methods.ContainsKey(method);
+		}
+		public IMethod? GetMethod(EvaluationName method) {
+			return methods.GetValueOrFallback(method, null);
+		}
+
+		public bool IsStaticMethod(EvaluationName method) {
+			return staticMethods.ContainsKey(method);
+		}
+		public IMethod? GetStaticMethod(EvaluationName method) {
+			return staticMethods.GetValueOrFallback(method, null);
 		}
 
 		public virtual IEnvironmentFunction? GetTypeFunction() => null;
@@ -2069,37 +2098,6 @@ namespace SharpSheets.Evaluations {
 				EnvironmentFunctionNode node = new EnvironmentFunctionNode(Instance, argument.Context);
 				node.SetArguments(argument);
 				return node.Simplify();
-			}
-		}
-
-		public class StringRepeatMethod : AbstractSingleArgMethod {
-			public override EvaluationName Name { get; } = "repeat";
-			public override string? Description { get; } = "Repeat the string content a given number of times.";
-
-			protected override EnvironmentFunctionArg GetArgument() {
-				return new EnvironmentFunctionArg("count", ReceiverType.Context.GetType<IntEvaluationType>(), "The number of times the string should be repeated.");
-			}
-
-			protected override string? Warning { get; } = null;
-
-			public StringRepeatMethod(StringEvaluationType receiverType) : base(receiverType) { }
-
-			public override EvaluationType GetReturnType(EvaluationNode receiver, EvaluationNode arg) {
-				EvaluationType receiverType = receiver.GetReturnType();
-				EvaluationType argType = arg.GetReturnType();
-				return (IsString(receiverType) && IntEvaluationType.IsIntegral(argType)) ? receiver.Context.GetType<StringEvaluationType>() : throw new EvaluationTypeException($"{ReceiverType}.{Name} is not defined for argument of type {argType}.");
-			}
-
-			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode receiver, EvaluationNode arg) {
-				EvaluationValue r = receiver.Evaluate(environment);
-				EvaluationValue a = arg.Evaluate(environment);
-
-				if (TryGetString(r, out string? str) && IntEvaluationType.TryGetInt(a, out int count)) {
-					return new EvaluationValue(string.Join("", str.Yield().Repeat(count)), environment.GetType<StringEvaluationType>());
-				}
-				else {
-					throw new EvaluationTypeException($"Mathematical functions are not defined for value of type {a.Type}.");
-				}
 			}
 		}
 

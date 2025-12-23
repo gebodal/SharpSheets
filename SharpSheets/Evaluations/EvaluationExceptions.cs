@@ -54,9 +54,7 @@ namespace SharpSheets.Evaluations {
 	/// </summary>
 	public class UndefinedVariableException : UndefinedException {
 		public EvaluationName Key { get; }
-		public UndefinedVariableException(EvaluationName key) : base($"Variable \"{key}\" not currently defined.") {
-			this.Key = key;
-		}
+		public UndefinedVariableException(EvaluationName key) : this(key, $"Variable \"{key}\" not currently defined.") { }
 		public UndefinedVariableException(EvaluationName key, string message) : base(message) {
 			this.Key = key;
 		}
@@ -67,10 +65,21 @@ namespace SharpSheets.Evaluations {
 	/// </summary>
 	public class UndefinedFunctionException : UndefinedException {
 		public EvaluationName Name { get; }
-		public UndefinedFunctionException(EvaluationName name) : base($"Function \"{name}\" not currently defined.") {
+		public UndefinedFunctionException(EvaluationName name) : this(name, $"Function \"{name}\" not currently defined.") { }
+		public UndefinedFunctionException(EvaluationName name, string message) : base(message) {
 			this.Name = name;
 		}
-		public UndefinedFunctionException(EvaluationName name, string message) : base(message) {
+	}
+
+	/// <summary>
+	/// Indicates than an undefined function has been encountered in an evaluation.
+	/// </summary>
+	public class UndefinedMethodException : UndefinedException {
+		public EvaluationName Type { get; }
+		public EvaluationName Name { get; }
+		public UndefinedMethodException(EvaluationName type, EvaluationName name) : this(type, name, $"Function \"{name}\" not currently defined.") { }
+		public UndefinedMethodException(EvaluationName type, EvaluationName name, string message) : base(message) {
+			this.Type = type;
 			this.Name = name;
 		}
 	}
