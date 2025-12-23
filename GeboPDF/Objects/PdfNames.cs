@@ -7,7 +7,7 @@
 		public static readonly PdfName Parent = new PdfName("Parent");
 		public static readonly PdfName Kids = new PdfName("Kids");
 		public static readonly PdfName Root = new PdfName("Root");
-		public static readonly PdfName Catalogue = new PdfName("Catalogue");
+		public static readonly PdfName Catalog = new PdfName("Catalog");
 		public static readonly PdfName Count = new PdfName("Count");
 		public static readonly PdfName Pages = new PdfName("Pages");
 		public static readonly PdfName Page = new PdfName("Page");

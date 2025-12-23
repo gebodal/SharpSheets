@@ -72,7 +72,7 @@ namespace GeboPdf.Documents {
 		}
 
 		public override IEnumerator<KeyValuePair<PdfName, PdfObject>> GetEnumerator() {
-			yield return new KeyValuePair<PdfName, PdfObject>(PdfNames.Type, PdfNames.Catalogue);
+			yield return new KeyValuePair<PdfName, PdfObject>(PdfNames.Type, PdfNames.Catalog);
 			yield return new KeyValuePair<PdfName, PdfObject>(PdfNames.Pages, PdfIndirectReference.Create(pagesDict));
 
 			// TODO There are more entries in this dictionary, that should probably be considered! (See specification)
