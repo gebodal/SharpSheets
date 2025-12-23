@@ -155,7 +155,7 @@ namespace SharpSheets.Markup.Parsing {
 
 			// Shape types
 			TypeField GetAspectField<TShape>(EvaluationContext ctx) where TShape : IAreaShape {
-				return new TypeField("aspect", ctx.GetType<FloatEvaluationType>(), v => ctx.GetType<FloatEvaluationType>().MakeValue(((TShape)v.Value!).Aspect));
+				return new TypeField("aspect", "The aspect ratio of this shape.", ctx.GetType<FloatEvaluationType>(), v => ctx.GetType<FloatEvaluationType>().MakeValue(((TShape)v.Value!).Aspect));
 			}
 			// TODO There are missing types here
 			builder.SetSystemType<IContainerShape, EvaluationType>(ctx => new CustomEvaluationType<IContainerShape?>(ctx, "TitledBox", [GetAspectField<IContainerShape>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
@@ -255,7 +255,7 @@ namespace SharpSheets.Markup.Parsing {
 			List<TypeField> fields = new List<TypeField>();
 
 			foreach (IMarkupArgument arg in args) {
-				TypeField field = new TypeField(arg.VariableName, arg.Type, obj => GroupFieldAccessor(obj, arg.VariableName));
+				TypeField field = new TypeField(arg.VariableName, $"The {arg.VariableName} entry for this grouping.", arg.Type, obj => GroupFieldAccessor(obj, arg.VariableName));
 				fields.Add(field);
 			}
 
@@ -289,7 +289,7 @@ namespace SharpSheets.Markup.Parsing {
 
 		public ColorEvaluationType(EvaluationContext context) : base(context) {
 			foreach((string name, SharpSheets.Colors.Color color) in SharpSheets.Colors.Color.NamedColors) {
-				AddStaticField(new TypeField(name, this, t => new EvaluationValue(color, this)));
+				AddStaticField(new TypeField(name, $"{name}, corresponding to {color.ToHexString()}.", this, t => new EvaluationValue(color, this)));
 			}
 		}
 
@@ -435,7 +435,7 @@ namespace SharpSheets.Markup.Parsing {
 						Type[] types = argVals.Select(a => a.GetType()).Distinct().ToArray();
 						string s = (types.Length > 1) ? "s" : "";
 						throw new EvaluationTypeException($"Cannot create a color from arguments with type{s}: " + string.Join(", ", types.Select(t => t.Name)));
-	}
+					}
 
 					if (values.Length == 1) {
 						result = ColorUtils.FromGrayscale(values[0]);
@@ -460,15 +460,15 @@ namespace SharpSheets.Markup.Parsing {
 		public override string Name { get; } = "dimension";
 
 		public DimensionEvaluationType(EvaluationContext context) : base(context) {
-			AddStaticField(new TypeField("auto", this, t => new EvaluationValue(Dimension.Automatic, this)));
+			AddStaticField(new TypeField("auto", "The auto-sized dimension value.", this, t => new EvaluationValue(Dimension.Automatic, this)));
 
 			FloatEvaluationType floatType = context.GetType<FloatEvaluationType>();
 			BoolEvaluationType boolType = context.GetType<BoolEvaluationType>();
 
-			AddField(new TypeField("absolute", floatType, v => new EvaluationValue(((Dimension)v.Value!).Absolute, floatType)));
-			AddField(new TypeField("relative", floatType, v => new EvaluationValue(((Dimension)v.Value!).Relative, floatType)));
-			AddField(new TypeField("percent", floatType, v => new EvaluationValue(((Dimension)v.Value!).Percent, floatType)));
-			AddField(new TypeField("auto", boolType, v => new EvaluationValue(((Dimension)v.Value!).Auto, boolType)));
+			AddField(new TypeField("absolute", "The absolute value of this dimension.", floatType, v => new EvaluationValue(((Dimension)v.Value!).Absolute, floatType)));
+			AddField(new TypeField("relative", "The relative value of this dimension.", floatType, v => new EvaluationValue(((Dimension)v.Value!).Relative, floatType)));
+			AddField(new TypeField("percent", "The percentage value of this dimension (0-1).", floatType, v => new EvaluationValue(((Dimension)v.Value!).Percent, floatType)));
+			AddField(new TypeField("auto", "Flag to indicate whether this dimension is auto-sized.", boolType, v => new EvaluationValue(((Dimension)v.Value!).Auto, boolType)));
 
 			// Should be some static methods in here
 		}
@@ -578,10 +578,10 @@ namespace SharpSheets.Markup.Parsing {
 		public override string Name { get; } = "margins";
 
 		public MarginsEvaluationType(EvaluationContext context) : base(context) {
-			AddField(new TypeField("top", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Top, value.Type.Context.GetType<FloatEvaluationType>())));
-			AddField(new TypeField("right", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Right, value.Type.Context.GetType<FloatEvaluationType>())));
-			AddField(new TypeField("bottom", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Bottom, value.Type.Context.GetType<FloatEvaluationType>())));
-			AddField(new TypeField("left", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Left, value.Type.Context.GetType<FloatEvaluationType>())));
+			AddField(new TypeField("top", "Top-side margin.", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Top, value.Type.Context.GetType<FloatEvaluationType>())));
+			AddField(new TypeField("right", "Right-side margin.", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Right, value.Type.Context.GetType<FloatEvaluationType>())));
+			AddField(new TypeField("bottom", "Bottom-side margin.", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Bottom, value.Type.Context.GetType<FloatEvaluationType>())));
+			AddField(new TypeField("left", "Left-side margin.", Context.GetType<FloatEvaluationType>(), value => new EvaluationValue(((Margins)value.Value!).Left, value.Type.Context.GetType<FloatEvaluationType>())));
 		}
 
 		protected override Margins ParseValueDataSingle(string text, DirectoryPath source) {
@@ -748,7 +748,7 @@ namespace SharpSheets.Markup.Parsing {
 		public override string Name { get; } = "richstr";
 
 		public RichStringEvaluationType(EvaluationContext context) : base(context) {
-			AddField(new TypeField("length", Context.GetType<IntEvaluationType>(), value => value.Type.Context.GetValue<IntEvaluationType>(((RichString)value.Value!).Length)));
+			AddField(new TypeField("length", "The length of (number of characters in) this rich string.", Context.GetType<IntEvaluationType>(), value => value.Type.Context.GetValue<IntEvaluationType>(((RichString)value.Value!).Length)));
 		}
 
 		protected override RichString ParseValueDataSingle(string text, DirectoryPath source) {

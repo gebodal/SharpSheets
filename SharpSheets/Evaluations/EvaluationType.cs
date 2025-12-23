@@ -446,11 +446,13 @@ namespace SharpSheets.Evaluations {
 	public class TypeField {
 
 		public EvaluationName Name { get; }
+		public string Description { get; }
 		public EvaluationType Type { get; }
 		private readonly Func<EvaluationValue, EvaluationValue> evaluator;
 
-		public TypeField(EvaluationName name, EvaluationType type, Func<EvaluationValue, EvaluationValue> evaluator) {
+		public TypeField(EvaluationName name, string description, EvaluationType type, Func<EvaluationValue, EvaluationValue> evaluator) {
 			Name = name;
+			Description = description;
 			Type = type;
 			this.evaluator = evaluator;
 		}
@@ -549,12 +551,9 @@ namespace SharpSheets.Evaluations {
 			return this == other.Type ? other : null;
 		}
 
-		/*
 		public bool IsField(EvaluationName field) {
 			return fields.ContainsKey(field);
 		}
-		*/
-
 		public TypeField? GetField(EvaluationName field) {
 			return fields.GetValueOrFallback(field, null);
 		}
@@ -562,7 +561,6 @@ namespace SharpSheets.Evaluations {
 		public bool IsStaticField(EvaluationName field) {
 			return staticFields.ContainsKey(field);
 		}
-
 		public TypeField? GetStaticField(EvaluationName field) {
 			return staticFields.GetValueOrFallback(field, null);
 		}
@@ -877,8 +875,8 @@ namespace SharpSheets.Evaluations {
 		public override string Name { get; } = "float";
 
 		public FloatEvaluationType(EvaluationContext context) : base(context) {
-			AddStaticField(new TypeField("MINVALUE", this, t => new EvaluationValue(float.MinValue, this)));
-			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(float.MaxValue, this)));
+			AddStaticField(new TypeField("MINVALUE", $"The most negative float value, {float.MinValue}.", this, t => new EvaluationValue(float.MinValue, this)));
+			AddStaticField(new TypeField("MAXVALUE", $"The largest positive float value, {float.MaxValue}.", this, t => new EvaluationValue(float.MaxValue, this)));
 
 			AddMethod(new NumericClampMethod(this));
 		}
@@ -1052,7 +1050,7 @@ namespace SharpSheets.Evaluations {
 					new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<FloatEvaluationType>(), null)),
 					new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<BoolEvaluationType>(), null))
 				);
-	}
+			}
 
 			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
 				EvaluationType argType = args[0].GetReturnType();
@@ -1128,7 +1126,7 @@ namespace SharpSheets.Evaluations {
 		public override string Name { get; } = "ufloat";
 
 		public UFloatEvaluationType(EvaluationContext context) : base(context) {
-			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(UFloat.MaxValue, this)));
+			AddStaticField(new TypeField("MAXVALUE", $"The largest positive ufloat value, {UFloat.MaxValue}.", this, t => new EvaluationValue(UFloat.MaxValue, this)));
 
 			AddMethod(new NumericClampMethod(this));
 		}
@@ -1299,8 +1297,8 @@ namespace SharpSheets.Evaluations {
 		public override string Name { get; } = "int";
 
 		public IntEvaluationType(EvaluationContext context) : base(context) {
-			AddStaticField(new TypeField("MINVALUE", this, t => new EvaluationValue(int.MinValue, this)));
-			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(int.MaxValue, this)));
+			AddStaticField(new TypeField("MINVALUE", $"The most negative int value, {int.MinValue}.", this, t => new EvaluationValue(int.MinValue, this)));
+			AddStaticField(new TypeField("MAXVALUE", $"The largest positive int value, {int.MaxValue}.", this, t => new EvaluationValue(int.MaxValue, this)));
 
 			AddMethod(new NumericClampMethod(this));
 		}
@@ -1470,7 +1468,7 @@ namespace SharpSheets.Evaluations {
 					new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<FloatEvaluationType>(), null)),
 					new EnvironmentFunctionArgList(new EnvironmentFunctionArg("value", context.GetType<BoolEvaluationType>(), null))
 				);
-	}
+			}
 
 			public override EvaluationType GetReturnType(EvaluationContext context, EvaluationNode[] args) {
 				EvaluationType argType = args[0].GetReturnType();
@@ -1524,7 +1522,7 @@ namespace SharpSheets.Evaluations {
 		public override string Name { get; } = "uint";
 
 		public UIntEvaluationType(EvaluationContext context) : base(context) {
-			AddStaticField(new TypeField("MAXVALUE", this, t => new EvaluationValue(uint.MaxValue, this)));
+			AddStaticField(new TypeField("MAXVALUE", $"The largest positive uint value, {uint.MaxValue}.", this, t => new EvaluationValue(uint.MaxValue, this)));
 
 			AddMethod(new NumericClampMethod(this));
 		}
@@ -1837,7 +1835,7 @@ namespace SharpSheets.Evaluations {
 
 			private static EvaluationValue MakeResult(bool result, EvaluationContext context) {
 				return new EvaluationValue(result, context.GetType<BoolEvaluationType>());
-	}
+			}
 
 			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
 				EvaluationValue a = args[0].Evaluate(environment);
@@ -1872,7 +1870,7 @@ namespace SharpSheets.Evaluations {
 		public override string Name { get; } = "str";
 
 		public StringEvaluationType(EvaluationContext context) : base(context) {
-			AddField(new TypeField("length", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((string)value.Value!).Length, value.Type.Context.GetType<IntEvaluationType>())));
+			AddField(new TypeField("length", "The length of (number of characters in) this string.", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((string)value.Value!).Length, value.Type.Context.GetType<IntEvaluationType>())));
 			AddMethod(new StringRepeatMethod(this));
 			AddMethod(new StringJoinMethod(this));
 			AddMethod(new StringContainsMethod(this));
@@ -2121,7 +2119,7 @@ namespace SharpSheets.Evaluations {
 
 			protected override EnvironmentFunctionArg GetArgument() {
 				return new EnvironmentFunctionArg("count", ReceiverType.Context.GetType<IntEvaluationType>(), "The number of times the string should be repeated.");
-	}
+			}
 
 			protected override string? Warning { get; } = null;
 
@@ -2270,7 +2268,7 @@ namespace SharpSheets.Evaluations {
 		internal ArrayEvaluationType(EvaluationContext context, EvaluationType elementType) : base(context, elementType) {
 			this.DataType = this.ElementType.DataType.MakeArrayType();
 
-			AddField(new TypeField("length", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((Array)value.Value!).Length, value.Type.Context.GetType<IntEvaluationType>())));
+			AddField(new TypeField("length", "The number of elements in the array.", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((Array)value.Value!).Length, value.Type.Context.GetType<IntEvaluationType>())));
 			AddMethod(new ArrayContainsMethod(this));
 		}
 
@@ -2402,8 +2400,8 @@ namespace SharpSheets.Evaluations {
 			if (TryGetArray(subject, out Array? array) && IntEvaluationType.TryGetInt(index, out int indexVal)) {
 				int indexFinal = EvaluationTypeHelpers.GetIndex(indexVal, array.Length);
 				try {
-				return new EvaluationValue(array.GetValue(indexFinal), ElementType);
-			}
+					return new EvaluationValue(array.GetValue(indexFinal), ElementType);
+				}
 				catch (IndexOutOfRangeException) {
 					throw new EvaluationCalculationException($"Index out of range for array indexer ({indexVal} not in {array.Length}).");
 				}
@@ -2466,7 +2464,7 @@ namespace SharpSheets.Evaluations {
 
 			protected override EnvironmentFunctionArg GetArgument() {
 				return new EnvironmentFunctionArg("value", arrayReceiver.ElementType, "The value to check for presence in the array.");
-	}
+			}
 
 			protected override string? Warning { get; } = null;
 
@@ -2520,7 +2518,7 @@ namespace SharpSheets.Evaluations {
 
 			this.ElementCount = elementCount;
 
-			AddField(new TypeField("length", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(elementCount, value.Type.Context.GetType<IntEvaluationType>())));
+			AddField(new TypeField("length", "The number of elements in the tuple.", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(elementCount, value.Type.Context.GetType<IntEvaluationType>())));
 		}
 
 		protected override string GetMyCollectionBrackets() {
@@ -2652,9 +2650,9 @@ namespace SharpSheets.Evaluations {
 		internal DictionaryEvaluationType(EvaluationContext context, EvaluationType keyType, EvaluationType elementType) : base(context, elementType) {
 			this.KeyType = keyType;
 
-			AddField(new TypeField("keys", KeyType.MakeArray(), value => ArrayEvaluationType.MakeArrayFromData(KeyType, ((IDictionary)value.Value!).Keys.Cast<object>().ToArray())));
-			AddField(new TypeField("values", ElementType.MakeArray(), value => ArrayEvaluationType.MakeArrayFromData(ElementType, ((IDictionary)value.Value!).Values.Cast<object?>().ToArray())));
-			AddField(new TypeField("count", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((IDictionary)value.Value!).Count, value.Type.Context.GetType<IntEvaluationType>())));
+			AddField(new TypeField("keys", "An array of the keys of this dictionary.", KeyType.MakeArray(), value => ArrayEvaluationType.MakeArrayFromData(KeyType, ((IDictionary)value.Value!).Keys.Cast<object>().ToArray())));
+			AddField(new TypeField("values", "An array of the values of this dictionary.", ElementType.MakeArray(), value => ArrayEvaluationType.MakeArrayFromData(ElementType, ((IDictionary)value.Value!).Values.Cast<object?>().ToArray())));
+			AddField(new TypeField("count", "The number of entries in the dictionary.", Context.GetType<IntEvaluationType>(), value => new EvaluationValue(((IDictionary)value.Value!).Count, value.Type.Context.GetType<IntEvaluationType>())));
 		}
 
 		protected override string GetMyCollectionBrackets() {
@@ -2842,7 +2840,7 @@ namespace SharpSheets.Evaluations {
 			enumNamesHash = GetEnumNamesHashCode(this.enumNames.Keys);
 
 			foreach (string enumName in this.enumNames.Keys.Order()) {
-				AddStaticField(new TypeField(enumName, this, t => new EvaluationValue(enumName, this)));
+				AddStaticField(new TypeField(enumName, $"The {enumName} enum value for {name}.", this, t => new EvaluationValue(enumName, this)));
 			}
 		}
 
