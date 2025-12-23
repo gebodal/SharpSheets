@@ -50,11 +50,15 @@ namespace GeboPdf.Fonts {
 		}
 
 		public void AddMapping((ushort[] glyphs, ushort[] original) mapping) {
+			AddGlyphs(mapping.glyphs);
 			mappings.Add(mapping);
 		}
 
 		public void AddMappings(IEnumerable<(ushort[] glyphs, ushort[] original)> mappings) {
-			this.mappings.UnionWith(mappings);
+			//this.mappings.UnionWith(mappings);
+			foreach ((ushort[] glyphs, ushort[] original) m in mappings) {
+				AddMapping(m);
+			}
 		}
 
 		public void UnionWith(FontGlyphUsage other) {
@@ -79,6 +83,10 @@ namespace GeboPdf.Fonts {
 			allMappings.UnionWith(b.mappings);
 
 			return new FontGlyphUsage(allGlyphs, allMappings, allUsed);
+		}
+
+		public bool IsUsed(ushort glyphId) {
+			return usedGlyphs.Contains(glyphId);
 		}
 
 	}

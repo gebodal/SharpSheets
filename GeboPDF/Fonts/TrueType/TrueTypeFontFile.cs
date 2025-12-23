@@ -16,7 +16,7 @@ namespace GeboPdf.Fonts.TrueType {
 		public readonly ushort numGlyphs;
 
 		public readonly TrueTypeHeadTable head;
-		public readonly TrueTypeNameTable name;
+		public readonly TrueTypeNameTable? name;
 		public readonly TrueTypeHorizontalHeaderTable hhea;
 		public readonly TrueTypeIndexToLocationTable? loca;
 		public readonly TrueTypeGlyphTable? glyf;
@@ -43,7 +43,7 @@ namespace GeboPdf.Fonts.TrueType {
 				IReadOnlyDictionary<string, TrueTypeFontTable> tables,
 				ushort numGlyphs,
 				TrueTypeHeadTable head,
-				TrueTypeNameTable name,
+				TrueTypeNameTable? name,
 				TrueTypeHorizontalHeaderTable hhea,
 				TrueTypeIndexToLocationTable? loca,
 				TrueTypeGlyphTable? glyf,
@@ -160,10 +160,10 @@ namespace GeboPdf.Fonts.TrueType {
 			TrueTypeHeadTable head = TrueTypeHeadTable.Read(reader, headTable.offset);
 
 			///////////// Name table
-			if (!tables.TryGetValue("name", out TrueTypeFontTable? nameTable)) {
-				throw new FormatException("No name table.");
+			TrueTypeNameTable? name = null;
+			if (tables.TryGetValue("name", out TrueTypeFontTable? nameTable)) {
+				name = TrueTypeNameTable.Read(reader, nameTable.offset);
 			}
-			TrueTypeNameTable name = TrueTypeNameTable.Read(reader, nameTable.offset);
 
 			///////////// maxp table
 			if (!tables.TryGetValue("maxp", out TrueTypeFontTable? maxpTable)) {
@@ -491,7 +491,7 @@ namespace GeboPdf.Fonts.TrueType {
 				glyf = TrueTypeGlyphContourTable.Read(reader, glyfTable.offset, loca);
 			}
 
-			///////////// OS/2 table
+			///////////// CFF table
 			OpenTypeCFFTable? cff = null;
 			if (tables.TryGetValue("CFF ", out TrueTypeFontTable? cffTable)) {
 				cff = OpenTypeCFFTable.Read(reader, cffTable.offset);

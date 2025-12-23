@@ -251,7 +251,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			return clickable;
 		}
 
-		private static Control MakeFeaturesTable(IEnumerable<(string tag, OpenTypeFeatureTable table)> features, TrueTypeNameTable name) {
+		private static Control MakeFeaturesTable(IEnumerable<(string tag, OpenTypeFeatureTable table)> features, TrueTypeNameTable? name) {
 			return CreateTable(
 				new TextBlock[] { MakeTableHeaderBlock("Tag"), MakeTableHeaderBlock("Feature") },
 				ToRank2Array(features
@@ -263,7 +263,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 				);
 		}
 
-		private static string GetFeatureName(string tag, OpenTypeFeatureTable table, TrueTypeNameTable name) {
+		private static string GetFeatureName(string tag, OpenTypeFeatureTable table, TrueTypeNameTable? name) {
 
 			string baseName = OpenTypeLayoutTags.FeatureTagsRegistry.GetValueOrDefault(tag, "Unknown Feature");
 
@@ -478,8 +478,8 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 		#region Utilities
 
-		private static string? GetFontText(TrueTypeNameTable nameTable, NameID nameID) {
-			if (nameTable.nameRecords.TryGetValue(nameID, out TrueTypeName[]? nameRecords)) {
+		private static string? GetFontText(TrueTypeNameTable? nameTable, NameID nameID) {
+			if (nameTable is not null && nameTable.nameRecords.TryGetValue(nameID, out TrueTypeName[]? nameRecords)) {
 				return GetFontName(nameRecords);
 			}
 			else {
@@ -487,7 +487,9 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 			}
 		}
 
-		private static string? GetFontText(TrueTypeNameTable nameTable, params NameID[] nameIDwithFallbacks) {
+		private static string? GetFontText(TrueTypeNameTable? nameTable, params NameID[] nameIDwithFallbacks) {
+			if (nameTable is null) { return null; }
+
 			for (int i = 0; i < nameIDwithFallbacks.Length; i++) {
 				if (GetFontText(nameTable, nameIDwithFallbacks[i]) is string name) {
 					return name;
@@ -536,14 +538,23 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 		}
 
 		private static string MakeEmbeddingNotice(EmbeddingFlags flags) {
+			string GetSubsetNotice() {
+				if (flags.HasFlag(EmbeddingFlags.NoSubsetting)) {
+					return "The font may not be subset when embedded in a file.";
+				}
+				else {
+					return "The font may be subset when embedded in a file.";
+				}
+			}
+
 			if (flags.IsLicensed()) {
-				return "This font indicates that it is licensed, and you must contact the legal owner before embedding it in a file.";
+				return "This font indicates that it is licensed, and you must contact the legal owner before embedding it in a file. " + GetSubsetNotice();
 			}
 			else if (flags.IsKnownEmbeddable()) {
-				return "This font indicates that it may be embedded in a file.";
+				return "This font indicates that it may be embedded in a file. " + GetSubsetNotice();
 			}
 			else {
-				return "The embedding restrictions of this font are unclear.";
+				return "The embedding restrictions of this font are unclear. " + GetSubsetNotice();
 			}
 		}
 

@@ -42,6 +42,63 @@ namespace GeboPdf.Fonts.TrueType {
 			return new TrueTypeCMapTable(version, numSubtables, subtables);
 		}
 
+		public static TrueTypeFontTable WriteFormat12(FontFileWriter writer, IReadOnlyDictionary<uint, ushort> cidMap) {
+			long offset = writer.Position;
+
+			(uint startCharCode, uint endCharCode, uint startGlyphCode)[] groups = GetFormat12Groups(cidMap);
+
+			uint subtableLength = (uint)(16 + groups.Length * 12); // 16 for header, 12 per group
+			uint nGroups = (uint)groups.Length;
+
+			writer.WriteUInt16(0); // Version, set to zero
+			writer.WriteUInt16(1); // Number of subtables
+
+			// encodingRecords (only one)
+			writer.WriteUInt16(0); // platformID, 0 indicates Unicode
+			writer.WriteUInt16(4); // platformSpecificID, 4 indicates Unicode 2.0 or later semantics (non-BMP characters allowed)
+			writer.WriteOffset32(12); // Offset to subtable (12 bytes for header and single encoding record
+
+			// Subtable
+			writer.WriteUInt16(12); // Subtable format
+			writer.WriteUInt16(0); // Reserved
+			writer.WriteUInt32(subtableLength); // Subtable length (including header)
+			writer.WriteUInt32(0); // Language code (set to zero for non-Max font)
+			writer.WriteUInt32(nGroups); // N groups to follow
+
+			foreach((uint startCharCode, uint endCharCode, uint startGlyphCode) in groups) {
+				writer.WriteOffset32(startCharCode);
+				writer.WriteOffset32(endCharCode);
+				writer.WriteOffset32(startGlyphCode);
+			}
+
+			writer.EnsureLongAlignedFrom(offset);
+
+			return new TrueTypeFontTable("cmap", 0, (uint)offset, (uint)(writer.Position - offset));
+		}
+
+		private static (uint startCharCode, uint endCharCode, uint startGlyphCode)[] GetFormat12Groups(IReadOnlyDictionary<uint, ushort> cidMap) {
+			List<(uint startCharCode, uint endCharCode, uint startGlyphCode)> groups = new List<(uint, uint, uint)>();
+
+			(uint startCharCode, uint endCharCode, uint startGlyphCode, int length)? current = null;
+			foreach ((uint charCode, ushort glyphCode) in cidMap.OrderBy(kv => kv.Key)) {
+				if (current.HasValue && charCode == current.Value.endCharCode + 1 && glyphCode == current.Value.startGlyphCode + current.Value.length) {
+					current = (current.Value.startCharCode, charCode, current.Value.startGlyphCode, current.Value.length + 1);
+				}
+				else {
+					if (current.HasValue) {
+						groups.Add((current.Value.startCharCode, current.Value.endCharCode, current.Value.startGlyphCode));
+					}
+					current = (charCode, charCode, glyphCode, 1);
+				}
+			}
+
+			if(current.HasValue) {
+				groups.Add((current.Value.startCharCode, current.Value.endCharCode, current.Value.startGlyphCode));
+			}
+
+			return groups.ToArray();
+		}
+
 	}
 
 	public readonly struct CMapTableIdentifier {

@@ -1,27 +1,30 @@
 ﻿using GeboPdf.Fonts;
 using GeboPdf.Fonts.TrueType;
 using GeboPdf.Objects;
+using GeboPDF.Fonts;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace GeboPdf.Fonts {
 
-	public static class CIDFontFactory {
+	public static partial class CIDFontFactory {
 
 		// Very crude caching - should be improved
 		private static readonly Dictionary<string, MemoryStream> fontStreams = new Dictionary<string, MemoryStream>();
 
 		public static PdfType0Font CreateFont(string fontPath, OpenTypeLayoutTags layoutTags) {
-			if (!fontStreams.ContainsKey(fontPath)) {
+			if (!fontStreams.TryGetValue(fontPath, out MemoryStream? fontStream)) {
 				byte[] fontBytes = File.ReadAllBytes(fontPath);
 				MemoryStream memoryStream = new MemoryStream(fontBytes, false);
-				fontStreams.Add(fontPath, memoryStream);
+				fontStream = memoryStream;
+				fontStreams.Add(fontPath, fontStream);
 			}
 
-			return CreateFont(fontStreams[fontPath], fontPath, layoutTags);
+			return CreateFont(fontStream, fontPath, layoutTags);
 		}
 
 		public static PdfType0Font CreateFont(string fontUri, Stream stream, OpenTypeLayoutTags layoutTags) {
@@ -35,16 +38,15 @@ namespace GeboPdf.Fonts {
 		public static PdfType0Font CreateFont(string fontPath, int fontIndex, OpenTypeLayoutTags layoutTags) {
 			string fontKey = fontPath + $"#{fontIndex}";
 
-			if (!fontStreams.ContainsKey(fontKey)) {
+			if (!fontStreams.TryGetValue(fontKey, out MemoryStream? fontStream)) {
 				using (FileStream fileStream = new FileStream(fontPath, FileMode.Open, FileAccess.Read)) {
-					MemoryStream fontStream = new MemoryStream();
+					fontStream = new MemoryStream();
 					TrueTypeCollection.ExtractFont(fileStream, fontIndex, fontStream);
-
 					fontStreams.Add(fontKey, fontStream);
 				}
 			}
 
-			return CreateFont(fontStreams[fontKey], fontKey, layoutTags);
+			return CreateFont(fontStream, fontKey, layoutTags);
 		}
 
 		public static PdfType0Font CreateFont(string fontUri, int fontIndex, Stream stream, OpenTypeLayoutTags layoutTags) {
@@ -77,32 +79,46 @@ namespace GeboPdf.Fonts {
 			return pdfFont;
 		}
 
-		private static readonly IReadOnlySet<string> reqTabs = new HashSet<string>() {
-			"head", "hhea", "loca", "maxp", "cvt ", "prep", "glyf", "hmtx", "fpgm",
-			"CFF ", "cmap"
-		};
+		private static bool TrySubsetFont(Stream source, TrueTypeFontFile fontFile, string fontName, FontGlyphUsage fontUsage, [MaybeNullWhen(false)] out MemoryStream fontStream, [MaybeNullWhen(false)] out PdfCmapStream encoding) {
+			//Console.WriteLine($"{fontName} used: {fontUsage.Glyphs.Count}/{fontFile.numGlyphs} glyphs");
+			try {
+				(fontStream, encoding) = FontSubsetting.Subset(source, fontFile, fontName, fontUsage, GetCmap(fontFile.cmap));
+				return true;
+			}
+			catch (FormatException) {
+				fontStream = null;
+				encoding = null;
+				return false;
+			}
+		}
 
 		public static PdfType0FontDictionary CreateFontDictionary(MemoryStream memoryStream, FontGlyphUsage fontUsage) {
 
 			TrueTypeFontFile fontFile = ReadFontFile(memoryStream);
+			string fontName = GetFontName(fontFile.name ?? throw new FormatException("No 'name' table provided for font."));
 
-			bool openType = fontFile.tables.ContainsKey("CFF ");
-
-			string fontName = GetFontName(fontFile);
-
-			IReadOnlyDictionary<uint, ushort> cmap = GetCmapDict(fontFile.cmap);
+			IReadOnlyDictionary<uint, ushort> toUnicodeCmap = GetCmapDict(fontFile.cmap);
+			IReadOnlySet<(ushort gid, ushort[] originals)> toUnicodeMappings = GetMappings(fontUsage);
+			PdfCmapStream? toUnicode;
 
 			MemoryStream fontStream;
-			if (fontUsage.All) {
-				fontStream = memoryStream;
+			PdfCmapStream? encoding;
+
+			if (!fontUsage.All && !fontFile.EmbeddingFlags.HasFlag(EmbeddingFlags.NoSubsetting) && TrySubsetFont(memoryStream, fontFile, fontName, fontUsage, out MemoryStream? subsetStream, out PdfCmapStream? subsetEncoding)) {
+				fontStream = subsetStream;
+				encoding = subsetEncoding;
+				fontFile = ReadFontFile(fontStream);
+				fontName = "GEBPDF+" + fontName;
+
+				HashSet<ushort> toUnicodeMappingReqOriginals = toUnicodeMappings.SelectMany(i => i.originals).ToHashSet();
+				toUnicode = CMapWriter.CreateToUnicode(toUnicodeCmap.Where(kv => fontUsage.IsUsed(kv.Value) || toUnicodeMappingReqOriginals.Contains(kv.Value)).ToDictionary(), toUnicodeMappings.Where(i => fontUsage.IsUsed(i.gid)).ToHashSet());
 			}
 			else {
-				fontStream = new MemoryStream();
-				TrueTypeFontTable[] tables = fontFile.tables.Values.Where(t => reqTabs.Contains(t.tag)).OrderBy(t => t.offset).ToArray();
-				FontFileWriter.WriteHeaderAndTables(memoryStream, fontFile.scalerType, tables, fontStream);
-			}
+				fontStream = memoryStream;
+				encoding = null;
 
-			TrueTypeFontProgramStream fontProgram = new TrueTypeFontProgramStream(fontStream, openType);
+				toUnicode = CMapWriter.CreateToUnicode(toUnicodeCmap, toUnicodeMappings);
+			}
 
 			FontDescriptorFlags flags = GetFlags(fontFile);
 			PdfRectangle fontBBox = GetBBox(fontFile);
@@ -112,18 +128,17 @@ namespace GeboPdf.Fonts {
 			float capHeight = GetCapHeight(fontFile);
 			float stemV = GetStemV(fontFile);
 
+			bool openType = fontFile.tables.ContainsKey("CFF ");
+			TrueTypeFontProgramStream fontProgram = new TrueTypeFontProgramStream(fontStream, openType);
+
 			FontDescriptor fontDescriptor = new FontDescriptor(fontName, fontProgram, flags, fontBBox, italicAngle, ascent, descent, capHeight, stemV);
-
-			IReadOnlySet<(ushort, ushort[])> mappings = GetMappings(fontUsage);
-
-			PdfCmapStream toUnicode = CMapWriter.CreateToUnicode(cmap, mappings, fontName);
 
 			int defaultWidth = GetDefaultWidth(fontFile);
 			PdfArray widths = GetWidths(fontFile);
 
 			Type2CIDFont cidFont = new Type2CIDFont(fontName, fontDescriptor, defaultWidth, widths);
 
-			PdfType0FontDictionary pdfFontDictionary = new PdfType0FontDictionary(cidFont, toUnicode);
+			PdfType0FontDictionary pdfFontDictionary = new PdfType0FontDictionary(cidFont, encoding, toUnicode);
 
 			return pdfFontDictionary;
 		}
@@ -138,29 +153,32 @@ namespace GeboPdf.Fonts {
 			return fontFile;
 		}
 
-		private static string GetFontName(TrueTypeFontFile fontFile) {
-			string name;
+		[GeneratedRegex(@"\s+")]
+		private static partial Regex WhitespaceRegex();
 
-			if (fontFile.name.nameRecords.TryGetValue(NameID.PostscriptName, out TrueTypeName[]? postScriptNames)) {
-				name = GetName(postScriptNames).name;
+		private static string GetFontName(TrueTypeNameTable name) {
+			string nameStr;
+
+			if (name.nameRecords.TryGetValue(NameID.PostscriptName, out TrueTypeName[]? postScriptNames)) {
+				nameStr = GetName(postScriptNames).name;
 			}
-			else if (fontFile.name.nameRecords.TryGetValue(NameID.FullName, out TrueTypeName[]? fullNames)) {
-				name = GetName(fullNames).name;
+			else if (name.nameRecords.TryGetValue(NameID.FullName, out TrueTypeName[]? fullNames)) {
+				nameStr = GetName(fullNames).name;
 			}
-			else if(fontFile.name.nameRecords.TryGetValue(NameID.FontFamily, out TrueTypeName[]? familyNames)) {
+			else if(name.nameRecords.TryGetValue(NameID.FontFamily, out TrueTypeName[]? familyNames)) {
 				string synthesised = GetName(familyNames).name;
 
-				if (fontFile.name.nameRecords.TryGetValue(NameID.FontSubfamily, out TrueTypeName[]? subfamilyNames)) {
+				if (name.nameRecords.TryGetValue(NameID.FontSubfamily, out TrueTypeName[]? subfamilyNames)) {
 					synthesised = synthesised + "," + GetName(subfamilyNames).name;
 				}
 
-				name = synthesised;
+				nameStr = synthesised;
 			}
 			else {
 				throw new ArgumentException("Could not find or synthesise valid font name.");
 			}
 
-			return Regex.Replace(name, @"\s+", "");
+			return WhitespaceRegex().Replace(nameStr, "");
 		}
 
 		public static TrueTypeCMapSubtable GetCmap(TrueTypeCMapTable cmap) {

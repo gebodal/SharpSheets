@@ -250,6 +250,24 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 		}
 
+		public static IEnumerable<ushort> GetUsedGlyphs(FontFileReader reader, long tableOffset, TrueTypeIndexToLocationTable loca, ushort glyphIdx) {
+			yield return glyphIdx;
+			
+			if (loca.lengths[glyphIdx] > 0) {
+
+				reader.Position = tableOffset + loca.offsets[glyphIdx];
+
+				short numberOfContours = reader.ReadInt16();
+				reader.SkipFWord(4); // xMin, yMin, xMax, yMax
+
+				if (numberOfContours < 0) { // Compound glyph description
+					foreach(ushort componentGlyphIdx in GetCompoundUsedGlyphs(reader, tableOffset, loca)) {
+						yield return componentGlyphIdx;
+					}
+				}
+			}
+		}
+
 		private static TrueTypeGlyphOutline ReadSingleGlyphData(FontFileReader reader, short numberOfContours) {
 
 			ushort[] endPtsOfContours = reader.ReadUInt16(numberOfContours);
@@ -417,6 +435,54 @@ namespace GeboPdf.Fonts.TrueType {
 			return ConstructOutline(xCoordinates, yCoordinates, onCurve, endPtsOfContours);
 		}
 
+		private static IEnumerable<ushort> GetCompoundUsedGlyphs(FontFileReader reader, long tableOffset, TrueTypeIndexToLocationTable loca) {
+
+			CompositeGlyphFlags flags;
+			do {
+				flags = (CompositeGlyphFlags)reader.ReadUInt16();
+				ushort glyphIndex = reader.ReadUInt16();
+
+				if (flags.HasFlag(CompositeGlyphFlags.ARGS_ARE_XY_VALUES)) {
+					if (flags.HasFlag(CompositeGlyphFlags.ARG_1_AND_2_ARE_WORDS)) {
+						reader.SkipInt16(2); // arg1, arg2
+					}
+					else {
+						reader.SkipInt8(2); // arg1, arg2
+					}
+				}
+				else {
+					if (flags.HasFlag(CompositeGlyphFlags.ARG_1_AND_2_ARE_WORDS)) {
+						reader.SkipUInt16(2); // arg1, arg2
+					}
+					else {
+						reader.SkipUInt8(2); // arg1, arg2
+					}
+				}
+
+				if (flags.HasFlag(CompositeGlyphFlags.WE_HAVE_A_SCALE)) {
+					reader.SkipF2Dot14(1); // xscale = yscale
+				}
+				else if (flags.HasFlag(CompositeGlyphFlags.WE_HAVE_AN_X_AND_Y_SCALE)) {
+					reader.SkipF2Dot14(2); // xscale, yscale
+				}
+				else if (flags.HasFlag(CompositeGlyphFlags.WE_HAVE_A_TWO_BY_TWO)) {
+					reader.SkipF2Dot14(4); // xscale, scale01, scale10, yscale
+				}
+
+				long oldPosition = reader.Position;
+				foreach(ushort nextedGlyphIdx in GetUsedGlyphs(reader, tableOffset, loca, glyphIndex)) {
+					yield return nextedGlyphIdx;
+				}
+				reader.Position = oldPosition;
+
+			} while (flags.HasFlag(CompositeGlyphFlags.MORE_COMPONENTS));
+
+			if (flags.HasFlag(CompositeGlyphFlags.WE_HAVE_INSTRUCTIONS)) {
+				ushort numInstructions = reader.ReadUInt16();
+				reader.SkipUInt8(numInstructions); // Instructions
+			}
+		}
+
 		private static TrueTypeGlyphOutline ConstructOutline(IReadOnlyList<short> xCoordinates, IReadOnlyList<short> yCoordinates, IReadOnlyList<bool> onCurve, IReadOnlyList<ushort> endPtsOfContours) {
 			if (xCoordinates.Count != yCoordinates.Count || xCoordinates.Count != onCurve.Count) {
 				throw new ArgumentException("Provided outline data must all have the same length.");
@@ -480,6 +546,72 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			return new TrueTypeGlyphOutline(xCoordinatesFinal, yCoordinatesFinal, onCurveFinal, endPtsOfContoursFinal);
+		}
+
+		public static void CopyGlyphData(FontFileReader source, FontFileWriter dest, uint glyphDataLength, IReadOnlyDictionary<ushort, ushort> gidRemap) {
+			if (glyphDataLength == 0) {
+				return; // Indicates that this is an empty glyph
+			}
+			
+			long startPos = dest.Position;
+
+			short numberOfContours = source.ReadInt16();
+			dest.WriteInt16(numberOfContours);
+			dest.TakeFWord(source, 4);
+
+			if (numberOfContours >= 0) { // Simple glyph description
+				source.BaseStream.CopyTo((int)(glyphDataLength - 10), dest.BaseStream); // Remaining glyph data
+			}
+			else { // Composite glyph description
+				CopyCompoundGlyphData(source, dest, glyphDataLength, gidRemap);
+			}
+
+			dest.EnsureLongAlignedFrom(startPos); // Glyph data must always be "word-aligned"
+		}
+
+		private static void CopyCompoundGlyphData(FontFileReader source, FontFileWriter dest, uint glyphDataLength, IReadOnlyDictionary<ushort, ushort> gidRemap) {
+
+			CompositeGlyphFlags flags;
+			do {
+				flags = (CompositeGlyphFlags)source.ReadUInt16();
+				dest.WriteUInt16((ushort)flags);
+				ushort glyphIndex = source.ReadUInt16();
+				dest.WriteUInt16(gidRemap[glyphIndex]);
+
+				if (flags.HasFlag(CompositeGlyphFlags.ARGS_ARE_XY_VALUES)) {
+					if (flags.HasFlag(CompositeGlyphFlags.ARG_1_AND_2_ARE_WORDS)) {
+						dest.TakeInt16(source, 2); // arg1, arg2
+					}
+					else {
+						dest.TakeInt8(source, 2); // arg1, arg2
+					}
+				}
+				else {
+					if (flags.HasFlag(CompositeGlyphFlags.ARG_1_AND_2_ARE_WORDS)) {
+						dest.TakeUInt16(source, 2); // arg1, arg2
+					}
+					else {
+						dest.TakeUInt8(source, 2); // arg1, arg2
+					}
+				}
+
+				if (flags.HasFlag(CompositeGlyphFlags.WE_HAVE_A_SCALE)) {
+					dest.TakeF2Dot14(source, 1); // xscale = yscale
+				}
+				else if (flags.HasFlag(CompositeGlyphFlags.WE_HAVE_AN_X_AND_Y_SCALE)) {
+					dest.TakeF2Dot14(source, 2); // xscale, yscale
+				}
+				else if (flags.HasFlag(CompositeGlyphFlags.WE_HAVE_A_TWO_BY_TWO)) {
+					dest.TakeF2Dot14(source, 4); // xscale, scale01, scale10, yscale
+				}
+
+			} while (flags.HasFlag(CompositeGlyphFlags.MORE_COMPONENTS));
+
+			if (flags.HasFlag(CompositeGlyphFlags.WE_HAVE_INSTRUCTIONS)) {
+				ushort numInstructions = source.ReadUInt16();
+				dest.WriteUInt16(numInstructions);
+				source.BaseStream.CopyTo(numInstructions, dest.BaseStream);
+			}
 		}
 
 	}

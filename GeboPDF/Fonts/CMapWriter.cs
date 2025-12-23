@@ -42,6 +42,10 @@ namespace GeboPdf.Fonts {
 			WriteEOL();
 		}
 
+		private void WriteInteger(ushort value) {
+			WriteASCII(value.ToString());
+		}
+
 		private void WriteGID(ushort value) {
 			WriteASCII("<");
 			byte byte1 = (byte)(value >> 8);
@@ -71,107 +75,37 @@ namespace GeboPdf.Fonts {
 			WriteASCII(">");
 		}
 
-		/*
-		public static CMapWriter Create(Stream stream, string name, string registry, string ordering, int supplement, int version, WritingMode wMode) {
+		public static PdfCmapStream CreateGIDRemappingEncoding(IList<ushort> remappings, string fontName) {
 
-			CMapWriter writer = new CMapWriter(stream);
-
-			writer.WriteASCIILine("%!PS-Adobe-3.0 Resource-CMap");
-			writer.WriteASCIILine("%%DocumentNeededResources: ProcSet CIDInit");
-			writer.WriteASCIILine("%%IncludeResource: ProcSet CIDInit");
-			writer.WriteASCIILine($"%%BeginResource: CMap {name}");
-			writer.WriteASCIILine($"%%Title: ({name} {registry} {ordering} {supplement.ToString()})");
-			writer.WriteASCIILine($"%%Version: {version.ToString()}");
-
-			writer.WriteASCIILine("/CIDInit /ProcSet findresource begin");
-
-			writer.WriteASCIILine("12 dict begin"); // For reasons, Adobe recommends to allocate 5 more elements than appear to be used in the code.
-
-			writer.WriteASCIILine("begincmap");
-
-			// CIDSystemInfo dictionary
-			writer.WriteASCIILine("/CIDSystemInfo 3 dict dup begin");
-			writer.WriteASCIILine($"/Registry ({registry}) def");
-			writer.WriteASCIILine($"/Ordering ({ordering}) def");
-			writer.WriteASCIILine($"/Supplement {supplement.ToString()} def");
-			writer.WriteASCIILine("end def");
-
-			// CMap Name, Version, and Type
-			writer.WriteASCIILine($"/CMapName /{name} def");
-			writer.WriteASCIILine($"/CMapVersion {version.ToString()} def");
-			writer.WriteASCIILine("/CMapType 1 def"); // Should this be 1 or 0?
-
-			// Unique Identification Numbers
-			// TODO How to handle these?
-			writer.WriteASCIILine("/UIDOffset 950 def");
-			writer.WriteASCIILine("/XUID [1 10 25343] def");
-
-			// Writing Mode
-			writer.WriteASCIILine($"/WMode {((int)wMode).ToString()} def");
-
-			// Codespace
-			// TODO Implement!
-
-			writer.WriteASCIILine("endcmap");
-
-			writer.WriteASCIILine("CMapName currentdict /CMap defineresource pop"); // Create resource instance
-
-			writer.WriteASCIILine("end"); // End "12 dict begin"
-			
-			writer.WriteASCIILine("end"); // End CIDInit findresource
-
-			writer.WriteASCIILine("%%EndResource"); // End CMap resource
-			writer.WriteASCIILine("%%EOF");
-
-			return new CMapWriter(stream);
-		}
-		*/
-
-		public static PdfCmapStream CreateToUnicode(Dictionary<uint, ushort> unicodeToGID, string registry, string ordering, int supplement, int version, WritingMode wMode) {
-
+			// These are required for the CMap, but there meaning here is unclear
+			// Is this sufficient?
 			CIDSystemInfo cidSystemInfo = new CIDSystemInfo(
-					registry,
-					ordering,
-					supplement
+					"Adobe", //"Adobe", // "GeboPDF",
+					"Identity", // orderingName, // "UCS", // What on Earth does this mean?
+					0
 				);
-			string name = $"{cidSystemInfo.Registry}-{cidSystemInfo.Ordering}-{cidSystemInfo.Supplement:000}";
-			int cmapType = 2;
+			//string name = $"{cidSystemInfo.Registry}-Identity-{cidSystemInfo.Ordering}";
+			//string name = $"{cidSystemInfo.Registry}-{cidSystemInfo.Ordering}-Encoding";
+			string name = $"GeboPDF-{fontName}-Encoding";
 
 			MemoryStream stream = new MemoryStream();
 			CMapWriter writer = new CMapWriter(stream);
 
-			writer.WriteASCIILine("%!PS-Adobe-3.0 Resource-CMap");
-			writer.WriteASCIILine("%%DocumentNeededResources: ProcSet CIDInit");
-			writer.WriteASCIILine("%%IncludeResource: ProcSet CIDInit");
-			writer.WriteASCIILine($"%%BeginResource: CMap {name}");
-			writer.WriteASCIILine($"%%Title: ({name} {registry} {ordering} {supplement.ToString()})");
-			writer.WriteASCIILine($"%%Version: {version.ToString()}");
-
+			// Initialise data objects and state
 			writer.WriteASCIILine("/CIDInit /ProcSet findresource begin");
-
-			writer.WriteASCIILine("12 dict begin"); // For reasons, Adobe recommends to allocate 5 more elements than appear to be used in the code.
-
+			writer.WriteASCIILine("12 dict begin"); // Need to allocate 5 more elements than appear to be used in the code.
 			writer.WriteASCIILine("begincmap");
 
 			// CIDSystemInfo dictionary
-			writer.WriteASCIILine("/CIDSystemInfo 3 dict dup begin");
-			writer.WriteASCIILine($"/Registry ({registry}) def");
-			writer.WriteASCIILine($"/Ordering ({ordering}) def");
-			writer.WriteASCIILine($"/Supplement {supplement.ToString()} def");
-			writer.WriteASCIILine("end def");
+			writer.WriteASCIILine("/CIDSystemInfo");
+			writer.WriteASCIILine($"<< /Registry ({cidSystemInfo.Registry})");
+			writer.WriteASCIILine($"/Ordering ({cidSystemInfo.Ordering})");
+			writer.WriteASCIILine($"/Supplement {cidSystemInfo.Supplement}");
+			writer.WriteASCIILine(">> def");
 
-			// CMap Name, Version, and Type
+			// CMap Name, and Type
 			writer.WriteASCIILine($"/CMapName /{name} def");
-			writer.WriteASCIILine($"/CMapVersion {version.ToString()} def");
-			writer.WriteASCIILine($"/CMapType {cmapType.ToString()} def"); // Should this be 1 or 0?
-
-			// Unique Identification Numbers
-			// TODO How to handle these?
-			//writer.WriteASCIILine("/UIDOffset 950 def");
-			//writer.WriteASCIILine("/XUID [1 10 25343] def");
-
-			// Writing Mode
-			writer.WriteASCIILine($"/WMode {((int)wMode).ToString()} def");
+			writer.WriteASCIILine("/CMapType 1 def"); // 2? This right?
 
 			// Codespace
 			writer.WriteASCIILine("1 begincodespacerange");
@@ -179,23 +113,110 @@ namespace GeboPdf.Fonts {
 			writer.WriteASCIILine("endcodespacerange");
 
 			// Character ranges
-			WriteToUnicodeMappings(writer, unicodeToGID, new HashSet<(ushort, ushort[])>());
+			WriteRemappings(writer, remappings);
 
+			// End the open data objects and finalise CMap resource
 			writer.WriteASCIILine("endcmap");
-
 			writer.WriteASCIILine("CMapName currentdict /CMap defineresource pop"); // Create resource instance
-
 			writer.WriteASCIILine("end"); // End "12 dict begin"
-
-			writer.WriteASCIILine("end"); // End CIDInit findresource
-
-			writer.WriteASCIILine("%%EndResource"); // End CMap resource
-			writer.WriteASCIILine("%%EOF");
+			writer.WriteASCII("end"); // End CIDInit findresource
 
 			return new PdfCmapStream(stream, name, cidSystemInfo);
 		}
 
-		public static PdfCmapStream CreateToUnicode(IReadOnlyDictionary<uint, ushort> unicodeToGID, IReadOnlySet<(ushort gid, ushort[] original)> mappings, string orderingName) {
+		private static void WriteRemappings(CMapWriter writer, IList<ushort> remappings) {
+
+			List<(ushort cid, ushort gid)> chars = new List<(ushort, ushort)>();
+			List<(ushort startCID, ushort endCID, ushort startGID)> ranges = new List<(ushort, ushort, ushort)>();
+
+			int count = 0;
+			ushort previousCID = 0;
+			ushort previousGID = 0;
+			ushort startCID = 0;
+			ushort startGID = 0;
+			for (ushort gid = 0; gid < remappings.Count; gid++) {
+				ushort cid = remappings[gid];
+
+				if (count > 0) {
+					if (!(cid == previousCID + 1 && gid == previousGID + 1) || ((cid >> 8) != (previousCID >> 8))) {
+						if (previousCID > startCID) {
+							ranges.Add((startCID, previousCID, startGID));
+						}
+						else {
+							chars.Add((startCID, startGID));
+						}
+						startCID = cid;
+						startGID = gid;
+					}
+				}
+				else {
+					// Do this first time
+					startCID = cid;
+					startGID = gid;
+				}
+
+				previousCID = cid;
+				previousGID = gid;
+				count++;
+			}
+
+			if (previousCID > startCID) {
+				ranges.Add((startCID, previousCID, startGID));
+			}
+			else {
+				chars.Add((startCID, startGID));
+			}
+
+			chars.Sort((c1, c2) => c1.cid.CompareTo(c2.cid));
+			ranges.Sort((r1, r2) => r1.startCID.CompareTo(r2.startCID));
+
+			int remainingChars = chars.Count;
+			while (remainingChars > 0) {
+				int startIndex = chars.Count - remainingChars;
+				int numChars = Math.Min(remainingChars, 100);
+				int endIndex = startIndex + numChars;
+
+				writer.WriteASCIILine($"{numChars} begincidchar");
+
+				for (int i = startIndex; i < endIndex; i++) {
+					(ushort cid, ushort gid) value = chars[i];
+					writer.WriteGID(value.cid);
+					writer.WriteSpace();
+					writer.WriteInteger(value.gid);
+					writer.WriteEOL();
+				}
+
+				writer.WriteASCIILine("endcidchar");
+
+				remainingChars -= numChars;
+			}
+
+			int remainingRanges = ranges.Count;
+			while (remainingRanges > 0) {
+				int startIndex = ranges.Count - remainingRanges;
+				int numRanges = Math.Min(remainingRanges, 100);
+				int endIndex = startIndex + numRanges;
+
+				writer.WriteASCIILine($"{numRanges} begincidrange");
+
+				for (int i = startIndex; i < endIndex; i++) {
+					(ushort startCID, ushort endCID, ushort startGID) value = ranges[i];
+					writer.WriteGID(value.startCID);
+					writer.WriteSpace();
+					writer.WriteGID(value.endCID);
+					writer.WriteSpace();
+					writer.WriteInteger(value.startGID);
+					writer.WriteEOL();
+				}
+
+				writer.WriteASCIILine("endcidrange");
+
+				remainingRanges -= numRanges;
+			}
+
+		}
+
+		public static PdfCmapStream CreateToUnicode(IReadOnlyDictionary<uint, ushort> unicodeToGID, IReadOnlySet<(ushort gid, ushort[] original)> mappings) {
 
 			// These are required for the CMap, but there meaning here is unclear
 			// Is this sufficient?
@@ -280,7 +301,14 @@ namespace GeboPdf.Fonts {
 				count++;
 			}
 
-			foreach((ushort gid, ushort[] original) in mappings) {
+			if (previousGID > startGID) {
+				ranges.Add((startGID, previousGID, startCodepoint));
+			}
+			else {
+				chars.Add((startGID, new uint[] { startCodepoint }));
+			}
+
+			foreach ((ushort gid, ushort[] original) in mappings) {
 				uint[] unicode = new uint[original.Length];
 				for(int i=0; i<original.Length; i++) {
 					unicode[i] = sortedGIDToUnicode[original[i]];
@@ -354,7 +382,7 @@ namespace GeboPdf.Fonts {
 
 	}
 
-	public struct CIDSystemInfo {
+	public readonly struct CIDSystemInfo {
 		public readonly string Registry;
 		public readonly string Ordering;
 		public readonly int Supplement;

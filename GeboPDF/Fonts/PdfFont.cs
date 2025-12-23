@@ -583,10 +583,12 @@ namespace GeboPdf.Fonts {
 		public AbstractPdfDictionary FontDictionary { get; }
 
 		private readonly Type2CIDFont cidFont;
-		private readonly AbstractPdfStream toUnicode;
+		private readonly AbstractPdfStream? encoding;
+		private readonly AbstractPdfStream? toUnicode;
 
-		public PdfType0FontDictionary(Type2CIDFont cidFont, AbstractPdfStream toUnicode) {
+		public PdfType0FontDictionary(Type2CIDFont cidFont, AbstractPdfStream? encoding, AbstractPdfStream? toUnicode) {
 			this.cidFont = cidFont;
+			this.encoding = encoding;
 			this.toUnicode = toUnicode;
 
 			PdfArray descendantFonts = new PdfArray(cidFont.FontDictionaryReference);
@@ -594,14 +596,25 @@ namespace GeboPdf.Fonts {
 			// If the descendant is a Type 0 CIDFont, this name should be the concatenation of the CIDFont’s BaseFont name, a hyphen, and the CMap name given in the Encoding entry (or the CMapName entry in the CMap). If the descendant is a Type 2 CIDFont, this name should be the same as the CIDFont’s BaseFontname.
 			PdfName fontName = cidFont.FontName;
 
-			FontDictionary = new PdfDictionary() {
+			PdfDictionary fontDictionary = new PdfDictionary() {
 				{ PdfNames.Type, PdfNames.Font },
 				{ PdfNames.Subtype, PdfNames.Type0 },
 				{ PdfNames.BaseFont, fontName },
-				{ PdfNames.Encoding, new PdfName("Identity-H") },
-				{ PdfNames.DescendantFonts, descendantFonts },
-				{ PdfNames.ToUnicode, PdfIndirectReference.Create(toUnicode) }
+				{ PdfNames.DescendantFonts, descendantFonts }
 			};
+
+			if (encoding is not null) {
+				fontDictionary.Add(PdfNames.Encoding, PdfIndirectReference.Create(encoding));
+			}
+			else {
+				fontDictionary.Add(PdfNames.Encoding, new PdfName("Identity-H"));
+			}
+
+			if (toUnicode is not null) {
+				fontDictionary.Add(PdfNames.ToUnicode, PdfIndirectReference.Create(toUnicode));
+			}
+
+			FontDictionary = fontDictionary;
 		}
 
 		public IEnumerable<PdfObject> CollectObjects() {
@@ -611,7 +624,8 @@ namespace GeboPdf.Fonts {
 				yield return cidFontObj;
 			}
 
-			yield return toUnicode;
+			if (encoding is not null) { yield return encoding; }
+			if (toUnicode is not null) { yield return toUnicode; }
 		}
 
 		public override int GetHashCode() => FontDictionary.GetHashCode();

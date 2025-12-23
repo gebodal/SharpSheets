@@ -170,6 +170,7 @@ namespace SharpEditor.Windows {
 					catch (Exception e) {
 						GeneratorError?.Invoke(this, new GeneratorErrorEventArgs($"Something went wrong while generating the PDF:\n{e.Message}", "Generation Error", true));
 						Console.WriteLine($"Something went wrong while generating the PDF: {e.Message}");
+						Console.WriteLine(e.StackTrace);
 					}
 					finally {
 						// Are these try/catch blocks OK?

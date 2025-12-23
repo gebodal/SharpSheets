@@ -1,4 +1,5 @@
 ﻿using GeboPdf.Utilities;
+using GeboPDF.Fonts.TrueType;
 using System;
 using System.IO;
 using System.Text;
@@ -270,6 +271,10 @@ namespace GeboPdf.Fonts.TrueType {
 
 		public void SkipOffset32(int count) {
 			SkipUInt32(count);
+		}
+
+		public uint CheckSum(uint length) {
+			return TrueTypeUtils.CheckSum(BaseStream, length);
 		}
 
 	}

@@ -95,7 +95,8 @@ namespace GeboPdf.Fonts.TrueType {
 			TrueTypeFontTable[] tables = TrueTypeFontFile.ReadHeader(reader,
 				out uint scalerType, out _, out _, out _);
 
-			FontFileWriter.WriteHeaderAndTables(source, scalerType, tables, output);
+			FontFileWriter writer = new FontFileWriter(output);
+			writer.WriteFontDirectoryAndTables(source, scalerType, tables);
 		}
 
 		internal static IReadOnlyDictionary<string, TrueTypeFontTable> ReadFontTables(FontFileReader reader, int fontIndex) {

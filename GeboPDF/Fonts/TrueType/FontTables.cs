@@ -207,6 +207,39 @@ namespace GeboPdf.Fonts.TrueType {
 				indexToLocFormat, glyphDataFormat
 			);
 		}
+
+		internal TrueTypeFontTable Write(FontFileWriter writer, uint? checkSumAdjustmentOverride, IndexToLocFormat? indexToLocFormatOverride) {
+			uint offset = (uint)writer.Position;
+
+			writer.WriteFixed(version);
+			writer.WriteFixed(fontRevision);
+			writer.WriteUInt32(checkSumAdjustmentOverride ?? checkSumAdjustment);
+			writer.WriteUInt32(magicNumber);
+			writer.WriteUInt16((ushort)flags);
+			writer.WriteUInt16(unitsPerEm);
+			writer.WriteInt64(created);
+			writer.WriteInt64(modified);
+			writer.WriteFWord(xMin);
+			writer.WriteFWord(yMin);
+			writer.WriteFWord(xMax);
+			writer.WriteFWord(yMax);
+			writer.WriteUInt16((ushort)macStyle);
+			writer.WriteUInt16(lowestRecPPEM);
+			writer.WriteInt16((short)fontDirectionHint);
+			writer.WriteInt16((short)(indexToLocFormatOverride ?? indexToLocFormat));
+			writer.WriteInt16(glyphDataFormat);
+
+			uint length = (uint)(writer.Position - offset);
+
+			writer.EnsureLongAlignedFrom(offset);
+
+			return new TrueTypeFontTable("head", 0, offset, length);
+		}
+
+		public static void UpdateCheckSumAdjustmentValue(FontFileWriter writer, long tableOffset, uint checkSumAdjustment) {
+			writer.Position = tableOffset + 8; // Jump 2 Fixed values (version, fontRevision)
+			writer.WriteUInt32(checkSumAdjustment);
+		}
 	}
 
 	public enum PlatformID : ushort {
@@ -485,6 +518,34 @@ namespace GeboPdf.Fonts.TrueType {
 			);
 		}
 
+		internal TrueTypeFontTable Write(FontFileWriter writer, ushort numOfLongHorMetricsOverride) => Write(numOfLongHorMetricsOverride, writer);
+		internal TrueTypeFontTable Write(FontFileWriter writer) => Write(null, writer);
+
+		private TrueTypeFontTable Write(ushort? numOfLongHorMetricsOverride, FontFileWriter writer) {
+			uint offset = (uint)writer.Position;
+
+			writer.WriteFixed(version);
+			writer.WriteFWord(ascent);
+			writer.WriteFWord(descent);
+			writer.WriteFWord(lineGap);
+			writer.WriteUFWord(advanceWidthMax);
+			writer.WriteFWord(minLeftSideBearing);
+			writer.WriteFWord(minRightSideBearing);
+			writer.WriteFWord(xMaxExtent);
+			writer.WriteInt16(caretSlopeRise);
+			writer.WriteInt16(caretSlopeRun);
+			writer.WriteFWord(caretOffset);
+			writer.WriteInt16(new short[] { 0, 0, 0, 0 }); // Reserved bytes
+			writer.WriteInt16(metricDataFormat);
+			writer.WriteUInt16(numOfLongHorMetricsOverride ?? numOfLongHorMetrics);
+
+			uint length = (uint)(writer.Position - offset);
+
+			writer.EnsureLongAlignedFrom(offset);
+
+			return new TrueTypeFontTable("hhea", 0, offset, length);
+		}
+
 	}
 
 	public class TrueTypeIndexToLocationTable {
@@ -493,6 +554,8 @@ namespace GeboPdf.Fonts.TrueType {
 		public readonly uint[] lengths;
 
 		internal TrueTypeIndexToLocationTable(uint[] offsets, uint[] lengths) {
+			if(offsets.Length != lengths.Length) { throw new ArgumentException($"Number of offsets and lengths must match."); }
+
 			this.offsets = offsets;
 			this.lengths = lengths;
 		}
@@ -524,6 +587,36 @@ namespace GeboPdf.Fonts.TrueType {
 			return new TrueTypeIndexToLocationTable(offsets, lengths);
 		}
 
+		public IndexToLocFormat OptimalFormat() {
+			uint maxOffset = offsets[^1] + lengths[^1];
+			return maxOffset / 2 <= ushort.MaxValue ? IndexToLocFormat.Short : IndexToLocFormat.Long;
+		}
+
+		internal TrueTypeFontTable Write(FontFileWriter writer, IndexToLocFormat format) {
+			uint offset = (uint)writer.Position;
+
+			void WriteEntry(uint entry) {
+				if (format == IndexToLocFormat.Short) {
+					writer.WriteUInt16((ushort)(entry / 2U));
+				}
+				else {
+					writer.WriteUInt32(entry);
+				}
+			}
+
+			for (int i = 0; i < offsets.Length; i++) {
+				WriteEntry(offsets[i]);
+			}
+
+			WriteEntry(offsets[^1] + lengths[^1]);
+
+			uint length = (uint)(writer.Position - offset);
+
+			writer.EnsureLongAlignedFrom(offset);
+
+			return new TrueTypeFontTable("loca", 0, offset, length);
+		}
+
 	}
 
 	public class TrueTypeHorizontalMetricsTable {
@@ -532,6 +625,7 @@ namespace GeboPdf.Fonts.TrueType {
 		public readonly short[] leftSideBearings;
 
 		internal TrueTypeHorizontalMetricsTable(ushort[] advanceWidths, short[] leftSideBearings) {
+			if (advanceWidths.Length != leftSideBearings.Length) { throw new ArgumentException($"Number of advanceWidths and leftSideBearings must match."); }
 			this.advanceWidths = advanceWidths;
 			this.leftSideBearings = leftSideBearings;
 		}
@@ -568,6 +662,35 @@ namespace GeboPdf.Fonts.TrueType {
 			}
 
 			return new TrueTypeHorizontalMetricsTable(advanceWidths, leftSideBearings);
+		}
+
+		internal TrueTypeFontTable Write(FontFileWriter writer, out ushort numOfLongHorMetrics) {
+			uint offset = (uint)writer.Position;
+
+			int trailingLSBCount = 0;
+			ushort finalAdvanceWidth = advanceWidths[^1];
+			for (int i = advanceWidths.Length - 2; i > 0; i--) { // Can never count first entry (must always be writte in full), and don't cast last
+				if (advanceWidths[i] != finalAdvanceWidth) {
+					break;
+				}
+				trailingLSBCount++;
+			}
+
+			numOfLongHorMetrics = (ushort)(advanceWidths.Length - trailingLSBCount);
+
+			for (int g = 0; g < numOfLongHorMetrics; g++) {
+				writer.WriteUInt16(advanceWidths[g]);
+				writer.WriteInt16(leftSideBearings[g]);
+			}
+			for(int lsb = numOfLongHorMetrics; lsb < advanceWidths.Length; lsb++) {
+				writer.WriteFWord(leftSideBearings[lsb]);
+			}
+
+			uint length = (uint)(writer.Position - offset);
+
+			writer.EnsureLongAlignedFrom(offset);
+
+			return new TrueTypeFontTable("hmtx", 0, offset, length);
 		}
 
 	}
@@ -1277,4 +1400,150 @@ namespace GeboPdf.Fonts.TrueType {
 			return new TrueTypePostTable(italicAngle, underlinePosition, underlineThickness, isFixedPitch, glyphNames);
 		}
 	}
+
+	public abstract class TrueTypeMaximumProfileTable {
+
+		public abstract uint Version { get; }
+		public readonly ushort numGlyphs;
+
+		private TrueTypeMaximumProfileTable(ushort numGlyphs) {
+			this.numGlyphs = numGlyphs;
+		}
+
+		internal static TrueTypeMaximumProfileTable Read(FontFileReader reader, long offset) {
+
+			reader.Position = offset;
+
+			uint version = reader.ReadUInt32();
+			ushort numGlyphs = reader.ReadUInt16();
+
+			if (version == 0x00010000) { // Version 1.0
+				return FullTrueTypeMaximumProfileTable.Read(reader, numGlyphs);
+			}
+			else if(version == 0x00005000) { // Version 0.5
+				return new OpenTypeTrueTypeMaximumProfileTable(numGlyphs);
+			}
+			else {
+				throw new FormatException($"Unrecognized version number for 'maxp' table: {version}");
+			}
+		}
+
+		internal TrueTypeFontTable Write(FontFileWriter writer, ushort numGlyphsOverride) => Write(numGlyphsOverride, writer);
+		internal TrueTypeFontTable Write(FontFileWriter writer) => Write(null, writer);
+
+		private TrueTypeFontTable Write(ushort? numGlyphsOverride, FontFileWriter writer) {
+			uint offset = (uint)writer.Position;
+
+			writer.WriteUInt32(Version);
+			writer.WriteUInt16(numGlyphsOverride ?? numGlyphs);
+
+			WriteVersionData(writer);
+
+			uint length = (uint)(writer.Position - offset);
+
+			writer.EnsureLongAlignedFrom(offset);
+
+			return new TrueTypeFontTable("maxp", 0, offset, length);
+		}
+
+		protected abstract void WriteVersionData(FontFileWriter writer);
+
+		public class FullTrueTypeMaximumProfileTable : TrueTypeMaximumProfileTable {
+
+			public override uint Version { get; } = 0x00010000;
+
+			public readonly ushort maxPoints; // points in non - compound glyph
+			public readonly ushort maxContours; // contours in non - compound glyph
+			public readonly ushort maxComponentPoints; // points in compound glyph
+			public readonly ushort maxComponentContours; // contours in compound glyph
+			public readonly ushort maxZones; // set to 2
+			public readonly ushort maxTwilightPoints; // points used in Twilight Zone(Z0)
+			public readonly ushort maxStorage; // number of Storage Area locations
+			public readonly ushort maxFunctionDefs; // number of FDEFs
+			public readonly ushort maxInstructionDefs; // number of IDEFs
+			public readonly ushort maxStackElements; // maximum stack depth
+			public readonly ushort maxSizeOfInstructions; // byte count for glyph instructions
+			public readonly ushort maxComponentElements; // number of glyphs referenced at top level
+			public readonly ushort maxComponentDepth; // levels of recursion, set to 0 if font has only simple glyphs
+
+			internal FullTrueTypeMaximumProfileTable(ushort numGlyphs, ushort maxPoints, ushort maxContours, ushort maxComponentPoints, ushort maxComponentContours, ushort maxZones, ushort maxTwilightPoints, ushort maxStorage, ushort maxFunctionDefs, ushort maxInstructionDefs, ushort maxStackElements, ushort maxSizeOfInstructions, ushort maxComponentElements, ushort maxComponentDepth) : base(numGlyphs) {
+				this.maxPoints = maxPoints;
+				this.maxContours = maxContours;
+				this.maxComponentPoints = maxComponentPoints;
+				this.maxComponentContours = maxComponentContours;
+				this.maxZones = maxZones;
+				this.maxTwilightPoints = maxTwilightPoints;
+				this.maxStorage = maxStorage;
+				this.maxFunctionDefs = maxFunctionDefs;
+				this.maxInstructionDefs = maxInstructionDefs;
+				this.maxStackElements = maxStackElements;
+				this.maxSizeOfInstructions = maxSizeOfInstructions;
+				this.maxComponentElements = maxComponentElements;
+				this.maxComponentDepth = maxComponentDepth;
+			}
+
+			internal static FullTrueTypeMaximumProfileTable Read(FontFileReader reader, ushort numGlyphs) {
+				ushort maxPoints = reader.ReadUInt16();
+				ushort maxContours = reader.ReadUInt16();
+				ushort maxComponentPoints = reader.ReadUInt16();
+				ushort maxComponentContours = reader.ReadUInt16();
+				ushort maxZones = reader.ReadUInt16();
+				ushort maxTwilightPoints = reader.ReadUInt16();
+				ushort maxStorage = reader.ReadUInt16();
+				ushort maxFunctionDefs = reader.ReadUInt16();
+				ushort maxInstructionDefs = reader.ReadUInt16();
+				ushort maxStackElements = reader.ReadUInt16();
+				ushort maxSizeOfInstructions = reader.ReadUInt16();
+				ushort maxComponentElements = reader.ReadUInt16();
+				ushort maxComponentDepth = reader.ReadUInt16();
+
+				return new FullTrueTypeMaximumProfileTable(numGlyphs,
+						maxPoints,
+						maxContours,
+						maxComponentPoints,
+						maxComponentContours,
+						maxZones,
+						maxTwilightPoints,
+						maxStorage,
+						maxFunctionDefs,
+						maxInstructionDefs,
+						maxStackElements,
+						maxSizeOfInstructions,
+						maxComponentElements,
+						maxComponentDepth
+					);
+			}
+
+			protected override void WriteVersionData(FontFileWriter writer) {
+				writer.WriteUInt16(maxPoints);
+				writer.WriteUInt16(maxContours);
+				writer.WriteUInt16(maxComponentPoints);
+				writer.WriteUInt16(maxComponentContours);
+				writer.WriteUInt16(maxZones);
+				writer.WriteUInt16(maxTwilightPoints);
+				writer.WriteUInt16(maxStorage);
+				writer.WriteUInt16(maxFunctionDefs);
+				writer.WriteUInt16(maxInstructionDefs);
+				writer.WriteUInt16(maxStackElements);
+				writer.WriteUInt16(maxSizeOfInstructions);
+				writer.WriteUInt16(maxComponentElements);
+				writer.WriteUInt16(maxComponentDepth);
+			}
+
+		}
+
+		public class OpenTypeTrueTypeMaximumProfileTable : TrueTypeMaximumProfileTable {
+
+			public override uint Version { get; } = 0x00005000;
+
+			internal OpenTypeTrueTypeMaximumProfileTable(ushort numGlyphs) : base(numGlyphs) { }
+
+			protected override void WriteVersionData(FontFileWriter writer) {
+				return; // Nothing else to write
+			}
+
+		}
+
+	}
+
 }
