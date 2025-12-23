@@ -61,6 +61,30 @@ namespace GeboPdf.Utilities {
 			float frac = (float)(bytes & 0b11_1111_1111_1111) / 16384f; // 2^14 = 16384
 			
 			return intPart + frac;
+
+			/*
+			short signed = unchecked((short)bytes);
+			return signed / 16384.0f;
+			*/
+		}
+
+		public static ushort ConvertF2Dot14(float value) {
+			if (float.IsNaN(value) || float.IsInfinity(value))
+				throw new ArgumentOutOfRangeException(nameof(value));
+
+			// Valid F2.14 range
+			const float Min = -2.0f;
+			const float Max = 1.99993896484375f; // (2^15 - 1) / 2^14
+
+			if (value < Min || value > Max)
+				throw new ArgumentOutOfRangeException(nameof(value), "Value out of F2.14 range.");
+
+			// Scale in double for precision, round to nearest
+			double scaled = Math.Round((double)value * 16384.0, MidpointRounding.ToEven);
+
+			// Cast through short to preserve sign, then reinterpret as ushort
+			short signed = (short)scaled;
+			return unchecked((ushort)signed);
 		}
 
 	}
