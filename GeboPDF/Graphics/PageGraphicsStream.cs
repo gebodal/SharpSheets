@@ -27,11 +27,7 @@ namespace GeboPdf.Graphics {
 
 			int mcid = mcidCount;
 
-			writer.WriteName(tag);
-			writer.WriteSpace();
-			writer.WriteASCII($"<</MCID {mcid}>>");
-			writer.WriteSpace();
-			WriteOperator("BDC");
+			operations.Append(new BeginMarkedContentWithIDOperation(tag, mcid));
 
 			mcidCount++;
 
@@ -49,15 +45,33 @@ namespace GeboPdf.Graphics {
 
 			int mcid = mcidCount;
 
-			writer.WriteName(structureName);
-			writer.WriteSpace();
-			writer.WriteASCII($"<</MCID {mcid}>>");
-			writer.WriteSpace();
-			WriteOperator("BDC");
+			operations.Append(new BeginMarkedContentWithIDOperation(structureName, mcid));
 
 			mcidCount++;
 
 			return mcid;
+		}
+
+	}
+
+	public class BeginMarkedContentWithIDOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		public readonly PdfName Tag;
+		public readonly int MCID;
+
+		public BeginMarkedContentWithIDOperation(PdfName tag, int mcid) {
+			Tag = tag;
+			MCID = mcid;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteName(Tag);
+			writer.WriteSpace();
+			writer.WriteASCII($"<</MCID {MCID}>>");
+			writer.WriteSpace();
+			writer.WriteOperator("BDC");
 		}
 
 	}

@@ -6,10 +6,7 @@ using GeboPdf.Objects;
 using GeboPdf.Patterns;
 using GeboPdf.Utilities;
 using GeboPdf.XObjects;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
+using System.Data;
 using System.Text;
 
 namespace GeboPdf.Graphics {
@@ -40,19 +37,16 @@ namespace GeboPdf.Graphics {
 
 		protected readonly PdfResourcesDictionary resources;
 
-		private readonly MemoryStream _memoryStream; // Can we do better than this?
+		private readonly GraphicsOperation allOperations;
+		protected GraphicsOperationsSet operations;
+		private readonly Stack<GraphicsOperationsSet> _operationsStack;
 		protected GraphicsStreamState streamLevel;
-
-		//private PdfFont currentFont;
-		//private PdfColorSpace currentStrokingColorSpace;
-		//private PdfColorSpace currentNonStrokingColorSpace;
 
 		private PdfGraphicsState state;
 		private readonly Stack<PdfGraphicsState> _stateStack;
 
 		protected readonly Stack<PdfName?> markedContentSequences;
 
-		protected readonly PdfStreamWriter writer;
 		private readonly bool useEOL;
 
 		public GraphicsStream(PdfResourcesDictionary resources, bool useEOL) {
@@ -60,9 +54,11 @@ namespace GeboPdf.Graphics {
 
 			this.useEOL = useEOL;
 
-			_memoryStream = new MemoryStream();
-			writer = new PdfStreamWriter(_memoryStream);
+			operations = new GraphicsOperationsSet();
+			allOperations = operations;
+			_operationsStack = new Stack<GraphicsOperationsSet>();
 			streamLevel = GraphicsStreamState.PageDescription;
+
 			markedContentSequences = new Stack<PdfName?>();
 
 			state = new PdfGraphicsState();
@@ -72,7 +68,10 @@ namespace GeboPdf.Graphics {
 		public override bool AllowEncoding { get; } = true;
 
 		public override MemoryStream GetStream() {
-			return _memoryStream;
+			MemoryStream stream = new MemoryStream();
+			PdfGraphicsStreamWriter writer = new PdfGraphicsStreamWriter(stream, useEOL);
+			allOperations.WriteTo(writer);
+			return stream;
 		}
 
 		public override int Count => 0;
@@ -89,66 +88,27 @@ namespace GeboPdf.Graphics {
 			return false;
 		}
 
-		protected void WriteOperator(string operatorStr) {
-			writer.WriteASCII(operatorStr);
-
-			if (useEOL) {
-				writer.WriteEOL();
-			}
-			else {
-				writer.WriteSpace();
-			}
-		}
-
-		protected void WriteFloats(params float[] values) {
-			for(int i=0; i<values.Length; i++) {
-				if (i > 0) {
-					writer.WriteSpace();
-				}
-				writer.WriteFloat(values[i]);
-			}
-		}
-
-		protected void WriteColorFloats(params float[] values) {
-			for (int i = 0; i < values.Length; i++) {
-				if (i > 0) {
-					writer.WriteSpace();
-				}
-				writer.WriteFloat(ClampColor(values[i]));
-			}
-		}
-
-		protected void WriteFloatArray(float[] array) {
-			writer.WriteASCII("[");
-			WriteFloats(array);
-			writer.WriteASCII("]");
-		}
-
-		protected void WriteText(string text) {
+		protected byte[] GetTextBytes(string text) {
 			if (state.Font == null) {
 				throw new PdfInvalidGraphicsOperationException("There is no font currently set for this graphics stream.");
 			}
 
 			byte[] textBytes = state.Font.font.GetBytes(text);
 
-			if(text.Length > 0 && state.Font?.font is PdfGlyphFont glyphFont) {
+			if (text.Length > 0 && state.Font?.font is PdfGlyphFont glyphFont) {
 				resources.RegisterFontUsage(glyphFont, new FontGlyphUsage(glyphFont.GetGlyphs(text)));
 			}
 
-			writer.WriteASCII("<");
-			writer.WriteASCII(HexWriter.ToString(textBytes));
-			writer.WriteASCII(">");
+			return textBytes;
 		}
 
-		protected void WriteText(ushort[] glyphIDs) {
+		protected byte[] GetTextBytes(ushort[] glyphIDs) {
 			if (state.Font == null) {
 				throw new PdfInvalidGraphicsOperationException("There is no font currently set for this graphics stream.");
 			}
 
-			//byte[] textBytes = state.Font.font.GetBytes(text);
-
 			byte[] bytes = new byte[glyphIDs.Length * 2];
-			for(int i=0; i<glyphIDs.Length; i++) {
+			for (int i = 0; i < glyphIDs.Length; i++) {
 				byte[] glyphBytes = BitConverter.GetBytes(glyphIDs[i]);
 				if (BitConverter.IsLittleEndian) {
 					Array.Reverse(glyphBytes);
@@ -157,13 +117,7 @@ namespace GeboPdf.Graphics {
 				bytes[i * 2 + 1] = glyphBytes[1];
 			}
 
-			writer.WriteASCII("<");
-			writer.WriteASCII(HexWriter.ToString(bytes));
-			writer.WriteASCII(">");
-		}
-
-		private static float ClampColor(float value) {
-			return Math.Max(0f, Math.Min(1f, value));
+			return bytes;
 		}
 
 		#region Special Graphics State
@@ -177,7 +131,10 @@ namespace GeboPdf.Graphics {
 			_stateStack.Push(state);
 			state = new PdfGraphicsState(state);
 
-			WriteOperator("q");
+			_operationsStack.Push(operations);
+			GraphicsStateOperationsSet nextOperations = new GraphicsStateOperationsSet();
+			operations.Append(nextOperations);
+			operations = nextOperations;
 
 			return _stateStack.Count;
 		}
@@ -188,32 +145,30 @@ namespace GeboPdf.Graphics {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.PageDescription);
 			}
 
-			if(_stateStack.Count == 0) {
+			if (_stateStack.Count == 0) {
 				throw new PdfInvalidGraphicsOperationException("Cannot restore graphics state, as the state stack is empty.");
 			}
 			state = _stateStack.Pop();
 
-			WriteOperator("Q");
+			operations = _operationsStack.Pop();
 
 			return _stateStack.Count;
 		}
 
 		public GraphicsStream ConcatenateMatrix(float a, float b, float c, float d, float e, float f) {
+			return ConcatenateMatrix(Transform.Matrix(a, b, c, d, e, f));
+		}
+
+		public GraphicsStream ConcatenateMatrix(Transform matrix) {
 			if (streamLevel != GraphicsStreamState.PageDescription) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.PageDescription);
 			}
 
-			if (!(a == 1f && b == 0f && c == 0f && d == 1f && e == 0f && f == 0f)) { // Otherwise we're concatenating the Identity matrix, and we can ignore this
-				WriteFloats(a, b, c, d, e, f);
-				writer.WriteSpace();
-				WriteOperator("cm");
+			if (matrix != Transform.Identity) { // We can safely ignore Identity here
+				operations.Append(new ConcatMatrixOperation(matrix));
 			}
 
 			return this;
-		}
-
-		public GraphicsStream ConcatenateMatrix(Transform transform) {
-			return ConcatenateMatrix(transform.a, transform.b, transform.c, transform.d, transform.e, transform.f);
 		}
 
 		#endregion
@@ -228,9 +183,7 @@ namespace GeboPdf.Graphics {
 			if (state.Linewidth != lineWidth) {
 				state.Linewidth = lineWidth;
 
-				writer.WriteFloat(lineWidth);
-				writer.WriteSpace();
-				WriteOperator("w");
+				operations.Append(new LineWidthOperation(lineWidth));
 			}
 
 			return this;
@@ -244,9 +197,7 @@ namespace GeboPdf.Graphics {
 			if (state.Linecapstyle != lineCap) {
 				state.Linecapstyle = lineCap;
 
-				writer.WriteInt((int)lineCap);
-				writer.WriteSpace();
-				WriteOperator("J");
+				operations.Append(new LineCapOperation(lineCap));
 			}
 
 			return this;
@@ -260,9 +211,7 @@ namespace GeboPdf.Graphics {
 			if (state.Linejoinstyle != lineJoin) {
 				state.Linejoinstyle = lineJoin;
 
-				writer.WriteInt((int)lineJoin);
-				writer.WriteSpace();
-				WriteOperator("j");
+				operations.Append(new LineJoinOperation(lineJoin));
 			}
 
 			return this;
@@ -278,9 +227,7 @@ namespace GeboPdf.Graphics {
 			if (state.Miterlimit != mitreLimit) {
 				state.Miterlimit = mitreLimit;
 
-				writer.WriteFloat(mitreLimit);
-				writer.WriteSpace();
-				WriteOperator("M");
+				operations.Append(new MitreLimitOperation(mitreLimit));
 			}
 
 			return this;
@@ -296,11 +243,7 @@ namespace GeboPdf.Graphics {
 			if (!state.Linedashpattern.Equals(newlinedashpattern)) {
 				state.Linedashpattern = newlinedashpattern;
 
-				WriteFloatArray(dashArray ?? Array.Empty<float>()); // TODO Is this fallback correct?
-				writer.WriteSpace();
-				writer.WriteFloat(dashPhase);
-				writer.WriteSpace();
-				WriteOperator("d");
+				operations.Append(new LineDashPatternOperation(dashArray, dashPhase));
 			}
 
 			return this;
@@ -353,9 +296,7 @@ namespace GeboPdf.Graphics {
 			if (changes) {
 				resources.AddGraphicsState(graphicsStateDict, out PdfName stateName);
 
-				writer.WriteName(stateName);
-				writer.WriteSpace();
-				WriteOperator("gs");
+				operations.Append(new SetGraphicsStateOperation(stateName));
 			}
 
 			return this;
@@ -369,9 +310,7 @@ namespace GeboPdf.Graphics {
 			if (!(streamLevel == GraphicsStreamState.PageDescription || streamLevel == GraphicsStreamState.Path)) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.PageDescription | GraphicsStreamState.Path);
 			}
-			WriteFloats(x, y);
-			writer.WriteSpace();
-			WriteOperator("m");
+			operations.Append(new MoveOperation(x, y));
 			streamLevel = GraphicsStreamState.Path;
 			return this;
 		}
@@ -380,9 +319,7 @@ namespace GeboPdf.Graphics {
 			if (streamLevel != GraphicsStreamState.Path) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Path);
 			}
-			WriteFloats(x, y);
-			writer.WriteSpace();
-			WriteOperator("l");
+			operations.Append(new LineOperation(x, y));
 			streamLevel = GraphicsStreamState.Path;
 			return this;
 		}
@@ -391,9 +328,7 @@ namespace GeboPdf.Graphics {
 			if (streamLevel != GraphicsStreamState.Path) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Path);
 			}
-			WriteFloats(x1, y1, x2, y2, x3, y3);
-			writer.WriteSpace();
-			WriteOperator("c");
+			operations.Append(new CubicOperation(x1, y1, x2, y2, x3, y3));
 			streamLevel = GraphicsStreamState.Path;
 			return this;
 		}
@@ -402,9 +337,7 @@ namespace GeboPdf.Graphics {
 			if (streamLevel != GraphicsStreamState.Path) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Path);
 			}
-			WriteFloats(x2, y2, x3, y3);
-			writer.WriteSpace();
-			WriteOperator("v"); // v or y?
+			operations.Append(new QuadraticOperation(x2, y2, x3, y3));
 			streamLevel = GraphicsStreamState.Path;
 			return this;
 		}
@@ -413,7 +346,7 @@ namespace GeboPdf.Graphics {
 			if (streamLevel != GraphicsStreamState.Path) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Path);
 			}
-			WriteOperator("h");
+			operations.Append(new CloseOperation());
 			streamLevel = GraphicsStreamState.Path;
 			return this;
 		}
@@ -422,9 +355,7 @@ namespace GeboPdf.Graphics {
 			if (!(streamLevel == GraphicsStreamState.PageDescription || streamLevel == GraphicsStreamState.Path)) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.PageDescription | GraphicsStreamState.Path);
 			}
-			WriteFloats(x, y, width, height);
-			writer.WriteSpace();
-			WriteOperator("re");
+			operations.Append(new RectangleOperation(x, y, width, height));
 			streamLevel = GraphicsStreamState.Path;
 			return this;
 		}
@@ -437,7 +368,7 @@ namespace GeboPdf.Graphics {
 			if (!(streamLevel == GraphicsStreamState.Path || streamLevel == GraphicsStreamState.Clipping)) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Path | GraphicsStreamState.Clipping);
 			}
-			WriteOperator("S");
+			operations.Append(new StrokeOperation());
 			streamLevel = GraphicsStreamState.PageDescription;
 			return this;
 		}
@@ -446,7 +377,7 @@ namespace GeboPdf.Graphics {
 			if (!(streamLevel == GraphicsStreamState.Path || streamLevel == GraphicsStreamState.Clipping)) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Path | GraphicsStreamState.Clipping);
 			}
-			WriteOperator("f");
+			operations.Append(new FillNonZeroOperation());
 			streamLevel = GraphicsStreamState.PageDescription;
 			return this;
 		}
@@ -455,7 +386,7 @@ namespace GeboPdf.Graphics {
 			if (!(streamLevel == GraphicsStreamState.Path || streamLevel == GraphicsStreamState.Clipping)) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Path | GraphicsStreamState.Clipping);
 			}
-			WriteOperator("f*");
+			operations.Append(new FillEvenOddOperation());
 			streamLevel = GraphicsStreamState.PageDescription;
 			return this;
 		}
@@ -464,7 +395,7 @@ namespace GeboPdf.Graphics {
 			if (!(streamLevel == GraphicsStreamState.Path || streamLevel == GraphicsStreamState.Clipping)) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Path | GraphicsStreamState.Clipping);
 			}
-			WriteOperator("B");
+			operations.Append(new FillStrokeNonZeroOperation());
 			streamLevel = GraphicsStreamState.PageDescription;
 			return this;
 		}
@@ -473,7 +404,7 @@ namespace GeboPdf.Graphics {
 			if (!(streamLevel == GraphicsStreamState.Path || streamLevel == GraphicsStreamState.Clipping)) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Path | GraphicsStreamState.Clipping);
 			}
-			WriteOperator("B*");
+			operations.Append(new FillStrokeEvenOddOperation());
 			streamLevel = GraphicsStreamState.PageDescription;
 			return this;
 		}
@@ -482,7 +413,7 @@ namespace GeboPdf.Graphics {
 			if (!(streamLevel == GraphicsStreamState.Path || streamLevel == GraphicsStreamState.Clipping)) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Path | GraphicsStreamState.Clipping);
 			}
-			WriteOperator("n");
+			operations.Append(new EndPathOperation());
 			streamLevel = GraphicsStreamState.PageDescription;
 			return this;
 		}
@@ -495,7 +426,7 @@ namespace GeboPdf.Graphics {
 			if (streamLevel != GraphicsStreamState.Path) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Path);
 			}
-			WriteOperator("W");
+			operations.Append(new ClipNonZeroOperation());
 			streamLevel = GraphicsStreamState.Clipping;
 			return this;
 		}
@@ -504,7 +435,7 @@ namespace GeboPdf.Graphics {
 			if (streamLevel != GraphicsStreamState.Path) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Path);
 			}
-			WriteOperator("W*");
+			operations.Append(new ClipEvenOddOperation());
 			streamLevel = GraphicsStreamState.Clipping;
 			return this;
 		}
@@ -523,7 +454,7 @@ namespace GeboPdf.Graphics {
 			// Used to prevent interleaving of text objects and marked sequences
 			markedContentSequences.Push(null);
 
-			WriteOperator("BT");
+			operations.Append(new BeginTextOperation());
 			streamLevel = GraphicsStreamState.Text;
 
 			return this;
@@ -534,12 +465,12 @@ namespace GeboPdf.Graphics {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Text);
 			}
 
-			if(markedContentSequences.Peek() != null) {
+			if (markedContentSequences.Peek() != null) {
 				throw new PdfInvalidGraphicsOperationException("Cannot end current text object before marked content sequence is closed.");
 			}
 			markedContentSequences.Pop();
 
-			WriteOperator("ET");
+			operations.Append(new EndTextOperation());
 			streamLevel = GraphicsStreamState.PageDescription;
 			return this;
 		}
@@ -556,9 +487,7 @@ namespace GeboPdf.Graphics {
 			if (state.CharacterSpacing != charSpace) {
 				state.CharacterSpacing = charSpace;
 
-				writer.WriteFloat(charSpace);
-				writer.WriteSpace();
-				WriteOperator("Tc");
+				operations.Append(new CharacterSpacingOperation(charSpace));
 			}
 
 			return this;
@@ -572,9 +501,7 @@ namespace GeboPdf.Graphics {
 			if (state.WordSpacing != wordSpace) {
 				state.WordSpacing = wordSpace;
 
-				writer.WriteFloat(wordSpace);
-				writer.WriteSpace();
-				WriteOperator("Tw");
+				operations.Append(new WordSpacingOperation(wordSpace));
 			}
 
 			return this;
@@ -588,9 +515,7 @@ namespace GeboPdf.Graphics {
 			if (state.TextHorizontalScaling != scale) {
 				state.TextHorizontalScaling = scale;
 
-				writer.WriteFloat(scale);
-				writer.WriteSpace();
-				WriteOperator("Tz");
+				operations.Append(new TextHorizontalScaleOperation(scale));
 			}
 
 			return this;
@@ -605,9 +530,7 @@ namespace GeboPdf.Graphics {
 			if (state.TextLeading != leading) {
 				state.TextLeading = leading;
 
-				writer.WriteFloat(leading);
-				writer.WriteSpace();
-				WriteOperator("TL");
+				operations.Append(new TextLeadingOperation(leading));
 			}
 
 			return this;
@@ -624,11 +547,7 @@ namespace GeboPdf.Graphics {
 				resources.AddFont(font, out PdfName fontName);
 				state.Font = newFont;
 
-				writer.WriteName(fontName);
-				writer.WriteSpace();
-				writer.WriteFloat(size);
-				writer.WriteSpace();
-				WriteOperator("Tf");
+				operations.Append(new FontAndSizeOperation(fontName, size));
 			}
 
 			return this;
@@ -642,9 +561,7 @@ namespace GeboPdf.Graphics {
 			if (state.TextRenderingMode != render) {
 				state.TextRenderingMode = render;
 
-				writer.WriteInt((int)render);
-				writer.WriteSpace();
-				WriteOperator("Tr");
+				operations.Append(new TextRenderingModeOperation(render));
 			}
 
 			return this;
@@ -658,9 +575,7 @@ namespace GeboPdf.Graphics {
 			if (state.TextRise != rise) {
 				state.TextRise = rise;
 
-				writer.WriteFloat(rise);
-				writer.WriteSpace();
-				WriteOperator("Ts");
+				operations.Append(new TextRiseOperation(rise));
 			}
 
 			return this;
@@ -674,9 +589,7 @@ namespace GeboPdf.Graphics {
 			if (streamLevel != GraphicsStreamState.Text) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Text);
 			}
-			WriteFloats(tx, ty);
-			writer.WriteSpace();
-			WriteOperator("Td");
+			operations.Append(TextMoveToStartOperation.Create(tx, ty));
 			return this;
 		}
 
@@ -687,32 +600,28 @@ namespace GeboPdf.Graphics {
 
 			state.TextLeading = -ty;
 
-			WriteFloats(tx, ty);
-			writer.WriteSpace();
-			WriteOperator("TD");
+			operations.Append(new TextMoveToStartSetLeadingOperation(tx, ty));
 
 			return this;
 		}
 
 		public GraphicsStream SetTextMatrix(float a, float b, float c, float d, float e, float f) {
-			if (streamLevel != GraphicsStreamState.Text) {
-				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Text);
-			}
-			WriteFloats(a, b, c, d, e, f);
-			writer.WriteSpace();
-			WriteOperator("Tm");
-			return this;
+			return SetTextMatrix(Transform.Matrix(a, b, c, d, e, f));
 		}
 
 		public GraphicsStream SetTextMatrix(Transform transform) {
-			return SetTextMatrix(transform.a, transform.b, transform.c, transform.d, transform.e, transform.f);
+			if (streamLevel != GraphicsStreamState.Text) {
+				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Text);
+			}
+			operations.Append(new SetTextMatrixOperation(transform));
+			return this;
 		}
 
 		public GraphicsStream MoveToStart() {
 			if (streamLevel != GraphicsStreamState.Text) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Text);
 			}
-			WriteOperator("T*");
+			operations.Append(TextMoveToStartOperation.Create());
 			return this;
 		}
 
@@ -724,9 +633,7 @@ namespace GeboPdf.Graphics {
 			if (streamLevel != GraphicsStreamState.Text) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Text);
 			}
-			WriteText(text);
-			writer.WriteSpace();
-			WriteOperator("Tj");
+			operations.Append(new ShowTextOperation(GetTextBytes(text)));
 			return this;
 		}
 
@@ -734,9 +641,7 @@ namespace GeboPdf.Graphics {
 			if (streamLevel != GraphicsStreamState.Text) {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Text);
 			}
-			WriteText(text);
-			writer.WriteSpace();
-			WriteOperator("'");
+			operations.Append(new MoveNextLineShowTextOperation(GetTextBytes(text)));
 			return this;
 		}
 
@@ -748,11 +653,7 @@ namespace GeboPdf.Graphics {
 			state.WordSpacing = aw;
 			state.CharacterSpacing = ac;
 
-			WriteFloats(aw, ac);
-			writer.WriteSpace();
-			WriteText(text);
-			writer.WriteSpace();
-			WriteOperator("\"");
+			operations.Append(new SetSpacingMoveNextLineShowTextOperation(aw, ac, GetTextBytes(text)));
 
 			return this;
 		}
@@ -762,23 +663,7 @@ namespace GeboPdf.Graphics {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Text);
 			}
 
-			writer.WriteASCII("[");
-			writer.WriteSpace();
-
-			for (int i = 0; i < array.Length; i++) {
-				if (!string.IsNullOrEmpty(array[i].text)) {
-					WriteText(array[i].text);
-					writer.WriteSpace();
-				}
-				if (array[i].offset.HasValue) {
-					writer.WriteFloat(array[i].offset!.Value);
-					writer.WriteSpace();
-				}
-			}
-
-			writer.WriteASCII("]");
-			writer.WriteSpace();
-			WriteOperator("TJ");
+			operations.Append(new ShowTextWithPositioningOperation(array.Select(i => (GetTextBytes(i.text), i.offset)).ToArray()));
 
 			return this;
 		}
@@ -788,23 +673,7 @@ namespace GeboPdf.Graphics {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.Text);
 			}
 
-			writer.WriteASCII("[");
-			writer.WriteSpace();
-
-			for (int i = 0; i < array.Length; i++) {
-				if (array[i].glyphs.Length > 0) {
-					WriteText(array[i].glyphs);
-					writer.WriteSpace();
-				}
-				if (array[i].offset.HasValue && array[i].offset!.Value != 0) {
-					writer.WriteFloat(array[i].offset!.Value);
-					writer.WriteSpace();
-				}
-			}
-
-			writer.WriteASCII("]");
-			writer.WriteSpace();
-			WriteOperator("TJ");
+			operations.Append(new ShowTextWithPositioningOperation(array.Select<(ushort[] glyphs, short? offset), (byte[], float?)>(i => (GetTextBytes(i.glyphs), i.offset.HasValue ? (float)i.offset : null)).ToArray()));
 
 			return this;
 		}
@@ -901,16 +770,15 @@ namespace GeboPdf.Graphics {
 				state.StrokingColorSpace = colorSpace;
 				state.StrokingColor = colorSpace.DefaultValues;
 
+				PdfName colorspaceName;
 				if (colorSpace.IsBuiltIn) {
-					writer.WriteName(colorSpace.BuiltInName);
+					colorspaceName = colorSpace.BuiltInName;
 				}
 				else {
-					resources.AddColorSpace(colorSpace, out PdfName colorspaceName);
-					writer.WriteName(colorspaceName);
+					resources.AddColorSpace(colorSpace, out colorspaceName);
 				}
 
-				writer.WriteSpace();
-				WriteOperator("CS");
+				operations.Append(new SetStrokingColorSpaceOperation(colorspaceName));
 			}
 
 			return this;
@@ -925,16 +793,15 @@ namespace GeboPdf.Graphics {
 				state.NonStrokingColorSpace = colorSpace;
 				state.NonStrokingColor = colorSpace.DefaultValues;
 
+				PdfName colorspaceName;
 				if (colorSpace.IsBuiltIn) {
-					writer.WriteName(colorSpace.BuiltInName);
+					colorspaceName = colorSpace.BuiltInName;
 				}
 				else {
-					resources.AddColorSpace(colorSpace, out PdfName colorspaceName);
-					writer.WriteName(colorspaceName);
+					resources.AddColorSpace(colorSpace, out colorspaceName);
 				}
 
-				writer.WriteSpace();
-				WriteOperator("cs");
+				operations.Append(new SetNonStrokingColorSpaceOperation(colorspaceName));
 			}
 
 			return this;
@@ -965,17 +832,9 @@ namespace GeboPdf.Graphics {
 					throw new PdfInvalidGraphicsOperationException($"Invalid number of color values received with pattern (expected {colorSpaceComponents}, got {numValues}).");
 				}
 
-				//state.strokingColorSpace = pattern.ColorSpace;
 				state.StrokingColor = newColor;
 
-				if (numValues > 0) {
-					WriteColorFloats(values!); // We can be certain values is not null here
-					writer.WriteSpace();
-				}
-
-				writer.WriteName(patternName);
-				writer.WriteSpace();
-				WriteOperator("SCN");
+				operations.Append(new SetStrokingPatternOperation(patternName, values));
 			}
 
 			return this;
@@ -1006,17 +865,9 @@ namespace GeboPdf.Graphics {
 					throw new PdfInvalidGraphicsOperationException($"Invalid number of color values received with pattern (expected {colorSpaceComponents}, got {numValues}).");
 				}
 
-				//state.nonStrokingColorSpace = pattern.ColorSpace;
 				state.NonStrokingColor = newColor;
 
-				if (numValues > 0) {
-					WriteColorFloats(values!); // We can be certain values is not null here
-					writer.WriteSpace();
-				}
-
-				writer.WriteName(patternName);
-				writer.WriteSpace();
-				WriteOperator("scn");
+				operations.Append(new SetNonStrokingPatternOperation(patternName, values));
 			}
 
 			return this;
@@ -1033,9 +884,7 @@ namespace GeboPdf.Graphics {
 				state.StrokingColorSpace = PdfColorSpace.DeviceGray; // DefaultGray?
 				state.StrokingColor = newColor;
 
-				writer.WriteFloat(ClampColor(gray));
-				writer.WriteSpace();
-				WriteOperator("G");
+				operations.Append(new SetStrokingGrayOperation(gray));
 			}
 
 			return this;
@@ -1052,9 +901,7 @@ namespace GeboPdf.Graphics {
 				state.NonStrokingColorSpace = PdfColorSpace.DeviceGray; // DefaultGray?
 				state.NonStrokingColor = newColor;
 
-				writer.WriteFloat(ClampColor(gray));
-				writer.WriteSpace();
-				WriteOperator("g");
+				operations.Append(new SetNonStrokingGrayOperation(gray));
 			}
 
 			return this;
@@ -1071,9 +918,7 @@ namespace GeboPdf.Graphics {
 				state.StrokingColorSpace = PdfColorSpace.DeviceRGB; // DefaultRGB?
 				state.StrokingColor = newColor;
 
-				WriteFloats(ClampColor(r), ClampColor(g), ClampColor(b));
-				writer.WriteSpace();
-				WriteOperator("RG");
+				operations.Append(new SetStrokingRGBOperation(r, g, b));
 			}
 
 			return this;
@@ -1090,9 +935,7 @@ namespace GeboPdf.Graphics {
 				state.NonStrokingColorSpace = PdfColorSpace.DeviceRGB; // DefaultRGB?
 				state.NonStrokingColor = newColor;
 
-				WriteFloats(ClampColor(r), ClampColor(g), ClampColor(b));
-				writer.WriteSpace();
-				WriteOperator("rg");
+				operations.Append(new SetNonStrokingRGBOperation(r, g, b));
 			}
 
 			return this;
@@ -1109,9 +952,7 @@ namespace GeboPdf.Graphics {
 				state.StrokingColorSpace = PdfColorSpace.DeviceCMYK; // DefaultCMYK?
 				state.StrokingColor = newColor;
 
-				WriteFloats(ClampColor(c), ClampColor(m), ClampColor(y), ClampColor(k));
-				writer.WriteSpace();
-				WriteOperator("K");
+				operations.Append(new SetStrokingCMYKOperation(c, m, y, k));
 			}
 
 			return this;
@@ -1128,9 +969,7 @@ namespace GeboPdf.Graphics {
 				state.NonStrokingColorSpace = PdfColorSpace.DeviceCMYK; // DefaultCMYK?
 				state.NonStrokingColor = newColor;
 
-				WriteFloats(ClampColor(c), ClampColor(m), ClampColor(y), ClampColor(k));
-				writer.WriteSpace();
-				WriteOperator("k");
+				operations.Append(new SetNonStrokingCMYKOperation(c, m, y, k));
 			}
 
 			return this;
@@ -1145,21 +984,7 @@ namespace GeboPdf.Graphics {
 				state.StrokingColorSpace = color.ColorSpace; // Default color space?
 				state.StrokingColor = color;
 
-				WriteFloats(color.Values);
-				writer.WriteSpace();
-
-				if (color is PdfGrayColor) {
-					WriteOperator("G");
-				}
-				else if (color is PdfRGBColor) {
-					WriteOperator("RG");
-				}
-				else if (color is PdfCMYKColor) {
-					WriteOperator("K");
-				}
-				else {
-					throw new NotImplementedException($"Unrecognised PdfDeviceColor of type {color.GetType().Name}.");
-				}
+				operations.Append(new SetStrokingColorOperation(color));
 			}
 
 			return this;
@@ -1174,33 +999,19 @@ namespace GeboPdf.Graphics {
 				state.NonStrokingColorSpace = color.ColorSpace; // Default color space?
 				state.NonStrokingColor = color;
 
-				WriteFloats(color.Values);
-				writer.WriteSpace();
-
-				if (color is PdfGrayColor) {
-					WriteOperator("g");
-				}
-				else if (color is PdfRGBColor) {
-					WriteOperator("rg");
-				}
-				else if (color is PdfCMYKColor) {
-					WriteOperator("k");
-				}
-				else {
-					throw new NotImplementedException($"Unrecognised PdfDeviceColor of type {color.GetType().Name}.");
-				}
+				operations.Append(new SetNonStrokingColorOperation(color));
 			}
 
 			return this;
 		}
 
 		public GraphicsStream SetStrokingAlphaConstant(float alpha) {
-			PdfGraphicsStateParameterDictionary paramDict = new PdfGraphicsStateParameterDictionary(strokingAlphaConstant: ClampColor(alpha));
+			PdfGraphicsStateParameterDictionary paramDict = new PdfGraphicsStateParameterDictionary(strokingAlphaConstant: float.Clamp(alpha, 0f, 1f));
 			return SetGraphicsState(paramDict);
 		}
 
 		public GraphicsStream SetNonStrokingAlphaConstant(float alpha) {
-			PdfGraphicsStateParameterDictionary paramDict = new PdfGraphicsStateParameterDictionary(nonStrokingAlphaConstant: ClampColor(alpha));
+			PdfGraphicsStateParameterDictionary paramDict = new PdfGraphicsStateParameterDictionary(nonStrokingAlphaConstant: float.Clamp(alpha, 0f, 1f));
 			return SetGraphicsState(paramDict);
 		}
 
@@ -1213,9 +1024,7 @@ namespace GeboPdf.Graphics {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.PageDescription);
 			}
 			resources.AddShading(shading, out PdfName shadingName);
-			writer.WriteName(shadingName);
-			writer.WriteSpace();
-			WriteOperator("sh");
+			operations.Append(new PaintShadingOperation(shadingName));
 			return this;
 		}
 
@@ -1228,9 +1037,7 @@ namespace GeboPdf.Graphics {
 				throw new PdfInvalidGraphicsStateException(streamLevel, GraphicsStreamState.PageDescription);
 			}
 			resources.AddXObject(xObject, out PdfName xObjectName);
-			writer.WriteName(xObjectName);
-			writer.WriteSpace();
-			WriteOperator("Do");
+			operations.Append(new PaintXObjectOperation(xObjectName));
 			return this;
 		}
 
@@ -1245,9 +1052,7 @@ namespace GeboPdf.Graphics {
 
 			markedContentSequences.Push(tag);
 
-			writer.WriteName(tag);
-			writer.WriteSpace();
-			WriteOperator("BMC");
+			operations.Append(new BeginMarkedContentOperation(tag));
 
 			return this;
 		}
@@ -1258,14 +1063,14 @@ namespace GeboPdf.Graphics {
 			}
 
 			// null value indicates that the last thing opened was a text object, and therefore we cannot close the sequence (no interleaving allowed)
-			if(markedContentSequences.Count > 0 && markedContentSequences.Peek() == null) {
+			if (markedContentSequences.Count > 0 && markedContentSequences.Peek() == null) {
 				throw new PdfInvalidGraphicsOperationException("Cannot end current marked content sequence before text object is closed.");
 			}
-			if(markedContentSequences.Count < 1) {
+			if (markedContentSequences.Count < 1) {
 				throw new PdfInvalidGraphicsOperationException("There is no marked content sequence to end at this point in the stream.");
 			}
 
-			WriteOperator("EMC");
+			operations.Append(new EndMarkedContentOperation());
 
 			return this;
 		}
@@ -1282,7 +1087,7 @@ namespace GeboPdf.Graphics {
 			defaultAppearanceStream.FontAndSize(font, fontsize);
 			defaultAppearanceStream.SetNonStrokingColor(color);
 
-			return new PdfTextString(Encoding.ASCII.GetString(defaultAppearanceStream._memoryStream.ToArray()).Trim());
+			return new PdfTextString(Encoding.ASCII.GetString(defaultAppearanceStream.GetStream().ToArray()).Trim());
 		}
 
 		public static PdfString GetTextFieldDefaultAppearance(PdfResourcesDictionary resources, PdfDeviceColor color) {
@@ -1292,10 +1097,1076 @@ namespace GeboPdf.Graphics {
 
 			defaultAppearanceStream.SetNonStrokingColor(color);
 
-			return new PdfTextString(Encoding.ASCII.GetString(defaultAppearanceStream._memoryStream.ToArray()).Trim());
+			return new PdfTextString(Encoding.ASCII.GetString(defaultAppearanceStream.GetStream().ToArray()).Trim());
 		}
 
 		#endregion
+	}
+
+	public class PdfGraphicsStreamWriter : PdfStreamWriter {
+		private readonly bool useEOL;
+
+		public PdfGraphicsStreamWriter(Stream stream, bool useEOL) : base(stream) {
+			this.useEOL = useEOL;
+		}
+
+		public void WriteOperator(string operatorStr) {
+			WriteASCII(operatorStr);
+
+			if (useEOL) {
+				WriteEOL();
+			}
+			else {
+				WriteSpace();
+			}
+		}
+
+		public void WriteFloats(params float[] values) {
+			for (int i = 0; i < values.Length; i++) {
+				if (i > 0) {
+					WriteSpace();
+				}
+				WriteFloat(values[i]);
+			}
+		}
+
+		public void WriteColorFloats(params float[] values) {
+			for (int i = 0; i < values.Length; i++) {
+				if (i > 0) {
+					WriteSpace();
+				}
+				WriteFloat(ClampColor(values[i]));
+			}
+		}
+
+		public void WriteFloatArray(float[] array) {
+			WriteASCII("[");
+			WriteFloats(array);
+			WriteASCII("]");
+		}
+
+		public void WriteText(byte[] textBytes) {
+			WriteASCII("<");
+			WriteASCII(HexWriter.ToString(textBytes));
+			WriteASCII(">");
+		}
+
+		private static float ClampColor(float value) {
+			return Math.Max(0f, Math.Min(1f, value));
+		}
+
+	}
+
+	public abstract class GraphicsOperation {
+
+		public abstract bool StateChange { get; }
+		public abstract bool HasGraphicsWrite { get; }
+
+		public abstract void WriteTo(PdfGraphicsStreamWriter writer);
+
+	}
+
+	public class GraphicsOperationsSet : GraphicsOperation {
+
+		public override bool StateChange => ops.Any(o => o.StateChange);
+		public override bool HasGraphicsWrite => ops.Any(o => o.HasGraphicsWrite);
+
+		protected readonly List<GraphicsOperation> ops;
+
+		public GraphicsOperationsSet() {
+			ops = new List<GraphicsOperation>();
+		}
+
+		public void Append(GraphicsOperation op) {
+			ops.Add(op);
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			foreach (GraphicsOperation op in ops) {
+				op.WriteTo(writer);
+			}
+		}
+
+	}
+
+	public class GraphicsStateOperationsSet : GraphicsOperationsSet {
+
+		public GraphicsStateOperationsSet() : base() { }
+
+		protected void WriteTo(PdfGraphicsStreamWriter writer, bool isLast) {
+			if (!HasGraphicsWrite) { return; }
+			bool needsStateStorage = StateChange && !isLast;
+			if (needsStateStorage) { writer.WriteOperator("q"); }
+
+			foreach (GraphicsOperation op in ops[..^1]) {
+				op.WriteTo(writer);
+			}
+			if (ops.Count > 0) {
+				if (ops[^1] is GraphicsStateOperationsSet lastStatefulSet) {
+					lastStatefulSet.WriteTo(writer, true);
+				}
+				else {
+					ops[^1].WriteTo(writer);
+				}
+			}
+
+			if (needsStateStorage) { writer.WriteOperator("Q"); }
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			WriteTo(writer, false);
+		}
+
+	}
+
+	public abstract class GraphicsStateChangeOperation : GraphicsOperation {
+
+		public sealed override bool StateChange { get; } = true;
+		public sealed override bool HasGraphicsWrite { get; } = false;
+
+	}
+
+	public abstract class GraphicsStatelessOperation : GraphicsOperation {
+
+		public sealed override bool StateChange { get; } = false;
+
+	}
+
+	public abstract class GraphicsNumericStateChangeOperation : GraphicsStateChangeOperation {
+
+		public readonly float Value;
+		public readonly string Operator;
+
+		protected GraphicsNumericStateChangeOperation(float value, string opCode) {
+			Value = value;
+			Operator = opCode;
+		}
+
+		public sealed override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloat(Value);
+			writer.WriteSpace();
+			writer.WriteOperator(Operator);
+		}
+
+	}
+
+	public class ConcatMatrixOperation : GraphicsStateChangeOperation {
+
+		public readonly Transform Matrix;
+
+		public ConcatMatrixOperation(Transform matrix) {
+			Matrix = matrix;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(Matrix.a, Matrix.b, Matrix.c, Matrix.d, Matrix.e, Matrix.f);
+			writer.WriteSpace();
+			writer.WriteOperator("cm");
+		}
+	}
+
+	public class LineWidthOperation : GraphicsStateChangeOperation {
+
+		public readonly float LineWidth;
+
+		public LineWidthOperation(float lineWidth) {
+			LineWidth = lineWidth;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloat(LineWidth);
+			writer.WriteSpace();
+			writer.WriteOperator("w");
+		}
+
+	}
+
+	public class LineCapOperation : GraphicsStateChangeOperation {
+
+		public readonly LineCapStyle LineCap;
+
+		public LineCapOperation(LineCapStyle lineCap) {
+			LineCap = lineCap;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteInt((int)LineCap);
+			writer.WriteSpace();
+			writer.WriteOperator("J");
+		}
+
+	}
+
+	public class LineJoinOperation : GraphicsStateChangeOperation {
+
+		public readonly LineJoinStyle LineJoin;
+
+		public LineJoinOperation(LineJoinStyle lineJoin) {
+			LineJoin = lineJoin;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteInt((int)LineJoin);
+			writer.WriteSpace();
+			writer.WriteOperator("j");
+		}
+
+	}
+
+	public class MitreLimitOperation : GraphicsStateChangeOperation {
+
+		public readonly float MitreLimit;
+
+		public MitreLimitOperation(float mitreLimit) {
+			MitreLimit = mitreLimit;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloat(MitreLimit);
+			writer.WriteSpace();
+			writer.WriteOperator("M");
+		}
+
+	}
+
+	public class LineDashPatternOperation : GraphicsStateChangeOperation {
+
+		public readonly float[]? DashArray;
+		public readonly float DashPhase;
+
+		public LineDashPatternOperation(float[]? dashArray, float dashPhase) {
+			DashArray = dashArray;
+			DashPhase = dashPhase;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloatArray(DashArray ?? Array.Empty<float>()); // TODO Is this fallback correct?
+			writer.WriteSpace();
+			writer.WriteFloat(DashPhase);
+			writer.WriteSpace();
+			writer.WriteOperator("d");
+		}
+
+	}
+
+	public class SetGraphicsStateOperation : GraphicsStateChangeOperation {
+
+		public readonly PdfName StateName;
+
+		public SetGraphicsStateOperation(PdfName stateName) {
+			StateName = stateName;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteName(StateName);
+			writer.WriteSpace();
+			writer.WriteOperator("gs");
+		}
+
+	}
+
+	public class MoveOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = false;
+
+		public readonly float X, Y;
+
+		public MoveOperation(float x, float y) {
+			X = x;
+			Y = y;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(X, Y);
+			writer.WriteSpace();
+			writer.WriteOperator("m");
+		}
+
+	}
+
+	public class LineOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = false;
+
+		public readonly float X, Y;
+
+		public LineOperation(float x, float y) {
+			X = x;
+			Y = y;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(X, Y);
+			writer.WriteSpace();
+			writer.WriteOperator("l");
+		}
+
+	}
+
+	public class CubicOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = false;
+
+		public readonly float X1, Y1, X2, Y2, X3, Y3;
+
+		public CubicOperation(float x1, float y1, float x2, float y2, float x3, float y3) {
+			X1 = x1;
+			Y1 = y1;
+			X2 = x2;
+			Y2 = y2;
+			X3 = x3;
+			Y3 = y3;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(X1, Y1, X2, Y2, X3, Y3);
+			writer.WriteSpace();
+			writer.WriteOperator("c");
+		}
+
+	}
+
+	public class QuadraticOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = false;
+
+		public readonly float X2, Y2, X3, Y3;
+
+		public QuadraticOperation(float x2, float y2, float x3, float y3) {
+			X2 = x2;
+			Y2 = y2;
+			X3 = x3;
+			Y3 = y3;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(X2, Y2, X3, Y3);
+			writer.WriteSpace();
+			writer.WriteOperator("v"); // v or y?
+		}
+
+	}
+
+	public class CloseOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = false;
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteOperator("h");
+		}
+
+	}
+
+	public class RectangleOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = false;
+
+		public readonly float X, Y, Width, Height;
+
+		public RectangleOperation(float x, float y, float width, float height) {
+			X = x;
+			Y = y;
+			Width = width;
+			Height = height;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(X, Y, Width, Height);
+			writer.WriteSpace();
+			writer.WriteOperator("re");
+		}
+
+	}
+
+	public class StrokeOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteOperator("S");
+		}
+
+	}
+
+	public class FillNonZeroOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteOperator("f");
+		}
+
+	}
+
+	public class FillEvenOddOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteOperator("f*");
+		}
+
+	}
+
+	public class FillStrokeNonZeroOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteOperator("B");
+		}
+
+	}
+
+	public class FillStrokeEvenOddOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteOperator("B*");
+		}
+
+	}
+
+	public class EndPathOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = false;
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteOperator("n");
+		}
+
+	}
+
+	public abstract class ClippingGraphicsOperation : GraphicsStateChangeOperation { }
+
+	public class ClipNonZeroOperation : ClippingGraphicsOperation {
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteOperator("W");
+		}
+
+	}
+
+	public class ClipEvenOddOperation : ClippingGraphicsOperation {
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteOperator("W*");
+		}
+
+	}
+
+	public class BeginTextOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = false;
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteOperator("BT");
+		}
+
+	}
+
+	public class EndTextOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = false;
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteOperator("ET");
+		}
+
+	}
+
+	public class CharacterSpacingOperation : GraphicsStateChangeOperation {
+
+		public readonly float CharacterSpacing;
+
+		public CharacterSpacingOperation(float charSpace) {
+			CharacterSpacing = charSpace;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloat(CharacterSpacing);
+			writer.WriteSpace();
+			writer.WriteOperator("Tc");
+		}
+
+	}
+
+	public class WordSpacingOperation : GraphicsStateChangeOperation {
+
+		public readonly float WordSpacing;
+
+		public WordSpacingOperation(float wordSpace) {
+			WordSpacing = wordSpace;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloat(WordSpacing);
+			writer.WriteSpace();
+			writer.WriteOperator("Tw");
+		}
+
+	}
+
+	public class TextHorizontalScaleOperation : GraphicsStateChangeOperation {
+
+		public readonly float TextHorizontalScale;
+
+		public TextHorizontalScaleOperation(float scale) {
+			TextHorizontalScale = scale;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloat(TextHorizontalScale);
+			writer.WriteSpace();
+			writer.WriteOperator("Tz");
+		}
+
+	}
+
+	public class TextLeadingOperation : GraphicsStateChangeOperation {
+
+		public readonly float TextLeading;
+
+		public TextLeadingOperation(float leading) {
+			TextLeading = leading;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloat(TextLeading);
+			writer.WriteSpace();
+			writer.WriteOperator("TL");
+		}
+
+	}
+
+	public class FontAndSizeOperation : GraphicsStateChangeOperation {
+
+		public readonly PdfName FontName;
+		public readonly float FontSize;
+
+		public FontAndSizeOperation(PdfName fontName, float fontSize) {
+			FontName = fontName;
+			FontSize = fontSize;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteName(FontName);
+			writer.WriteSpace();
+			writer.WriteFloat(FontSize);
+			writer.WriteSpace();
+			writer.WriteOperator("Tf");
+		}
+
+	}
+
+	public class TextRenderingModeOperation : GraphicsStateChangeOperation {
+
+		public readonly TextRenderingMode TextRenderingMode;
+
+		public TextRenderingModeOperation(TextRenderingMode render) {
+			TextRenderingMode = render;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteInt((int)TextRenderingMode);
+			writer.WriteSpace();
+			writer.WriteOperator("Tr");
+		}
+
+	}
+
+	public class TextRiseOperation : GraphicsStateChangeOperation {
+
+		public readonly float TextRise;
+
+		public TextRiseOperation(float rise) {
+			TextRise = rise;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloat(TextRise);
+			writer.WriteSpace();
+			writer.WriteOperator("Ts");
+		}
+
+	}
+
+	public abstract class TextMoveToStartOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = false;
+
+		public static TextMoveToStartOperation Create(float tx, float ty) {
+			return new TextMoveToStartCoordinatesOperation(tx, ty);
+		}
+
+		public static TextMoveToStartOperation Create() {
+			return new TextMoveToStartNoCoordinatesOperation();
+		}
+
+		public class TextMoveToStartCoordinatesOperation : TextMoveToStartOperation {
+			
+			public readonly float tx, ty;
+
+			public TextMoveToStartCoordinatesOperation(float tx, float ty) {
+				this.tx = tx;
+				this.ty = ty;
+			}
+
+			public override void WriteTo(PdfGraphicsStreamWriter writer) {
+				writer.WriteFloats(tx, ty);
+				writer.WriteSpace();
+				writer.WriteOperator("Td");
+			}
+
+		}
+
+		public class TextMoveToStartNoCoordinatesOperation : TextMoveToStartOperation {
+
+			public override void WriteTo(PdfGraphicsStreamWriter writer) {
+				writer.WriteOperator("T*");
+			}
+
+		}
+
+	}
+
+	public class TextMoveToStartSetLeadingOperation : GraphicsStateChangeOperation {
+
+		public readonly float tx, ty;
+
+		public TextMoveToStartSetLeadingOperation(float tx, float ty) {
+			this.tx = tx;
+			this.ty = ty;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(tx, ty);
+			writer.WriteSpace();
+			writer.WriteOperator("TD");
+		}
+
+	}
+
+	public class SetTextMatrixOperation : GraphicsStateChangeOperation {
+
+		public readonly Transform Matrix;
+
+		public SetTextMatrixOperation(Transform matrix) {
+			Matrix = matrix;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(Matrix.a, Matrix.b, Matrix.c, Matrix.d, Matrix.e, Matrix.f);
+			writer.WriteSpace();
+			writer.WriteOperator("tm");
+		}
+
+	}
+
+	public class ShowTextOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		private readonly byte[] textBytes;
+
+		public ShowTextOperation(byte[] textBytes) {
+			this.textBytes = textBytes;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteText(textBytes);
+			writer.WriteSpace();
+			writer.WriteOperator("Tj");
+		}
+
+	}
+
+	public class MoveNextLineShowTextOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		private readonly byte[] textBytes;
+
+		public MoveNextLineShowTextOperation(byte[] textBytes) {
+			this.textBytes = textBytes;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteText(textBytes);
+			writer.WriteSpace();
+			writer.WriteOperator("'");
+		}
+
+	}
+
+	public class SetSpacingMoveNextLineShowTextOperation : GraphicsOperation {
+
+		public override bool StateChange { get; } = true;
+		public override bool HasGraphicsWrite { get; } = true;
+
+		private readonly float wordSpacing, charSpacing;
+		private readonly byte[] textBytes;
+
+		public SetSpacingMoveNextLineShowTextOperation(float aw, float ac, byte[] textBytes) {
+			this.wordSpacing = aw;
+			this.charSpacing = ac;
+			this.textBytes = textBytes;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(wordSpacing, charSpacing);
+			writer.WriteSpace();
+			writer.WriteText(textBytes);
+			writer.WriteSpace();
+			writer.WriteOperator("\"");
+		}
+
+	}
+
+	public class ShowTextWithPositioningOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		private readonly (byte[] textBytes, float? offset)[] array;
+
+		public ShowTextWithPositioningOperation((byte[] textBytes, float? offset)[] array) {
+			this.array = array;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+
+			if (array.Length == 1 && !array[0].offset.HasValue) {
+				writer.WriteText(array[0].textBytes);
+				writer.WriteSpace();
+				writer.WriteOperator("Tj");
+				return;
+			}
+			else {
+				writer.WriteASCII("[");
+				writer.WriteSpace();
+
+				for (int i = 0; i < array.Length; i++) {
+					if (array[i].textBytes.Length > 0) {
+						writer.WriteText(array[i].textBytes);
+						writer.WriteSpace();
+					}
+					if (array[i].offset.HasValue) {
+						writer.WriteFloat(array[i].offset!.Value);
+						writer.WriteSpace();
+					}
+				}
+
+				writer.WriteASCII("]");
+				writer.WriteSpace();
+				writer.WriteOperator("TJ");
+			}
+		}
+
+	}
+
+	public class SetStrokingColorSpaceOperation : GraphicsStateChangeOperation {
+
+		public readonly PdfName ColorspaceName;
+
+		public SetStrokingColorSpaceOperation(PdfName colorspaceName) {
+			ColorspaceName = colorspaceName;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteName(ColorspaceName);
+			writer.WriteSpace();
+			writer.WriteOperator("CS");
+		}
+
+	}
+
+	public class SetNonStrokingColorSpaceOperation : GraphicsStateChangeOperation {
+
+		public readonly PdfName ColorspaceName;
+
+		public SetNonStrokingColorSpaceOperation(PdfName colorspaceName) {
+			ColorspaceName = colorspaceName;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteName(ColorspaceName);
+			writer.WriteSpace();
+			writer.WriteOperator("cs");
+		}
+
+	}
+
+	public class SetStrokingPatternOperation : GraphicsStateChangeOperation {
+
+		public readonly PdfName PatternName;
+		public readonly float[]? Values;
+
+		public SetStrokingPatternOperation(PdfName patternName, float[]? values) {
+			PatternName = patternName;
+			Values = values;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			if (Values is not null && Values.Length > 0) {
+				writer.WriteColorFloats(Values);
+				writer.WriteSpace();
+			}
+
+			writer.WriteName(PatternName);
+			writer.WriteSpace();
+			writer.WriteOperator("SCN");
+		}
+
+	}
+
+	public class SetNonStrokingPatternOperation : GraphicsStateChangeOperation {
+
+		public readonly PdfName PatternName;
+		public readonly float[]? Values;
+
+		public SetNonStrokingPatternOperation(PdfName patternName, float[]? values) {
+			PatternName = patternName;
+			Values = values;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			if (Values is not null && Values.Length > 0) {
+				writer.WriteColorFloats(Values);
+				writer.WriteSpace();
+			}
+
+			writer.WriteName(PatternName);
+			writer.WriteSpace();
+			writer.WriteOperator("scn");
+		}
+
+	}
+
+	public class SetStrokingGrayOperation : GraphicsStateChangeOperation {
+
+		public readonly float Gray;
+
+		public SetStrokingGrayOperation(float gray) {
+			Gray = gray;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloat(float.Clamp(Gray, 0f, 1f));
+			writer.WriteSpace();
+			writer.WriteOperator("G");
+		}
+
+	}
+
+	public class SetNonStrokingGrayOperation : GraphicsStateChangeOperation {
+
+		public readonly float Gray;
+
+		public SetNonStrokingGrayOperation(float gray) {
+			Gray = gray;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloat(float.Clamp(Gray, 0f, 1f));
+			writer.WriteSpace();
+			writer.WriteOperator("g");
+		}
+
+	}
+
+	public class SetStrokingRGBOperation : GraphicsStateChangeOperation {
+
+		public readonly float R, G, B;
+
+		public SetStrokingRGBOperation(float r, float g, float b) {
+			R = r;
+			G = g;
+			B = b;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(float.Clamp(R, 0f, 1f), float.Clamp(G, 0f, 1f), float.Clamp(B, 0f, 1f));
+			writer.WriteSpace();
+			writer.WriteOperator("RG");
+		}
+
+	}
+
+	public class SetNonStrokingRGBOperation : GraphicsStateChangeOperation {
+
+		public readonly float R, G, B;
+
+		public SetNonStrokingRGBOperation(float r, float g, float b) {
+			R = r;
+			G = g;
+			B = b;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(float.Clamp(R, 0f, 1f), float.Clamp(G, 0f, 1f), float.Clamp(B, 0f, 1f));
+			writer.WriteSpace();
+			writer.WriteOperator("rg");
+		}
+
+	}
+
+	public class SetStrokingCMYKOperation : GraphicsStateChangeOperation {
+
+		public readonly float C, M, Y, K;
+
+		public SetStrokingCMYKOperation(float c, float m, float y, float k) {
+			C = c;
+			M = m;
+			Y = y;
+			K = k;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(float.Clamp(C, 0f, 1f), float.Clamp(M, 0f, 1f), float.Clamp(Y, 0f, 1f), float.Clamp(K, 0f, 1f));
+			writer.WriteSpace();
+			writer.WriteOperator("K");
+		}
+
+	}
+
+	public class SetNonStrokingCMYKOperation : GraphicsStateChangeOperation {
+
+		public readonly float C, M, Y, K;
+
+		public SetNonStrokingCMYKOperation(float c, float m, float y, float k) {
+			C = c;
+			M = m;
+			Y = y;
+			K = k;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(float.Clamp(C, 0f, 1f), float.Clamp(M, 0f, 1f), float.Clamp(Y, 0f, 1f), float.Clamp(K, 0f, 1f));
+			writer.WriteSpace();
+			writer.WriteOperator("k");
+		}
+
+	}
+
+	public class SetStrokingColorOperation : GraphicsStateChangeOperation {
+
+		public readonly PdfDeviceColor Color;
+
+		public SetStrokingColorOperation(PdfDeviceColor color) {
+			Color = color;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(Color.Values);
+			writer.WriteSpace();
+
+			if (Color is PdfGrayColor) {
+				writer.WriteOperator("G");
+			}
+			else if (Color is PdfRGBColor) {
+				writer.WriteOperator("RG");
+			}
+			else if (Color is PdfCMYKColor) {
+				writer.WriteOperator("K");
+			}
+			else {
+				throw new NotImplementedException($"Unrecognised PdfDeviceColor of type {Color.GetType().Name}.");
+			}
+		}
+
+	}
+
+	public class SetNonStrokingColorOperation : GraphicsStateChangeOperation {
+
+		public readonly PdfDeviceColor Color;
+
+		public SetNonStrokingColorOperation(PdfDeviceColor color) {
+			Color = color;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteFloats(Color.Values);
+			writer.WriteSpace();
+
+			if (Color is PdfGrayColor) {
+				writer.WriteOperator("g");
+			}
+			else if (Color is PdfRGBColor) {
+				writer.WriteOperator("rg");
+			}
+			else if (Color is PdfCMYKColor) {
+				writer.WriteOperator("k");
+			}
+			else {
+				throw new NotImplementedException($"Unrecognised PdfDeviceColor of type {Color.GetType().Name}.");
+			}
+		}
+
+	}
+
+	public class PaintShadingOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		public readonly PdfName ShadingName;
+
+		public PaintShadingOperation(PdfName shadingName) {
+			ShadingName = shadingName;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteName(ShadingName);
+			writer.WriteSpace();
+			writer.WriteOperator("sh");
+		}
+
+	}
+
+	public class PaintXObjectOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		public readonly PdfName XObjectName;
+
+		public PaintXObjectOperation(PdfName xObjectName) {
+			XObjectName = xObjectName;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteName(XObjectName);
+			writer.WriteSpace();
+			writer.WriteOperator("Do");
+		}
+
+	}
+
+	public class BeginMarkedContentOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		public readonly PdfName Tag;
+
+		public BeginMarkedContentOperation(PdfName tag) {
+			Tag = tag;
+		}
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteName(Tag);
+			writer.WriteSpace();
+			writer.WriteOperator("BMC");
+		}
+
+	}
+
+	public class EndMarkedContentOperation : GraphicsStatelessOperation {
+
+		public override bool HasGraphicsWrite { get; } = true;
+
+		public override void WriteTo(PdfGraphicsStreamWriter writer) {
+			writer.WriteOperator("EMC");
+		}
+
 	}
 
 }
