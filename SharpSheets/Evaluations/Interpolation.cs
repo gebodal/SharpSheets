@@ -342,7 +342,7 @@ namespace SharpSheets.Evaluations {
 			}
 			else if (parts.All(p => p.IsConstant)) {
 				this.parts = null;
-				this.value = string.Join("", parts.Select(p => p.Evaluate(Environments.Empty(p.Context))));
+				this.value = string.Join("", parts.Evaluate(Environments.Empty(context)));
 			}
 			else {
 				this.parts = parts;
@@ -383,7 +383,7 @@ namespace SharpSheets.Evaluations {
 				return value;
 			}
 			else {
-				return string.Join("", parts!.Select(p => p.Evaluate(environment)));
+				return string.Join("", parts!.Evaluate(environment));
 			}
 		}
 

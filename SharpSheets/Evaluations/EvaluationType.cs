@@ -3084,7 +3084,7 @@ namespace SharpSheets.Evaluations {
 
 		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode receiver, EvaluationNode[] args) {
 			EvaluationValue value = receiver.Evaluate(environment);
-			EvaluationValue[] argValues = args.Select(a => a.Evaluate(environment)).ToArray();
+			EvaluationValue[] argValues = args.Evaluate(environment);
 
 			if (argValues.Length == 2 && ReceiverType.Cast(value) is EvaluationValue castValue) {
 				EvaluationValue? lessThan = EvaluationOps.LessThan(castValue, argValues[0]);

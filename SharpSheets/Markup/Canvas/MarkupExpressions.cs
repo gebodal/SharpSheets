@@ -627,7 +627,7 @@ namespace SharpSheets.Markup.Canvas {
 				return value;
 			}
 			else {
-				return new NSliceValues(xs!.Select(x=>x.Evaluate(environment)).ToArray(), ys!.Select(y=>y.Evaluate(environment)).ToArray());
+				return new NSliceValues(xs!.Evaluate(environment), ys!.Evaluate(environment));
 			}
 		}
 	}
@@ -1234,7 +1234,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
 		private static FilePath EvaluatePath(IEnumerable<EvaluationNode> evaluations, IEnvironment environment) {
-			EvaluationValue[] absVals = evaluations.Select(e => e.Evaluate(environment)).ToArray();
+			EvaluationValue[] absVals = evaluations.Evaluate(environment);
 
 			if (absVals.Length == 1) {
 				if (FilePathEvaluationType.TryGetFilePath(absVals[0], out FilePath? filePath)) {

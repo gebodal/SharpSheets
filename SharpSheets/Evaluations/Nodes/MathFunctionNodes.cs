@@ -82,7 +82,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			EvaluationValue[] argVals = args.Select(a => a.Evaluate(environment)).ToArray();
+			EvaluationValue[] argVals = args.Evaluate(environment);
 
 			if (argVals.Length == 0) {
 				throw new EvaluationCalculationException($"Cannot take {Name} of zero arguments.");
@@ -214,7 +214,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			EvaluationValue[] argVals = args.Select(a => a.Evaluate(environment)).ToArray();
+			EvaluationValue[] argVals = args.Evaluate(environment);
 
 			if (argVals.Length == 0) {
 				throw new EvaluationCalculationException($"Cannot take {Name} of zero arguments.");

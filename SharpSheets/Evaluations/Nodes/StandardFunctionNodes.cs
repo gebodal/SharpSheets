@@ -193,7 +193,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		}
 
 		public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
-			EvaluationValue[] argVals = args.Select(a => a.Evaluate(environment)).ToArray();
+			EvaluationValue[] argVals = args.Evaluate(environment);
 
 			if (argVals.Length == 2) {
 				if (IntEvaluationType.TryGetInt(argVals[0], out int start) && IntEvaluationType.TryGetInt(argVals[1], out int end)) {

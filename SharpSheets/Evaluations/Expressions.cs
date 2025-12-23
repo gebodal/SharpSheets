@@ -49,6 +49,10 @@ namespace SharpSheets.Evaluations {
 			return expr.GetVariables().All(variables.IsVariable);
 		}
 
+		public static T[] Evaluate<T>(this IEnumerable<IExpression<T>> exprs, IEnvironment environment) {
+			return exprs.Select(e => e.Evaluate(environment)).ToArray();
+		}
+
 	}
 
 	public sealed class ConstantExpression<T> : IExpression<T> {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SharpSheets.Evaluations.Nodes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +14,10 @@ namespace SharpSheets.Evaluations {
 			return data?.GetType().Name ?? "null";
 		}
 		*/
+
+		public static EvaluationValue[] Evaluate(this IEnumerable<EvaluationNode> nodes, IEnvironment environment) {
+			return nodes.Select(n => n.Evaluate(environment)).ToArray();
+		}
 
 	}
 

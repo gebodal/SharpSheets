@@ -401,7 +401,7 @@ namespace SharpSheets.Markup.Parsing {
 			}
 
 			public override EvaluationValue Evaluate(IEnvironment environment, EvaluationNode[] args) {
-				EvaluationValue[] argVals = args.Select(a => a.Evaluate(environment)).ToArray();
+				EvaluationValue[] argVals = args.Evaluate(environment);
 
 				if (argVals.Length != 1 && argVals.Length != 3 && argVals.Length != 4) {
 					throw new EvaluationCalculationException("Color must take 1, 3, or 4 real-valued arguments, or a single string.");
