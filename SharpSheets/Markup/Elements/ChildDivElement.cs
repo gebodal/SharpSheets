@@ -15,6 +15,7 @@ using System.Threading;
 using SharpSheets.Exceptions;
 using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Widgets;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Elements {
 

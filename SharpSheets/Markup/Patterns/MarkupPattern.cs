@@ -9,6 +9,7 @@ using System.Collections;
 using SharpSheets.Markup.Elements;
 using SharpSheets.Markup.Parsing;
 using SharpSheets.Exceptions;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Patterns {
 

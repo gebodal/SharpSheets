@@ -16,6 +16,7 @@ using SharpSheets.Exceptions;
 using SharpEditor.DataManagers;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Evaluations;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpEditor.Parsing.ParsingState {
 

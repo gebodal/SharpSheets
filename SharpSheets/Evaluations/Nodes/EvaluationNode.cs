@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using SharpSheets.Colors;
+using SharpSheets.Evaluations.Types;
 using SharpSheets.Utilities;
 
 namespace SharpSheets.Evaluations.Nodes {

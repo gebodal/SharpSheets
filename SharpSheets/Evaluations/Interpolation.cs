@@ -1,4 +1,5 @@
 ﻿using SharpSheets.Evaluations.Nodes;
+using SharpSheets.Evaluations.Types;
 using SharpSheets.Parsing;
 using SharpSheets.Utilities;
 using System;

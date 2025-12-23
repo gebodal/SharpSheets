@@ -11,6 +11,7 @@ using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Markup.Parsing;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Colors;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Canvas {
 

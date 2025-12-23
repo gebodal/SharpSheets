@@ -9,6 +9,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia;
 using Avalonia.Layout;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpEditor.ContentBuilders {
 

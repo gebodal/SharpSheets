@@ -7,6 +7,7 @@ using SharpSheets.Colors;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Cards.Definitions;
 using SharpSheets.Cards.CardConfigs;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Cards.CardSubjects {
 

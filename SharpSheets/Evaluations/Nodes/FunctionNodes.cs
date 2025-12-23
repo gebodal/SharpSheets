@@ -1,4 +1,5 @@
-﻿using SharpSheets.Utilities;
+﻿using SharpSheets.Evaluations.Types;
+using SharpSheets.Utilities;
 using System.Collections.Generic;
 using System.Linq;
 

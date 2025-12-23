@@ -1,5 +1,6 @@
 ﻿using SharpSheets.Evaluations;
 using SharpSheets.Evaluations.Nodes;
+using SharpSheets.Evaluations.Types;
 using SharpSheets.Utilities;
 using System;
 using System.Collections;

@@ -13,6 +13,7 @@ using SharpSheets.Markup.Canvas;
 using SharpSheets.Utilities;
 using SharpSheets.Exceptions;
 using SharpSheets.Markup.Parsing;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Patterns {
 

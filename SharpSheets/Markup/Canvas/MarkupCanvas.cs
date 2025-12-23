@@ -11,6 +11,7 @@ using SharpSheets.Colors;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Exceptions;
 using System.Linq.Expressions;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Canvas {
 

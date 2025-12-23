@@ -8,6 +8,7 @@ using SharpSheets.Parsing;
 using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Exceptions;
 using System.Globalization;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Cards.Definitions {
 

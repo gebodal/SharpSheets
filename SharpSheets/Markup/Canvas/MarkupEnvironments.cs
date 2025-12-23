@@ -10,6 +10,7 @@ using SharpSheets.Colors;
 using SharpSheets.Markup.Parsing;
 using SharpSheets.Evaluations.Nodes;
 using System.Diagnostics.CodeAnalysis;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Canvas {
 

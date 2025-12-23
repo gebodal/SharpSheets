@@ -20,6 +20,7 @@ using Avalonia.Input;
 using SharpEditor.Windows;
 using SharpEditor.Completion;
 using SharpEditor.Parsing.ParsingState;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpEditor.CodeHelpers {
 

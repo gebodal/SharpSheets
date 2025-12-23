@@ -5,6 +5,7 @@ using SharpSheets.Utilities;
 using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Colors;
 using SharpSheets.Canvas;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Evaluations {
 

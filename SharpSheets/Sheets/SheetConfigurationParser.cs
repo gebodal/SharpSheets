@@ -6,6 +6,7 @@ using SharpSheets.Utilities;
 using SharpSheets.Parsing;
 using SharpSheets.Exceptions;
 using SharpSheets.Evaluations;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Sheets {
 	public class SheetConfigurationParser : IParser<SharpPageList> {

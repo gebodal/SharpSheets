@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 using SharpSheets.Evaluations.Nodes;
+using SharpSheets.Evaluations.Types;
 using SharpSheets.Parsing;
 using SharpSheets.Utilities;
 

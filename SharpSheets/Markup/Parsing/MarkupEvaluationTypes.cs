@@ -16,6 +16,7 @@ using SharpSheets.Colors;
 using SharpSheets.Parsing;
 using System.Globalization;
 using SharpSheets.Evaluations.Nodes;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Parsing {
 

@@ -1,4 +1,5 @@
 ﻿using SharpSheets.Evaluations;
+using SharpSheets.Evaluations.Types;
 using SharpSheets.Exceptions;
 using SharpSheets.Markup.Patterns;
 using SharpSheets.Parsing;

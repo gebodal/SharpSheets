@@ -4,6 +4,7 @@ using SharpSheets.Utilities;
 using SharpSheets.Evaluations.Nodes;
 using System.Text.RegularExpressions;
 using System.Diagnostics.CodeAnalysis;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Evaluations {
 

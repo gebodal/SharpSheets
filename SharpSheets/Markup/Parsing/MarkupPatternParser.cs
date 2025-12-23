@@ -18,6 +18,7 @@ using SharpSheets.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 using System.Xml.Linq;
 using SharpSheets.Documentation;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Parsing {
 

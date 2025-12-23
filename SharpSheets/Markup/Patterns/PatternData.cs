@@ -8,6 +8,7 @@ using SharpSheets.Markup.Parsing;
 using SharpSheets.Widgets;
 using SharpSheets.Utilities;
 using SharpSheets.Shapes;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Patterns {
 

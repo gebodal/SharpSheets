@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SharpSheets.Evaluations.Types;
+using System;
 using System.Linq;
 
 namespace SharpSheets.Evaluations.Nodes {

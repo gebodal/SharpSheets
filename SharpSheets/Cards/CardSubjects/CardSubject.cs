@@ -1,6 +1,7 @@
 ﻿using SharpSheets.Cards.CardConfigs;
 using SharpSheets.Cards.Definitions;
 using SharpSheets.Evaluations;
+using SharpSheets.Evaluations.Types;
 using SharpSheets.Parsing;
 using SharpSheets.Utilities;
 using System;

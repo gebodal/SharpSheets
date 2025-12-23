@@ -15,6 +15,7 @@ using SharpSheets.Cards.CardSubjects;
 using SharpSheets.Colors;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Widgets;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Cards.CardConfigs {
 

@@ -13,6 +13,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Controls.Documents;
 using Avalonia;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpEditor.Documentation.DocumentationBuilders {
 

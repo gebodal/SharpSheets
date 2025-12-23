@@ -2,6 +2,7 @@
 using SharpSheets.Evaluations;
 using System.Diagnostics.CodeAnalysis;
 using SharpSheets.Utilities;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Documentation {
 

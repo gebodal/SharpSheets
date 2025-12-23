@@ -14,6 +14,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using SharpSheets.Exceptions;
 using SharpSheets.Evaluations.Nodes;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Elements {
 

@@ -7,6 +7,7 @@ using SharpSheets.Canvas.Text;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.CodeAnalysis;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Cards.Definitions {
 

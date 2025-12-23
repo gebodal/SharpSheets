@@ -8,7 +8,7 @@ using System.Globalization;
 using SharpSheets.Evaluations.Nodes;
 using System.Text.RegularExpressions;
 
-namespace SharpSheets.Evaluations {
+namespace SharpSheets.Evaluations.Types {
 
 	public static class EvaluationContextUtils {
 

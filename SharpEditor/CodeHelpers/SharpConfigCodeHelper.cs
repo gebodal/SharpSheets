@@ -25,6 +25,7 @@ using SharpEditor.Windows;
 using SharpEditor.Completion;
 using SharpEditor.Parsing.ParsingState;
 using SharpEditor.Parsing;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpEditor.CodeHelpers {
 

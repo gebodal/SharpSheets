@@ -1,4 +1,6 @@
-﻿namespace SharpSheets.Evaluations.Nodes {
+﻿using SharpSheets.Evaluations.Types;
+
+namespace SharpSheets.Evaluations.Nodes {
 
 	public abstract class BooleanBinaryOperatorNode : BinaryOperatorNode {
 		public sealed override Associativity Associativity { get; } = Associativity.LEFT;

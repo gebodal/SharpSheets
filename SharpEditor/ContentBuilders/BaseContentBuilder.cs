@@ -15,6 +15,7 @@ using Avalonia.Data;
 using System.Linq;
 using SharpSheets.Evaluations;
 using SharpEditor.Utilities;
+using SharpSheets.Evaluations.Types;
 
 namespace SharpEditor.ContentBuilders {
 

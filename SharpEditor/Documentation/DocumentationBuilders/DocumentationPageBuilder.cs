@@ -159,9 +159,9 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					DocumentationSectionContents.CardConfigs => GetBuilderLinks(SharpEditorRegistries.CardSetConfigRegistryInstance, s => null, window), // TODO Can we improve the refreshAction here?
 					DocumentationSectionContents.CardStructures => GetBuilderLinks(CardSetConfigFactory.ConfigBuilders, CardSetConfigFactory.ConfigBuilders.Get, window),
 					// Environments
-					DocumentationSectionContents.BasisEnvironmentVariables => EnvironmentPageBuilder.GetEnvironmentVariablesContents(SharpSheets.Evaluations.BasisEnvironment.MakeInstance(SharpSheets.Evaluations.EvaluationContext.BasisContext), window),
-					DocumentationSectionContents.BasisEnvironmentFunctions => EnvironmentPageBuilder.GetEnvironmentFunctionsContents(SharpSheets.Evaluations.BasisEnvironment.MakeInstance(SharpSheets.Evaluations.EvaluationContext.BasisContext), window),
-					DocumentationSectionContents.BasisEnvironmentTypes => EnvironmentPageBuilder.GetEnvironmentTypesContents(SharpSheets.Evaluations.EvaluationContext.BasisContext, window),
+					DocumentationSectionContents.BasisEnvironmentVariables => EnvironmentPageBuilder.GetEnvironmentVariablesContents(SharpSheets.Evaluations.BasisEnvironment.MakeInstance(SharpSheets.Evaluations.Types.EvaluationContext.BasisContext), window),
+					DocumentationSectionContents.BasisEnvironmentFunctions => EnvironmentPageBuilder.GetEnvironmentFunctionsContents(SharpSheets.Evaluations.BasisEnvironment.MakeInstance(SharpSheets.Evaluations.Types.EvaluationContext.BasisContext), window),
+					DocumentationSectionContents.BasisEnvironmentTypes => EnvironmentPageBuilder.GetEnvironmentTypesContents(SharpSheets.Evaluations.Types.EvaluationContext.BasisContext, window),
 					DocumentationSectionContents.MarkupEnvironmentVariables => EnvironmentPageBuilder.GetEnvironmentVariablesContents(new SharpSheets.Markup.Canvas.MarkupEvaluationContext(MarkupEvaluationTypes.BaseContext).DrawingStateVariables(), window),
 					DocumentationSectionContents.MarkupEnvironmentFunctions => EnvironmentPageBuilder.GetEnvironmentFunctionsContents(new SharpSheets.Markup.Canvas.MarkupEvaluationContext(MarkupEvaluationTypes.BaseContext).DrawingStateVariables(), window),
 					DocumentationSectionContents.MarkupEnvironmentTypes => EnvironmentPageBuilder.GetEnvironmentTypesContents(MarkupEvaluationTypes.BaseContext, window),
