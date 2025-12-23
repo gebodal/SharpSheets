@@ -22,7 +22,6 @@ namespace SharpEditor.Parsing.ParsingState {
 		public override IParser Parser { get; } = new CardConfigEditorParser(
 				new CardSetConfigParser(
 						SharpEditorRegistries.WidgetFactoryInstance,
-						SharpEditorRegistries.ShapeFactoryInstance,
 						SharpEditorRegistries.CardSetConfigFactoryInstance
 					)
 			);

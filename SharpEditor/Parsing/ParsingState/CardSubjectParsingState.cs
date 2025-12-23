@@ -34,8 +34,7 @@ namespace SharpEditor.Parsing.ParsingState {
 
 		public override IParser Parser { get; } = new CardCollectionParser(
 			new CardSubjectParser(SharpEditorRegistries.CardSetConfigRegistryInstance),
-			SharpEditorRegistries.WidgetFactoryInstance,
-			SharpEditorRegistries.ShapeFactoryInstance
+			SharpEditorRegistries.WidgetFactoryInstance
 			);
 		public override string Extension { get { return SharpEditorFileInfo.CardSubjectExtension; } }
 		public override string FileFilter { get { return SharpEditorFileInfo.CardSubjectFileFilter1; } }

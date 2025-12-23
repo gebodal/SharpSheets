@@ -8,12 +8,10 @@ namespace SharpSheets.Cards.CardConfigs {
 	public class CardSetConfigParser : IParser<CardSetConfig> {
 
 		private readonly WidgetFactory widgetFactory;
-		private readonly ShapeFactory shapeFactory;
 		private readonly CardSetConfigFactory cardSetConfigFactory;
 
-		public CardSetConfigParser(WidgetFactory widgetFactory, ShapeFactory shapeFactory, CardSetConfigFactory cardSetConfigFactory) {
+		public CardSetConfigParser(WidgetFactory widgetFactory, CardSetConfigFactory cardSetConfigFactory) {
 			this.widgetFactory = widgetFactory;
-			this.shapeFactory = shapeFactory;
 			this.cardSetConfigFactory = cardSetConfigFactory;
 		}
 

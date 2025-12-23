@@ -41,7 +41,7 @@ namespace SharpEditor.DataManagers {
 
 			CardSetConfigFactoryInstance = new CardSetConfigFactory(WidgetFactoryInstance, ShapeFactoryInstance, FileReader);
 
-			CardSetConfigRegistryInstance = new CardSetConfigFileRegistry(SharpEditorPathInfo.TemplateDirectory, new CardSetConfigParser(WidgetFactoryInstance, ShapeFactoryInstance, CardSetConfigFactoryInstance));
+			CardSetConfigRegistryInstance = new CardSetConfigFileRegistry(SharpEditorPathInfo.TemplateDirectory, new CardSetConfigParser(WidgetFactoryInstance, CardSetConfigFactoryInstance));
 
 			TemplateRegistry = new TemplateRegistry(SharpEditorPathInfo.TemplateDirectory);
 			

@@ -11,12 +11,10 @@ namespace SharpSheets.Cards.Card {
 	public class CardCollectionParser : IParser<CardCollection> {
 
 		private readonly CardSubjectParser subjectParser;
-		private readonly ShapeFactory shapeFactory;
 		private readonly WidgetFactory widgetFactory;
 
-		public CardCollectionParser(CardSubjectParser subjectParser, WidgetFactory widgetFactory, ShapeFactory shapeFactory) {
+		public CardCollectionParser(CardSubjectParser subjectParser, WidgetFactory widgetFactory) {
 			this.subjectParser = subjectParser;
-			this.shapeFactory = shapeFactory;
 			this.widgetFactory = widgetFactory;
 		}
 
