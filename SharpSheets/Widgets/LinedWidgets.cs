@@ -800,6 +800,8 @@ namespace SharpSheets.Widgets {
 
 		protected readonly Dimension? width;
 
+		protected readonly Alignment labelAlignment;
+
 		protected readonly IBox checkBoxStyle;
 		protected readonly CheckType checkType;
 
@@ -865,6 +867,8 @@ namespace SharpSheets.Widgets {
 
 			checkBoxStyle = check ?? new NoOutline(-1f, trim: Margins.Zero); // BoxFactory.GetBox(new NamedContext(config, "check"), 1, "shadowedbox");
 			this.checkType = checkType;
+
+			this.labelAlignment = labelAlignment;
 		}
 
 		/// <param name="setup">Widget setup data.</param>
@@ -928,7 +932,9 @@ namespace SharpSheets.Widgets {
 			Rectangle?[] rows = GetRows(rect, out _);
 
 			//float lineWidth = 0.25f * canvas.GetDefaultLineWidth();
-			float textYoffset = labelOffset; // 4 * canvas.GetLineWidth();
+			//float textYoffset = labelOffset; // 4 * canvas.GetLineWidth();
+			float rowHeight = rows.Length > 0 && rows[0] is not null ? rows[0]!.Height : 0f;
+			float textYoffset = (labelAlignment == Alignment.TOP ? rowHeight - fontsize : (labelAlignment == Alignment.BOTTOM ? 0f : (rowHeight - fontsize) / 2f)) + labelOffset;
 			//canvas.SetLineWidth(lineWidth);
 
 			//float columnSpacing = canvas.GetWidth(" ", TextFormat.REGULAR, fontsize);
