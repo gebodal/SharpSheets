@@ -49,11 +49,11 @@ namespace SharpSheets.Markup.Patterns {
 			return new MarkupBuilderDetails(this, DisplayType.FromSystem<T>(), DisplayType.Create(InstanceType), GetArgumentDetails().ToArray(), Description is not null ? new DocumentationString(Description) : null);
 		}
 
-		protected virtual IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+		protected virtual IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source) {
 			return Enumerable.Empty<(EvaluationValue value, EnvironmentVariableInfo info)>();
 		}
 
-		protected static EvaluationValue MakeArgumentValue(ArgumentDetails arg, EvaluationType type, IContext context, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+		protected static EvaluationValue MakeArgumentValue(ArgumentDetails arg, EvaluationType type, IContext context, DirectoryPath source) {
 			if (type is BoolEvaluationType boolType) {
 				bool value = context.HasFlag(arg.Name, arg.UseLocal, context) ? context.GetFlag(arg.Name, arg.UseLocal, context) : ((bool?)arg.DefaultValue ?? false);
 				return boolType.MakeValue(value);
@@ -77,10 +77,8 @@ namespace SharpSheets.Markup.Patterns {
 		protected abstract T ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines);
 
 		public T MakeShape(IContext? context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, ShapeFactory? shapeFactory, bool constructionLines, out SharpParsingException[] buildErrors) {
-			WidgetFactory dummyWidgetFactory = new WidgetFactory(MarkupRegistry.Empty, shapeFactory);
-
 			IEnvironment argumentEnvironment = ParseArguments(context ?? SharpSheets.Parsing.Context.Empty, source, null, shapeFactory, context == null, out buildErrors)
-				.AppendEnvironment(GetAdditionalArguments(context ?? SharpSheets.Parsing.Context.Empty, shapeParams, source, dummyWidgetFactory, shapeFactory));
+				.AppendEnvironment(GetAdditionalArguments(context ?? SharpSheets.Parsing.Context.Empty, shapeParams, source));
 
 			return ConstructInstance(argumentEnvironment, shapeParams, shapeFactory, constructionLines);
 		}
@@ -111,9 +109,9 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
+		protected override IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source) {
 			ShapeFactory.AreaShapeParams areaShapeParams = shapeParams?.As<ShapeFactory.AreaShapeParams>() ?? new ShapeFactory.AreaShapeParams(-1f);
-			return base.GetAdditionalArguments(context, shapeParams, source, widgetFactory, shapeFactory)
+			return base.GetAdditionalArguments(context, shapeParams, source)
 				.Append(PatternData.AreaShapeAspectVariable(Context, areaShapeParams.Aspect));
 		}
 
@@ -285,8 +283,8 @@ namespace SharpSheets.Markup.Patterns {
 			return new MarkupTitleStyledBox(this, shapeFactory, argumentEnvironment, constructionLines);
 		}
 
-		protected override IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
-			IEnumerable<(EvaluationValue, EnvironmentVariableInfo info)> baseArgs = base.GetAdditionalArguments(context, shapeParams, source, widgetFactory, shapeFactory);
+		protected override IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source) {
+			IEnumerable<(EvaluationValue, EnvironmentVariableInfo info)> baseArgs = base.GetAdditionalArguments(context, shapeParams, source);
 			foreach ((EvaluationValue, EnvironmentVariableInfo info) baseArg in baseArgs) {
 				yield return baseArg;
 			}
@@ -299,7 +297,7 @@ namespace SharpSheets.Markup.Patterns {
 			yield return PatternData.TitleStyledBoxVariable(Context, titleStyleParams.Box);
 
 			foreach ((ArgumentDetails arg, EnvironmentVariableInfo info) in PatternData.TitledShapeArgs(Context)) {
-				EvaluationValue value = MakeArgumentValue(arg, info.EvaluationType, context, source, widgetFactory, shapeFactory);
+				EvaluationValue value = MakeArgumentValue(arg, info.EvaluationType, context, source);
 				yield return (value, info);
 			}
 		}
@@ -354,8 +352,8 @@ namespace SharpSheets.Markup.Patterns {
 			return new MarkupTitledBox(this, shapeFactory, argumentEnvironment, constructionLines, titledBoxParams.Aspect);
 		}
 
-		protected override IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory) {
-			IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)> baseArgs = base.GetAdditionalArguments(context, shapeParams, source, widgetFactory, shapeFactory);
+		protected override IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)> GetAdditionalArguments(IContext context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source) {
+			IEnumerable<(EvaluationValue value, EnvironmentVariableInfo info)> baseArgs = base.GetAdditionalArguments(context, shapeParams, source);
 			foreach ((EvaluationValue value, EnvironmentVariableInfo info) baseArg in baseArgs) {
 				yield return baseArg;
 			}
@@ -366,7 +364,7 @@ namespace SharpSheets.Markup.Patterns {
 			yield return PatternData.ShapePartsVariable(Context, titledBoxParams.Name.SplitAndTrim('\n'));
 
 			foreach ((ArgumentDetails arg, EnvironmentVariableInfo info) in PatternData.TitledShapeArgs(Context)) {
-				EvaluationValue value = MakeArgumentValue(arg, info.EvaluationType, context, source, widgetFactory, shapeFactory);
+				EvaluationValue value = MakeArgumentValue(arg, info.EvaluationType, context, source);
 				yield return (value, info);
 			}
 		}
