@@ -175,7 +175,7 @@ namespace SharpSheets.Evaluations.Nodes {
 		private ArrayContainsFunction() { }
 
 		public override EvaluationName Name { get; } = "contains";
-		public override string? Description { get; } = "Returns true of the array (or tuple) returns the value, otherwise false. Alternatively, if two strings are provided, returns true of the first string contains the second.";
+		public override string? Description { get; } = "Returns true of the array (or tuple) contains the value, otherwise false. Alternatively, if two strings are provided, returns true of the first string contains the second.";
 
 		/*
 		public override EnvironmentFunctionArguments Args { get; } = new EnvironmentFunctionArguments(null,
