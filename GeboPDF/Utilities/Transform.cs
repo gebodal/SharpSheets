@@ -2,7 +2,7 @@
 
 namespace GeboPdf.Utilities {
 
-	public class Transform {
+	public class Transform : IEquatable<Transform> {
 		public readonly float a, b, c, d, e, f;
 
 		private Transform(float a, float b, float c, float d, float e, float f) {
@@ -91,6 +91,33 @@ namespace GeboPdf.Utilities {
 		public override string ToString() {
 			return $"({a}, {b}, {c}, {d}, {e}, {f})";
 		}
+
+		public bool Equals(Transform? other) {
+			return other is not null &&
+				   a == other.a &&
+				   b == other.b &&
+				   c == other.c &&
+				   d == other.d &&
+				   e == other.e &&
+				   f == other.f;
+		}
+
+		public override bool Equals(object? obj) {
+			return obj is Transform transform && Equals(transform);
+		}
+
+		public static bool operator ==(Transform? a, Transform? b) {
+			return a is null ? b is null : a.Equals(b);
+		}
+
+		public static bool operator !=(Transform? a, Transform? b) {
+			return !(a == b);
+		}
+
+		public override int GetHashCode() {
+			return HashCode.Combine(a, b, c, d, e, f);
+		}
+		
 	}
 
 }
