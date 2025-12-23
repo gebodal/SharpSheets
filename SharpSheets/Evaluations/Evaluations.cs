@@ -37,9 +37,9 @@ namespace SharpSheets.Evaluations {
 			else if (operatorStr == ">=") { return new GreaterThanEqualNode(context); }
 			else if (operatorStr == "==") { return new EqualityNode(context); }
 			else if (operatorStr == "!=") { return new InequalityNode(context); }
-			else if (operatorStr == "&" || operatorStr == "&&" || operatorStr.ToLowerInvariant() == "and") { return new ANDNode(context); }
+			else if (operatorStr == "&" || operatorStr == "&&" || operatorStr.Equals("and", StringComparison.OrdinalIgnoreCase)) { return new ANDNode(context); }
 			else if (operatorStr == "^") { return new XORNode(context); }
-			else if (operatorStr == "|" || operatorStr == "||" || operatorStr.ToLowerInvariant() == "or") { return new ORNode(context); }
+			else if (operatorStr == "|" || operatorStr == "||" || operatorStr.Equals("or", StringComparison.OrdinalIgnoreCase)) { return new ORNode(context); }
 			else if (operatorStr == "!") { return new NegateOperator(context); }
 			else if (operatorStr == "??") { return new NullCoalescingNode(context); }
 			else if (operatorStr == "?") { return new ConditionalOperatorNode.ConditionalOpenNode(context); }
