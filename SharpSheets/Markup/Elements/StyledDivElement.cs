@@ -97,7 +97,7 @@ namespace SharpSheets.Markup.Elements {
 			this.titleText = _name;
 		}
 
-		protected virtual T GetShape(IEnvironment environment, ShapeFactory? shapeFactory, DirectoryPath source, out SharpParsingException[] buildErrors) {
+		protected virtual T GetShape(IEnvironment environment, ShapeFactory shapeFactory, DirectoryPath source, out SharpParsingException[] buildErrors) {
 			if (href is not null) {
 				T evaluated = href.Evaluate(environment) ?? throw new EvaluationCalculationException("Could not evaluate shape.");
 				buildErrors = Array.Empty<SharpParsingException>();
@@ -114,7 +114,7 @@ namespace SharpSheets.Markup.Elements {
 			}
 		}
 
-		protected override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
+		protected override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
 			T shape = GetShape(evaluationEnvironment, shapeFactory, source, out _); // TODO Should we pass these errors up the chain somehow?
 			DrawableStyledDivElement<T> drawable = new DrawableStyledDivElement<T>(this, shape, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, diagnostic);
 
@@ -457,7 +457,7 @@ namespace SharpSheets.Markup.Elements {
 			return new LabelledUsageBarStyledDivElement(id, setup, outline, href, name, label1, label2, labels_, note, note_, outerContext, markupContext, variables);
 		}
 
-		protected override IUsageBar GetShape(IEnvironment environment, ShapeFactory? shapeFactory, DirectoryPath source, out SharpParsingException[] buildErrors) {
+		protected override IUsageBar GetShape(IEnvironment environment, ShapeFactory shapeFactory, DirectoryPath source, out SharpParsingException[] buildErrors) {
 			IUsageBar usageBar = base.GetShape(environment, shapeFactory, source, out buildErrors);
 
 			string? label1 = this.label1?.Evaluate(environment);

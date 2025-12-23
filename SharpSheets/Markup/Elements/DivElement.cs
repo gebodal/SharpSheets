@@ -282,14 +282,14 @@ namespace SharpSheets.Markup.Elements {
 			return slicingValueElements.Where(e => e?.Enabled.Evaluate(environment) ?? false).Select(e => e.NSliceValues).FirstOrDefault();
 		}
 
-		protected virtual DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory? shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
+		protected virtual DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
 			return new DrawableDivElement(this, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, provideRemaining, diagnostic);
 		}
 
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
-		private List<DrawableDivElement> EvaluateAllDrawables(MarkupCanvasGraphicsData graphicsData, IEnvironment outerEnvironment, ShapeFactory? shapeFactory, bool diagnostic) {
+		private List<DrawableDivElement> EvaluateAllDrawables(MarkupCanvasGraphicsData graphicsData, IEnvironment outerEnvironment, ShapeFactory shapeFactory, bool diagnostic) {
 
 			List<DrawableDivElement> components = new List<DrawableDivElement>();
 
@@ -364,7 +364,7 @@ namespace SharpSheets.Markup.Elements {
 		/// <summary></summary>
 		/// <exception cref="EvaluationCalculationException"></exception>
 		/// <exception cref="EvaluationTypeException"></exception>
-		public DrawableDivElement? GetDrawable(MarkupCanvasGraphicsData graphicsData, IEnvironment outerEnvironment, ShapeFactory? shapeFactory, bool diagnostic) {
+		public DrawableDivElement? GetDrawable(MarkupCanvasGraphicsData graphicsData, IEnvironment outerEnvironment, ShapeFactory shapeFactory, bool diagnostic) {
 			// TODO Need to catch errors here
 			List<DrawableDivElement> components = this.EvaluateAllDrawables(graphicsData, outerEnvironment, shapeFactory, diagnostic);
 			if (components.Count == 0) {

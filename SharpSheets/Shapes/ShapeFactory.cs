@@ -5,6 +5,7 @@ using SharpSheets.Documentation;
 using SharpSheets.Markup.Patterns;
 using SharpSheets.Exceptions;
 using System.Diagnostics.CodeAnalysis;
+using SharpSheets.Widgets;
 
 namespace SharpSheets.Shapes {
 
@@ -21,13 +22,16 @@ namespace SharpSheets.Shapes {
 		public static readonly ShapeFactory StaticOnly = new ShapeFactory();
 
 		private readonly IMarkupRegistry? customStyles;
+		private readonly WidgetFactory dummyWidgetFactory;
 
 		public ShapeFactory(IMarkupRegistry customStyles) {
 			this.customStyles = customStyles;
+			dummyWidgetFactory = new WidgetFactory(MarkupRegistry.Empty, this);
 		}
 
 		private ShapeFactory() {
 			this.customStyles = null;
+			dummyWidgetFactory = new WidgetFactory(MarkupRegistry.Empty, this);
 		}
 
 		private static TypeDetailsCollection? _allStaticBuilderDetails;
@@ -122,7 +126,7 @@ namespace SharpSheets.Shapes {
 					shape = MakeShape(type, context, staticBuilderDetails.Name, source, out SharpParsingException[] shapeBuildErrors);
 					errors.AddRange(shapeBuildErrors);
 				}
-				else if (GetCustomStylePattern<MarkupShapePattern>(style) is MarkupShapePattern pattern && pattern.MakeExample(null, this, false, out SharpParsingException[] markupBuildErrors) is IShape markupShape) {
+				else if (GetCustomStylePattern<MarkupShapePattern>(style) is MarkupShapePattern pattern && pattern.MakeExample(dummyWidgetFactory, this, false, out SharpParsingException[] markupBuildErrors) is IShape markupShape) {
 					shape = markupShape;
 					errors.AddRange(markupBuildErrors);
 				}

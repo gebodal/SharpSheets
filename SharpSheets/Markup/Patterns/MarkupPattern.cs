@@ -205,7 +205,7 @@ namespace SharpSheets.Markup.Patterns {
 			}
 		}
 
-		public abstract object MakeExample(WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool diagnostic, out SharpParsingException[] buildErrors);
+		public abstract object MakeExample(WidgetFactory widgetFactory, ShapeFactory shapeFactory, bool diagnostic, out SharpParsingException[] buildErrors);
 
 	}
 

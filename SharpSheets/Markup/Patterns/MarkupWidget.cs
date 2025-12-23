@@ -33,7 +33,7 @@ namespace SharpSheets.Markup.Patterns {
 			namedChildren = FindNamedChildren(arguments).ToArray();
 		}
 
-		protected IEnvironment ParseWidgetArguments(IContext context, WidgetSetup setup, Utilities.DirectoryPath source, WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool useExamples, out SharpParsingException[] buildErrors) {
+		protected IEnvironment ParseWidgetArguments(IContext context, WidgetSetup setup, Utilities.DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory shapeFactory, bool useExamples, out SharpParsingException[] buildErrors) {
 			IEnvironment environment = ParseArguments(context ?? SharpSheets.Parsing.Context.Empty, source, widgetFactory, shapeFactory, useExamples, out buildErrors)
 				.AppendEnvironment(new List<(object?, EnvironmentVariableInfo)>() {
 					(setup.gutter, PatternData.WidgetGutterVariable(Context)),
@@ -43,7 +43,7 @@ namespace SharpSheets.Markup.Patterns {
 			return environment;
 		}
 
-		public IWidget MakeWidget(IContext? context, Utilities.DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory? shapeFactory, out SharpParsingException[] buildErrors) {
+		public IWidget MakeWidget(IContext? context, DirectoryPath source, WidgetFactory widgetFactory, ShapeFactory shapeFactory, out SharpParsingException[] buildErrors) {
 			try {
 				List<SharpParsingException> errors = new List<SharpParsingException>();
 
@@ -55,7 +55,7 @@ namespace SharpSheets.Markup.Patterns {
 					useExamples = true;
 				}
 				else {
-					setup = WidgetFactory.Build_WidgetSetup(context, source, shapeFactory ?? ShapeFactory.StaticOnly, out SharpParsingException[] setupErrors);
+					setup = WidgetFactory.Build_WidgetSetup(context, source, shapeFactory, out SharpParsingException[] setupErrors);
 					errors.AddRange(setupErrors);
 					useExamples = false;
 				}
@@ -78,7 +78,7 @@ namespace SharpSheets.Markup.Patterns {
 			*/
 		}
 
-		public IWidget MakeExample(WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, WidgetSetup? knownSetup, out SharpParsingException[] buildErrors) {
+		public IWidget MakeExample(WidgetFactory widgetFactory, ShapeFactory shapeFactory, WidgetSetup? knownSetup, out SharpParsingException[] buildErrors) {
 			try {
 				WidgetSetup setup = knownSetup ?? new WidgetSetup();
 
@@ -96,7 +96,7 @@ namespace SharpSheets.Markup.Patterns {
 			}
 		}
 
-		public override object MakeExample(WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool diagnostic, out SharpParsingException[] buildErrors) {
+		public override object MakeExample(WidgetFactory widgetFactory, ShapeFactory shapeFactory, bool diagnostic, out SharpParsingException[] buildErrors) {
 			return MakeExample(widgetFactory, shapeFactory, new WidgetSetup(gutter: 8f, _diagnostic: diagnostic), out buildErrors);
 		}
 

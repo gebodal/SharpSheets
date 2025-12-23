@@ -13,14 +13,14 @@ namespace SharpSheets.Widgets {
 	[Factory(typeof(WidgetSetup), new Type[0], new string[0], new bool[0], typeof(WidgetSetup))]
 	public partial class WidgetFactory : ITypeDetailsCollection {
 
-		private readonly IMarkupRegistry? customWidgets;
-		private readonly ShapeFactory? shapeFactory;
+		private readonly IMarkupRegistry customWidgets;
+		private readonly ShapeFactory shapeFactory;
 
 		private readonly ParseOrigins<IDocumentEntity>? origins;
 
-		public WidgetFactory(IMarkupRegistry customWidgets, ShapeFactory? shapeFactory) : this(customWidgets, shapeFactory, null) { }
+		public WidgetFactory(IMarkupRegistry customWidgets, ShapeFactory shapeFactory) : this(customWidgets, shapeFactory, null) { }
 
-		private WidgetFactory(IMarkupRegistry? customWidgets, ShapeFactory? shapeFactory, ParseOrigins<IDocumentEntity>? origins) {
+		private WidgetFactory(IMarkupRegistry customWidgets, ShapeFactory shapeFactory, ParseOrigins<IDocumentEntity>? origins) {
 			this.customWidgets = customWidgets;
 			this.shapeFactory = shapeFactory;
 			this.origins = origins;
@@ -39,9 +39,9 @@ namespace SharpSheets.Widgets {
 			
 			try {
 				if (CanBuild_IWidget(type)) {
-					WidgetSetup setup = Build_WidgetSetup(context, source, shapeFactory ?? ShapeFactory.StaticOnly, out SharpParsingException[] setupBuildErrors);
+					WidgetSetup setup = Build_WidgetSetup(context, source, shapeFactory, out SharpParsingException[] setupBuildErrors);
 					errors.AddRange(setupBuildErrors);
-					IWidget? builtWidget = Build_IWidget(type, context, setup, source, this, shapeFactory ?? ShapeFactory.StaticOnly, out SharpParsingException[] widgetBuildErrors);
+					IWidget? builtWidget = Build_IWidget(type, context, setup, source, this, shapeFactory, out SharpParsingException[] widgetBuildErrors);
 					widget = builtWidget ?? MakeErrorWidget(new InvalidOperationException($"Could not construct widget ({type})."), context, source, out _);
 					errors.AddRange(widgetBuildErrors);
 				}
@@ -94,7 +94,7 @@ namespace SharpSheets.Widgets {
 			buildErrors = Array.Empty<SharpParsingException>();
 			if (context != null) {
 				try {
-					setup = Build_WidgetSetup(context, source, shapeFactory ?? ShapeFactory.StaticOnly, out SharpParsingException[] setupBuildErrors);
+					setup = Build_WidgetSetup(context, source, shapeFactory, out SharpParsingException[] setupBuildErrors);
 					buildErrors = setupBuildErrors;
 				}
 				catch (Exception) { }
@@ -149,7 +149,7 @@ namespace SharpSheets.Widgets {
 				if (CanBuild_IWidget(type)) {
 					if (TryGetIWidgetDetails(type, out BuilderDetails? builder)) {
 						IContext context = new BuilderContext(builder, new Dictionary<string, object>());
-						IWidget? builtExample = Build_IWidget(type, context, exampleSetup, source, this, shapeFactory ?? ShapeFactory.StaticOnly, out buildErrors);
+						IWidget? builtExample = Build_IWidget(type, context, exampleSetup, source, this, shapeFactory, out buildErrors);
 						widget = builtExample ?? MakeErrorWidget("Could not build example.", new InvalidOperationException("Could not build example."), context, source, out _);
 					}
 					else {

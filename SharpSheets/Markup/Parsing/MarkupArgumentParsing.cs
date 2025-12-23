@@ -288,7 +288,7 @@ namespace SharpSheets.Markup.Parsing {
 
 		private static void ValidateData(EvaluationValue value, EvaluationType type) {
 			if (EnumEvaluationType.IsEnum(type, out EnumEvaluationType? enumType)) {
-				if(enumType.TryGetEnumValue(value, out string? stringVal)) {
+				if(enumType.TryGetEnumValue(value, out string? _)) {
 					return;
 				}
 				else {

@@ -74,16 +74,16 @@ namespace SharpSheets.Markup.Patterns {
 			return type.MakeValue(arg.DefaultValue);
 		}
 
-		protected abstract T ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines);
+		protected abstract T ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory shapeFactory, bool constructionLines);
 
-		public T MakeShape(IContext? context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, ShapeFactory? shapeFactory, bool constructionLines, out SharpParsingException[] buildErrors) {
+		public T MakeShape(IContext? context, ShapeFactory.ShapeParams? shapeParams, DirectoryPath source, ShapeFactory shapeFactory, bool constructionLines, out SharpParsingException[] buildErrors) {
 			IEnvironment argumentEnvironment = ParseArguments(context ?? SharpSheets.Parsing.Context.Empty, source, null, shapeFactory, context == null, out buildErrors)
 				.AppendEnvironment(GetAdditionalArguments(context ?? SharpSheets.Parsing.Context.Empty, shapeParams, source));
 
 			return ConstructInstance(argumentEnvironment, shapeParams, shapeFactory, constructionLines);
 		}
 
-		public override object MakeExample(WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool diagnostic, out SharpParsingException[] buildErrors) {
+		public override object MakeExample(WidgetFactory widgetFactory, ShapeFactory shapeFactory, bool diagnostic, out SharpParsingException[] buildErrors) {
 			return MakeShape(null, null, sourceDirectory, shapeFactory, diagnostic, out buildErrors);
 		}
 
@@ -124,13 +124,13 @@ namespace SharpSheets.Markup.Patterns {
 	public abstract class MarkupShape : IShape, IMarkupObject {
 
 		public MarkupPattern Pattern { get; }
-		protected readonly ShapeFactory? shapeFactory;
+		protected readonly ShapeFactory shapeFactory;
 		protected readonly IEnvironment arguments;
 		protected readonly bool diagnostic;
 
 		public string DisplayName => Pattern.Name;
 
-		public MarkupShape(MarkupPattern pattern, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic) {
+		public MarkupShape(MarkupPattern pattern, ShapeFactory shapeFactory, IEnvironment arguments, bool diagnostic) {
 			this.Pattern = pattern;
 			this.shapeFactory = shapeFactory;
 			this.arguments = arguments;
@@ -155,7 +155,7 @@ namespace SharpSheets.Markup.Patterns {
 
 		public float Aspect { get; }
 
-		public MarkupAreaShape(MarkupPattern pattern, ShapeFactory? shapeFactory, IEnvironment arguments, bool constructionLines, float aspect) : base(pattern, shapeFactory, arguments, constructionLines) {
+		public MarkupAreaShape(MarkupPattern pattern, ShapeFactory shapeFactory, IEnvironment arguments, bool constructionLines, float aspect) : base(pattern, shapeFactory, arguments, constructionLines) {
 			this.Aspect = aspect;
 		}
 
@@ -187,7 +187,7 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override IBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+		protected override IBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory shapeFactory, bool constructionLines) {
 			ShapeFactory.AreaShapeParams areaShapeParams = shapeParams?.As<ShapeFactory.AreaShapeParams>() ?? new ShapeFactory.AreaShapeParams(-1f);
 			return new MarkupBox(this, shapeFactory, argumentEnvironment, constructionLines, areaShapeParams.Aspect);
 		}
@@ -196,7 +196,7 @@ namespace SharpSheets.Markup.Patterns {
 
 	public class MarkupBox : MarkupAreaShape, IBox {
 
-		public MarkupBox(MarkupBoxPattern pattern, ShapeFactory? shapeFactory, IEnvironment arguments, bool constructionLines, float aspect) : base(pattern, shapeFactory, arguments, constructionLines, aspect) { }
+		public MarkupBox(MarkupBoxPattern pattern, ShapeFactory shapeFactory, IEnvironment arguments, bool constructionLines, float aspect) : base(pattern, shapeFactory, arguments, constructionLines, aspect) { }
 
 		public Rectangle RemainingRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
 			return GetDrawableRoot(graphicsState)?.GetNamedArea("remaining", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"remaining\"");
@@ -229,7 +229,7 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override ILabelledBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+		protected override ILabelledBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory shapeFactory, bool constructionLines) {
 			ShapeFactory.AreaShapeParams areaShapeParams = shapeParams?.As<ShapeFactory.AreaShapeParams>() ?? new ShapeFactory.AreaShapeParams(-1f);
 			return new MarkupLabelledBox(this, shapeFactory, argumentEnvironment, constructionLines, areaShapeParams.Aspect);
 		}
@@ -238,7 +238,7 @@ namespace SharpSheets.Markup.Patterns {
 
 	public class MarkupLabelledBox : MarkupAreaShape, ILabelledBox {
 
-		public MarkupLabelledBox(MarkupLabelledBoxPattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
+		public MarkupLabelledBox(MarkupLabelledBoxPattern style, ShapeFactory shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
 
 		public Rectangle LabelRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
 			return GetDrawableRoot(graphicsState)?.GetNamedArea("label", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"label\"");
@@ -279,7 +279,7 @@ namespace SharpSheets.Markup.Patterns {
 			return shapeParams?.As<ShapeFactory.TitleStyleParams>() ?? new ShapeFactory.TitleStyleParams(new NoOutline(-1f), Name);
 		}
 
-		protected override ITitleStyledBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+		protected override ITitleStyledBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory shapeFactory, bool constructionLines) {
 			return new MarkupTitleStyledBox(this, shapeFactory, argumentEnvironment, constructionLines);
 		}
 
@@ -310,7 +310,7 @@ namespace SharpSheets.Markup.Patterns {
 
 	public class MarkupTitleStyledBox : MarkupAreaShape, ITitleStyledBox {
 
-		public MarkupTitleStyledBox(MarkupTitleStyledBoxPattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic) : base(style, shapeFactory, arguments, diagnostic, -1f) { }
+		public MarkupTitleStyledBox(MarkupTitleStyledBoxPattern style, ShapeFactory shapeFactory, IEnvironment arguments, bool diagnostic) : base(style, shapeFactory, arguments, diagnostic, -1f) { }
 
 		public Rectangle RemainingRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
 			return GetDrawableRoot(graphicsState)?.GetNamedArea("remaining", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"remaining\"");
@@ -347,7 +347,7 @@ namespace SharpSheets.Markup.Patterns {
 			return shapeParams?.As<ShapeFactory.TitledBoxParams>() ?? new ShapeFactory.TitledBoxParams(-1f, Name);
 		}
 
-		protected override ITitledBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+		protected override ITitledBox ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory shapeFactory, bool constructionLines) {
 			ShapeFactory.TitledBoxParams titledBoxParams = ResolveParams(shapeParams);
 			return new MarkupTitledBox(this, shapeFactory, argumentEnvironment, constructionLines, titledBoxParams.Aspect);
 		}
@@ -377,7 +377,7 @@ namespace SharpSheets.Markup.Patterns {
 
 	public class MarkupTitledBox : MarkupAreaShape, ITitledBox {
 
-		public MarkupTitledBox(MarkupTitledBoxPattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
+		public MarkupTitledBox(MarkupTitledBoxPattern style, ShapeFactory shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
 
 		public Rectangle RemainingRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
 			return GetDrawableRoot(graphicsState)?.GetNamedArea("remaining", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"remaining\"");
@@ -410,7 +410,7 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override IEntriedShape ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+		protected override IEntriedShape ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory shapeFactory, bool constructionLines) {
 			ShapeFactory.AreaShapeParams areaShapeParams = shapeParams?.As<ShapeFactory.AreaShapeParams>() ?? new ShapeFactory.AreaShapeParams(-1f);
 			return new MarkupEntriedShape(this, shapeFactory, argumentEnvironment, constructionLines, areaShapeParams.Aspect);
 		}
@@ -419,7 +419,7 @@ namespace SharpSheets.Markup.Patterns {
 
 	public class MarkupEntriedShape : MarkupAreaShape, IEntriedShape {
 
-		public MarkupEntriedShape(MarkupEntriedShapePattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
+		public MarkupEntriedShape(MarkupEntriedShapePattern style, ShapeFactory shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
 
 		public int EntryCount(ISharpGraphicsState graphicsState, Rectangle fullRect) {
 			DrawableDivElement? drawable = GetDrawableRoot(graphicsState);
@@ -466,7 +466,7 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override IBar ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+		protected override IBar ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory shapeFactory, bool constructionLines) {
 			ShapeFactory.AreaShapeParams areaShapeParams = shapeParams?.As<ShapeFactory.AreaShapeParams>() ?? new ShapeFactory.AreaShapeParams(-1f);
 			return new MarkupBar(this, shapeFactory, argumentEnvironment, constructionLines, areaShapeParams.Aspect);
 		}
@@ -475,7 +475,7 @@ namespace SharpSheets.Markup.Patterns {
 
 	public class MarkupBar : MarkupAreaShape, IBar {
 
-		public MarkupBar(MarkupBarPattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
+		public MarkupBar(MarkupBarPattern style, ShapeFactory shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
 
 		public Rectangle LabelRect(ISharpGraphicsState graphicsState, Rectangle fullRect) {
 			return GetDrawableRoot(graphicsState)?.GetNamedArea("label", graphicsState, AspectRect(graphicsState, fullRect)) ?? throw new MissingAreaException("Could not get area \"label\"");
@@ -507,7 +507,7 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override IUsageBar ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+		protected override IUsageBar ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory shapeFactory, bool constructionLines) {
 			ShapeFactory.AreaShapeParams areaShapeParams = shapeParams?.As<ShapeFactory.AreaShapeParams>() ?? new ShapeFactory.AreaShapeParams(-1f);
 			return new MarkupUsageBar(this, shapeFactory, argumentEnvironment, constructionLines, areaShapeParams.Aspect);
 		}
@@ -516,7 +516,7 @@ namespace SharpSheets.Markup.Patterns {
 
 	public class MarkupUsageBar : MarkupAreaShape, IUsageBar {
 
-		public MarkupUsageBar(MarkupUsageBarPattern style, ShapeFactory? shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
+		public MarkupUsageBar(MarkupUsageBarPattern style, ShapeFactory shapeFactory, IEnvironment arguments, bool diagnostic, float aspect) : base(style, shapeFactory, arguments, diagnostic, aspect) { }
 
 		public int EntryCount(ISharpGraphicsState graphicsState, Rectangle rect) => 2;
 
@@ -566,7 +566,7 @@ namespace SharpSheets.Markup.Patterns {
 			Utilities.FilePath source
 			) : base(library, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, source) { }
 
-		protected override IDetail ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory? shapeFactory, bool constructionLines) {
+		protected override IDetail ConstructInstance(IEnvironment argumentEnvironment, ShapeFactory.ShapeParams? shapeParams, ShapeFactory shapeFactory, bool constructionLines) {
 			return new MarkupDetail(this, shapeFactory, argumentEnvironment, constructionLines);
 		}
 
@@ -581,7 +581,7 @@ namespace SharpSheets.Markup.Patterns {
 
 		public LayoutDirection Layout { protected get; set; }
 
-		public MarkupDetail(MarkupDetailPattern pattern, ShapeFactory? shapeFactory, IEnvironment arguments, bool constructionLines) : base(pattern, shapeFactory, arguments, constructionLines) { }
+		public MarkupDetail(MarkupDetailPattern pattern, ShapeFactory shapeFactory, IEnvironment arguments, bool constructionLines) : base(pattern, shapeFactory, arguments, constructionLines) { }
 
 		protected override IEnvironment GetDrawableEnvironment() {
 			return base.GetDrawableEnvironment().AppendEnvironment(new List<(object?, EnvironmentVariableInfo)>() {

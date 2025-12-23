@@ -32,7 +32,7 @@ namespace SharpSheets.Markup.Patterns {
 			return new MarkupBuilderDetails(this, Documentation.DisplayType.FromSystem<MarkupPattern>(), Documentation.DisplayType.FromSystem<ErrorPattern>(), Array.Empty<Documentation.ArgumentDetails>(), new Documentation.DocumentationString("Invalid markup pattern."));
 		}
 
-		public override object MakeExample(WidgetFactory? widgetFactory, ShapeFactory? shapeFactory, bool diagnostic, out SharpParsingException[] buildErrors) {
+		public override object MakeExample(WidgetFactory widgetFactory, ShapeFactory shapeFactory, bool diagnostic, out SharpParsingException[] buildErrors) {
 			string message;
 			if (Name != null) {
 				message = $"Error processing {FullName}.";
