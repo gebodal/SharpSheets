@@ -2623,15 +2623,13 @@ namespace SharpSheets.Widgets {
 			// Deal with gutters depending on Layout instead of custom GutterLayout
 			if (setup.gutterStyle is IDetail gutterStyle) {
 				if (gutterLayout == Widgets.GutterLayout.COLUMNS) {
-					gutterStyle.Layout = LayoutDirection.COLUMNS;
 					for (int i = 0; i < columnGutters.Length; i++) {
-						gutterStyle.Draw(canvas, columnGutters[i]);
+						gutterStyle.Draw(canvas, columnGutters[i], LayoutDirection.COLUMNS);
 					}
 				}
 				else if (gutterLayout == Widgets.GutterLayout.ROWS) {
-					gutterStyle.Layout = LayoutDirection.ROWS;
 					for (int i = 0; i < rowGutters.Length; i++) {
-						gutterStyle.Draw(canvas, rowGutters[i]);
+						gutterStyle.Draw(canvas, rowGutters[i], LayoutDirection.ROWS);
 					}
 				}
 			}

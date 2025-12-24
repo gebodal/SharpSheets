@@ -749,8 +749,9 @@ namespace SharpSheets.Markup.Parsing {
 				}
 				else if (divElem.Name == "detail") {
 					ShapeReferenceExpression<IDetail>? hrefExpr = href is not null ? new ShapeReferenceExpression<IDetail>(href) : null;
+					EnumExpression<LayoutDirection> direction = GetAttribute(divElem, "direction", false, s => MarkupValueParsing.ParseEnum<LayoutDirection>(s, variables), new EnumExpression<LayoutDirection>(LayoutDirection.ROWS, variables.Context));
 
-					DetailStyledDivElement detailDivElement = new DetailStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, markupContext, divVariables);
+					DetailStyledDivElement detailDivElement = new DetailStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, direction, variables, markupContext, divVariables);
 					divElement = detailDivElement;
 				}
 				else {

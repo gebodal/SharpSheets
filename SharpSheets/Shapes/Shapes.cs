@@ -7,21 +7,17 @@ namespace SharpSheets.Shapes {
 
 	public interface IShape {
 		string DisplayName { get; }
+	}
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="canvas"></param>
-		/// <param name="rect"></param>
+	public interface IDrawRectShape : IShape {
 		/// <exception cref="InvalidOperationException"></exception>
 		void Draw(ISharpCanvas canvas, Rectangle rect);
 	}
 
-	public interface IAreaShape : IShape {
+	public interface IAspectArea {
 		float Aspect { get; }
 		Rectangle AspectRect(ISharpGraphicsState graphicsState, Rectangle rect);
 	}
-
 	public interface IFramedArea {
 		Rectangle RemainingRect(ISharpGraphicsState graphicsState, Rectangle rect);
 	}
@@ -34,14 +30,11 @@ namespace SharpSheets.Shapes {
 	public interface IEntriedArea {
 		int EntryCount(ISharpGraphicsState graphicsState, Rectangle rect);
 
-		/// <summary></summary>
-		/// <param name="graphicsState"></param>
-		/// <param name="areaIndex"></param>
-		/// <param name="rect"></param>
-		/// <returns></returns>
 		/// <exception cref="ArgumentOutOfRangeException"></exception>
 		Rectangle EntryRect(ISharpGraphicsState graphicsState, int areaIndex, Rectangle rect);
 	}
+
+	public interface IAreaShape : IDrawRectShape, IAspectArea { }
 
 	public interface IContainerShape : IAreaShape, IFramedContainerArea { }
 
@@ -60,20 +53,17 @@ namespace SharpSheets.Shapes {
 	public interface IUsageBar : IEntriedShape, ILabelledArea { }
 
 	public interface IDetail : IShape {
-		LayoutDirection Layout { set; }
-		//void Draw(ISharpCanvas canvas, Rectangle rect, Layout layout); // TODO Could layout be a { set; } Property?
+		void Draw(ISharpCanvas canvas, Rectangle rect, LayoutDirection layout);
 	}
 
 	public static class AbstractShapeUtils {
 
-		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
 		public static void Draw<T>(this T framedArea, ISharpCanvas canvas, Rectangle rect, out Rectangle remainingRect) where T : IAreaShape, IFramedArea {
 			framedArea.Draw(canvas, rect);
 			remainingRect = framedArea.RemainingRect(canvas, rect);
 		}
 
-		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
 		public static void Draw<T>(this T framedLabelledArea, ISharpCanvas canvas, Rectangle rect, out Rectangle labelRect, out Rectangle remainingRect) where T : IAreaShape, IFramedArea, ILabelledArea {
 			framedLabelledArea.Draw(canvas, rect);
@@ -81,7 +71,6 @@ namespace SharpSheets.Shapes {
 			remainingRect = framedLabelledArea.RemainingRect(canvas, rect);
 		}
 
-		/// <summary></summary>
 		/// <exception cref="InvalidOperationException"></exception>
 		public static void Draw(this IUsageBar bar, ISharpCanvas canvas, Rectangle rect, out Rectangle labelRect, out Rectangle firstEntryRect, out Rectangle secondEntryRect) {
 			bar.Draw(canvas, rect);
@@ -132,15 +121,9 @@ namespace SharpSheets.Shapes {
 		public void Draw(ISharpCanvas canvas, Rectangle rect) {
 			DrawFrame(canvas, AspectRect(canvas, rect));
 		}
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="canvas"></param>
-		/// <param name="aspectRect"></param>
 		/// <exception cref="InvalidOperationException"></exception>
 		protected abstract void DrawFrame(ISharpCanvas canvas, Rectangle aspectRect);
 
-		/// <summary></summary>
 		/// <exception cref="InvalidRectangleException"></exception>
 		protected static Rectangle[] ValidateRects(Rectangle?[] rects, string message) {
 			Rectangle[] processed = new Rectangle[rects.Length];
@@ -251,14 +234,14 @@ namespace SharpSheets.Shapes {
 		public int EntryCount(ISharpGraphicsState graphicsState, Rectangle rect) => 2;
 
 		public Rectangle EntryRect(ISharpGraphicsState graphicsState, int entryIndex, Rectangle rect) {
-			if(entryIndex == 0) {
+			if (entryIndex == 0) {
 				return GetFirstEntryRect(graphicsState, AspectRect(graphicsState, rect));
 			}
-			else if(entryIndex == 1) {
+			else if (entryIndex == 1) {
 				return GetSecondEntryRect(graphicsState, AspectRect(graphicsState, rect));
 			}
 			else {
-				throw new ArgumentOutOfRangeException("UsageBar shapes only provide two entries.");
+				throw new ArgumentOutOfRangeException(nameof(entryIndex), "UsageBar shapes only provide two entries.");
 			}
 		}
 
@@ -268,8 +251,7 @@ namespace SharpSheets.Shapes {
 
 	public abstract class DetailBase : IDetail {
 		public string DisplayName => this.GetType().Name;
-		public LayoutDirection Layout { protected get; set; }
-		public abstract void Draw(ISharpCanvas canvas, Rectangle rect);
+		public abstract void Draw(ISharpCanvas canvas, Rectangle rect, LayoutDirection layout);
 	}
 
 }

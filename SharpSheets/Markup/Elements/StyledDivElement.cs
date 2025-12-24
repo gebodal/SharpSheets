@@ -114,9 +114,11 @@ namespace SharpSheets.Markup.Elements {
 			}
 		}
 
-		protected override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
+		protected abstract DrawableStyledDivElement<T> MakeStyledDrawable(IEnvironment evaluationEnvironment, T shape, IEnvironment finalDivEnvironment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines);
+
+		protected sealed override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
 			T shape = GetShape(evaluationEnvironment, shapeFactory, source, out _); // TODO Should we pass these errors up the chain somehow?
-			DrawableStyledDivElement<T> drawable = new DrawableStyledDivElement<T>(this, shape, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, diagnostic);
+			DrawableStyledDivElement<T> drawable = MakeStyledDrawable(evaluationEnvironment, shape, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, diagnostic);
 
 			foreach (KeyValuePair<string, DivElement> namedChild in namedChildren) {
 				string name = namedChild.Key;
@@ -133,6 +135,147 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
+	public abstract class StyledDivDrawRectElement<T> : StyledDivElement<T> where T : IDrawRectShape {
+
+		/// <summary>
+		/// Constructor for StyledDivElement.
+		/// </summary>
+		/// <param name="_id" default="null">A unique name for this element.</param>
+		/// <param name="setup">The DivSetup values for this element.</param>
+		/// <param name="_shapeContext">The shape context for this element.</param>
+		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
+		/// <param name="_name" default="null">The name to use for this shape, if a name is accepted by the shape type.</param>
+		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
+		/// <param name="markupContext"></param>
+		/// <param name="variables">The variables declared with this Div.</param>
+		public StyledDivDrawRectElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<T?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
+			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
+
+		protected override DrawableStyledDivElement<T> MakeStyledDrawable(IEnvironment evaluationEnvironment, T shape, IEnvironment finalDivEnvironment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines) {
+			return new DrawableStyledDivDrawRectElement<T>(this, shape, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, drawConstructionLines);
+		}
+	}
+
+	public abstract class DrawableStyledDivElement<T> : DrawableDivElement where T : IShape {
+
+		protected readonly T shape;
+
+		private readonly List<string> childrenProvidedOrder;
+		private readonly Dictionary<string, DrawableDivElement> namedChildren;
+
+		//public override IList<IGridElement> Children => childrenProvidedOrder.Select(n => namedChildren[n]).ToList<IGridElement>();
+		public override bool ProvidesRemaining { get { return divProvideRemaining || namedChildren.Values.Any(c => c.ProvidesRemaining); } }
+
+		public DrawableStyledDivElement(StyledDivElement<T> pattern, T shape, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines)
+			: base(pattern, environment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, false, drawConstructionLines) {
+
+			this.shape = shape;
+
+			this.childrenProvidedOrder = new List<string>();
+			this.namedChildren = new Dictionary<string, DrawableDivElement>();
+		}
+
+		public void AddNamedChild(string name, DrawableDivElement child) {
+			// Only use first instance of a given child provided
+			if (child != null && !childrenProvidedOrder.Contains(name)) {
+				childrenProvidedOrder.Add(name);
+				namedChildren.Add(name, child);
+			}
+		}
+
+		public override void AddElement(IIdentifiableMarkupElement element) {
+			throw new InvalidOperationException($"{this.GetType().Name} can only have named child elements.");
+		}
+
+		public override Size MinimumContentSize(ISharpGraphicsState graphicsState, Size availableSpace) {
+
+			if (shape is IFramedContainerArea framedContainer && namedChildren.TryGetValue("remaining", out DrawableDivElement? remainingDiv)) {
+				Rectangle remainingRect = framedContainer.RemainingRect(graphicsState, (Rectangle)availableSpace);
+				Size minimumContent = remainingDiv.MinimumContentSize(graphicsState, (Size)remainingRect) ?? new Size(0f, 0f);
+				return framedContainer.FullSize(graphicsState, minimumContent);
+			}
+			else {
+				Size[] mins = namedChildren.Values.Select(c => c.MinimumContentSize(graphicsState, availableSpace)).WhereNotNull().ToArray();
+				return mins.Length > 0 ? new Size(mins.Max(r => r.Width), mins.Max(r => r.Height)) : new Size(0f, 0f);
+			}
+		}
+
+		public override bool AreaExists(string name) {
+			return namedChildren.Values.Any(c => c.AreaExists(name));
+		}
+
+		public override IEnumerable<string> GetAreas() {
+			return namedChildren.Values.SelectMany(c => c.GetAreas()).Distinct();
+		}
+
+		public override Rectangle? GetNamedArea(string name, ISharpGraphicsState graphicsState, Rectangle fullRect) {
+			Rectangle rect = ApplyAspect(fullRect).Margins(Margins, false);
+			foreach ((string childName, DrawableDivElement childDiv) in namedChildren) {
+				if (childDiv.AreaExists(name)) {
+					Rectangle childRect = StyledDivUtils.GetChildRect(shape, childName, graphicsState, rect);
+					return childDiv.GetNamedArea(name, graphicsState, childRect);
+				}
+			}
+
+			return null;
+		}
+
+		public override Rectangle? GetFullFromNamedArea(string name, ISharpGraphicsState graphicsState, Rectangle rect) {
+			if (string.Equals(name, "remaining") && shape is IFramedContainerArea framedContainer) {
+				foreach (DrawableDivElement child in namedChildren.Values) {
+					if (child.AreaExists(name) && child.GetFullFromNamedArea(name, graphicsState, rect) is Rectangle childArea) {
+						Rectangle containerFull = framedContainer.FullRect(graphicsState, childArea);
+						return InvertApplyAspect(containerFull.Margins(Margins, true));
+					}
+				}
+			}
+			//throw new ArgumentException($"Cannot infer full size for \"{name}\" area for {shape.GetType().Name}."); // LayoutException?
+			return null;
+		}
+
+		protected abstract void DrawShape(ISharpCanvas canvas, Rectangle fullRect);
+
+		public override void Draw(ISharpCanvas canvas, Rectangle fullRect, CancellationToken cancellationToken) {
+
+			Rectangle rect = ApplyAspect(fullRect).Margins(Margins, false); // Need to apply Margins manually, as we're not using GridElements.GetElementRects
+
+			if (diagnostic) {
+				canvas.RegisterAreas(pattern, fullRect, rect, Array.Empty<Rectangle>());
+			}
+
+			DrawShape(canvas, rect);
+
+			foreach (string name in childrenProvidedOrder) {
+				if (namedChildren.TryGetValue(name, out DrawableDivElement? child)) {
+					Rectangle childRect = StyledDivUtils.GetChildRect(shape, name, canvas, rect);
+					child.Draw(canvas, childRect, cancellationToken);
+				}
+			}
+
+		}
+
+		public override Rectangle? ContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
+			if (ProvidesRemaining && shape is IFramedArea framedArea) {
+				return framedArea.RemainingRect(graphicsState, ApplyAspect(rect));
+			}
+			else {
+				return null;
+			}
+		}
+
+	}
+
+	public class DrawableStyledDivDrawRectElement<T> : DrawableStyledDivElement<T> where T : IDrawRectShape {
+
+		public DrawableStyledDivDrawRectElement(StyledDivElement<T> pattern, T shape, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines)
+			: base(pattern, shape, environment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, drawConstructionLines) { }
+
+		protected override void DrawShape(ISharpCanvas canvas, Rectangle rect) {
+			shape.Draw(canvas, rect);
+		}
+
+	}
+
 	/// <summary>
 	/// This element draws a box style in its assigned area. The area is assigned
 	/// in the same way as a &lt;div&gt; element, and this element obeys all the same
@@ -141,7 +284,7 @@ namespace SharpSheets.Markup.Elements {
 	/// The remaining area of the box may be painted using a &lt;remaining&gt; child
 	/// element.
 	/// </summary>
-	public class BoxStyledDivElement : StyledDivElement<IBox> {
+	public class BoxStyledDivElement : StyledDivDrawRectElement<IBox> {
 
 		/// <summary>
 		/// Constructor for BoxStyledDivElement.
@@ -191,7 +334,7 @@ namespace SharpSheets.Markup.Elements {
 	/// The remaining area of the box may be painted using a &lt;remaining&gt; child
 	/// element, and the label using a &lt;label&gt; child element.
 	/// </summary>
-	public class LabelledBoxStyledDivElement : StyledDivElement<ILabelledBox> {
+	public class LabelledBoxStyledDivElement : StyledDivDrawRectElement<ILabelledBox> {
 
 		/// <summary>
 		/// Constructor for LabelledBoxStyledDivElement.
@@ -240,7 +383,7 @@ namespace SharpSheets.Markup.Elements {
 	/// The remaining area of the box may be painted using a &lt;remaining&gt; child
 	/// element.
 	/// </summary>
-	public class TitledBoxStyledDivElement : StyledDivElement<ITitledBox> {
+	public class TitledBoxStyledDivElement : StyledDivDrawRectElement<ITitledBox> {
 
 		/// <summary>
 		/// Constructor for BoxStyledDivElement.
@@ -284,7 +427,7 @@ namespace SharpSheets.Markup.Elements {
 	/// <summary>
 	/// 
 	/// </summary>
-	public class EntriedShapeStyledDivElement : StyledDivElement<IEntriedShape> {
+	public class EntriedShapeStyledDivElement : StyledDivDrawRectElement<IEntriedShape> {
 
 		/// <summary>
 		/// Constructor for <see cref="EntriedShapeStyledDivElement"/>.
@@ -333,7 +476,7 @@ namespace SharpSheets.Markup.Elements {
 	/// The remaining area of the bar may be painted using a &lt;remaining&gt; child
 	/// element, and the label using a &lt;label&gt; child element.
 	/// </summary>
-	public class BarStyledDivElement : StyledDivElement<IBar> {
+	public class BarStyledDivElement : StyledDivDrawRectElement<IBar> {
 
 		/// <summary>
 		/// Constructor for BarStyledDivElement.
@@ -383,7 +526,7 @@ namespace SharpSheets.Markup.Elements {
 	/// element, and the entry areas using &lt;entry1&gt; and &lt;entry2&gt;
 	/// child elements.
 	/// </summary>
-	public class LabelledUsageBarStyledDivElement : StyledDivElement<IUsageBar> {
+	public class LabelledUsageBarStyledDivElement : StyledDivDrawRectElement<IUsageBar> {
 
 		private readonly StringExpression? label1; // TODO TextExpression? IExpression<string>?
 		private readonly StringExpression? label2;
@@ -479,6 +622,8 @@ namespace SharpSheets.Markup.Elements {
 	/// </summary>
 	public class DetailStyledDivElement : StyledDivElement<IDetail> {
 
+		private readonly EnumExpression<LayoutDirection> detailLayout;
+
 		/// <summary>
 		/// Constructor for BoxStyledDivElement.
 		/// </summary>
@@ -487,17 +632,22 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="_shapeContext">The shape context for this element.</param>
 		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
 		/// <param name="_name" default="null">The name to use for this shape, if a name is accepted by the shape type.</param>
+		/// <param name="detailLayout">The layout to use when drawing this detail.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
 		/// <param name="markupContext"></param>
 		/// <param name="variables">The variables declared with this Div.</param>
-		public DetailStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IDetail?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
-			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
+		public DetailStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IDetail?>? _href, IExpression<string>? _name, EnumExpression<LayoutDirection> detailLayout, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
+			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) {
+
+			this.detailLayout = detailLayout;
+		}
 
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
 		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
+		/// <param name="direction">The layout to use when drawing this detail, which determines it's orientation.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
 		/// <param name="markupContext"></param>
 		/// <param name="variables">The variables declared with this Div.</param>
@@ -508,119 +658,35 @@ namespace SharpSheets.Markup.Elements {
 				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<IDetail?>? href,
 				[LocalProperty(Default = "null")] IExpression<string>? name,
+				[LocalProperty(Default = "ROWS")] EnumExpression<LayoutDirection> direction,
 				[Property(Exclude = true)] IVariableBox outerContext,
 				[Property(Exclude = true)] MarkupEvaluationContext markupContext,
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new DetailStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
+			return new DetailStyledDivElement(id, setup, outline, href, name, direction, outerContext, markupContext, variables);
 		}
-		
+
+		protected override DrawableStyledDivElement<IDetail> MakeStyledDrawable(IEnvironment evaluationEnvironment, IDetail shape, IEnvironment finalDivEnvironment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines) {
+			LayoutDirection detailLayoutEval = detailLayout.Evaluate(evaluationEnvironment);
+
+			return new DrawableStyledDivDetailElement(this, shape, detailLayoutEval, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, drawConstructionLines);
+		}
+
 	}
 
-	public class DrawableStyledDivElement<T> : DrawableDivElement where T : IShape {
+	public class DrawableStyledDivDetailElement : DrawableStyledDivElement<IDetail> {
 
-		readonly T shape;
+		private readonly LayoutDirection detailLayout;
 
-		private readonly List<string> childrenProvidedOrder;
-		private readonly Dictionary<string, DrawableDivElement> namedChildren;
+		public DrawableStyledDivDetailElement(StyledDivElement<IDetail> pattern, IDetail shape, LayoutDirection detailLayout, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines)
+			: base(pattern, shape, environment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, drawConstructionLines) {
 
-		//public override IList<IGridElement> Children => childrenProvidedOrder.Select(n => namedChildren[n]).ToList<IGridElement>();
-		public override bool ProvidesRemaining { get { return divProvideRemaining || namedChildren.Values.Any(c => c.ProvidesRemaining); } }
-
-		public DrawableStyledDivElement(StyledDivElement<T> pattern, T shape, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines)
-			: base(pattern, environment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, false, drawConstructionLines) {
-
-			this.shape = shape;
-
-			this.childrenProvidedOrder = new List<string>();
-			this.namedChildren = new Dictionary<string, DrawableDivElement>();
+			this.detailLayout = detailLayout;
 		}
 
-		public void AddNamedChild(string name, DrawableDivElement child) {
-			// Only use first instance of a given child provided
-			if (child != null && !childrenProvidedOrder.Contains(name)) {
-				childrenProvidedOrder.Add(name);
-				namedChildren.Add(name, child);
-			}
-		}
-
-		public override void AddElement(IIdentifiableMarkupElement element) {
-			throw new InvalidOperationException($"{this.GetType().Name} can only have named child elements.");
-		}
-
-		public override Size MinimumContentSize(ISharpGraphicsState graphicsState, Size availableSpace) {
-
-			if (shape is IFramedContainerArea framedContainer && namedChildren.TryGetValue("remaining", out DrawableDivElement? remainingDiv)) {
-				Rectangle remainingRect = framedContainer.RemainingRect(graphicsState, (Rectangle)availableSpace);
-				Size minimumContent = remainingDiv.MinimumContentSize(graphicsState, (Size)remainingRect) ?? new Size(0f, 0f);
-				return framedContainer.FullSize(graphicsState, minimumContent);
-			}
-			else {
-				Size[] mins = namedChildren.Values.Select(c => c.MinimumContentSize(graphicsState, availableSpace)).WhereNotNull().ToArray();
-				return mins.Length > 0 ? new Size(mins.Max(r => r.Width), mins.Max(r => r.Height)) : new Size(0f, 0f);
-			}
-		}
-
-		public override bool AreaExists(string name) {
-			return namedChildren.Values.Any(c => c.AreaExists(name));
-		}
-
-		public override IEnumerable<string> GetAreas() {
-			return namedChildren.Values.SelectMany(c => c.GetAreas()).Distinct();
-		}
-
-		public override Rectangle? GetNamedArea(string name, ISharpGraphicsState graphicsState, Rectangle fullRect) {
-			Rectangle rect = ApplyAspect(fullRect).Margins(Margins, false);
-			foreach ((string childName, DrawableDivElement childDiv) in namedChildren) {
-				if (childDiv.AreaExists(name)) {
-					Rectangle childRect = StyledDivUtils.GetChildRect(shape, childName, graphicsState, rect);
-					return childDiv.GetNamedArea(name, graphicsState, childRect);
-				}
-			}
-
-			return null;
-		}
-
-		public override Rectangle? GetFullFromNamedArea(string name, ISharpGraphicsState graphicsState, Rectangle rect) {
-			if (string.Equals(name, "remaining") && shape is IFramedContainerArea framedContainer) {
-				foreach (DrawableDivElement child in namedChildren.Values) {
-					if (child.AreaExists(name) && child.GetFullFromNamedArea(name, graphicsState, rect) is Rectangle childArea) {
-						Rectangle containerFull = framedContainer.FullRect(graphicsState, childArea);
-						return InvertApplyAspect(containerFull.Margins(Margins, true));
-					}
-				}
-			}
-			//throw new ArgumentException($"Cannot infer full size for \"{name}\" area for {shape.GetType().Name}."); // LayoutException?
-			return null;
-		}
-
-		public override void Draw(ISharpCanvas canvas, Rectangle fullRect, CancellationToken cancellationToken) {
-
-			Rectangle rect = ApplyAspect(fullRect).Margins(Margins, false); // Need to apply Margins manually, as we're not using GridElements.GetElementRects
-
-			if (diagnostic) {
-				canvas.RegisterAreas(pattern, fullRect, rect, Array.Empty<Rectangle>());
-			}
-
-			shape.Draw(canvas, rect);
-
-			foreach (string name in childrenProvidedOrder) {
-				if (namedChildren.TryGetValue(name, out DrawableDivElement? child)) {
-					Rectangle childRect = StyledDivUtils.GetChildRect(shape, name, canvas, rect);
-					child.Draw(canvas, childRect, cancellationToken);
-				}
-			}
-
-		}
-
-		public override Rectangle? ContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) {
-			if (ProvidesRemaining && shape is IFramedArea framedArea) {
-				return framedArea.RemainingRect(graphicsState, ApplyAspect(rect));
-			}
-			else {
-				return null;
-			}
+		protected override void DrawShape(ISharpCanvas canvas, Rectangle rect) {
+			shape.Draw(canvas, rect, detailLayout);
 		}
 
 	}

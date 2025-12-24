@@ -137,12 +137,28 @@ namespace SharpSheets.Markup.Patterns {
 			this.diagnostic = diagnostic;
 		}
 
-		protected virtual IEnvironment GetDrawableEnvironment() {
-			return arguments;
+		private static IEnvironment ConcatEnvironments(IEnvironment first, IEnvironment? second) {
+			if (second is not null) {
+				return first.AppendEnvironment(second);
+			}
+			else {
+				return first;
+			}
 		}
 
+		protected DrawableDivElement? GetDrawableRoot(ISharpGraphicsState graphicsState, IEnvironment? shapeEnvironment) {
+			return Pattern.rootElement.GetDrawable(graphicsState.GetMarkupData(), ConcatEnvironments(arguments, shapeEnvironment), shapeFactory, diagnostic);
+		}
+
+	}
+
+	public abstract class MarkupDrawRectShape : MarkupShape, IDrawRectShape {
+
+		public MarkupDrawRectShape(MarkupPattern pattern, ShapeFactory shapeFactory, IEnvironment arguments, bool diagnostic)
+			: base(pattern, shapeFactory, arguments, diagnostic) { }
+
 		protected DrawableDivElement? GetDrawableRoot(ISharpGraphicsState graphicsState) {
-			return Pattern.rootElement.GetDrawable(graphicsState.GetMarkupData(), GetDrawableEnvironment(), shapeFactory, diagnostic);
+			return GetDrawableRoot(graphicsState, null);
 		}
 
 		public virtual void Draw(ISharpCanvas canvas, Rectangle rect) {
@@ -151,7 +167,7 @@ namespace SharpSheets.Markup.Patterns {
 
 	}
 
-	public abstract class MarkupAreaShape : MarkupShape, IAreaShape {
+	public abstract class MarkupAreaShape : MarkupDrawRectShape, IAreaShape {
 
 		public float Aspect { get; }
 
@@ -579,16 +595,15 @@ namespace SharpSheets.Markup.Patterns {
 
 	public class MarkupDetail : MarkupShape, IDetail {
 
-		public LayoutDirection Layout { protected get; set; }
-
 		public MarkupDetail(MarkupDetailPattern pattern, ShapeFactory shapeFactory, IEnvironment arguments, bool constructionLines) : base(pattern, shapeFactory, arguments, constructionLines) { }
 
-		protected override IEnvironment GetDrawableEnvironment() {
-			return base.GetDrawableEnvironment().AppendEnvironment(new List<(object?, EnvironmentVariableInfo)>() {
-				(Layout, PatternData.DetailLayoutVariable(Pattern.Context))
-			});
+		private IEnvironment GetLayoutEnvironment(LayoutDirection layout) {
+			return Environments.Single(PatternData.DetailLayoutVariable(Pattern.Context), Pattern.Context.GetSystemType<LayoutDirection>().MakeValue(layout));
 		}
 
+		public void Draw(ISharpCanvas canvas, Rectangle rect, LayoutDirection layout) {
+			GetDrawableRoot(canvas, GetLayoutEnvironment(layout))?.Draw(canvas, rect, default);
+		}
 	}
 
 	#endregion

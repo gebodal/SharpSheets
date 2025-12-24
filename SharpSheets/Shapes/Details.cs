@@ -18,7 +18,7 @@ namespace SharpSheets.Shapes {
 		[FactoryBuilder(typeof(IDetail))]
 		public static Blank Build() { return new Blank(); }
 
-		public override void Draw(ISharpCanvas canvas, Rectangle rect) { }
+		public override void Draw(ISharpCanvas canvas, Rectangle rect, LayoutDirection layout) { }
 	}
 
 	/// <summary>
@@ -58,7 +58,7 @@ namespace SharpSheets.Shapes {
 			return new LineDetail(offset, width, color);
 		}
 
-		public override void Draw(ISharpCanvas canvas, Rectangle rect) {
+		public override void Draw(ISharpCanvas canvas, Rectangle rect, LayoutDirection layout) {
 			canvas.SaveState();
 
 			if (color != null) {
@@ -68,7 +68,7 @@ namespace SharpSheets.Shapes {
 				canvas.SetLineWidth(width.Value);
 			}
 
-			if (this.Layout == LayoutDirection.COLUMNS) {
+			if (layout == LayoutDirection.COLUMNS) {
 				canvas.MoveTo(rect.CentreX, rect.Bottom + offset).LineTo(rect.CentreX, rect.Top - offset);
 			}
 			else {
@@ -104,7 +104,7 @@ namespace SharpSheets.Shapes {
 			return new FilledDetail(color);
 		}
 
-		public override void Draw(ISharpCanvas canvas, Rectangle rect) {
+		public override void Draw(ISharpCanvas canvas, Rectangle rect, LayoutDirection layout) {
 			canvas.SaveState();
 			canvas.SetFillColor(color ?? canvas.GetMidtoneColor());
 			canvas.Rectangle(rect).Fill();

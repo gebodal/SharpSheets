@@ -138,10 +138,9 @@ namespace SharpSheets.Widgets {
 			if (this.ProvidesRemaining && children.Count > 0) {
 
 				if (setup.gutterStyle != null && gutters != null) {
-					setup.gutterStyle.Layout = GutterLayout; // This is awful. There must be a better way.
 					for (int i = 0; i < gutters.Length; i++) {
 						if (gutters[i] != null) {
-							setup.gutterStyle.Draw(canvas, gutters[i]!);
+							setup.gutterStyle.Draw(canvas, gutters[i]!, GutterLayout);
 						}
 					}
 				}

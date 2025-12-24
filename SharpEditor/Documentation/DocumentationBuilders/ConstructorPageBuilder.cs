@@ -230,11 +230,10 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 
 					if (shape is IDetail detail) {
 						// TODO This needs improving so we can see vertical version too
-						detail.Layout = LayoutDirection.ROWS;
-						detail.Draw(canvas, shapeRect);
+						detail.Draw(canvas, shapeRect, LayoutDirection.ROWS);
 					}
-					else {
-						shape.Draw(canvas, shapeRect);
+					else if (shape is IDrawRectShape drawShape) {
+						drawShape.Draw(canvas, shapeRect);
 					}
 
 					if (shape is IFramedArea framed) {

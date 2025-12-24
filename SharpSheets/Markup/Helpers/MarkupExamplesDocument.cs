@@ -103,8 +103,11 @@ namespace SharpSheets.Markup.Helpers {
 
 				// Actually draw example content
 				try {
-					if (markupObject is IShape markupShape) {
+					if (markupObject is IDrawRectShape markupShape) {
 						markupShape.Draw(canvas, exampleDrawRect);
+					}
+					else if (markupObject is IDetail markupDetail) {
+						markupDetail.Draw(canvas, exampleDrawRect, LayoutDirection.ROWS);
 					}
 					else if (markupObject is IWidget markupWidget) {
 						markupWidget.Draw(canvas, exampleDrawRect, default);
