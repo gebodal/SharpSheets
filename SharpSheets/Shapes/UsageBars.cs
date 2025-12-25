@@ -20,18 +20,6 @@ namespace SharpSheets.Shapes {
 		protected readonly float emphasis;
 		protected readonly bool includeEmphasis;
 
-		/// <summary>
-		/// Constructor for SimpleUsageBar.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this bar.</param>
-		/// <param name="flip">Flag to indicate that the bar should be flipped horizontally.
-		/// By default, the label will be drawn on the right.</param>
-		/// <param name="emphasis">The amount by which the entry outlines should extend beyond the
-		/// label area outline, above and below. Depending on the <paramref name="includeEmphasis"/>
-		/// flag, this may or may not be included in height calculations for the bar.</param>
-		/// <param name="includeEmphasis">Flag to indicate that the emphasis should be included
-		/// in calculations of the bar height.</param>
-		/// <exception cref="SharpInitializationException"></exception>
 		public SimpleUsageBar(float aspect, bool flip = false, UFloat emphasis = default, bool includeEmphasis = true) : base(aspect) {
 			this.flip = flip;
 			this.emphasis = emphasis;

@@ -17,12 +17,6 @@ namespace SharpSheets.Markup.Elements {
 
 		readonly IDrawableElement[] elements;
 
-		/// <summary>
-		/// Constructor for Grouping.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="elements">Child graphical elements of this grouping.</param>
 		public Grouping(string? _id, StyleSheet styleSheet, IEnumerable<IDrawableElement> elements) : base(_id, styleSheet) {
 			this.elements = elements.ToArray();
 		}
@@ -130,12 +124,6 @@ namespace SharpSheets.Markup.Elements {
 
 		private readonly IShapeElement[] elements;
 
-		/// <summary>
-		/// Constructor for ClipPath.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="elements">Child shape elements which make up this clipping path.</param>
 		public ClipPath(string? _id, StyleSheet styleSheet, IEnumerable<IShapeElement> elements) {
 			this.ID = _id;
 			this.StyleSheet = styleSheet;
@@ -228,25 +216,6 @@ namespace SharpSheets.Markup.Elements {
 
 		readonly IDrawableElement[] elements;
 
-		/// <summary>
-		/// Constructor for Symbol.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="_viewBox" default="null">The view box for this symbol, which determines the
-		/// available canvas on which child graphical elements can be drawn.</param>
-		/// <param name="_x" default="0">The x coordinate of the symbol. Note that this may be
-		/// overriden by a &lt;use&gt; element.</param>
-		/// <param name="_y" default="0">The y coordinate of the symbol. Note that this may be
-		/// overriden by a &lt;use&gt; element.</param>
-		/// <param name="_width" default="0">The width of the symbol. Note that this may be
-		/// overriden by a &lt;use&gt; element. The view box will be scaled to this size.</param>
-		/// <param name="_height" default="0">The height of the symbol. Note that this may be
-		/// overriden by a &lt;use&gt; element. The view box will be scaled to this size.</param>
-		/// <param name="_preserveAspectRatio" default="null">Determines how the viewbox will
-		/// be deformed if it is used in a container with a different aspect ratio.</param>
-		/// <param name="elements">Child graphical elements of this symbol.</param>
-		/// <exception cref="EvaluationException"></exception>
 		public Symbol(string? _id, StyleSheet styleSheet, RectangleExpression? _viewBox, XLengthExpression _x, YLengthExpression _y, XLengthExpression _width, YLengthExpression _height, PreserveAspectRatioExpression _preserveAspectRatio, IEnumerable<IDrawableElement> elements) {
 			this.ID = _id;
 			this.StyleSheet = styleSheet;
@@ -378,18 +347,6 @@ namespace SharpSheets.Markup.Elements {
 		private readonly FilePathExpression filepath; // href
 		private readonly PreserveAspectRatioExpression preserveAspectRatio;
 
-		/// <summary>
-		/// Constructor for Image.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="_x" default="0">The x coordinate for the image.</param>
-		/// <param name="_y" default="0">The y coordinate for the image.</param>
-		/// <param name="_width" default="$width">The width for the image.</param>
-		/// <param name="_height" default="$height">The height for the image.</param>
-		/// <param name="_file">The filepath for the image to draw.</param>
-		/// <param name="_preserveAspectRatio" default="null">Determines how the image will
-		/// be deformed/cropped if it is used in an area with a different aspect ratio.</param>
 		public Image(string? _id, StyleSheet styleSheet, XLengthExpression _x, YLengthExpression _y, XLengthExpression _width, YLengthExpression _height, FilePathExpression _file, PreserveAspectRatioExpression _preserveAspectRatio) {
 			ID = _id;
 			StyleSheet = styleSheet;
@@ -492,22 +449,6 @@ namespace SharpSheets.Markup.Elements {
 		public NSliceValuesExpression NSliceValues { get; }
 		public BoolExpression Enabled { get; }
 
-		/// <summary>
-		/// Constructor for SlicingValuesElement.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="_xs" default="null">A series of x-coordinates for the dividing lines
-		/// for the slices. These will override the x-coordinates of any margins given for
-		/// <paramref name="_border"/>.</param>
-		/// <param name="_ys" default="null">A series of y-coordinates for the dividing lines
-		/// for the slices. These will override the y-coordinates of any margins given for
-		/// <paramref name="_border"/>.</param>
-		/// <param name="_border" default="null">These values will produce a 9-sliced
-		/// canvas based on the margins provided. These values will be overriden by any
-		/// values provided for <paramref name="_xs"/> and <paramref name="_ys"/>.</param>
-		/// <param name="_enabled" default="true">A flag to indicate whether this element should be
-		/// enabled and included in layout calculations.</param>
-		/// <param name="markupContext" exclude="True"></param>
 		public SlicingValuesElement(string? _id, FloatExpression[]? _xs, FloatExpression[]? _ys, MarginsExpression? _border, BoolExpression _enabled, MarkupEvaluationContext markupContext) {
 			this.ID = _id;
 			this.Enabled = _enabled;

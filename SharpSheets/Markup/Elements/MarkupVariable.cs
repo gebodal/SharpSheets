@@ -14,13 +14,6 @@ namespace SharpSheets.Markup.Elements {
 		public EvaluationNode Evaluation { get; }
 		public EvaluationType Type { get; }
 
-		/// <summary>
-		/// Constructor for MarkupVariable.
-		/// </summary>
-		/// <param name="name">The name for this variable, which will be used as its variable
-		/// handle in the Markup.</param>
-		/// <param name="value">An expression for the value of this variable. The type of the
-		/// variable will be inferred from the type of this expression.</param>
 		/// <exception cref="EvaluationTypeException">Thrown when <paramref name="value"/> does not have a valid return type.</exception>
 		public MarkupVariable(EvaluationName name, EvaluationNode value) {
 			Name = name;

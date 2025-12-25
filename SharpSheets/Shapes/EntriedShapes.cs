@@ -18,17 +18,6 @@ namespace SharpSheets.Shapes {
 
 		protected bool HasGraphicsChanges { get { return fill.HasValue || stroke.HasValue || (dashes != null && dashes.Length > 0); } }
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="aspect"></param>
-		/// <param name="sizes" default="1" example="2,2,3"></param>
-		/// <param name="layout"></param>
-		/// <param name="stroke"></param>
-		/// <param name="fill"></param>
-		/// <param name="dashes"></param>
-		/// <param name="dashOffset"></param>
-		/// <param name="trim" default="0" example="2"></param>
 		public SimpleEntried(float aspect, Dimension[]? sizes = null, LayoutDirection layout = LayoutDirection.ROWS, Color? stroke = null, Color? fill = null, float[]? dashes = null, float? dashOffset = null, Margins? trim = null) : base(aspect) {
 			this.sizes = sizes ?? new Dimension[] { Dimension.Single };
 			this.layout = layout;

@@ -18,15 +18,6 @@ namespace SharpSheets.Markup.Elements {
 
 		public readonly IExpression<IWidget?>? href;
 
-		/// <summary>
-		/// Constructor for ChildDivElement.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="_href" default="null">The widget to use as the content for this element.</param>
-		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
-		/// <param name="markupContext"></param>
-		/// <param name="variables">The variables declared with this Div.</param>
 		public ChildDivElement(string? _id, DivSetup setup, IExpression<IWidget?>? _href, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
 			: base(_id, setup, outerContext, markupContext, variables) {
 

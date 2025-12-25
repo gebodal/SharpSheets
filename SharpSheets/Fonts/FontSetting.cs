@@ -8,13 +8,6 @@ namespace SharpSheets.Fonts {
 		public readonly FontPath Path;
 		public readonly FontTags? Tags;
 
-		/// <summary>
-		/// Constructor for FontSetting.
-		/// </summary>
-		/// <param name="path">Font path to use for this font setting.</param>
-		/// <param name="tags">Font tags to use for this font. This can include script,
-		/// language system, and feature tags (if they are supported by the font
-		/// specified).</param>
 		public FontSetting(FontPath path, FontTags? tags = null) {
 			Path = path;
 			Tags = tags;

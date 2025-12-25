@@ -286,17 +286,6 @@ namespace SharpSheets.Markup.Elements {
 	/// </summary>
 	public class BoxStyledDivElement : StyledDivDrawRectElement<IBox> {
 
-		/// <summary>
-		/// Constructor for BoxStyledDivElement.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="_shapeContext">The shape context for this element.</param>
-		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
-		/// <param name="_name" default="null">The name to use for this shape, if a name is accepted by the shape type.</param>
-		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
-		/// <param name="markupContext"></param>
-		/// <param name="variables">The variables declared with this Div.</param>
 		public BoxStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IBox?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
 			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
 
@@ -336,17 +325,6 @@ namespace SharpSheets.Markup.Elements {
 	/// </summary>
 	public class LabelledBoxStyledDivElement : StyledDivDrawRectElement<ILabelledBox> {
 
-		/// <summary>
-		/// Constructor for LabelledBoxStyledDivElement.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="_shapeContext">The shape context for this element.</param>
-		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
-		/// <param name="_name" default="null">The name to use for this shape, if a name is accepted by the shape type.</param>
-		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
-		/// <param name="markupContext"></param>
-		/// <param name="variables">The variables declared with this Div.</param>
 		public LabelledBoxStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<ILabelledBox?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
 			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
 
@@ -385,17 +363,6 @@ namespace SharpSheets.Markup.Elements {
 	/// </summary>
 	public class TitledBoxStyledDivElement : StyledDivDrawRectElement<ITitledBox> {
 
-		/// <summary>
-		/// Constructor for BoxStyledDivElement.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="_shapeContext">The shape context for this element.</param>
-		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
-		/// <param name="_name" default="null">The name to use for this shape, if a name is accepted by the shape type.</param>
-		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
-		/// <param name="markupContext"></param>
-		/// <param name="variables">The variables declared with this Div.</param>
 		public TitledBoxStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<ITitledBox?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
 			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
 
@@ -429,17 +396,6 @@ namespace SharpSheets.Markup.Elements {
 	/// </summary>
 	public class EntriedShapeStyledDivElement : StyledDivDrawRectElement<IEntriedShape> {
 
-		/// <summary>
-		/// Constructor for <see cref="EntriedShapeStyledDivElement"/>.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="_shapeContext">The shape context for this element.</param>
-		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
-		/// <param name="_name" default="null">The name to use for this shape, if a name is accepted by the shape type.</param>
-		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
-		/// <param name="markupContext"></param>
-		/// <param name="variables">The variables declared with this Div.</param>
 		public EntriedShapeStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IEntriedShape?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
 			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
 
@@ -478,17 +434,6 @@ namespace SharpSheets.Markup.Elements {
 	/// </summary>
 	public class BarStyledDivElement : StyledDivDrawRectElement<IBar> {
 
-		/// <summary>
-		/// Constructor for BarStyledDivElement.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="_shapeContext">The shape context for this element.</param>
-		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
-		/// <param name="_name" default="null">The name to use for this shape, if a name is accepted by the shape type.</param>
-		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
-		/// <param name="markupContext"></param>
-		/// <param name="variables">The variables declared with this Div.</param>
 		public BarStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IBar?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
 			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
 
@@ -534,22 +479,6 @@ namespace SharpSheets.Markup.Elements {
 		private readonly TextExpression? note; // TODO StringExpression?
 		private readonly LabelDetailsExpression? noteDetails;
 
-		/// <summary>
-		/// Constructor for LabelledUsageBarStyledDivElement.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="_shapeContext">The shape context for this element.</param>
-		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
-		/// <param name="_name" default="null">The name to use for this shape, if a name is accepted by the shape type.</param>
-		/// <param name="_label1" default="null">A label to be drawn by the first entry area.</param>
-		/// <param name="_label2" default="null">A label to be drawn by the second entry area.</param>
-		/// <param name="labels_">Label layout details for this usage bar.</param>
-		/// <param name="_note" default="null">A note to be drawn by the label area.</param>
-		/// <param name="note_">Note layout details for this usage bar.</param>
-		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
-		/// <param name="markupContext"></param>
-		/// <param name="variables">The variables declared with this Div.</param>
 		public LabelledUsageBarStyledDivElement(string? _id, DivSetup setup,
 			ContextExpression? _shapeContext, IExpression<IUsageBar?>? _href,
 			IExpression<string>? _name,
@@ -624,18 +553,6 @@ namespace SharpSheets.Markup.Elements {
 
 		private readonly EnumExpression<LayoutDirection> detailLayout;
 
-		/// <summary>
-		/// Constructor for BoxStyledDivElement.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="_shapeContext">The shape context for this element.</param>
-		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
-		/// <param name="_name" default="null">The name to use for this shape, if a name is accepted by the shape type.</param>
-		/// <param name="detailLayout">The layout to use when drawing this detail.</param>
-		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
-		/// <param name="markupContext"></param>
-		/// <param name="variables">The variables declared with this Div.</param>
 		public DetailStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IDetail?>? _href, IExpression<string>? _name, EnumExpression<LayoutDirection> detailLayout, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
 			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) {
 
@@ -742,17 +659,6 @@ namespace SharpSheets.Markup.Elements {
 		public readonly EnumExpression<SharpSheets.Canvas.Text.Alignment>? alignment;
 		public readonly ColorExpression? color;
 
-		/// <summary>
-		/// Constructor for LabelDetailsExpression.
-		/// </summary>
-		/// <param name="fontsize">The fontsize for the label text.</param>
-		/// <param name="x_offset">The x-offset for the label from its initial position.</param>
-		/// <param name="y_offset">The y-offset for the label from its initial position.</param>
-		/// <param name="font_style">The font style for the label text.</param>
-		/// <param name="justification">The horizontal justification for the label text.</param>
-		/// <param name="alignment">The vertical alignment for the label text.</param>
-		/// <param name="color">The color for the label text.</param>
-		/// <param name="context" exclude="True"></param>
 		public LabelDetailsExpression(FloatExpression? fontsize, FloatExpression? x_offset, FloatExpression? y_offset, EnumExpression<TextFormat>? font_style, EnumExpression<Justification>? justification, EnumExpression<SharpSheets.Canvas.Text.Alignment>? alignment, ColorExpression? color, EvaluationContext context) {
 			this.fontSize = fontsize;
 			this.offset = (x_offset, y_offset);

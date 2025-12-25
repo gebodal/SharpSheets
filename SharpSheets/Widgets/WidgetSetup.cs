@@ -34,44 +34,6 @@ namespace SharpSheets.Widgets {
 		public readonly LayoutOrder order;
 		public readonly bool diagnostic;
 
-		/// <summary>
-		/// Constructor for WidgetSetup.
-		/// </summary>
-		/// <param name="_margins" default="(0,0,0,0)">Margins to apply to the widget area before drawing.
-		/// These margins will be factored into the minimum size of the widget if
-		/// autosizing is used.</param>
-		/// <param name="linewidth">Default line width for this widget and its children.</param>
-		/// <param name="foreground" default="Black">Foreground color for this widget and its children.
-		/// This color is commonly used for outlines and detailing.</param>
-		/// <param name="background" default="White">Background color for this widget and its children.
-		/// This color is commonly used to fill in background areas.</param>
-		/// <param name="midtone" default="Gray">Midtone color for this widget and its children.
-		/// This color is commonly used for secondary details.</param>
-		/// <param name="textColor" default="Black">Text color for this widget and its children.</param>
-		/// <param name="font">Fonts to use for text in this widget and its children.
-		/// This value can be provided as 1 to 4
-		/// font names or paths, specifying Regular, Bold, Italic, and Bold Italic font styles.
-		/// Fonts are identified by name or path, searching first in the current directory,
-		/// and then in the system font directory.</param>
-		/// <param name="gutter">Spacing between this widget's children, measured in points.</param>
-		/// <param name="gutter_">Gutter style for this widget and its children.
-		/// This style is used to draw detailing in the spaces between child widgets.</param>
-		/// <param name="_size" default="1">Size of the widget, either as a absolute dimension (pt, cm, in),
-		/// a relative size (in percent or arbitrary units), or auto-sized (with "auto"). If a size is provided,
-		/// position should not be used.</param>
-		/// <param name="_position">Position the widget as an inset of its parents area.
-		/// Position is specified by an anchor point, width, height, and x and y offsets.
-		/// The lengths can be expressed as absolute lengths (pt, cm, in), or percentages of the
-		/// overall widget size. If this value is set, the size parameter will be ignored.</param>
-		/// <param name="layout">Specifies the arrangement of child widgets on the page,
-		/// either as rows or columns.</param>
-		/// <param name="arrangement">Specifies the arrangement of the widgets children 
-		/// in the available space, indicating whether the children should be arranged
-		/// centrally, or to one end of, the available space.</param>
-		/// <param name="order">Specifies the order that the widgets children should be drawn in 
-		/// across the available space, allowing children to be drawn in reverse document order.</param>
-		/// <param name="_diagnostic">Flag to indicate that schematic information is to
-		/// be drawn for this widget, to help with design and debugging.</param>
 		public WidgetSetup(
 					Margins _margins = default,
 					float linewidth = 1f,

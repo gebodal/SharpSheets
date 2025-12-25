@@ -20,15 +20,6 @@ namespace SharpSheets.Cards.Card {
 			public readonly float Spacing;
 			public readonly ParagraphIndent Indent;
 
-			/// <summary>
-			/// Constructor for ParagraphDataArg.
-			/// </summary>
-			/// <param name="spacing">The spacing to be used between paragraphs of text, measured in points.
-			/// This spacing is in addition to any line spacing.</param>
-			/// <param name="indent">The indentation length for the first line of text in a paragraph,
-			/// measured in points.</param>
-			/// <param name="hanging">The indentation length for each line after the first (whose indentation
-			/// is controlled using <paramref name="indent"/>), measured in points.</param>
 			public ParagraphDataArg(float spacing = 0f, float indent = 0f, float hanging = 0f) {
 				this.Spacing = spacing;
 				this.Indent = new ParagraphIndent(indent, hanging);
@@ -54,14 +45,6 @@ namespace SharpSheets.Cards.Card {
 			public readonly float Indent;
 			public readonly float Offset;
 
-			/// <summary>
-			/// Constructor for BulletArg.
-			/// </summary>
-			/// <param name="symbol">The text character(s) to use for the bullet point symbol.</param>
-			/// <param name="font">The font with which the symbol character(s) will be drawn.</param>
-			/// <param name="size">The font size for the symbol, as a factor of the main text font size.</param>
-			/// <param name="indent">The indentation, in points, to use for the symbol.</param>
-			/// <param name="offset">The offset for the symbol from the text baseline, as a factor of the text font size.</param>
 			public BulletArg(string? symbol = null, FontSetting? font = null, float size = 1f, float indent = 0f, float offset = 0f) {
 				Symbol = !string.IsNullOrWhiteSpace(symbol) ? symbol : null;
 				FontPath = font;
@@ -93,22 +76,6 @@ namespace SharpSheets.Cards.Card {
 
 		private readonly ParagraphSpecification paragraphSpec;
 
-		/// <summary>
-		/// Constructor for CardText widget.
-		/// </summary>
-		/// <param name="setup"></param>
-		/// <param name="text">The text to be displayed in this widget, which can be formatted as rich text.
-		/// The provided entries will be treated as separate lines of text.</param>
-		/// <param name="justification">The horizontal justification to use for the text within the available area.</param>
-		/// <param name="alignment">The vertical alignment to use for the text within the available area.</param>
-		/// <param name="heightStrategy">The height calculation strategy to use when arranging the text within the available area.</param>
-		/// <param name="lineSpacing">This parameter sets the line spacing, which is the distance between successive
-		/// text baselines, as amultiple of the drawing fontsize.</param>
-		/// <param name="paragraph">Paragraph data for this widget.</param>
-		/// <param name="multiplier">A multiplier for the font size, which will adjust the font size determined
-		/// by the card layout algorithm when drawing the text for this widget.</param>
-		/// <param name="bullet">Bullet data for this widget.</param>
-		/// <size>0 0</size>
 		public CardText(
 			WidgetSetup setup,
 			List<RichString>? text = null,

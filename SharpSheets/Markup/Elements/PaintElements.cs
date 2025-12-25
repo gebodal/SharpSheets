@@ -15,11 +15,6 @@ namespace SharpSheets.Markup.Elements {
 
 		public ColorExpression Color { get; }
 
-		/// <summary>
-		/// Constructor for SolidPaint.
-		/// </summary>
-		/// <param name="_id">A unique name for this element.</param>
-		/// <param name="_color">The color for this paint.</param>
 		public SolidPaint(string? _id, ColorExpression _color) {
 			this.ID = _id;
 			this.Color = _color;
@@ -62,15 +57,6 @@ namespace SharpSheets.Markup.Elements {
 		private readonly DrawPointExpression p2; // x2, y2
 		private readonly ColorStopExpression[] stops;
 
-		/// <summary>
-		/// Constructor for LinearGradient.
-		/// </summary>
-		/// <param name="_id">A unique name for this element.</param>
-		/// <param name="_x1" default="0">The x coordinate of the start point.</param>
-		/// <param name="_y1" default="0">The y coordinate of the start point.</param>
-		/// <param name="_x2" default="$width">The x coordinate of the end point.</param>
-		/// <param name="_y2" default="0">The y coordinate of the end point.</param>
-		/// <param name="stops">The color stops for this gradient.</param>
 		public LinearGradient(string? _id,
 			XLengthExpression _x1, YLengthExpression _y1,
 			XLengthExpression _x2, YLengthExpression _y2,
@@ -129,17 +115,6 @@ namespace SharpSheets.Markup.Elements {
 		private readonly FloatExpression fr;
 		private readonly ColorStopExpression[] stops;
 
-		/// <summary>
-		/// Constructor for RadialGradient.
-		/// </summary>
-		/// <param name="_id">A unique name for this element.</param>
-		/// <param name="_cx" default="$width / 2">The x coordinate of the end circle.</param>
-		/// <param name="_cy" default="$height / 2">The y coordinate of the end circle.</param>
-		/// <param name="_r" default="min($width, $height) / 2">The radius of the end circle.</param>
-		/// <param name="_fx" default="$width / 2">The x coordinate of the start circle.</param>
-		/// <param name="_fy" default="$height / 2">The y coordinate of the start circle.</param>
-		/// <param name="_fr" default="0">The radius of the start circle.</param>
-		/// <param name="stops">The color stops for this gradient.</param>
 		public RadialGradient(string? _id,
 			XLengthExpression _cx, YLengthExpression _cy,
 			BoundingBoxLengthExpression _r,

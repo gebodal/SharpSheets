@@ -21,10 +21,6 @@ namespace SharpSheets.Widgets {
 	/// This widget will draw any gutter style specified, and obeys auto-sizing conventions normally.
 	/// </summary>
 	public class Div : DivisionWidget {
-		/// <summary>
-		/// Constructor for Div widget.
-		/// </summary>
-		/// <param name="setup"> Widget setup object. </param>
 		public Div(WidgetSetup setup) : base(setup) { }
 
 		/// <param name="setup"> Widget setup object. </param>
@@ -96,25 +92,6 @@ namespace SharpSheets.Widgets {
 			public readonly float fontsize;
 			public readonly bool rich;
 
-			/// <summary>
-			/// Constructor for field details.
-			/// </summary>
-			/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
-			/// information in the final document for accesibility and usability purposes.</param>
-			/// <param name="lined">If provided, the text field in this widget will not be interactive in the final document,
-			/// and will instead be drawn as a lined area, with a line spacing equal to the value given
-			/// (measured in points). The lines will be drawn at the default line width, unless the field linewidth parameter
-			/// is set.</param>
-			/// <param name="linewidth">The line width to use if a <paramref name="lined"/> parameter is specified. If not
-			/// specified, the current line width will be used.</param>
-			/// <param name="justification">Justification for the field, indicating if the field should be left, right,
-			/// or centre justified.</param>
-			/// <param name="singleline">Flag to indicate that the field for this widget should be a single line field.</param>
-			/// <param name="font">Font format to use for the text field. This will use the appropriate font format from
-			/// the current font selection.</param>
-			/// <param name="fontsize">Font size for the text field.
-			/// A value of 0 or less indicates that the field in the final document should autosize the text.</param>
-			/// <param name="rich">Flag to indicate that the text field should have rich text features enabled.</param>
 			public FieldDetails(string? tooltip = null, float? lined = null, float? linewidth = null, Justification justification = Justification.LEFT, bool singleline = false, TextFormat font = TextFormat.REGULAR, float fontsize = 0f, bool rich = false) {
 				this.tooltip = tooltip;
 				this.lined = lined;
@@ -159,17 +136,6 @@ namespace SharpSheets.Widgets {
 
 		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(fieldName) ? $" ({fieldName})" : "");
 
-		/// <summary>
-		/// Constructor for Section widget.
-		/// </summary>
-		/// <param name="setup"> Widget setup object. </param>
-		/// <param name="name"> The name for this section, used for titles and field names. </param>
-		/// <param name="outline" example="Simple"> Outline style to place around this widget,
-		/// which will be drawn before any child widgets are drawn. </param>
-		/// <param name="_frame"> Margins to apply to the remaining area after the outline is drawn.
-		/// This can be used to separate the children from the outline, if desired. This extra spacing will
-		/// be factored into any autosizing calculations.</param>
-		/// <param name="field">Field details for this widget.</param>
 		public Section(
 				WidgetSetup setup,
 				string? name = null,
@@ -274,20 +240,6 @@ namespace SharpSheets.Widgets {
 			public readonly float fontsize;
 			public readonly bool rich;
 
-			/// <summary>
-			/// Constructor for field details.
-			/// </summary>
-			/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
-			/// information in the final document for accesibility and usability purposes.</param>
-			/// <param name="justification">Justification for the field, indicating if the field should be left, right,
-			/// or centre justified.</param>
-			/// <param name="check">If a check mark type is provided, the field will be a check field, rather than
-			/// a text field, with the appropriate check mark used to indicate the "On" state.</param>
-			/// <param name="font">Font format to use for the text field. This will use the appropriate font format from
-			/// the current font selection.</param>
-			/// <param name="fontsize">Font size for the text field.
-			/// A value of 0 or less indicates that the field in the final document should autosize the text.</param>
-			/// <param name="rich">Flag to indicate that the text field should have rich text features enabled.</param>
 			public FieldDetails(string? tooltip = null, Justification justification = Justification.CENTRE, CheckType? check = null, TextFormat font = TextFormat.REGULAR, float fontsize = 0f, bool rich = false) {
 				this.tooltip = tooltip;
 				this.justification = justification;
@@ -324,17 +276,6 @@ namespace SharpSheets.Widgets {
 
 		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(name) ? $" ({name})" : "");
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="setup"> Widget setup object. </param>
-		/// <param name="name"> The name for this box, used for titles and field names. </param>
-		/// <param name="outline" example="Simple"> Outline style to place around this widget,
-		/// which will be drawn before any child widgets are drawn. </param>
-		/// <param name="_frame"> Margins to apply to the remaining area after the outline is drawn.
-		/// This can be used to separate the children from the outline, if desired. This extra spacing will
-		/// be factored into any autosizing calculations.</param>
-		/// <param name="field">Field details for this widget.</param>
 		public Box(
 				WidgetSetup setup,
 				string? name = null,
@@ -430,20 +371,7 @@ namespace SharpSheets.Widgets {
 			public readonly Alignment alignment;
 			public readonly TextHeightStrategy heightStrategy;
 			public readonly (float x, float y) offset;
-			/// <summary>
-			/// Constructor for label parameters.
-			/// </summary>
-			/// <param name="fontSize">Font size to use for the label text.</param>
-			/// <param name="lineSpacing">Line spacing to use for multiline label text, as a factor of <paramref name="fontSize"/>.</param>
-			/// <param name="format">Font format to use for the label text. This will use the appropriate font
-			/// format from the current font selection.</param>
-			/// <param name="justification">The horizontal justification to use for the label text, relative to the label area.</param>
-			/// <param name="alignment">The vertical alignment to use for the label text, relative to the label area.</param>
-			/// <param name="heightStrategy">The height calculation strategy to use when arranging the label text within the label area.</param>
-			/// <param name="offset">An offset for the label text, after positioning using <paramref name="justification"/> and
-			/// <paramref name="alignment"/> This is provided as an x,y pair of numbers, measured in points. The positive
-			/// directions are rightwards and upwards. This can be used to make specific adjustments, to accomodate quirks of
-			/// specific fonts.</param>
+
 			public LabelParams(float fontSize = 6f, float lineSpacing = 1f, TextFormat format = TextFormat.REGULAR, Justification justification = Justification.CENTRE, Alignment alignment = Alignment.CENTRE, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline, (float x, float y) offset = default) {
 				this.fontSize = fontSize;
 				this.paragraphSpec = new ParagraphSpecification(lineSpacing, 0f, 0f, 0f);
@@ -482,21 +410,6 @@ namespace SharpSheets.Widgets {
 			public readonly bool multiline;
 			public readonly bool rich;
 
-			/// <summary>
-			/// Constructor for field details.
-			/// </summary>
-			/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
-			/// information in the final document for accesibility and usability purposes.</param>
-			/// <param name="justification">Justification for the field, indicating if the field should be left, right,
-			/// or centre justified.</param>
-			/// <param name="check">If a check mark type is provided, the field will be a check field, rather than
-			/// a text field, with the appropriate check mark used to indicate the "On" state.</param>
-			/// <param name="font">Font format to use for the text field. This will use the appropriate font format from
-			/// the current font selection.</param>
-			/// <param name="fontsize">Font size for the text field.
-			/// A value of 0 or less indicates that the field in the final document should autosize the text.</param>
-			/// <param name="multiline">Flag to indicate that the field for this widget should be a multiline field.</param>
-			/// <param name="rich">Flag to indicate that the text field should have rich text features enabled.</param>
 			public FieldDetails(string? tooltip = null, Justification justification = Justification.CENTRE, CheckType? check = null, TextFormat font = TextFormat.REGULAR, float fontsize = 0f, bool multiline = false, bool rich = false) {
 				this.tooltip = tooltip;
 				this.justification = justification;
@@ -540,23 +453,6 @@ namespace SharpSheets.Widgets {
 
 		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(label) ? $" ({label})" : "");
 
-		/// <summary>
-		/// Constructor for Labelled widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="outline">LabelledBox style to draw for this widget.
-		/// This shape will be used to calculate the remaining and label areas.
-		/// It will also be drawn before any content or label is drawn.</param>
-		/// <param name="_frame">Margins to apply to the remaining area after the labelled box is drawn.
-		/// This can be used to separate the field, or any children, from the outline if desired.
-		/// This extra spacing will be factored into any autosizing calculations.</param>
-		/// <param name="label">The text label to be drawn in the label area of the
-		/// labelled box. This positioning and style of this label can be adjusted using
-		/// the other settings.</param>
-		/// <param name="label__">Label details for this widget.</param>
-		/// <param name="field">Field details for this widget.</param>
-		/// <param name="content">If provided, this child content will be drawn in place
-		/// of the label text in the label area of the labelled box.</param>
 		public Labelled(
 				WidgetSetup setup,
 				ILabelledBox? outline = null,
@@ -663,15 +559,6 @@ namespace SharpSheets.Widgets {
 			public readonly float Spacing;
 			public readonly ParagraphIndent Indent;
 
-			/// <summary>
-			/// Constructor for ParagraphDataArgs.
-			/// </summary>
-			/// <param name="spacing">The spacing to be used between paragraphs of text, measured in points.
-			/// This spacing is in addition to any line spacing.</param>
-			/// <param name="indent">The indentation length for the first line of text in a paragraph,
-			/// measured in points.</param>
-			/// <param name="hanging">The indentation length for each line after the first (whose indentation
-			/// is controlled using <paramref name="indent"/>), measured in points.</param>
 			public ParagraphDataArgs(float spacing = 0f, float indent = 0f, float hanging = 0f) {
 				this.Spacing = spacing;
 				this.Indent = new ParagraphIndent(indent, hanging);
@@ -712,47 +599,6 @@ namespace SharpSheets.Widgets {
 
 		public override string DisplayName => base.DisplayName + $" (\"{text.Formatted.TrimToMax(25)}\")";
 
-		/// <summary>
-		/// Constructor for Text widget.
-		/// </summary>
-		/// <param name="setup"></param>
-		/// <param name="text" example="Lorem ipsum dolor sit amet\, consectetur adipiscing elit\, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.">
-		/// The text to be displayed in this widget, which can be formatted as rich text.
-		/// The provided entries will be treated as separate lines of text.
-		/// </param>
-		/// <param name="fontSize">The fontsize at which to draw the provided text.
-		/// A fontsize of 0 indicates that the fontsize should be adjusted such that
-		/// the text fit the available area (this can also be achieved by setting the <paramref name="fit"/> flag).
-		/// This parameter is ignored if <paramref name="fit"/> is true.</param>
-		/// <param name="format">This parameter can be used to set the default format
-		/// for the text, to be used in conjuction with any rich text formatting. For example, if this parameter
-		/// is set to <see cref="TextFormat.BOLD"/>, then the text "Testing _Testing_" would be interpreted as "*Testing _Testing_*" </param>
-		/// <param name="lineSpacing">This parameter sets the line spacing, which is the distance between successive
-		/// text baselines, measured in multiples of the current fontsize.</param>
-		/// <param name="paragraph">Paragraph data for this widget.</param>
-		/// <param name="minfontsize" example="1">This is the minimum fontsize to be used when fitting the text
-		/// to the available area. It must have a value greater than zero. This parameter is ignored when <paramref name="fit"/>
-		/// is false and <paramref name="fontSize"/> is greater than zero.</param>
-		/// <param name="maxfontsize" example="400">This is the maximum fontsize to be used when fitting the
-		/// text to the available area. It must have a value greater than zero. If not provided, the maximum fontsize will
-		/// be the maximum of <paramref name="fontSize"/> and <paramref name="minfontsize"/>. This parameter is ignored when
-		/// <paramref name="fit"/> is false and <paramref name="fontSize"/> is greater than zero.</param>
-		/// <param name="epsilon">This is the smallest change in fontsize to be considered when fitting the text size
-		/// to the available area. This parameter is ignored when <paramref name="fit"/> is false and <paramref name="fontSize"/>
-		/// is greater than zero.</param>
-		/// <param name="justification">The horizontal justification to use for the text within the available area.</param>
-		/// <param name="alignment">The vertical alignment to use for the text within the available area.</param>
-		/// <param name="orientation">Orientation for the text, which will control the "up" direction
-		/// when the text is drawn.</param>
-		/// <param name="heightStrategy">The height calculation strategy to use when arranging the text within the available area.</param>
-		/// <param name="fit" example="true">Flag to indicate that the font size should be adjusted to fit the text to the
-		/// available area.</param>
-		/// <param name="offset">An offset for the text, after positioning using <paramref name="justification"/> and
-		/// <paramref name="alignment"/>. This is provided as an x,y pair of numbers, measured in points. The positive directions
-		/// are rightwards and upwards. This can be used to make specific adjustments, to accomodate quirks of specific fonts.</param>
-		/// <param name="singleline">Flag to indicate that the text should be written on a single line. No line breaks will
-		/// be added, regardless of the fontsize.</param>
-		/// <size>50 50</size>
 		public Text(
 				WidgetSetup setup,
 				List<RichString>? text = null,
@@ -972,19 +818,6 @@ namespace SharpSheets.Widgets {
 		public readonly TextHeightStrategy heightStrategy;
 		public readonly Color? color;
 
-		/// <summary>
-		/// Constructor for BarNameDetails.
-		/// </summary>
-		/// <param name="fontSize">The fontsize for the bar names, measured in points.</param>
-		/// <param name="offset">An offset for the name text, after positioning using <paramref name="justification"/> and
-		/// <paramref name="alignment"/>. This is provided as an x,y pair of numbers, measured in points. The positive directions
-		/// are rightwards and upwards. This can be used to make specific adjustments, to accomodate quirks of specific fonts.</param>
-		/// <param name="format">Font format to use for the name text. This will use the appropriate font
-		/// format from the current font selection.</param>
-		/// <param name="justification">The horizontal justification to use for the name text, relative to the bar label area.</param>
-		/// <param name="alignment">The vertical alignment to use for the name text, relative to the bar label area.</param>
-		/// <param name="heightStrategy">The height calculation strategy to use when arranging the label text within the label area.</param>
-		/// <param name="color">The color to use for the bar name text. The default is the current text color.</param>
 		public BarNameDetails(float fontSize = 6f, (float x, float y) offset = default, TextFormat format = TextFormat.REGULAR, Justification justification = Justification.CENTRE, Alignment alignment = Alignment.CENTRE, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline, Color? color = null) {
 			this.fontSize = fontSize;
 			this.offset = offset;
@@ -1046,47 +879,6 @@ namespace SharpSheets.Widgets {
 
 		public override string DisplayName => base.DisplayName + (barNames.Length > 0 ? " (" + string.Join(", ", barNames) + ")" : "");
 
-		/// <summary>
-		/// Constructor for Bars widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="bar">Bar style to draw for this widget.
-		/// This shape will be used to calculate the label and entry areas.
-		/// It will also be drawn before any label or entry is drawn.</param>
-		/// <param name="_name" example="Bar 1,Bar 2">The names to use for the bars.
-		/// The number of names will determine the number of bars drawn in the document.
-		/// These names will be used in the bar labels (unless a <paramref name="content"/> child is given)
-		/// and for field names.</param>
-		/// <param name="_tooltip">Tooltip strings to use for the bar fields. If the number
-		/// of tooltip strings does not match the number of bars, some tooltips will be ignored,
-		/// or some fields will have no tooltip, as appropriate.</param>
-		/// <param name="height">The height that each bar is to be drawn at. This is used
-		/// in auto-sizing calculations. The default is 1 relative unit.</param>
-		/// <param name="label" example="Label">A label to be drawn by the bar entry area.
-		/// By default this will only be drawn for the first bar, but will be drawn by each
-		/// bar if <paramref name="allLabelled"/> is specified.</param>
-		/// <param name="note" example="Note">A note to be drawn by the bar label area.
-		/// By default this will only be drawn for the first bar, but will be drawn by each
-		/// bar if <paramref name="allLabelled"/> is specified.</param>
-		/// <param name="allLabelled">Flag to indicate that the note and label should be drawn
-		/// for each bar, not just the first one.</param>
-		/// <param name="name_">Name details data for this widget.</param>
-		/// <param name="label_">Label details data for this widget.</param>
-		/// <param name="note_">Note details data for this widget.</param>
-		/// <param name="checkMarks">A flag to indicate that the bar entry fields should be
-		/// check fields, rather than text fields. This flag is unnecessary if a value is provided
-		/// for <paramref name="check"/>.</param>
-		/// <param name="check">The check mark to use for the bar fields (the fields will be check
-		/// fields if a value is given for this parameter). Check marks can be specified for each
-		/// bar separately. If the number of bars does not match the number of checkmarks, then the
-		/// last checkmark will be used for any remaining bars, or remaining checkmarks will be ignored,
-		/// as appropriate.</param>
-		/// <param name="rich">Flag to indicate that any text field should have rich text features enabled.</param>
-		/// <param name="content">If provided, this child will be drawn in place
-		/// of the name text in the label area of the bar.</param>
-		/// <param name="entry">If provided, this child will be drawn in place
-		/// of the field in the remaining area of the bar.</param>
-		/// <size>100 50</size>
 		public Bars(
 				WidgetSetup setup,
 				IBar? bar = null,
@@ -1314,38 +1106,6 @@ namespace SharpSheets.Widgets {
 
 		public override string DisplayName => base.DisplayName + (barNames.Length > 0 ? " (" + string.Join(", ", barNames) + ")" : "");
 
-		/// <summary>
-		/// Constructor for SlotsBars widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="bar">UsageBar style to draw for this widget.
-		/// This shape will be used to calculate the label and entry areas.
-		/// It will also be drawn before any label or entry is drawn.</param>
-		/// <param name="_name" example="Bar 1,Bar 2">The names to use for the bars.
-		/// The number of names will determine the number of bars drawn in the document.
-		/// These names will be used in the bar labels (unless a <paramref name="content"/> child is given)
-		/// and for field names.</param>
-		/// <param name="height">The height that each bar is to be drawn at. This is used
-		/// in auto-sizing calculations. The default is 1 relative unit.</param>
-		/// <param name="labels" example="Label 1, Label 2">A pair of labels to be drawn by the bar entry areas.
-		/// By default these will only be drawn for the first bar, but will be drawn by each
-		/// bar if <paramref name="allLabelled"/> is specified.</param>
-		/// <param name="note" example="Note">A note to be drawn by the bar label area.
-		/// By default this will only be drawn for the first bar, but will be drawn by each
-		/// bar if <paramref name="allLabelled"/> is specified.</param>
-		/// <param name="allLabelled">Flag to indicate that the note and labels should be drawn
-		/// for each bar, not just the first one.</param>
-		/// <param name="name_">Name details data for this widget.</param>
-		/// <param name="labels_">Label details data for this widget.</param>
-		/// <param name="note_">Note details data for this widget.</param>
-		/// <param name="rich">Flag to indicate that any text fields should have rich text features enabled.</param>
-		/// <param name="content">If provided, this child will be drawn in place
-		/// of the name text in the label area of the bar.</param>
-		/// <param name="entry1">If provided, this child will be drawn in place
-		/// of the field in the first entry area of the bar.</param>
-		/// <param name="entry2">If provided, this child will be drawn in place
-		/// of the field in the second entry area of the bar.</param>
-		/// /// <size>100 50</size>
 		public SlotsBars(
 				WidgetSetup setup,
 				IUsageBar? bar = null,
@@ -1554,34 +1314,6 @@ namespace SharpSheets.Widgets {
 
 		public override string DisplayName => base.DisplayName + (list.Length > 0 ? " (" + string.Join(", ", list.Select(i => i.Formatted.TrimToMax(10))) + ")" : "");
 
-		/// <summary>
-		/// Constructor for CheckList widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="list" example="Item 1, Item 2, Item 3">The list of text entries to be included.
-		/// The number of entries dictates the number of lines, and number of check fields.
-		/// Each entry will be drawn as a single line of text.</param>
-		/// <param name="name">A name to prepend to the check fields.</param>
-		/// <param name="height" example="10pt">The height of each row. The default is 1 relative unit.</param>
-		/// <param name="fontsize" example="8">The fontsize for the text entries, measured in points.</param>
-		/// <param name="textOffset">A vertical offset for the text entries, after positioning using <paramref name="alignment"/>
-		/// and <paramref name="heightStrategy"/>. This can be useful for fine-tuning positioning, and to account for the specific
-		/// of certain fonts.</param>
-		/// <param name="separation" example="10">The separation between the check field outlines and the text entries.
-		/// Measured in points.</param>
-		/// <param name="spacing">The spacing between the rows, measured in points.</param>
-		/// <param name="justification">The horizonta; justification for the text entries in the row area.</param>
-		/// <param name="alignment" example="CENTRE">The vertical alignment of the text entries within the row area.</param>
-		/// <param name="heightStrategy" example="AscentBaseline">The height strategy to use when determing the vertical placement
-		/// of the text entries.</param>
-		/// <param name="checkSize" example="6">The size of the check mark outlines, measured in points. If no value is provided,
-		/// this will default to the row height. Each check mark outline will be positioned vertically centred in each row.</param>
-		/// <param name="check" example="Circle">The outline to use for the check marks.</param>
-		/// <param name="checkPosition">Indicates on which side the check mark should be drawn, left or right.</param>
-		/// <param name="checkType">The check symbol to use when the check fields are in the "On" state.</param>
-		/// <param name="checkColor">An optional color for the check field symbol. If no value is provided,
-		/// the current text color will be used.</param>
-		/// <size>60 80</size>
 		public CheckList(
 				WidgetSetup setup,
 				List<RichString>? list = null,
@@ -1742,33 +1474,6 @@ namespace SharpSheets.Widgets {
 
 		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(name) ? $" ({name})" : "");
 
-		/// <summary>
-		/// Constructor for Field widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="name">The name for this text field.</param>
-		/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
-		/// information in the final document for accesibility and usability purposes.</param>
-		/// <param name="aspect">The aspect ratio for this field. If none is provided, the field will conform
-		/// the the size and aspect ratio of the provided area. If provided, the final field area will be the
-		/// largest rectangle of that aspect ratio that can fit inside the provided area.</param>
-		/// <param name="value">The default text value for this field.</param>
-		/// <param name="fontsize">Font size for this text field.
-		/// A value of 0 or less indicates that the field in the final document should autosize the text.</param>
-		/// <param name="format">Font format to use for the text field. This will use the appropriate font format from
-		/// the current font selection.</param>
-		/// <param name="singleline">Flag to indicate that the field should be a single line field.</param>
-		/// <param name="rich">Flag to indicate that the text field should have rich text features enabled.</param>
-		/// <param name="lined">Flag to indicate that the field should not be an interactive field, but should instead
-		/// be drawn as a lined area, with line spacing equal to the fontsize. If the fontsize is zero, a line
-		/// spacing of 15 points.</param>
-		/// <param name="justification">Justification for the field, indicating if the field should be left, right,
-		/// or centre justified.</param>
-		/// <param name="rotation">Rotation for the field contents, indicating what direction "up" should be for
-		/// the text, relative to the document page.</param>
-		/// <param name="type">The content type of this field, indicating if the field should constrain
-		/// it's value to a floating point or integer number.</param>
-		/// <size>0 0</size>
 		public Field(
 				WidgetSetup setup,
 				string? name = null,
@@ -1885,20 +1590,6 @@ namespace SharpSheets.Widgets {
 
 		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(name) ? $" ({name})" : "");
 
-		/// <summary>
-		/// Constructor for CheckField widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="name">The name for this check field.</param>
-		/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
-		/// information in the final document for accesibility and usability purposes.</param>
-		/// <param name="aspect">The aspect ratio for this field. If none is provided, the field will conform
-		/// the the size and aspect ratio of the provided area. If provided, the final field area will be the
-		/// largest rectangle of that aspect ratio that can fit inside the provided area.</param>
-		/// <param name="check">The check symbol to use when this field is in the "On" state.</param>
-		/// <param name="color">An optional color for the check field symbol. If no value is provided,
-		/// the current text color will be used.</param>
-		/// <size>0 0</size>
 		public CheckField(
 				WidgetSetup setup,
 				string? name = null,
@@ -1963,19 +1654,6 @@ namespace SharpSheets.Widgets {
 
 		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(name) ? $" ({name})" : "");
 
-		/// <summary>
-		/// Constructor for ImageField widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="name">The name for this image field.</param>
-		/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
-		/// information in the final document for accesibility and usability purposes.</param>
-		/// <param name="placeholder">A path to a placeholder image to use for this image field (which will
-		/// be visible in the document before any other image is selected).</param>
-		/// <param name="aspect">The aspect ratio for this field. If none is provided, the field will conform
-		/// the the size and aspect ratio of the provided area. If provided, the final field area will be the
-		/// largest rectangle of that aspect ratio that can fit inside the provided area.</param>
-		/// <size>0 0</size>
 		public ImageField(
 				WidgetSetup setup,
 				string? name = null,
@@ -2039,27 +1717,6 @@ namespace SharpSheets.Widgets {
 
 		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(text ?? name) ? $" ({text ?? name})" : "");
 
-		/// <summary>
-		/// Constructor for TopEntry.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="name">The name for this widget, which will be used as
-		/// the basis of the field names (but will not be drawn).</param>
-		/// <param name="text" example="Text">The text to draw as the annotation
-		/// for the top field. If no text is provided, the top text will be left
-		/// blank, but the field will still be added.</param>
-		/// <param name="_format">The format for the annotation text and the
-		/// field text.</param>
-		/// <param name="fontSize">The fontsize for the annotation text and field
-		/// text.</param>
-		/// <param name="height">A height for the top annotation and field. Defaults
-		/// to 1.5 times <paramref name="fontSize"/>.</param>
-		/// <param name="spacing">The spacing between the top annotation and the
-		/// remaining area for the widget. Defaults to 0.5 times
-		/// <paramref name="fontSize"/>.</param>
-		/// <param name="textOffset">An offset for the annotation text.</param>
-		/// <param name="rich">Flag to indicate that the fields should use
-		/// rich text features.</param>
 		public TopEntry(
 				WidgetSetup setup,
 				string? name = null,
@@ -2173,15 +1830,6 @@ namespace SharpSheets.Widgets {
 			public readonly bool rich;
 			public readonly Color? color;
 
-			/// <summary>
-			/// Constructor for field details.
-			/// </summary>
-			/// <param name="fontsize">The font size to use for field contents.
-			/// A value of 0 indicates that the fields should autosize the contents to fit the available space.</param>
-			/// <param name="font">Font format to use for the fields. This will use the appropriate font format from
-			/// the current font selection.</param>
-			/// <param name="rich">Flag to indicate that the fields should have rich text features enabled.</param>
-			/// <param name="color">Color value for the field contents. Defaults to the current text color.</param>
 			public FieldDetails(float? fontsize = null, TextFormat font = TextFormat.REGULAR, bool rich = false, Color? color = null) {
 				this.font = font;
 				this.fontsize = fontsize;
@@ -2245,23 +1893,6 @@ namespace SharpSheets.Widgets {
 
 		public override string DisplayName => base.DisplayName + (!string.IsNullOrEmpty(name) ? $" ({name})" : "");
 
-		/// <summary>
-		/// Constructor for Subdivided widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="name">A base name to use when naming the subdivision text fields.</param>
-		/// <param name="columns" example="Column 1,Column 2">A list of names for the columns.</param>
-		/// <param name="content"></param>
-		/// <param name="header">Configuration for the column headers.</param>
-		/// <param name="widths" example="2,1">The widths of the columns.</param>
-		/// <param name="justification" default="LEFT">The justifcations for the column, which will be used for column headers and fields.</param>
-		/// <param name="_spacing" default="5,5">The spacing between the subdivisions, as a pair of numbers,
-		/// for column and row spacing, respectively. Measured in points.</param>
-		/// <param name="_height" default="1">The height of each row (not including the spacing). The default is 1 relative unit.
-		/// If an absolute value is specified, then the widget size may be calculated for auto-sizing.</param>
-		/// <param name="_rows" example="5">The number of rows to draw.</param>
-		/// <param name="division" example="Simple">The outline style for each division.</param>
-		/// <param name="field">Configuration information for the cell fields.</param>
 		public Subdivided(
 				WidgetSetup setup,
 				string? name = null,
@@ -2511,11 +2142,7 @@ namespace SharpSheets.Widgets {
 	public readonly struct Spacing {
 		public readonly float? horizontal;
 		public readonly float? vertical;
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="horizontal">Horizontal spacing between elements, measured in points.</param>
-		/// <param name="vertical">Vertical spacing between elements, measured in points.</param>
+
 		public Spacing(float? horizontal = null, float? vertical = null) {
 			this.horizontal = horizontal;
 			this.vertical = vertical;
@@ -2547,19 +2174,6 @@ namespace SharpSheets.Widgets {
 
 		protected readonly GutterLayout gutterLayout;
 
-		/// <summary>
-		/// Constructor for Repeat widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="name">A name to be appended to all child form fields, to distinguish between repeated fields.</param>
-		/// <param name="_rows">The number of repeated rows to draw.</param>
-		/// <param name="_columns">The number of repeated columns to draw.</param>
-		/// <param name="spacing">The default spacing to use for the repeated elements, measured in points.</param>
-		/// <param name="spacing_">Spacing data for this widget.</param>
-		/// <param name="content">The content to be repeated in each grid element.</param>
-		/// <param name="gutterLayout">The gutter layout to use when drawing gutter details between the grid elements.
-		/// The details can either be drawn between rows, between columns, or not be drawn at all.</param>
-		/// <size>0 0</size>
 		public Repeat(
 				WidgetSetup setup,
 				string? name = null,
@@ -2715,20 +2329,6 @@ namespace SharpSheets.Widgets {
 
 		public override LayoutDirection GutterLayout => gutterLayout == Widgets.GutterLayout.COLUMNS ? LayoutDirection.COLUMNS : LayoutDirection.ROWS;
 
-		/// <summary>
-		/// Constructor for Grid widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="_rows">The number of grid rows for this widget's children.</param>
-		/// <param name="_columns">The number of grid columns for this widget's children.</param>
-		/// <param name="_flow">The layout direction for children within the grid, by rows first
-		/// or columns first. This will always begin in the top-left corner of the grid.</param>
-		/// <param name="spacing">The default spacing to use for the widget's children, measured in
-		/// points (defaults to current gutter size).</param>
-		/// <param name="spacing_">Spacing data for this widget.</param>
-		/// <param name="gutterLayout">The gutter layout to use when drawing gutter details between the grid elements.
-		/// The details can either be drawn between rows, between columns, or not be drawn at all.</param>
-		/// <size>0 0</size>
 		public Grid(
 				WidgetSetup setup,
 				uint _rows = 1,
@@ -2819,14 +2419,6 @@ namespace SharpSheets.Widgets {
 		protected readonly CanvasImageData filename;
 		protected readonly float? imageAspect;
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="_file">The image file path, relative to the current configuration file.</param>
-		/// <param name="_aspect">An optional aspect ratio to use for the image when drawing to the document.
-		/// If this is not specified, the images intrinsic aspect ratio will be used.</param>
-		/// <size>0 0</size>
 		public Image(
 				WidgetSetup setup,
 				CanvasImageData _file, // Should be requirement?

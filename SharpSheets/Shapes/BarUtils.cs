@@ -22,20 +22,6 @@ namespace SharpSheets.Shapes {
 		public static readonly Alignment AlignmentDefault = Alignment.TOP;
 		public static readonly Color? ColorDefault = null;
 
-		/// <summary>
-		/// Constructor for LabelDetails.
-		/// </summary>
-		/// <param name="fontSize">The fontsize for this text label.</param>
-		/// <param name="offset" default="0,1" example="0.0,3.0">The offset for this text label,
-		/// relative to its initial position based on <paramref name="justification"/> and
-		/// <paramref name="alignment"/>.</param>
-		/// <param name="format">Font format to use for the text label. This will use the appropriate
-		/// font format from the current font selection.</param>
-		/// <param name="justification">Horizontal justification for the text label, indicating if
-		/// the text should be left, right, or centre justified.</param>
-		/// <param name="alignment">Vertical alignment for the text label, indicating if the text
-		/// should be top, bottom, or centre aligned.</param>
-		/// <param name="color">Text color for this text label.</param>
 		public LabelDetails(float fontSize = 4f, (float x, float y)? offset = null, TextFormat format = TextFormat.REGULAR, Justification justification = Justification.CENTRE, Alignment alignment = Alignment.TOP, Color? color = null) {
 			this.fontSize = fontSize;
 			this.offset = offset ?? (0f, 1f);

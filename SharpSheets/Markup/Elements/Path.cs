@@ -18,13 +18,6 @@ namespace SharpSheets.Markup.Elements {
 
 		private readonly DrawOperation[] data; // d
 
-		/// <summary>
-		/// Constructor for Path.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="_d" default="null">The path data, as a series of drawing instructions
-		/// and arguments.</param>
 		public Path(StyleSheet styleSheet, string? _id = null, DrawOperation[]? _d = null) : base(_id, styleSheet) {
 			this.data = _d ?? Array.Empty<DrawOperation>();
 		}

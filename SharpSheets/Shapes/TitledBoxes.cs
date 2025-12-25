@@ -54,50 +54,6 @@ namespace SharpSheets.Shapes {
 		protected readonly Colors.Color? backgroundColor;
 		protected readonly Colors.Color? titleColor;
 
-		/// <summary>
-		/// Constructor for BlockTitledBox.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio.</param>
-		/// <param name="name">Title text.</param>
-		/// <param name="fontSize">Font size at which to draw the title text.</param>
-		/// <param name="format">Font format to use for the title text. This will use
-		/// the appropriate font format from the current font selection.</param>
-		/// <param name="position">The positioning for the title text around the edge of
-		/// the box area. This will be used in conjuction with <paramref name="layout"/>
-		/// to determine the placement of the title block.</param>
-		/// <param name="layout"> The layout for the title block. If ROWS, the block will
-		/// be a horizontal block, otherwise vertical for COLUMNS. This is only relevant
-		/// if the title is placed in one of the corners of the available area, otherwise
-		/// the block placement is determined solely by <paramref name="position"/>, i.e.
-		/// ignored if "position" is one of TOP, BOTTOM, LEFT, or RIGHT.</param>
-		/// <param name="headerSize">A fixed size for the title block. If the block is
-		/// horizontal, this will be a height, otherwise a width for vertical blocks.
-		/// If no value is provided, the block size is calculated based on the size of the
-		/// title text.</param>
-		/// <param name="stroke">The color to use for the shape outline and title block.
-		/// If no value is given, the current foreground color will be used.</param>
-		/// <param name="fill">The color with which to fill the inside of the outline.
-		/// If no value is given, the current background color will be used.</param>
-		/// <param name="text">The color for the title text. If no value is given, the
-		/// value for <paramref name="fill"/> will be used. If no value is given for
-		/// <paramref name="fill"/>, the current background color will be used.</param>
-		/// <param name="padding" default="2,2,2,2">Padding around the title text within
-		/// the title block. This is used when automatically calculating the title block
-		/// size.</param>
-		/// <param name="offset">An offset for the title from its position indicated by
-		/// the other parameters. The title block will also be repositioned such that the
-		/// title text is still within the block.</param>
-		/// <param name="trim">A margin around the inside of the box for calculating the
-		/// remaining area.</param>
-		/// <param name="justification">The justification of the title text. This
-		/// justification is used only for titles with multiple lines of text, and adjusts
-		/// the horizontal position of each line within the maximum width of any line.
-		/// It does not move the title position around the shape area.</param>
-		/// <param name="lineSpacing">The line spacing to use for multi-line title texts.</param>
-		/// <param name="heightStrategy">The height strategy to use when calculating the
-		/// size of title texts for position and auto-calculation purposes.</param>
-		/// <param name="orientation">The orientation of the title text. This does not
-		/// change the position of the title text, only its arrangement at that position.</param>
 		public BlockTitledBox(float aspect, string name = "NAME",
 				float fontSize = 8f, TextFormat format = TextFormat.REGULAR,
 				TitlePosition position = TitlePosition.TOP,

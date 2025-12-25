@@ -13,12 +13,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly Margins trim;
 
-		/// <summary>
-		/// Constructor for NoOutline.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="trim">A margin around the inside of the shape area to trim
-		/// when calculating the remaining area.</param>
 		public NoOutline(float aspect, Margins trim = default) : base(aspect) {
 			this.trim = trim;
 		}
@@ -53,13 +47,6 @@ namespace SharpSheets.Shapes {
 		private readonly Color? stroke;
 		private readonly float offset;
 
-		/// <summary>
-		/// Constructor for UnderlineBox.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="stroke">The stroke color for the line.</param>
-		/// <param name="offset">A value by which to offset the start and end points
-		/// of the line from the sides of the shape area.</param>
 		public UnderlineBox(float aspect, Color? stroke = null, float offset = 0f) : base(aspect) {
 			this.stroke = stroke;
 			this.offset = offset;
@@ -104,11 +91,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float shadow;
 
-		/// <summary>
-		/// Constructor for ShadowedBox.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="shadow">The length of the shadow, in points.</param>
 		public ShadowedBox(float aspect, float shadow = 1f) : base(aspect) {
 			this.shadow = shadow;
 		}
@@ -162,11 +144,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float shadow;
 
-		/// <summary>
-		/// Constructor for ShadowedCircle.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="shadow">The length of the shadow, in points.</param>
 		public ShadowedCircle(float aspect, float shadow = 1f) : base(aspect) {
 			this.shadow = shadow;
 		}
@@ -227,12 +204,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float bevel;
 
-		/// <summary>
-		/// Constructor for SimpleBackground.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="bevel">The size of the margin for the remaining area,
-		/// which also dictates the size of the outline bevels.</param>
 		public SimpleBackground(float aspect, float bevel = 8f) : base(aspect) {
 			this.bevel = bevel;
 		}

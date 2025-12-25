@@ -74,16 +74,6 @@ namespace SharpSheets.Markup.Elements {
 
 		private readonly ITextPiece[] textContent;
 
-		/// <summary>
-		/// Constructor for Text.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="_x" default="0">The x coordinate for the starting point of the text baseline.</param>
-		/// <param name="_y" default="0">The y coordinate for the starting point of the text baseline.</param>
-		/// <param name="_dx" default="null">An optional horizontal offset for the text start position.</param>
-		/// <param name="_dy" default="null">An optional vertical offset for the text start position.</param>
-		/// <param name="textContent">Child textual elements of this text element.</param>
 		public Text(string? _id, StyleSheet styleSheet, XLengthExpression _x, YLengthExpression _y, XLengthExpression? _dx, YLengthExpression? _dy, IEnumerable<ITextPiece> textContent) {
 			ID = _id;
 			StyleSheet = styleSheet;
@@ -266,37 +256,6 @@ namespace SharpSheets.Markup.Elements {
 
 		private readonly TSpan[] textContent;
 
-		/// <summary>
-		/// Constructor for TextRect.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="_x" default="0">The x coordinate for the text area, corresponding
-		/// to the left edge of the rectangle.</param>
-		/// <param name="_y" default="0">The y coordinate for the text area, corresponding
-		/// to the bottom edge of the rectangle.</param>
-		/// <param name="_width" default="$width">The width of the text area rectangle.</param>
-		/// <param name="_height" default="$height">The height of the text area rectangle.</param>
-		/// <param name="_fit_text" default="false">A flag to indicate that the text should be
-		/// dynamically resized to fit the available area, within the minimum and maximum
-		/// font sizes specified.</param>
-		/// <param name="min_font_size" default="null">The minimum font size to use if the
-		/// text is to be dynamically resized.</param>
-		/// <param name="max_font_size" default="null">The maximum font size to use if the
-		/// text is to be dynamically resized.</param>
-		/// <param name="justification" default="LEFT">The horizontal justification for the
-		/// text within the text area rectangle.</param>
-		/// <param name="alignment" default="BOTTOM">The vertical alignment for the
-		/// text within the text area rectangle.</param>
-		/// <param name="height_strategy" default="LineHeightBaseline">The height calculation
-		/// strategy to use when arranging the text within the text area.</param>
-		/// <param name="line_spacing" default="1.0">The line spacing, which is the distance
-		/// between successive text baselines, measured in multiples of the current fontsize.</param>
-		/// <param name="paragraph_spacing" default="0.0">The spacing to be used between paragraphs
-		/// of text, measured in points. This spacing is in addition to any line spacing.</param>
-		/// <param name="_single_line" default="false">A flag to indicate that the text should
-		/// be drawn all on one line.</param>
-		/// <param name="textContent">Child tspan elements of this text element.</param>
 		public TextRect(string? _id, StyleSheet styleSheet,
 			XLengthExpression _x,
 			YLengthExpression _y,
@@ -470,16 +429,6 @@ namespace SharpSheets.Markup.Elements {
 
 		public readonly TextExpression text;
 
-		/// <summary>
-		/// Constructor for TSpan.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// /// <param name="_x" default="null">The x coordinate for the starting point of the text baseline.</param>
-		/// <param name="_y" default="null">The y coordinate for the starting point of the text baseline.</param>
-		/// <param name="_dx" default="null">Shifts the text position horizontally from the previous text element.</param>
-		/// <param name="_dy" default="null">Shifts the text position vertically from the previous text element.</param>
-		/// <param name="text"></param>
 		public TSpan(string? _id, StyleSheet styleSheet, XLengthExpression? _x, YLengthExpression? _y, FloatExpression? _dx, FloatExpression? _dy, TextExpression text) {
 			// TODO What arg type should "text" be?
 			ID = _id;
@@ -565,21 +514,6 @@ namespace SharpSheets.Markup.Elements {
 
 		private readonly TSpan[] spans;
 
-		/// <summary>
-		/// Constructor for TextPath.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="_path">A path along which the text should be rendered.</param>
-		/// <param name="_startOffset" default="0">An offset from the start of the path,
-		/// at which the text contents should begin rendering. This may be expressed as
-		/// either an absolute value, or as a percentage.</param>
-		/// <param name="_side" default="LEFT">The side of the path on which the text
-		/// should be rendered.</param>
-		/// <param name="_continue" default="NONE">The strategy to use when the text length
-		/// is greater than the path length. The text may be continued, such that it is
-		/// all rendered.</param>
-		/// <param name="spans">Child tspan elements of this text path element.</param>
 		public TextPath(string? _id, StyleSheet styleSheet, IShapeElement _path, LengthExpression _startOffset, EnumExpression<PathSide> _side, EnumExpression<ContinueStyle> _continue, IEnumerable<TSpan> spans) {
 			this.ID = _id;
 			this.StyleSheet = styleSheet;

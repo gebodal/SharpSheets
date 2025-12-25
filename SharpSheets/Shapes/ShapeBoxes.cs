@@ -14,22 +14,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float? bevel;
 
-		/// <summary>
-		/// Constructor for EaredShield.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="stroke">The stroke color for the outline. If no value is provided,
-		/// the current foreground color will be used.</param>
-		/// <param name="fill">The fill color for the shape. If no value is provided, the
-		/// current background color will be used.</param>
-		/// <param name="dashes">An array of dash lengths with which to draw the outline.
-		/// The resulting line will be a series of "on" and "off" lengths, corresponding
-		/// to the dash array. These lengths are measured in points.</param>
-		/// <param name="dashOffset">An offset for the start of the dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
-		/// <param name="bevel">If a value is provided, a secondary outline with half the
-		/// stroke width will be drawn inside the shape outline, inset by the provided
-		/// value.</param>
 		public EaredShield(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, UFloat? bevel = null) : base(aspect, stroke, fill, dashes, dashOffset, Margins.Zero) {
 			this.bevel = bevel?.Value;
 		}
@@ -126,22 +110,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float? bevel;
 
-		/// <summary>
-		/// Constructor for BadgeShield.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="stroke">The stroke color for the outline. If no value is provided,
-		/// the current foreground color will be used.</param>
-		/// <param name="fill">The fill color for the shape. If no value is provided, the
-		/// current background color will be used.</param>
-		/// <param name="dashes">An array of dash lengths with which to draw the outline.
-		/// The resulting line will be a series of "on" and "off" lengths, corresponding
-		/// to the dash array. These lengths are measured in points.</param>
-		/// <param name="dashOffset">An offset for the start of the dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
-		/// <param name="bevel">If a value is provided, a secondary outline with half the
-		/// stroke width will be drawn inside the shape outline, inset by the provided
-		/// value.</param>
 		public BadgeShield(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, float? bevel = null) : base(aspect, stroke, fill, dashes, dashOffset, Margins.Zero) {
 			this.bevel = bevel;
 		}
@@ -239,22 +207,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float? bevel;
 
-		/// <summary>
-		/// Constructor for EngrailedShield.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="stroke">The stroke color for the outline. If no value is provided,
-		/// the current foreground color will be used.</param>
-		/// <param name="fill">The fill color for the shape. If no value is provided, the
-		/// current background color will be used.</param>
-		/// <param name="dashes">An array of dash lengths with which to draw the outline.
-		/// The resulting line will be a series of "on" and "off" lengths, corresponding
-		/// to the dash array. These lengths are measured in points.</param>
-		/// <param name="dashOffset">An offset for the start of the dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
-		/// <param name="bevel">If a value is provided, a secondary outline with half the
-		/// stroke width will be drawn inside the shape outline, inset by the provided
-		/// value.</param>
 		public EngrailedShield(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, float? bevel = null) : base(aspect, stroke, fill, dashes, dashOffset, Margins.Zero) {
 			this.bevel = bevel;
 		}
@@ -335,19 +287,6 @@ namespace SharpSheets.Shapes {
 	/// </summary>
 	public class Heart : ShapeBox {
 
-		/// <summary>
-		/// Constructor for Heart.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="stroke">The stroke color for the outline. If no value is provided,
-		/// the current foreground color will be used.</param>
-		/// <param name="fill">The fill color for the shape. If no value is provided, the
-		/// current background color will be used.</param>
-		/// <param name="dashes">An array of dash lengths with which to draw the outline.
-		/// The resulting line will be a series of "on" and "off" lengths, corresponding
-		/// to the dash array. These lengths are measured in points.</param>
-		/// <param name="dashOffset">An offset for the start of the dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
 		public Heart(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f) : base(aspect, stroke, fill, dashes, dashOffset, Margins.Zero) { }
 
 		/// <param name="aspect">Aspect ratio for this box.</param>
@@ -424,19 +363,6 @@ namespace SharpSheets.Shapes {
 	/// </summary>
 	public class Eye : ShapeBox {
 
-		/// <summary>
-		/// Constructor for Eye.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="stroke">The stroke color for the outline. If no value is provided,
-		/// the current foreground color will be used.</param>
-		/// <param name="fill">The fill color for the shape. If no value is provided, the
-		/// current background color will be used.</param>
-		/// <param name="dashes">An array of dash lengths with which to draw the outline.
-		/// The resulting line will be a series of "on" and "off" lengths, corresponding
-		/// to the dash array. These lengths are measured in points.</param>
-		/// <param name="dashOffset">An offset for the start of the dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
 		public Eye(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f) : base(aspect, stroke, fill, dashes, dashOffset, Margins.Zero) { }
 
 		/// <param name="aspect">Aspect ratio for this box.</param>
@@ -489,11 +415,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float bevel;
 
-		/// <summary>
-		/// Constructor for Scroll.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="bevel">A sizing parameter for the details of this outline.</param>
 		public Scroll(float aspect, float bevel = 5f) : base(aspect) {
 			this.bevel = bevel;
 		}
@@ -710,12 +631,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float bevel;
 
-		/// <summary>
-		/// Constructor for Pennant.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="bevel">A sizing parameter for the details of this outline.</param>
-		/// <size>100 20</size>
 		public Pennant(float aspect, float bevel = 5f) : base(aspect) {
 			this.bevel = bevel;
 		}

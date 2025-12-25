@@ -60,20 +60,6 @@ namespace SharpSheets.Shapes {
 	/// </summary>
 	public class Simple : ShapeBox {
 
-		/// <summary>
-		/// Constructor for Simple.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="stroke">The stroke color for the outline. If no value is provided,
-		/// the current foreground color will be used.</param>
-		/// <param name="fill">The fill color for the shape. If no value is provided, the
-		/// current background color will be used.</param>
-		/// <param name="dashes">An array of dash lengths with which to draw the outline.
-		/// The resulting line will be a series of "on" and "off" lengths, corresponding
-		/// to the dash array. These lengths are measured in points.</param>
-		/// <param name="dashOffset">An offset for the start of the dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
-		/// <param name="trim">Padding to apply to the remaining area.</param>
 		public Simple(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
 
 		/// <param name="aspect">Aspect ratio for this box.</param>
@@ -105,23 +91,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float bevel;
 
-		/// <summary>
-		/// Constructor for Bevelled.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="bevel">The bevel size for the rectangle. If the bevel is larger
-		/// than min(width, height)/2, then the smaller value will be used.</param>
-		/// <param name="stroke">The stroke color for the outline. If no value is provided,
-		/// the current foreground color will be used.</param>
-		/// <param name="fill">The fill color for the shape. If no value is provided, the
-		/// current background color will be used.</param>
-		/// <param name="dashes">An array of dash lengths with which to draw the outline.
-		/// The resulting line will be a series of "on" and "off" lengths, corresponding
-		/// to the dash array. These lengths are measured in points.</param>
-		/// <param name="dashOffset">An offset for the start of the dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
-		/// <param name="trim">Padding to apply to the remaining area. If no value is provided,
-		/// a padding of 0.35 times the <paramref name="bevel"/> will be used.</param>
 		public Bevelled(float aspect, float bevel = 5f, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins? trim = null) : base(aspect, stroke, fill, dashes, dashOffset, trim ?? new Margins(0.35f * bevel)) {
 			this.bevel = bevel;
 		}
@@ -158,23 +127,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float radius;
 
-		/// <summary>
-		/// Constructor for Rounded.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="radius">The corner radius for the rectangle. If the radius is larger
-		/// than min(width, height)/2, then the smaller value will be used.</param>
-		/// <param name="stroke">The stroke color for the outline. If no value is provided,
-		/// the current foreground color will be used.</param>
-		/// <param name="fill">The fill color for the shape. If no value is provided, the
-		/// current background color will be used.</param>
-		/// <param name="dashes">An array of dash lengths with which to draw the outline.
-		/// The resulting line will be a series of "on" and "off" lengths, corresponding
-		/// to the dash array. These lengths are measured in points.</param>
-		/// <param name="dashOffset">An offset for the start of the dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
-		/// <param name="trim">Padding to apply to the remaining area. If no value is provided,
-		/// a padding of 0.5 times the <paramref name="radius"/> will be used.</param>
 		public Rounded(float aspect, float radius = 5f, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins? trim = null) : base(aspect, stroke, fill, dashes, dashOffset, trim ?? new Margins(0.5f * radius)) {
 			this.radius = radius;
 		}
@@ -212,20 +164,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float bevel;
 
-		/// <summary>
-		/// Constructor for Tablet.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="stroke">The stroke color for the outline. If no value is provided,
-		/// the current foreground color will be used.</param>
-		/// <param name="fill">The fill color for the shape. If no value is provided, the
-		/// current background color will be used.</param>
-		/// <param name="dashes">An array of dash lengths with which to draw the outline.
-		/// The resulting line will be a series of "on" and "off" lengths, corresponding
-		/// to the dash array. These lengths are measured in points.</param>
-		/// <param name="dashOffset">An offset for the start of the dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
-		/// <param name="trim">Padding to apply to the remaining area.</param>
 		public Tablet(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
 
 		/// <param name="aspect">Aspect ratio for this box.</param>
@@ -256,20 +194,6 @@ namespace SharpSheets.Shapes {
 	/// </summary>
 	public class Ellipse : ShapeBox {
 
-		/// <summary>
-		/// Constructor for Ellipse.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="stroke">The stroke color for the outline. If no value is provided,
-		/// the current foreground color will be used.</param>
-		/// <param name="fill">The fill color for the shape. If no value is provided, the
-		/// current background color will be used.</param>
-		/// <param name="dashes">An array of dash lengths with which to draw the outline.
-		/// The resulting line will be a series of "on" and "off" lengths, corresponding
-		/// to the dash array. These lengths are measured in points.</param>
-		/// <param name="dashOffset">An offset for the start of the dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
-		/// <param name="trim">Padding to apply to the remaining area.</param>
 		public Ellipse(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
 
 		/// <param name="aspect">Aspect ratio for this box.</param>
@@ -301,20 +225,6 @@ namespace SharpSheets.Shapes {
 	/// </summary>
 	public class Circle : Ellipse {
 
-		/// <summary>
-		/// Constructor for Circle.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="stroke">The stroke color for the outline. If no value is provided,
-		/// the current foreground color will be used.</param>
-		/// <param name="fill">The fill color for the shape. If no value is provided, the
-		/// current background color will be used.</param>
-		/// <param name="dashes">An array of dash lengths with which to draw the outline.
-		/// The resulting line will be a series of "on" and "off" lengths, corresponding
-		/// to the dash array. These lengths are measured in points.</param>
-		/// <param name="dashOffset">An offset for the start of the dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
-		/// <param name="trim">Padding to apply to the remaining area.</param>
 		public Circle(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
 
 		/// <param name="aspect">Aspect ratio for this box.</param>
@@ -355,20 +265,6 @@ namespace SharpSheets.Shapes {
 	/// </summary>
 	public class Diamond : ShapeBox {
 
-		/// <summary>
-		/// Constructor for Diamond.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="stroke">The stroke color for the outline. If no value is provided,
-		/// the current foreground color will be used.</param>
-		/// <param name="fill">The fill color for the shape. If no value is provided, the
-		/// current background color will be used.</param>
-		/// <param name="dashes">An array of dash lengths with which to draw the outline.
-		/// The resulting line will be a series of "on" and "off" lengths, corresponding
-		/// to the dash array. These lengths are measured in points.</param>
-		/// <param name="dashOffset">An offset for the start of the dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
-		/// <param name="trim">Padding to apply to the remaining area.</param>
 		public Diamond(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
 
 		/// <param name="aspect">Aspect ratio for this box.</param>

@@ -14,14 +14,6 @@ namespace SharpSheets.Markup.Elements {
 		readonly DrawPointExpression centre;
 		readonly FloatExpression radius;
 
-		/// <summary>
-		/// Constructor for Circle.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="_cx" default="0">The x coordinate of the circle centre.</param>
-		/// <param name="_cy" default="0">The y coordinate of the circle centre.</param>
-		/// <param name="_r" default="0">The radius of the circle.</param>
 		/// <exception cref="EvaluationException"></exception>
 		public Circle(string? _id, StyleSheet styleSheet, XLengthExpression _cx, YLengthExpression _cy, FloatExpression _r) : base(_id, styleSheet) {
 			this.centre = new DrawPointExpression(_cx, _cy);
@@ -62,15 +54,6 @@ namespace SharpSheets.Markup.Elements {
 		readonly FloatExpression rx;
 		readonly FloatExpression ry;
 
-		/// <summary>
-		/// Constructor for Ellipse.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="_cx" default="0">The x coordinate of the ellipse centre.</param>
-		/// <param name="_cy" default="0">The y coordinate of the ellipse centre.</param>
-		/// <param name="_rx" default="0">The radius of the ellipse on the x axis.</param>
-		/// <param name="_ry" default="0">The radius of the ellipse on the y axis</param>
 		/// <exception cref="EvaluationException"></exception>
 		public Ellipse(string? _id, StyleSheet styleSheet, XLengthExpression _cx, YLengthExpression _cy, FloatExpression _rx, FloatExpression _ry) : base(_id, styleSheet) {
 			this.centre = new DrawPointExpression(_cx, _cy);
@@ -124,15 +107,6 @@ namespace SharpSheets.Markup.Elements {
 		readonly DrawPointExpression point1;
 		readonly DrawPointExpression point2;
 
-		/// <summary>
-		/// Constructor for Line.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="_x1" default="0">The x coordinate of the start point.</param>
-		/// <param name="_y1" default="0">The y coordinate of the start point.</param>
-		/// <param name="_x2" default="0">The x coordinate of the end point.</param>
-		/// <param name="_y2" default="0">The y coordinate of the end point.</param>
 		/// <exception cref="EvaluationException"></exception>
 		public Line(string? _id, StyleSheet styleSheet, XLengthExpression _x1, YLengthExpression _y1, XLengthExpression _x2, YLengthExpression _y2) : base(_id, styleSheet) {
 			this.point1 = new DrawPointExpression(_x1, _y1);
@@ -174,15 +148,6 @@ namespace SharpSheets.Markup.Elements {
 	public class Polygon : ShapeElement {
 		readonly DrawPointExpression[] points;
 
-		/// <summary>
-		/// Constructor for Polygon.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="_points" default="null">A series of x,y coordinates for the
-		/// points for the polygon shape. Each point will be connected to the previous
-		/// and subsequent point by straight line segments, with the first and last
-		/// point also having a straight line connecting them.</param>
 		public Polygon(string? _id, StyleSheet styleSheet, DrawPointExpression[] _points) : base(_id, styleSheet) {
 			this.points = _points;
 		}
@@ -223,15 +188,6 @@ namespace SharpSheets.Markup.Elements {
 	public class Polyline : ShapeElement {
 		readonly DrawPointExpression[] points;
 
-		/// <summary>
-		/// Constructor for Polyline.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="_points" default="null">A series of x,y coordinates for the
-		/// point for the line segments. Each point will be connected to the previous
-		/// subsequent point by straight line segments (with no connection between
-		/// the first and last point).</param>
 		public Polyline(string? _id, StyleSheet styleSheet, DrawPointExpression[] _points) : base(_id, styleSheet) {
 			this.points = _points;
 		}
@@ -276,17 +232,6 @@ namespace SharpSheets.Markup.Elements {
 		readonly FloatExpression? rx;
 		readonly FloatExpression? ry;
 
-		/// <summary>
-		/// Constructor for Rect.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="styleSheet">StyleSheet for this element.</param>
-		/// <param name="_x" default="0">The x-coordinate of the lower-left corner of the rectangle.</param>
-		/// <param name="_y" default="0">The y-coordinate of the lower-left corner of the rectangle.</param>
-		/// <param name="_width" default="0">The width of the rectangle.</param>
-		/// <param name="_height" default="0">The height of the rectangle.</param>
-		/// <param name="_rx" default="null">The horizontal corner radius for rounded corners.</param>
-		/// <param name="_ry" default="null">The vertical corner radius for rounded corners.</param>
 		/// <exception cref="EvaluationException"></exception>
 		public Rect(string? _id, StyleSheet styleSheet, XLengthExpression _x, YLengthExpression _y, XLengthExpression _width, YLengthExpression _height, FloatExpression? _rx, FloatExpression? _ry) : base(_id, styleSheet) {
 			this.position = new DrawPointExpression(_x, _y);

@@ -289,14 +289,6 @@ namespace SharpSheets.Markup.Canvas {
 
 		public EvaluationContext Context => X.Context;
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="_x" default="0"></param>
-		/// <param name="_y" default="0"></param>
-		/// <param name="_width" default="$width"></param>
-		/// <param name="_height" default="$height"></param>
-		/// <exception cref="EvaluationException"></exception>
 		public RectangleExpression(FloatExpression _x, FloatExpression _y, FloatExpression _width, FloatExpression _height) {
 			X = _x;
 			Y = _y;
@@ -947,16 +939,6 @@ namespace SharpSheets.Markup.Canvas {
 		public readonly DimensionExpression? height;
 		private readonly Position? value;
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="_anchor" default="null">The anchor point for the position, which
-		/// will determine the origin of the coordinates when determining the extend of
-		/// the area.</param>
-		/// <param name="_x" default="null">The x-coordinate of the position.</param>
-		/// <param name="_y" default="null">The y-coordinate of the position.</param>
-		/// <param name="_width" default="null">The width for the position area.</param>
-		/// <param name="_height" default="null">The height for the position area.</param>
 		public PositionExpression(EnumExpression<Anchor>? _anchor, DimensionExpression? _x, DimensionExpression? _y, DimensionExpression? _width, DimensionExpression? _height) {
 			this.anchor = _anchor;
 			this.x = _x;

@@ -18,17 +18,6 @@ namespace SharpSheets.Widgets {
 			public readonly bool rich;
 			public readonly Color? color;
 
-			/// <summary>
-			/// Constructor for field details.
-			/// </summary>
-			/// <param name="fontsize">The font size to use for field contents.
-			/// A value of 0 indicates that the fields should autosize the contents to fit the available space.</param>
-			/// <param name="font">Font format to use for the fields. This will use the appropriate font format from
-			/// the current font selection.</param>
-			/// <param name="justification">The horizontal justification for the fields, indicating if the field
-			/// should be left, right, or centre justified.</param>
-			/// <param name="rich">Flag to indicate that the fields should have rich text features enabled.</param>
-			/// <param name="color">Color value for the field contents. Defaults to the current text color.</param>
 			public FieldDetails(float? fontsize = null, TextFormat font = TextFormat.REGULAR, Justification justification = Justification.LEFT, bool rich = false, Color? color = null) {
 				this.justification = justification;
 				this.font = font;
@@ -172,43 +161,6 @@ namespace SharpSheets.Widgets {
 		protected readonly AlignFields alignFields;
 		protected readonly Alignment labelAlignment;
 
-		/// <summary>
-		/// Constructor for LinedDetails widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="name">The name for this widget, used for field names (not drawn to the document).</param>
-		/// <param name="details" example="First (?30pt?);Second|Third,Comment|Fourth;Fifth;Sixth|Seventh|Eighth (?30pt?)">
-		/// The labels to be used for each line. A line may comprise of 1 or more components. Each component
-		/// may contain 1 or 2 parts. The first part will come before the field, and the second part (if present)
-		/// will come after. Each entry will be a separate line. Addiitonally, each part may have up to one field
-		/// contained within its text, by enclosing an absolute width in question marks ("?"). For example, the entry
-		/// "Label (?40pt?)" would produce the text label "Label (", followed by a field with width 45pt, and then
-		/// the text label ")". This field is in addition to the normal line field.
-		/// </param>
-		/// <param name="widths">The widths to use for each component. Each sub-array gives a list of n Dimensions,
-		/// where each sub-array should have a different value for n (i.e. a different number of Dimension values).
-		/// When a row is drawn to the document, the set of widths with a corresponding number of values will be
-		/// used to determine the widths of the components. If there is not corresponding entry, then each component
-		/// will be given an equal amount of space.</param>
-		/// <param name="height" example="16pt">The height to use for each line (which will determine the field
-		/// heights). This value is only meaningful if an absolute or percentage value is provided.</param>
-		/// <param name="extra">A number of unlabelled lines to append to the end of the provided details.
-		/// These lines will contain a single field, with no text labels.</param>
-		/// <param name="spacing" default="3,3">The column and row spacing for this widget. The column spacing is used
-		/// to horizontally separate components in a line, and the row spacing is used to vertically separate the lines.</param>
-		/// <param name="detailSpacing">The horizontal spacing used to separate the parts of a component. If no
-		/// value is provided, the width of a space at the current font size will be used.</param>
-		/// <param name="fontsize" example="12">The fontsize to use for the text labels.</param>
-		/// <param name="field">FieldDetails data for this widget.</param>
-		/// <param name="underline">Flag to indicate whether the fields should be underlined. This line will
-		/// use the current foreground color and linewidth.</param>
-		/// <param name="alignFields">Indicates how the horizontal start of the fields should be aligned
-		/// between lines.</param>
-		/// <param name="labelAlignment">Indicates how the text labels should be aligned within the line areas.</param>
-		/// <param name="labelOffset">A vertical offset to use for the text labels, after positioning with
-		/// <paramref name="labelAlignment"/>, allowing for finer control of text positioning to account for font
-		/// quirks.</param>
-		/// <size>200 150</size>
 		public LinedDetails(
 				WidgetSetup setup,
 				string? name = null,
@@ -517,26 +469,6 @@ namespace SharpSheets.Widgets {
 	/// </summary>
 	public class LinedField : AbstractLinedWidget {
 
-		/// <summary>
-		/// Constructor for LinedField widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="name">The name for this widget, used for field names (not drawn to the document).</param>
-		/// <param name="height">The height to use for each line (which will determine the field
-		/// heights). This value is only meaningful if an absolute or percentage value is provided.
-		/// If no value is provided for <paramref name="rows"/>, when the area will be filled with lines of this height.
-		/// If no <paramref name="height"/> or <paramref name="rows"/> value is provided, then there will be a single
-		/// row.</param>
-		/// <param name="rows" example="6">The number of lines to draw. If no value is provided, then the available
-		/// area will be filled with rows of the specified <paramref name="height"/>. If no <paramref name="height"/>
-		/// or <paramref name="rows"/> is specified, then there will be a single row.</param>
-		/// <param name="spacing" default="3, 3">The column and row spacing for this widget. The column spacing is
-		/// unused for this widget type (and is included for compatibility with other lined widgets), with the row
-		/// spacing being used to vertically separate the lines.</param>
-		/// <param name="field">FieldDetails data for this widget.</param>
-		/// <param name="underline">Flag to indicate whether the fields should be underlined. This line will
-		/// use the current foreground color and linewidth.</param>
-		/// <size>200 150</size>
 		public LinedField(
 				WidgetSetup setup, // gutter = 5f?
 				string? name = null,
@@ -619,32 +551,6 @@ namespace SharpSheets.Widgets {
 		protected readonly float titlefontsize;
 		protected readonly Justification? titleJustification;
 
-		/// <summary>
-		/// Constructor for LinedList widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="name">The name for this widget, used for field names (not drawn to the document).</param>
-		/// <param name="columns" example="First,Second,Third">The column headings to draw at the top of the
-		/// area.</param>
-		/// <param name="widths" default="1" example="2,1,1">The widths to use when drawing the columns.
-		/// If fewer widths than column names are provided, then the excess will be ignored. If no columns
-		/// are provided, then all widths will be used, and no column headings drawn.</param>
-		/// <param name="height">The height to use for each line (which will determine the field
-		/// heights). This value is only meaningful if an absolute or percentage value is provided.</param>
-		/// <param name="rows" example="6">The number of lines to draw. If no value is provided, then the available
-		/// area will be filled with rows of the specified <paramref name="height"/>. If no <paramref name="height"/>
-		/// or <paramref name="rows"/> is specified, then there will be a single row.</param>
-		/// <param name="spacing" default="3, 3">The column and row spacing for this widget. The column spacing is used
-		/// to horizontally separate the columns, and the row spacing is used to vertically separate the lines.</param>
-		/// <param name="titlespacing">The vertical spacing between the header text and the first line. If no value
-		/// is provided, this will default to the row spacing.</param>
-		/// <param name="titlefontsize" example="13">The fontsize to use for the header text.</param>
-		/// <param name="titleJustification">The justification to use for the header text. If no value is provided,
-		/// this will default to the field justification.</param>
-		/// <param name="field">FieldDetails data for this widget.</param>
-		/// <param name="underline">Flag to indicate whether the fields should be underlined. This line will
-		/// use the current foreground color and linewidth.</param>
-		/// <size>200 150</size>
 		public LinedList(
 				WidgetSetup setup, // gutter = 5f?
 				string? name = null,
@@ -805,37 +711,6 @@ namespace SharpSheets.Widgets {
 		protected readonly IBox checkBoxStyle;
 		protected readonly CheckType checkType;
 
-		/// <summary>
-		/// Constructor for LinedCheckList widget.
-		/// </summary>
-		/// <param name="setup">Widget setup data.</param>
-		/// <param name="name">The name for this widget, used for field names (not drawn to the document).</param>
-		/// <param name="entries" example="First,Second,Third,Fourth (?25pt?)">
-		/// A list of labels for each line in the widget. Each label may have up to one field contained within its text,
-		/// by enclosing an absolute width in question marks ("?"). For example, the entry "Label (?40pt?)" would produce
-		/// the text label "Label (", followed by a field with width 45pt, and then the text label ")". This field is in
-		/// addition to the normal text and check fields for each line.
-		/// </param>
-		/// <param name="height" example="15pt">The height to use for each line (which will determine the field and check
-		/// heights). This value is only meaningful if an absolute or percentage value is provided.</param>
-		/// <param name="extra">A number of unlabelled lines to append to the end of the provided list.
-		/// These lines will contain a text field in place of the label, in addition to the usual fields.</param>
-		/// <param name="spacing" default="3, 3" example="5,5">The column and row spacing for this widget. The column
-		/// spacing is used to horizontally separate components in a line, and the row spacing is used to vertically
-		/// separate the lines.</param>
-		/// <param name="fontsize" example="12">The fontsize to use for the text labels.</param>
-		/// <param name="field">FieldDetails data for this widget.</param>
-		/// <param name="check" example="Simple">The outline to draw around the check fields in each line.</param>
-		/// <param name="checkType">The check mark to use in the check fields.</param>
-		/// <param name="width">The width for the text labels for each row. If no value is provided, the maximum width
-		/// among the labels (including any additional field widths) will be used.</param>
-		/// <param name="underline">Flag to indicate whether the fields should be underlined. This line will
-		/// use the current foreground color and linewidth.</param>
-		/// <param name="labelAlignment">Indicates how the text labels should be aligned within the line areas.</param>
-		/// <param name="labelOffset">A vertical offset to use for the text labels, after positioning with
-		/// <paramref name="labelAlignment"/>, allowing for finer control of text positioning to account for font
-		/// quirks.</param>
-		/// <size>200 100</size>
 		public LinedCheckList(
 				WidgetSetup setup,
 				string? name = null,

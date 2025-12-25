@@ -16,16 +16,6 @@ namespace SharpSheets.Shapes {
 		protected readonly Margins labelTrim;
 		protected readonly Margins boxTrim;
 
-		/// <summary>
-		/// Constructor for SimpleLabelledBox.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="placement">The placement of the label area around the shape area,
-		/// as a cardinal direction.</param>
-		/// <param name="labelSize">The size of the label area, measured from the edge of the
-		/// shape area, in points.</param>
-		/// <param name="labelTrim">Padding for the inside of the label area.</param>
-		/// <param name="boxTrim">Padding for the inside of the remaining area.</param>
 		public SimpleLabelledBox(float aspect, Direction placement = Direction.SOUTH, float labelSize = 10f, Margins labelTrim = default, Margins boxTrim = default) : base(aspect) {
 			this.placement = placement;
 			this.labelSize = labelSize;
@@ -141,13 +131,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float bevel;
 
-		/// <summary>
-		/// Constructor for StatBoxSimple.
-		/// </summary>
-		/// <param name="aspect">Aspect ratio for this box.</param>
-		/// <param name="bevel">A scaling for the details of the outline. This
-		/// also affects the size of the remaining and label areas.</param>
-		/// <size>50 65</size>
 		public StatBoxSimple(float aspect, float bevel = 5f) : base(aspect) {
 			this.bevel = bevel;
 		}

@@ -56,56 +56,6 @@ namespace SharpSheets.Markup.Elements {
 
 		public StyleSheet() { }
 
-		/// <summary>
-		/// Constructor for StyleSheet.
-		/// </summary>
-		/// <param name="_clip_path">A reference to some clipping geometry that will be used to
-		/// clip the current element.</param>
-		/// <param name="clip_rule">The clipping rule to be used when a clipping path is specified.</param>
-		/// <param name="fill" default="$background">A paint used to fill any shape geometries.
-		/// This can either be a reference to a paint element, or a color value. If "none", a
-		/// there will be no fill. The default is the current background colour.</param>
-		/// <param name="fill_opacity">When the <paramref name="fill"/> is specified as a color value,
-		/// this attribute may be used to modify the opacity of that solid color. This will
-		/// override any A value provided with ARGB values.</param>
-		/// <param name="fill_rule" default="NonZero">The fill rule to be used when filling shape
-		/// geometries with the <paramref name="fill"/> paint.</param>
-		/// <param name="font_size">The fontsize to use for any text.</param>
-		/// <param name="font_style" default="REGULAR">Font format to use for any text. This will
-		/// use the appropriate font format from the current font selection.</param>
-		/// <param name="stroke">A paint used to stroke any shape geometry paths.
-		/// This can either be a reference to a paint element, or a color value. If "none", a
-		/// there will be no path stroking. The default is "none".</param>
-		/// <param name="stroke_dasharray">An array of dash lengths with which to stroke any shape
-		/// geometry paths. The resulting stroke will be a series of "on" and "off" lengths,
-		/// corresponding to the dash array. These lengths are measured in points.</param>
-		/// <param name="stroke_dashoffset">An offset for the start of the stroke dash pattern. This
-		/// will shift the dash pattern along by a number of points equal to the value.</param>
-		/// <param name="stroke_linecap">The shape to be used at the ends of open shape geometry paths
-		/// (and dashes, if any) when they are stroked.</param>
-		/// <param name="stroke_linejoin">The way in which the outer edges of two connected shape
-		/// geometry paths segments should be joined.</param>
-		/// <param name="stroke_miterlimit">The limit on the ratio of the miter length to the stroke
-		/// width to use when stroke paths are joined with mitres. A bevel join will be used if
-		/// the ratio is exceeded.</param>
-		/// <param name="stroke_opacity">When the <paramref name="stroke"/> is specified as a color
-		/// value, this attribute may be used to modify the opacity of that solid color. This will
-		/// override any A value provided with ARGB values.</param>
-		/// <param name="stroke_width">The line width to use when stroking any shape geometries.</param>
-		/// <param name="text_anchor" default="START">When drawing text, this attribute will be used
-		/// to determine how a text chunk should be aligned, relative to the current start point
-		/// of the text layout.</param>
-		/// <param name="text_color" default="$textcolor">The color to use when filling text glyphs.</param>
-		/// <param name="_transform">The transform to apply to this element before rendering. This can be
-		/// expressed as a series of affine transformations. If no value is provided, the transform
-		/// is the Identity transformation.</param>
-		/// <param name="drawing_coords">[Experimental Feature] Affects the drawing coordinates
-		/// used for this element.</param>
-		/// <param name="_enabled" default="true">A flag to indicate whether this element should be
-		/// rendered and included in layouts.</param>
-		/// <param name="_for_each">Specifies that the element should be repeated a number of times
-		/// based on some collection, with one repetition for each entry in that collection, with that
-		/// entry being available as an environment variable to the element.</param>
 		public StyleSheet(
 			ClipPath? _clip_path,
 			EnumExpression<AreaRule>? clip_rule,

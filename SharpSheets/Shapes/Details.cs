@@ -10,9 +10,6 @@ namespace SharpSheets.Shapes {
 	/// </summary>
 	public class Blank : DetailBase {
 
-		/// <summary>
-		/// Constructor for Blank.
-		/// </summary>
 		public Blank() { }
 
 		[FactoryBuilder(typeof(IDetail))]
@@ -32,15 +29,6 @@ namespace SharpSheets.Shapes {
 		protected readonly float? width;
 		protected readonly Color? color;
 
-		/// <summary>
-		/// Constructor for LineDetail.
-		/// </summary>
-		/// <param name="offset">An offset for the start and end of the line from the ends
-		/// of the detail area.</param>
-		/// <param name="width">The linewidth for the detail line. If no value is provided,
-		/// the current linewidth will be used.</param>
-		/// <param name="color">A color for the detail line. If no value is provided, the
-		/// current foreground color will be used.</param>
 		public LineDetail(float offset = 5f, float? width = null, Color? color = null) {
 			this.offset = offset;
 			this.width = width;
@@ -88,11 +76,6 @@ namespace SharpSheets.Shapes {
 
 		protected readonly Color? color;
 
-		/// <summary>
-		/// Constructor for FilledDetail.
-		/// </summary>
-		/// <param name="color">The color to fill the detail area with. If no
-		/// value is provided, the current midtone color will be used.</param>
 		public FilledDetail(Color? color = null) {
 			this.color = color;
 		}

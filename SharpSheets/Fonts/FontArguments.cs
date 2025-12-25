@@ -10,13 +10,6 @@ namespace SharpSheets.Fonts {
 			public readonly FontPath? Path;
 			public readonly FontTags? Tags;
 
-			/// <summary>
-			/// 
-			/// </summary>
-			/// <param name="path">Font path to use for this font setting.</param>
-			/// <param name="tags">Font tags to use for this font. This can include script,
-			/// language system, and feature tags (if they are supported by the font
-			/// specified).</param>
 			public FontSettingArg(FontPath? path = null, FontTags? tags = null) {
 				Path = path;
 				Tags = tags;
@@ -33,17 +26,6 @@ namespace SharpSheets.Fonts {
 			}
 		}
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="fonts"></param>
-		/// <param name="tags">Font tags to use as defaults for this font grouping. This can
-		/// include script, language system, and feature tags (if they are supported by the font
-		/// specified).</param>
-		/// <param name="regular">Standard font to use for text without formatting.</param>
-		/// <param name="bold">Font to use for bold text.</param>
-		/// <param name="italic">Font to use for italic text.</param>
-		/// <param name="bolditalic">Font to use for bold-italic text.</param>
 		public FontArgument(
 				FontPathGrouping? fonts = null,
 				FontTags? tags = null,

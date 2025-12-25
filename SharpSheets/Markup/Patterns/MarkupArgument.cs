@@ -54,36 +54,6 @@ namespace SharpSheets.Markup.Patterns {
 		public bool FromEntries => ArgumentFormat == MarkupArgumentFormat.ENTRIES;
 		public bool IsNumbered => ArgumentFormat == MarkupArgumentFormat.NUMBERED;
 
-		/// <summary>
-		/// Constructor for MarkupSingleArgument.
-		/// </summary>
-		/// <param name="_name">The name for this argument. This name will be visible to
-		/// the user, and by default will also be the variable name for this argument
-		/// in the Markup, unless the <paramref name="_variable"/> attribute is specified.</param>
-		/// <param name="_type">The type for this argument. This determines how the data
-		/// provided to this argument will be processed and made available in the Markup.</param>
-		/// <param name="_variable">An optional variable name, which (if provided) will be used
-		/// in place of the <paramref name="_name"/> as the variable handle for this argument
-		/// in the Markup.</param>
-		/// <param name="_desc">A description for this argument, which will be presented to
-		/// the user.</param>
-		/// <param name="_optional">A flag to indicate that this argument is optional. If this
-		/// attribute is true and the argument does not have a <paramref name="_default"/> value,
-		/// it is important to check that the value is present before using it.</param>
-		/// <param name="_default">An optional default value for this argument, which must be
-		/// valid data of the specified <paramref name="_type"/>.</param>
-		/// <param name="_example">An optional example value for this argument, which will be used
-		/// when displaying the pattern in the designer and in documentation, but will not be used
-		/// as a default when the pattern is utilised by a user.</param>
-		/// <param name="_validate">A validation test for this argument, which may only use the
-		/// current variable. If this evaluates to false, then the default value will be used instead,
-		/// and an error message will be displayed to the user.</param>
-		/// <param name="_validate_message">An error message to display to the user when the
-		/// <paramref name="_validate"/> test evaluates to false.</param>
-		/// <param name="_local">A flag to indicate that argument must be explicitly specified for the
-		/// entry in the configuration file, and may not be inherited.</param>
-		/// <param name="_format">The format for this argument, allowing for arguments which
-		/// utilise entry data from the configuration file, or similar.</param>
 		public MarkupSingleArgument(EvaluationName _name, EvaluationType _type,
 				EvaluationName? _variable = null,
 				string? _desc = null,
@@ -169,19 +139,6 @@ namespace SharpSheets.Markup.Patterns {
 
 		public string? Description { get; }
 
-		/// <summary>
-		/// Constructor for MarkupGroupArgument.
-		/// </summary>
-		/// <param name="_name">The name for this argument group. This name will be visible to
-		/// the user, and by default will also be the variable name for this argument group
-		/// in the Markup, unless the <paramref name="_variable"/> attribute is specified.</param>
-		/// <param name="type" exclude="True"></param>
-		/// <param name="_variable">An optional variable name, which (if provided) will be used
-		/// in place of the <paramref name="_name"/> as the variable handle for this argument group
-		/// in the Markup.</param>
-		/// <param name="_desc">A description for this argument, which will be presented to
-		/// the user.</param>
-		/// <param name="args">The arguments inside this grouping.</param>
 		public MarkupGroupArgument(EvaluationName _name, EvaluationType type, EvaluationName? _variable = null, string? _desc = null, IEnumerable<IMarkupArgument>? args = null) {
 			ArgumentName = _name;
 			variableName = _variable;
@@ -223,13 +180,6 @@ namespace SharpSheets.Markup.Patterns {
 		public BoolExpression Test { get; }
 		public string? Message { get; }
 
-		/// <summary>
-		/// Constructor for MarkupValidation.
-		/// </summary>
-		/// <param name="_test">A test to be run on one or more of the pattern argument values.
-		/// An error message will be displayed if this expression evaluates to false.</param>
-		/// <param name="_message">A message to be displayed to the user if the test evaluates to
-		/// false.</param>
 		public MarkupValidation(
 				BoolExpression _test,
 				string? _message = null

@@ -33,48 +33,6 @@ namespace SharpSheets.Markup.Elements {
 
 		public readonly FilePath source;
 
-		/// <summary>
-		/// Constructor for DivSetup.
-		/// </summary>
-		/// <param name="source">The source file for this Div element.</param>
-		/// <param name="gutter" default="0">The spacing between the child div elements,
-		/// measured in points.</param>
-		/// <param name="_size" default="1">Size of the div, either as a absolute dimension (e.g. pt, cm, in),
-		/// a relative size (in percent or arbitrary units), or auto-sized (with "auto"). Note that if
-		/// specific positioning is provided, <paramref name="_size"/> will be ignored.</param>
-		/// /// <param name="_min_width">The minimum width for this element, for use when determining
-		/// minimum size.</param>
-		/// <param name="_min_height">The minimum height for this element, for use when determining
-		/// minimum size.</param>
-		/// <param name="_position">The position for the <see cref="DivElement"/>. Note that if
-		/// <paramref name="_position"/> is provided, then <paramref name="_size"/> will be
-		/// ignored.</param>
-		/// <param name="_margins" default="0,0,0,0">The margins for the div area, which will
-		/// be applied after the element has been positioned using the grid layout. These margins
-		/// will be factored into the minimum size of the element if autosizing is used.</param>
-		/// <param name="layout" default="rows">Specifies the arrangement of child elements within
-		/// the div area, either as rows or columns.</param>
-		/// <param name="arrangement" default="FRONT">Specifies the arrangement of the elements
-		/// children in the available space, indicating whether the children should be arranged
-		/// centrally, or to one end of, the available space.</param>
-		/// <param name="order" default="FORWARD">Specifies the order that the elements children
-		/// should be drawn in across the available space, allowing children to be drawn in reverse
-		/// document order.</param>
-		/// <param name="_provide_remaining" default="false">Indicates that this element provides some
-		/// remaining area for use with the grid layout system.</param>
-		/// <param name="_canvas">[EXPERIMENTAL] Specifies a size for a canvas that will represent the element area.</param>
-		/// <param name="_aspect_ratio" default="-1">Specifies an aspect ratio for the element area.
-		/// This aspect ratio will be applied after the element area has been determined using the
-		/// grid layout system.</param>
-		/// <param name="_enabled" default="true">A flag to indicate whether this element and its children
-		/// should be rendered in the pattern.</param>
-		/// <param name="_repeat">Indicates the number of times this element should be repeated in
-		/// the pattern. Note that such repetitions will each individually repeat any <paramref name="_for_each"/>
-		/// attributes which may be specified.</param>
-		/// <param name="_for_each">Specifies that the element should be repeated a number of times
-		/// based on some collection of elements, with one repetition for each element in that collection.
-		/// Note that if a value is specified for <paramref name="_repeat"/>, then this for-each statement
-		/// will be repeated as a whole <paramref name="_repeat"/> times.</param>
 		public DivSetup(
 			FilePath source,
 			FloatExpression? gutter = null,
@@ -232,14 +190,6 @@ namespace SharpSheets.Markup.Elements {
 
 		private readonly List<IIdentifiableMarkupElement> elements;
 
-		/// <summary>
-		/// Constructor for DivElement.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="setup"> The DivSetup values for this element. </param>
-		/// <param name="outerContext"> The variables inherited from this Divs parents (not including canvas variables). </param>
-		/// <param name="markupContext"></param>
-		/// <param name="variables"> The variables declared with this Div. </param>
 		public DivElement(string? _id, DivSetup setup, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables) {
 			this.ID = _id;
 			this.setup = setup;
@@ -822,24 +772,6 @@ namespace SharpSheets.Markup.Elements {
 
 		public BoolExpression Enabled { get; } // TODO This needs properly implementing in DivElement
 
-		/// <summary>
-		/// Constructor for AreaElement.
-		/// </summary>
-		/// <param name="id" default="null">A unique name for this element.</param>
-		/// <param name="_name" default="null">The name for this area, identifying its
-		/// function in the pattern. The available names depend on the pattern type.</param>
-		/// <param name="_x" default="0">The x-coordinate of this area.</param>
-		/// <param name="_y" default="0">The y-coordinate of this area.</param>
-		/// <param name="_width" default="$width">The width of this area.</param>
-		/// <param name="_height" default="$height">The height of this area.</param>
-		/// <param name="margin" default="0,0,0,0">A margin to be applied to this area,
-		/// after the initial layout using <paramref name="_x"/>, <paramref name="_y"/>,
-		/// <paramref name="_width"/>, and <paramref name="_height"/>. This will likely
-		/// mean that the final width and height are not equal to <paramref name="_width"/>
-		/// and <paramref name="_height"/>.</param>
-		/// <param name="enabled" default="true">A flag to indicate whether this area should
-		/// be available in the pattern.</param>
-		/// <param name="markupContext" exclude="True"></param>
 		public AreaElement(string? id, IExpression<string> _name, FloatExpression? _x, FloatExpression? _y, FloatExpression? _width, FloatExpression? _height, MarginsExpression? margin, BoolExpression enabled, MarkupEvaluationContext markupContext) {
 			this.ID = id;
 			this.Name = _name;
@@ -901,17 +833,6 @@ namespace SharpSheets.Markup.Elements {
 
 		public BoolExpression Enabled { get; } // TODO This needs properly implementing in DivElement
 
-		/// <summary>
-		/// Constructor for DiagnosticElement.
-		/// </summary>
-		/// <param name="id" default="null">A unique name for this element.</param>
-		/// <param name="_x" default="0">The x-coordinate of this area.</param>
-		/// <param name="_y" default="0">The y-coordinate of this area.</param>
-		/// <param name="_width" default="$width">The width of this area.</param>
-		/// <param name="_height" default="$height">The height of this area.</param>
-		/// <param name="enabled" default="true">A flag to indicate whether this area should
-		/// be shown with the pattern.</param>
-		/// <param name="markupContext" exclude="True"></param>
 		public DiagnosticElement(string? id, FloatExpression? _x, FloatExpression? _y, FloatExpression? _width, FloatExpression? _height, BoolExpression enabled, MarkupEvaluationContext markupContext) {
 			this.ID = id;
 			RectangleExpression? rect =
