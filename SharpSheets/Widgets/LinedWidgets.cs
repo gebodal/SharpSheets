@@ -115,15 +115,6 @@ namespace SharpSheets.Widgets {
 
 	}
 
-	/// <summary>
-	/// This widget draw a series of lines, each with one or more fields, and text labels for those fields.
-	/// The height of each line may be specified as an absolute or relative value, and the specific placement
-	/// of fields and label may be controlled. The labels are provided as a series of entries to the widget,
-	/// and can be used to place text before and after the fields. Optionally, a number of unlabelled "extra"
-	/// lines may be appended to the bottom, containing only a single field in each line. Labels may contain
-	/// embedded fields (to a maximum of one per label part), by surrounding a Dimension with question marks ("?").
-	/// Each line will be underlined by default, but this can be specified.
-	/// </summary>
 	public partial class LinedDetails : AbstractLinedWidget {
 
 		/// <summary>
@@ -188,6 +179,15 @@ namespace SharpSheets.Widgets {
 			this.labelAlignment = labelAlignment;
 		}
 
+		/// <summary>
+		/// This widget draw a series of lines, each with one or more fields, and text labels for those fields.
+		/// The height of each line may be specified as an absolute or relative value, and the specific placement
+		/// of fields and label may be controlled. The labels are provided as a series of entries to the widget,
+		/// and can be used to place text before and after the fields. Optionally, a number of unlabelled "extra"
+		/// lines may be appended to the bottom, containing only a single field in each line. Labels may contain
+		/// embedded fields (to a maximum of one per label part), by surrounding a Dimension with question marks ("?").
+		/// Each line will be underlined by default, but this can be specified.
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">The name for this widget, used for field names (not drawn to the document).</param>
 		/// <param name="details">
@@ -462,11 +462,6 @@ namespace SharpSheets.Widgets {
 
 	}
 
-	/// <summary>
-	/// This widget draws a series of lines, with each line containing a single text field. The heights of each
-	/// line may be specified as an absolute or relative value. Each line will be underlined by default, but
-	/// this can be specified.
-	/// </summary>
 	public class LinedField : AbstractLinedWidget {
 
 		public LinedField(
@@ -479,6 +474,11 @@ namespace SharpSheets.Widgets {
 				bool underline = true
 			) : base(setup, name ?? nameof(LinedField), height, rows, spacing ?? (3f, 3f), 0f, field, underline, 0f) { }
 
+		/// <summary>
+		/// This widget draws a series of lines, with each line containing a single text field. The heights of each
+		/// line may be specified as an absolute or relative value. Each line will be underlined by default, but
+		/// this can be specified.
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">The name for this widget, used for field names (not drawn to the document).</param>
 		/// <param name="height">The height to use for each line (which will determine the field
@@ -537,12 +537,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget draws a series of lines, each containing one or more fields arranged in columns. Each column
-	/// will be optionally headed by a text label. The size and placement of the column headers, and the column
-	/// widths, can be specified. The height of each line may be specified as an absolte or relative value. Each
-	/// line will be underlined by default, but this can be specified.
-	/// </summary>
 	public class LinedList : AbstractLinedWidget {
 
 		protected readonly RichString[]? columns;
@@ -583,6 +577,12 @@ namespace SharpSheets.Widgets {
 			this.titleJustification = titleJustification;
 		}
 
+		/// <summary>
+		/// This widget draws a series of lines, each containing one or more fields arranged in columns. Each column
+		/// will be optionally headed by a text label. The size and placement of the column headers, and the column
+		/// widths, can be specified. The height of each line may be specified as an absolte or relative value. Each
+		/// line will be underlined by default, but this can be specified.
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">The name for this widget, used for field names (not drawn to the document).</param>
 		/// <param name="columns">The column headings to draw at the top of the
@@ -690,15 +690,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget draws a series of lines, each containing at least one text field and one check field,
-	/// and may begin with either a text label or a second text field. The height of each line may be specified
-	/// as an absolute or relative value, and the specific placement of fields and labels may be controlled.
-	/// The labels are provided as a series of entries to the widget, and may optionally contain embedded fields
-	/// (to a maximum of one per label), by surrounding a Dimension with question marks ("?"). There is also
-	/// an option to append a number of unlabelled "extra" lines to the bottom, where the text label is replaced
-	/// with a text field. Each line will be underlined by default, but this can be specified.
-	/// </summary>
 	public partial class LinedCheckList : AbstractLinedWidget {
 
 		protected readonly RichString[] skills; // TODO RichString?
@@ -746,6 +737,15 @@ namespace SharpSheets.Widgets {
 			this.labelAlignment = labelAlignment;
 		}
 
+		/// <summary>
+		/// This widget draws a series of lines, each containing at least one text field and one check field,
+		/// and may begin with either a text label or a second text field. The height of each line may be specified
+		/// as an absolute or relative value, and the specific placement of fields and labels may be controlled.
+		/// The labels are provided as a series of entries to the widget, and may optionally contain embedded fields
+		/// (to a maximum of one per label), by surrounding a Dimension with question marks ("?"). There is also
+		/// an option to append a number of unlabelled "extra" lines to the bottom, where the text label is replaced
+		/// with a text field. Each line will be underlined by default, but this can be specified.
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">The name for this widget, used for field names (not drawn to the document).</param>
 		/// <param name="entries">

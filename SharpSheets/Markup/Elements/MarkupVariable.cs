@@ -5,9 +5,6 @@ using SharpSheets.Parsing;
 
 namespace SharpSheets.Markup.Elements {
 
-	/// <summary>
-	/// This element represents a Markup variable.
-	/// </summary>
 	[System.Diagnostics.DebuggerDisplay("{Name} ({Type}) = {Evaluation}")]
 	public class MarkupVariable : IMarkupElement {
 		public EvaluationName Name { get; }
@@ -21,6 +18,9 @@ namespace SharpSheets.Markup.Elements {
 			Type = Evaluation.GetReturnType();
 		}
 
+		/// <summary>
+		/// This element represents a Markup variable.
+		/// </summary>
 		/// <param name="name">The name for this variable, which will be used as its variable
 		/// handle in the Markup.</param>
 		/// <param name="value">An expression for the value of this variable. The type of the

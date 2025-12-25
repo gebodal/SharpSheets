@@ -7,13 +7,6 @@ using System.Text.RegularExpressions;
 
 namespace SharpSheets.Markup.Elements {
 
-	/// <summary>
-	/// A path element draws a shape by combining multiple straight or curved lines in
-	/// a series of drawing operations, that may then filled and/or stroked to create
-	/// complex shapes. The path data is provided as a series of drawing instructions
-	/// (represented by an upper- or lower-case letter) with zero or more associated
-	/// argument values.
-	/// </summary>
 	public partial class Path : ShapeElement {
 
 		private readonly DrawOperation[] data; // d
@@ -22,6 +15,13 @@ namespace SharpSheets.Markup.Elements {
 			this.data = _d ?? Array.Empty<DrawOperation>();
 		}
 
+		/// <summary>
+		/// A path element draws a shape by combining multiple straight or curved lines in
+		/// a series of drawing operations, that may then filled and/or stroked to create
+		/// complex shapes. The path data is provided as a series of drawing instructions
+		/// (represented by an upper- or lower-case letter) with zero or more associated
+		/// argument values.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="d">The path data, as a series of drawing instructions

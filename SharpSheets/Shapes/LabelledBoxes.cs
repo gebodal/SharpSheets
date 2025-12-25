@@ -4,11 +4,6 @@ using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {
 
-	/// <summary>
-	/// A simple labelled box that uses connected rectangular outlines for the remaining
-	/// and label areas. The size and placement of the label area around the outside of
-	/// the shape can be specified, along with margins for each of the areas separately.
-	/// </summary>
 	public class SimpleLabelledBox : LabelledBoxBase {
 
 		protected readonly Direction placement;
@@ -23,6 +18,11 @@ namespace SharpSheets.Shapes {
 			this.boxTrim = boxTrim;
 		}
 
+		/// <summary>
+		/// A simple labelled box that uses connected rectangular outlines for the remaining
+		/// and label areas. The size and placement of the label area around the outside of
+		/// the shape can be specified, along with margins for each of the areas separately.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="placement">The placement of the label area around the shape area,
 		/// as a cardinal direction.</param>
@@ -123,10 +123,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A simple statistic box style. A larger rectangular area with a small oval
-	/// at the base, with some detailing.
-	/// </summary>
 	public class StatBoxSimple : LabelledBoxBase {
 
 		protected readonly float bevel;
@@ -135,6 +131,10 @@ namespace SharpSheets.Shapes {
 			this.bevel = bevel;
 		}
 
+		/// <summary>
+		/// A simple statistic box style. A larger rectangular area with a small oval
+		/// at the base, with some detailing.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="bevel">A scaling for the details of the outline. This
 		/// also affects the size of the remaining and label areas.</param>

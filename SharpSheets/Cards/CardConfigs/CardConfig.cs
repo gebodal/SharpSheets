@@ -40,13 +40,6 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	public enum LayoutStrategy { CARD, SCROLL }
 
-	/// <summary>
-	/// This element represents a set of card configurations, and defines any information
-	/// shared by all such cards, along with default values for card configuration properties.
-	/// This element also controls some aspects of how corresponding card subject files must
-	/// be formatted. The page layout for the final card document is determined by the properties
-	/// of this element.
-	/// </summary>
 	public class CardSetConfig : ICardSegmentParent, ICardConfigComponent {
 		
 		public string Name { get; }
@@ -125,6 +118,13 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.variableBox = new VariableDefinitionBox(CardConfigEnvironments.BaseDefinitions, this.definitions, null);
 		}
 
+		/// <summary>
+		/// This element represents a set of card configurations, and defines any information
+		/// shared by all such cards, along with default values for card configuration properties.
+		/// This element also controls some aspects of how corresponding card subject files must
+		/// be formatted. The page layout for the final card document is determined by the properties
+		/// of this element.
+		/// </summary>
 		/// <param name="name"></param>
 		/// <param name="origin"></param>
 		/// <param name="source"></param>
@@ -179,10 +179,6 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	/// <summary>
-	/// This element represents an individual card configuration. Various aspects of the
-	/// card layout can be controlled using this element's properties.
-	/// </summary>
 	public class CardConfig : ICardSegmentParent, ICardConfigComponent {
 
 		public string? Name { get; }
@@ -264,6 +260,10 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.variableBox = new VariableDefinitionBox(CardConfigEnvironments.BaseDefinitions, this.definitions, cardSetConfig.Variables);
 		}
 
+		/// <summary>
+		/// This element represents an individual card configuration. Various aspects of the
+		/// card layout can be controlled using this element's properties.
+		/// </summary>
 		/// <param name="cardSetConfig"></param>
 		/// <param name="name">The name for this card configuration.</param>
 		/// <param name="description">A description for this card configuration, to be displayed
@@ -380,11 +380,6 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	/// <summary>
-	/// This element represents a card segment with arbitrary content.
-	/// Layout settings for the feature contents can be specified, along
-	/// with outlines for the segment area.
-	/// </summary>
 	public class DynamicCardSegmentConfig : AbstractCardSegmentConfig {
 
 		public readonly bool equalSizeFeatures;
@@ -419,6 +414,11 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.AlwaysInclude = _alwaysInclude;
 		}
 
+		/// <summary>
+		/// This element represents a card segment with arbitrary content.
+		/// Layout settings for the feature contents can be specified, along
+		/// with outlines for the segment area.
+		/// </summary>
 		/// <param name="parent">The parent element for this configuration.</param>
 		/// <param name="name">The name for this segment configuration.</param>
 		/// <param name="description">A description for this segment configuration, to be displayed
@@ -458,12 +458,6 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	/// <summary>
-	/// This element represents a card segment which displays features as
-	/// a continuous string of text. A delimiter, and a prefix and tail
-	/// can be specified for the text content, along with text layout
-	/// parameters and outlines for the segment area.
-	/// </summary>
 	public class TextCardSegmentConfig : AbstractCardSegmentConfig {
 
 		public readonly IExpression<string> content;
@@ -508,6 +502,12 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.heightStrategy = heightStrategy;
 		}
 
+		/// <summary>
+		/// This element represents a card segment which displays features as
+		/// a continuous string of text. A delimiter, and a prefix and tail
+		/// can be specified for the text content, along with text layout
+		/// parameters and outlines for the segment area.
+		/// </summary>
 		/// <param name="parent">The parent element for this configuration.</param>
 		/// <param name="content">Text expression to use for converting each feature into text.</param>
 		/// <param name="delimiter">A delimiter to use between each feature's textual representation.</param>
@@ -552,13 +552,6 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	/// <summary>
-	/// This element represents a card segment which displays features as
-	/// individual paragraphs of text. Text layout parameters can be specified
-	/// for the paragraphs, along with outlines for the segment area. Parameters
-	/// for layout of list features as bullet point entries can also be
-	/// provided.
-	/// </summary>
 	public class ParagraphCardSegmentConfig : AbstractCardSegmentConfig {
 
 		public class BulletArg {
@@ -635,6 +628,13 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.bullet = bullet ?? new BulletArg();
 		}
 
+		/// <summary>
+		/// This element represents a card segment which displays features as
+		/// individual paragraphs of text. Text layout parameters can be specified
+		/// for the paragraphs, along with outlines for the segment area. Parameters
+		/// for layout of list features as bullet point entries can also be
+		/// provided.
+		/// </summary>
 		/// <param name="parent">The parent element for this configuration.</param>
 		/// <param name="content">Text expression to use for converting each feature into text.</param>
 		/// <param name="name">The name for this segment configuration.</param>
@@ -677,11 +677,6 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	/// <summary>
-	/// This element represents a card segment which displays features as
-	/// rows of a table. Row colors and cell layout parameters can be specified
-	/// for the table, along with outlines for the segment area.
-	/// </summary>
 	public class TableCardSegmentConfig : AbstractCardSegmentConfig {
 
 		public readonly bool equalSizeFeatures;
@@ -720,6 +715,11 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.cellHeightStrategy = cellHeightStrategy;
 		}
 
+		/// <summary>
+		/// This element represents a card segment which displays features as
+		/// rows of a table. Row colors and cell layout parameters can be specified
+		/// for the table, along with outlines for the segment area.
+		/// </summary>
 		/// <param name="parent">The parent element for this configuration.</param>
 		/// <param name="name">The name for this segment configuration.</param>
 		/// <param name="description">A description for this segment configuration, to be displayed
@@ -764,12 +764,6 @@ namespace SharpSheets.Cards.CardConfigs {
 
 	}
 
-	/// <summary>
-	/// This element represents a card feature configuration, and the layout
-	/// with which the corresponding feature data will be drawn to the card.
-	/// You can also supply "format" patterns, which can be used to apply text
-	/// formatting to the feature text content before drawing.
-	/// </summary>
 	public class CardFeatureConfig : IHasVariableDefinitionBox, ICardConfigComponent {
 
 		public readonly AbstractCardSegmentConfig cardSegmentConfig;
@@ -815,6 +809,12 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.variableBox = new VariableDefinitionBox(CardFeatureEnvironments.BaseDefinitions, this.definitions, cardSegmentConfig.Variables);
 		}
 
+		/// <summary>
+		/// This element represents a card feature configuration, and the layout
+		/// with which the corresponding feature data will be drawn to the card.
+		/// You can also supply "format" patterns, which can be used to apply text
+		/// formatting to the feature text content before drawing.
+		/// </summary>
 		/// <param name="cardSegment">The parent segment configuration.</param>
 		/// <param name="name">The name for this feature configuration.</param>
 		/// <param name="description">A description for this feature configuration, to be displayed

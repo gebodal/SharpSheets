@@ -5,10 +5,6 @@ using SharpSheets.Parsing;
 
 namespace SharpSheets.Markup.Elements {
 
-	/// <summary>
-	/// A solid paint element, which can be used to represent a brush which
-	/// draws a single, consistent color, with no spatial variability.
-	/// </summary>
 	public class SolidPaint : ICanvasPaint, IIdentifiableMarkupElement {
 
 		public string? ID { get; }
@@ -29,6 +25,10 @@ namespace SharpSheets.Markup.Elements {
 			}
 		}
 
+		/// <summary>
+		/// A solid paint element, which can be used to represent a brush which
+		/// draws a single, consistent color, with no spatial variability.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="color">The color for this paint.</param>
 		[FactoryBuilder(typeof(SolidPaint), Name = "solidPaint")]
@@ -40,10 +40,6 @@ namespace SharpSheets.Markup.Elements {
 
 	//public enum SpreadMethod { Pad, Reflect, Repeat }
 
-	/// <summary>
-	/// A linear gradient paint element, which is used to represent a gradient
-	/// that changes linearly between two specified points.
-	/// </summary>
 	public class LinearGradient : ICanvasPaint, IIdentifiableMarkupElement {
 
 		public string? ID { get; }
@@ -77,6 +73,10 @@ namespace SharpSheets.Markup.Elements {
 			}
 		}
 
+		/// <summary>
+		/// A linear gradient paint element, which is used to represent a gradient
+		/// that changes linearly between two specified points.
+		/// </summary>
 		/// <param name="_id">A unique name for this element.</param>
 		/// <param name="_x1">The x coordinate of the start point.</param>
 		/// <param name="_y1">The y coordinate of the start point.</param>
@@ -96,10 +96,6 @@ namespace SharpSheets.Markup.Elements {
 
 	}
 
-	/// <summary>
-	/// A radial gradient paint element, which is used to represent a gradient
-	/// that changes radially between two specified circles.
-	/// </summary>
 	public class RadialGradient : ICanvasPaint, IIdentifiableMarkupElement {
 
 		public string? ID { get; }
@@ -139,6 +135,10 @@ namespace SharpSheets.Markup.Elements {
 			}
 		}
 
+		/// <summary>
+		/// A radial gradient paint element, which is used to represent a gradient
+		/// that changes radially between two specified circles.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="cx">The x coordinate of the end circle.</param>
 		/// <param name="cy">The y coordinate of the end circle.</param>

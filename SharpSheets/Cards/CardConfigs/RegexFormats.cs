@@ -4,10 +4,6 @@ using System.Text.RegularExpressions;
 
 namespace SharpSheets.Cards.CardConfigs {
 
-	/// <summary>
-	/// This class holds a set of regular expressions which can be used to apply
-	/// formatting to a <see cref="RichString"/>.
-	/// </summary>
 	public class RegexFormats {
 		public Regex? regular;
 		public Regex? bold;
@@ -21,6 +17,10 @@ namespace SharpSheets.Cards.CardConfigs {
 			this.bolditalic = bolditalic;
 		}
 
+		/// <summary>
+		/// This class holds a set of regular expressions which can be used to apply
+		/// formatting to a <see cref="RichString"/>.
+		/// </summary>
 		/// <param name="regular">The pattern to match for regular formatting. This will override other formats.</param>
 		/// <param name="bold">The pattern to match for bold formatting.</param>
 		/// <param name="italic">The pattern to match for italic formatting.</param>

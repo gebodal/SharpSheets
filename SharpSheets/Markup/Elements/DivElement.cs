@@ -154,14 +154,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// This element represents a division of the pattern space, according to the
-	/// grid layout system. Each division may be positioned within the available
-	/// space exactly, or allowed to follow the grid layout system. Each division
-	/// may also be repeated, either a stated number of times, or based on some
-	/// collection of data. Divisions may contain other graphical elements, which
-	/// will be drawn in the area assigned to the division.
-	/// </summary>
 	public class DivElement : IIdentifiableMarkupElement {
 
 		public readonly MarkupEvaluationContext MarkupContext;
@@ -202,6 +194,14 @@ namespace SharpSheets.Markup.Elements {
 			this.MarkupContext = markupContext;
 		}
 
+		/// <summary>
+		/// This element represents a division of the pattern space, according to the
+		/// grid layout system. Each division may be positioned within the available
+		/// space exactly, or allowed to follow the grid layout system. Each division
+		/// may also be repeated, either a stated number of times, or based on some
+		/// collection of data. Divisions may contain other graphical elements, which
+		/// will be drawn in the area assigned to the division.
+		/// </summary>
 		/// <param name="id" default="null">A unique name for this element.</param>
 		/// <param name="setup"> The DivSetup values for this element. </param>
 		/// <param name="outerContext"> The variables inherited from this Divs parents (not including canvas variables). </param>
@@ -756,13 +756,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// This element indicates a named area within a pattern that may be used by
-	/// other document elements -- for example, the remaining area inside an outline.
-	/// Each area, therefore, defines a region of the pattern, and a name. The available
-	/// names depend on the pattern type the area belongs to, and not all patterns use
-	/// all possible names.
-	/// </summary>
 	public class AreaElement : IIdentifiableMarkupElement {
 
 		public string? ID { get; }
@@ -787,6 +780,13 @@ namespace SharpSheets.Markup.Elements {
 			this.Enabled = enabled;
 		}
 
+		/// <summary>
+		/// This element indicates a named area within a pattern that may be used by
+		/// other document elements -- for example, the remaining area inside an outline.
+		/// Each area, therefore, defines a region of the pattern, and a name. The available
+		/// names depend on the pattern type the area belongs to, and not all patterns use
+		/// all possible names.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="name">The name for this area, identifying its
 		/// function in the pattern. The available names depend on the pattern type.</param>
@@ -820,11 +820,6 @@ namespace SharpSheets.Markup.Elements {
 
 	}
 
-	/// <summary>
-	/// This element indicates an area in the pattern which is of use or interest to designers
-	/// utilising the pattern. It will not be rendered when the pattern is used, but may be
-	/// displayed in the designer while a document is being edited.
-	/// </summary>
 	public class DiagnosticElement : IIdentifiableMarkupElement {
 
 		public string? ID { get; }
@@ -847,6 +842,11 @@ namespace SharpSheets.Markup.Elements {
 			this.Enabled = enabled;
 		}
 
+		/// <summary>
+		/// This element indicates an area in the pattern which is of use or interest to designers
+		/// utilising the pattern. It will not be rendered when the pattern is used, but may be
+		/// displayed in the designer while a document is being edited.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="x">The x-coordinate of this area.</param>
 		/// <param name="y">The y-coordinate of this area.</param>

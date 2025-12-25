@@ -8,12 +8,6 @@ using SharpSheets.Parsing;
 
 namespace SharpSheets.Cards.Card {
 
-	/// <summary>
-	/// This widget is used for drawing text inside cards, where the font size is determined dynamically by the card
-	/// layout engine. The final font size can be adjusted using a multiplier, but cannot be set directly. The text can be
-	/// aligned within the available area, and can be drawn with a "bullet point" (the exact symbol for which can be
-	/// specified). Indentation and line-spacing can also be specified.
-	/// </summary>
 	public sealed class CardText : SharpWidget {
 
 		public class ParagraphDataArg {
@@ -99,6 +93,12 @@ namespace SharpSheets.Cards.Card {
 			this.bullet = bullet ?? new BulletArg();
 		}
 
+		/// <summary>
+		/// This widget is used for drawing text inside cards, where the font size is determined dynamically by the card
+		/// layout engine. The final font size can be adjusted using a multiplier, but cannot be set directly. The text can be
+		/// aligned within the available area, and can be drawn with a "bullet point" (the exact symbol for which can be
+		/// specified). Indentation and line-spacing can also be specified.
+		/// </summary>
 		/// <param name="setup"></param>
 		/// <param name="text">The text to be displayed in this widget, which can be formatted as rich text.
 		/// The provided entries will be treated as separate lines of text.</param>

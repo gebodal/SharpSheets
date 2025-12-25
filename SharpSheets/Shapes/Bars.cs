@@ -68,14 +68,14 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A simple bar using a rectangular outline. The relative sizes of the label and entry areas
-	/// can be controlled, the entry area can be emphasised, and the bar can be flipped horizontally.
-	/// </summary>
 	public class SimpleBar : AbstractSimpleBar {
 
 		public SimpleBar(float aspect, bool flip = false, UnitInterval? entryFraction = null, UFloat emphasis = default, bool includeEmphasis = true) : base(aspect, flip, entryFraction, emphasis, includeEmphasis) { }
 
+		/// <summary>
+		/// A simple bar using a rectangular outline. The relative sizes of the label and entry areas
+		/// can be controlled, the entry area can be emphasised, and the bar can be flipped horizontally.
+		/// </summary>
 		/// <param name="aspect">The aspect ratio for this bar.</param>
 		/// <param name="flip">Flag to indicate that the bar should be flipped horizontally.
 		/// By default, the label will be drawn on the right.</param>
@@ -97,15 +97,15 @@ namespace SharpSheets.Shapes {
 
 	}
 
-	/// <summary>
-	/// A simple bar using a rectangular outline for the label area and an elliptical outline for the
-	/// entry area. The relative sizes of the label and entry areas can be controlled, the entry area
-	/// can be emphasised, and the bar can be flipped horizontally.
-	/// </summary>
 	public class EllipseBar : AbstractSimpleBar {
 
 		public EllipseBar(float aspect, bool flip = false, UnitInterval? entryFraction = null, UFloat emphasis = default, bool includeEmphasis = true) : base(aspect, flip, entryFraction, emphasis, includeEmphasis) { }
 
+		/// <summary>
+		/// A simple bar using a rectangular outline for the label area and an elliptical outline for the
+		/// entry area. The relative sizes of the label and entry areas can be controlled, the entry area
+		/// can be emphasised, and the bar can be flipped horizontally.
+		/// </summary>
 		/// <param name="aspect">The aspect ratio for this bar.</param>
 		/// <param name="flip">Flag to indicate that the bar should be flipped horizontally.
 		/// By default, the label will be drawn on the right.</param>
@@ -127,11 +127,6 @@ namespace SharpSheets.Shapes {
 
 	}
 
-	/// <summary>
-	/// A bar using two box styles for the label and entry areas. The relative sizes of the label
-	/// and entry areas can be controlled, the entry area can be emphasised, and the bar can be
-	/// flipped horizontally.
-	/// </summary>
 	public class BoxBar : BarBase {
 
 		protected IBox barBox;
@@ -151,6 +146,11 @@ namespace SharpSheets.Shapes {
 			this.flip = flip;
 		}
 
+		/// <summary>
+		/// A bar using two box styles for the label and entry areas. The relative sizes of the label
+		/// and entry areas can be controlled, the entry area can be emphasised, and the bar can be
+		/// flipped horizontally.
+		/// </summary>
 		/// <param name="aspect">The aspect ratio for this bar.</param>
 		/// <param name="barBox">Box style to use for the label area outline. This outline will
 		/// extend past the edge of the entry area, with the intention that it appears to protrude

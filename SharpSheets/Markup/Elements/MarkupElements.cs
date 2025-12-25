@@ -9,10 +9,6 @@ namespace SharpSheets.Markup.Elements {
 
 	#region Structural Elements
 
-	/// <summary>
-	/// A container used to group other elements together. Any transformation applied
-	/// to this element will apply to all descendents.
-	/// </summary>
 	public class Grouping : DrawableElement { // g
 
 		readonly IDrawableElement[] elements;
@@ -21,6 +17,10 @@ namespace SharpSheets.Markup.Elements {
 			this.elements = elements.ToArray();
 		}
 
+		/// <summary>
+		/// A container used to group other elements together. Any transformation applied
+		/// to this element will apply to all descendents.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="elements">Child graphical elements of this grouping.</param>
@@ -112,10 +112,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// A clipping path, defined by a series of child shape elements, that another
-	/// element can use to limit the area to which content can be drawn.
-	/// </summary>
 	public class ClipPath : IStyledElement {
 		// clipPathUnits // Worth implementing?
 
@@ -131,6 +127,10 @@ namespace SharpSheets.Markup.Elements {
 			this.elements = elements.ToArray();
 		}
 
+		/// <summary>
+		/// A clipping path, defined by a series of child shape elements, that another
+		/// element can use to limit the area to which content can be drawn.
+		/// </summary>
 		/// <param name="id" default="null">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="elements">Child shape elements which make up this clipping path.</param>
@@ -197,11 +197,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// A graphical template that can be instantiated with a &lt;use&gt; element.
-	/// This allows the same graphical elements to be easily repeated in a Markup
-	/// document. This element may have other graphical elements as children.
-	/// </summary>
 	public class Symbol : IDrawableElement {
 
 		public string? ID { get; }
@@ -229,6 +224,11 @@ namespace SharpSheets.Markup.Elements {
 			this.elements = elements.ToArray();
 		}
 
+		/// <summary>
+		/// A graphical template that can be instantiated with a &lt;use&gt; element.
+		/// This allows the same graphical elements to be easily repeated in a Markup
+		/// document. This element may have other graphical elements as children.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="viewBox">The view box for this symbol, which determines the
@@ -329,12 +329,6 @@ namespace SharpSheets.Markup.Elements {
 
 	#region Graphics Elements
 
-	/// <summary>
-	/// This element draws an image to the page, at the specified coordinates, with
-	/// the specified size. If the image aspect ratio does not match the specified area,
-	/// then the preserveAspectRatio attribute will determine how the image is scaled/sliced
-	/// to fit.
-	/// </summary>
 	public class Image : IDrawableElement {
 
 		public string? ID { get; }
@@ -358,6 +352,12 @@ namespace SharpSheets.Markup.Elements {
 			this.preserveAspectRatio = _preserveAspectRatio;
 		}
 
+		/// <summary>
+		/// This element draws an image to the page, at the specified coordinates, with
+		/// the specified size. If the image aspect ratio does not match the specified area,
+		/// then the preserveAspectRatio attribute will determine how the image is scaled/sliced
+		/// to fit.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="x">The x coordinate for the image.</param>
@@ -438,11 +438,6 @@ namespace SharpSheets.Markup.Elements {
 
 	#endregion
 
-	/// <summary>
-	/// This element can be used to change the way in which the canvas of a <see cref="DivElement"/>
-	/// is rescaled, to avoid distorting certain parts of the area. If x and y values are provided,
-	/// these will override the border values.
-	/// </summary>
 	public class SlicingValuesElement : IIdentifiableMarkupElement {
 		public string? ID { get; }
 
@@ -467,6 +462,11 @@ namespace SharpSheets.Markup.Elements {
 			this.NSliceValues = new NSliceValuesExpression(finalXs, finalYs, markupContext.TypeSystem);
 		}
 
+		/// <summary>
+		/// This element can be used to change the way in which the canvas of a <see cref="DivElement"/>
+		/// is rescaled, to avoid distorting certain parts of the area. If x and y values are provided,
+		/// these will override the border values.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="xs">A series of x-coordinates for the dividing lines
 		/// for the slices. These will override the x-coordinates of any margins given for

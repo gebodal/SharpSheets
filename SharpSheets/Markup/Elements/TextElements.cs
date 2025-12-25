@@ -57,10 +57,6 @@ namespace SharpSheets.Markup.Elements {
 
 	}
 
-	/// <summary>
-	/// This element renders text, either directly, or from &lt;tspan&gt; and &lt;textPath&gt;
-	/// children.
-	/// </summary>
 	public class Text : IDrawableElement {
 
 		public string? ID { get; }
@@ -84,6 +80,10 @@ namespace SharpSheets.Markup.Elements {
 			this.textContent = textContent.ToArray();
 		}
 
+		/// <summary>
+		/// This element renders text, either directly, or from &lt;tspan&gt; and &lt;textPath&gt;
+		/// children.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="x">The x coordinate for the starting point of the text baseline.</param>
@@ -233,11 +233,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// This element renders text inside a rectangular area, either directly, or from &lt;tspan&gt;
-	/// children. The text can be dynamically resized to fit the available area, or drawn with
-	/// a fixed font size. The justification and alignment of the text can also be specified.
-	/// </summary>
 	public class TextRect : IDrawableElement {
 
 		public string? ID { get; }
@@ -283,6 +278,11 @@ namespace SharpSheets.Markup.Elements {
 			this.singleLine = _single_line;
 		}
 
+		/// <summary>
+		/// This element renders text inside a rectangular area, either directly, or from &lt;tspan&gt;
+		/// children. The text can be dynamically resized to fit the available area, or drawn with
+		/// a fixed font size. The justification and alignment of the text can also be specified.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="x">The x coordinate for the text area, corresponding
@@ -412,10 +412,6 @@ namespace SharpSheets.Markup.Elements {
 
 	public interface ITextPiece : IStyledElement { }
 
-	/// <summary>
-	/// A text span element, used to provide additional styling for a single text segment
-	/// within another text element.
-	/// </summary>
 	public class TSpan : ITextPiece {
 
 		public string? ID { get; }
@@ -440,6 +436,10 @@ namespace SharpSheets.Markup.Elements {
 			this.text = text;
 		}
 
+		/// <summary>
+		/// A text span element, used to provide additional styling for a single text segment
+		/// within another text element.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// /// <param name="x">The x coordinate for the starting point of the text baseline.</param>
@@ -498,9 +498,6 @@ namespace SharpSheets.Markup.Elements {
 		LOOP
 	}
 
-	/// <summary>
-	/// This element draws text along a specified path.
-	/// </summary>
 	public class TextPath : ITextPiece {
 
 		public string? ID { get; }
@@ -524,6 +521,9 @@ namespace SharpSheets.Markup.Elements {
 			this.spans = spans.ToArray();
 		}
 
+		/// <summary>
+		/// This element draws text along a specified path.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="path">A path along which the text should be rendered.</param>

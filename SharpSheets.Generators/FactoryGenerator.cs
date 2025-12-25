@@ -1955,7 +1955,7 @@ namespace SharpSheets.Documentation {{
 				string? typeXml = builderType.GetDocumentationCommentXml(preferredCulture: null, expandIncludes: true)?.Replace("\r\n", "\n");
 				string? methodXml = method.GetDocumentationCommentXml(preferredCulture: null, expandIncludes: true)?.Replace("\r\n", "\n");
 
-				SummaryComment? typeComment = DocCommentReader.FromSymbol(builderType, resolverData.Compilation);
+				//SummaryComment? typeComment = DocCommentReader.FromSymbol(builderType, resolverData.Compilation);
 				BuilderComment? methodComment = DocCommentReader.FromSymbol(method, resolverData.BuilderLookup, resolverData.ParserLookup, resolverData);
 
 				string concreteBuilderTypeMinimal = builder.ConcreteBuilderType.Type;
@@ -1973,7 +1973,7 @@ namespace SharpSheets.Documentation {{
 					declaringType: {SharpSheetsParameterResolver.DisplayTypeSimple(concreteBuilderTypeMinimal)}, // typeof({concreteBuilderTypeMinimal}),
 					name: {builder.Name.ToRepr()},
 					fullName: {builder.Name.ToRepr()},
-					description: {typeComment?.Summary ?? "null"},
+					description: {methodComment?.Summary ?? "null"},
 					size: {methodComment?.Size ?? "null"},
 					canvas: {methodComment?.Canvas ?? "null"},
 					arguments: [");

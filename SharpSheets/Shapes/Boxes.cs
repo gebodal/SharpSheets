@@ -5,10 +5,6 @@ using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {
 
-	/// <summary>
-	/// A box that draws no outline, but can optionally utilise a margin around the
-	/// edge when calculating the remaining area.
-	/// </summary>
 	public class NoOutline : BoxBase {
 
 		protected readonly Margins trim;
@@ -17,6 +13,10 @@ namespace SharpSheets.Shapes {
 			this.trim = trim;
 		}
 
+		/// <summary>
+		/// A box that draws no outline, but can optionally utilise a margin around the
+		/// edge when calculating the remaining area.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="trim">A margin around the inside of the shape area to trim
 		/// when calculating the remaining area.</param>
@@ -38,10 +38,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A box that simply draws a single line along the bottom edge, the color of which
-	/// may be specified. The line may also be offset from the edge of the shape area.
-	/// </summary>
 	public class UnderlineBox : BoxBase {
 
 		private readonly Color? stroke;
@@ -52,6 +48,10 @@ namespace SharpSheets.Shapes {
 			this.offset = offset;
 		}
 
+		/// <summary>
+		/// A box that simply draws a single line along the bottom edge, the color of which
+		/// may be specified. The line may also be offset from the edge of the shape area.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="stroke">The stroke color for the line.</param>
 		/// <param name="offset">A value by which to offset the start and end points
@@ -84,9 +84,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A simple rectangular box with a "shadow" towards the bottom right.
-	/// </summary>
 	public class ShadowedBox : BoxBase {
 
 		protected readonly float shadow;
@@ -95,6 +92,9 @@ namespace SharpSheets.Shapes {
 			this.shadow = shadow;
 		}
 
+		/// <summary>
+		/// A simple rectangular box with a "shadow" towards the bottom right.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="shadow">The length of the shadow, in points.</param>
 		[FactoryBuilder(typeof(IBox))]
@@ -137,9 +137,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A simple circular box with a "shadow" towards the bottom right.
-	/// </summary>
 	public class ShadowedCircle : BoxBase {
 
 		protected readonly float shadow;
@@ -148,6 +145,9 @@ namespace SharpSheets.Shapes {
 			this.shadow = shadow;
 		}
 
+		/// <summary>
+		/// A simple circular box with a "shadow" towards the bottom right.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="shadow">The length of the shadow, in points.</param>
 		[FactoryBuilder(typeof(IBox))]
@@ -195,11 +195,6 @@ namespace SharpSheets.Shapes {
 
 	#region Subsections
 
-	/// <summary>
-	/// A simple background box, consisting of a bevelled area filled with the
-	/// current midtone color, and a trim detail in the durrent background box
-	/// following the shape outline.
-	/// </summary>
 	public class SimpleBackground : BoxBase {
 
 		protected readonly float bevel;
@@ -208,6 +203,11 @@ namespace SharpSheets.Shapes {
 			this.bevel = bevel;
 		}
 
+		/// <summary>
+		/// A simple background box, consisting of a bevelled area filled with the
+		/// current midtone color, and a trim detail in the durrent background box
+		/// following the shape outline.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="bevel">The size of the margin for the remaining area,
 		/// which also dictates the size of the outline bevels.</param>

@@ -6,11 +6,6 @@ using SharpSheets.Parsing;
 
 namespace SharpSheets.Markup.Elements {
 
-	/// <summary>
-	/// This element creates a text field in the document at the specified location.
-	/// The properties of the text field may be set using the standard graphics
-	/// style parameters.
-	/// </summary>
 	public class TextField : IDrawableElement {
 		public string? ID { get; }
 		public StyleSheet StyleSheet { get; }
@@ -54,6 +49,11 @@ namespace SharpSheets.Markup.Elements {
 			this.maxLen = _max_len;
 		}
 
+		/// <summary>
+		/// This element creates a text field in the document at the specified location.
+		/// The properties of the text field may be set using the standard graphics
+		/// style parameters.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="x">The x-coordinate for the lower-left corner of the text field.</param>
@@ -121,11 +121,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// This element creates a check field in the document at the specified location.
-	/// The properties of the check field may be set using the standard graphics
-	/// style parameters.
-	/// </summary>
 	public class CheckField : IDrawableElement {
 		public string? ID { get; }
 		public StyleSheet StyleSheet { get; }
@@ -151,6 +146,11 @@ namespace SharpSheets.Markup.Elements {
 			this.checkType = _check_type;
 		}
 
+		/// <summary>
+		/// This element creates a check field in the document at the specified location.
+		/// The properties of the check field may be set using the standard graphics
+		/// style parameters.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="x">The x-coordinate for the lower-left corner of the check field.</param>
@@ -190,10 +190,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// This element creates an image field in the document at the specified location.
-	/// The image can be determined later, by the document user.
-	/// </summary>
 	public class ImageField : IDrawableElement {
 		public string? ID { get; }
 		public StyleSheet StyleSheet { get; }
@@ -217,6 +213,10 @@ namespace SharpSheets.Markup.Elements {
 			this.tooltip = _tooltip;
 		}
 
+		/// <summary>
+		/// This element creates an image field in the document at the specified location.
+		/// The image can be determined later, by the document user.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="x">The x-coordinate for the lower-left corner of the image field.</param>

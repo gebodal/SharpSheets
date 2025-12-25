@@ -16,39 +16,41 @@ namespace SharpSheets.Widgets {
 		protected override Rectangle GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) { return rect; }
 	}
 
+	public class Div : DivisionWidget {
+		public Div(WidgetSetup setup) : base(setup) { }
+
 	/// <summary>
 	/// The basic division widget, which simply arranges and draws its children, with no additional styling or graphics.
 	/// This widget will draw any gutter style specified, and obeys auto-sizing conventions normally.
 	/// </summary>
-	public class Div : DivisionWidget {
-		public Div(WidgetSetup setup) : base(setup) { }
-
 		/// <param name="setup"> Widget setup object. </param>
 		[FactoryBuilder(typeof(IWidget))]
 		public static Div Build(WidgetSetup setup) {
 			return new Div(setup);
 		}
 	}
+
+	public class Row : DivisionWidget {
+		public Row(WidgetSetup setup) : base(setup) { }
+
 	/// <summary>
 	/// This widget functions identically to the <see cref="Div"/> widget, and is simply included to allow more
 	/// clarity in configuration files (to display the intent for a widget in the arrangement).
 	/// </summary>
-	public class Row : DivisionWidget {
-		public Row(WidgetSetup setup) : base(setup) { }
-
 		/// <param name="setup"> Widget setup object. </param>
 		[FactoryBuilder(typeof(IWidget))]
 		public static Row Build(WidgetSetup setup) {
 			return new Row(setup);
 		}
 	}
+
+	public class Column : DivisionWidget {
+		public Column(WidgetSetup setup) : base(setup) { }
+
 	/// <summary>
 	/// This widget functions identically to the <see cref="Div"/> widget, and is simply included to allow more
 	/// clarity in configuration files (to display the intent for a widget in the arrangement).
 	/// </summary>
-	public class Column : DivisionWidget {
-		public Column(WidgetSetup setup) : base(setup) { }
-
 		/// <param name="setup"> Widget setup object. </param>
 		[FactoryBuilder(typeof(IWidget))]
 		public static Column Build(WidgetSetup setup) {
@@ -56,15 +58,15 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
+	public sealed class Empty : SharpWidget {
+		public Empty(WidgetSetup setup) : base(setup) { }
+
 	/// <summary>
 	/// This widget draws nothing to the page, and also does not draw any children (indeed,
 	/// this widget should not have any children).
 	/// It is included as a placeholder and null-widget, and to be used where at least
 	/// one child is required, but no drawing is desireable.
 	/// </summary>
-	public sealed class Empty : SharpWidget {
-		public Empty(WidgetSetup setup) : base(setup) { }
-
 		/// <param name="setup"> Widget setup object. </param>
 		[FactoryBuilder(typeof(IWidget))]
 		public static Empty Build(WidgetSetup setup) {
@@ -75,11 +77,6 @@ namespace SharpSheets.Widgets {
 		protected override Rectangle? GetContainerArea(ISharpGraphicsState graphicsState, Rectangle rect) { return null; }
 	}
 
-	/// <summary>
-	/// This widget is used for drawing a standard document section, with an outline and title which may be specified
-	/// by the user. If this widget has no children, it will draw a multiline text field in the remaining area
-	/// after its outline and title have been drawn (the details of this field may be adjusted using the widget parameters).
-	/// </summary>
 	public class Section : SharpWidget {
 
 		public class FieldDetails {
@@ -153,7 +150,9 @@ namespace SharpSheets.Widgets {
 		}
 
 		/// <summary>
-		/// Factory build method for <see cref="Section"/>.
+		/// This widget is used for drawing a standard document section, with an outline and title which may be specified
+		/// by the user. If this widget has no children, it will draw a multiline text field in the remaining area
+		/// after its outline and title have been drawn (the details of this field may be adjusted using the widget parameters).
 		/// </summary>
 		/// <param name="setup"> Widget setup object. </param>
 		/// <param name="name"> The name for this section, used for titles and field names. </param>
@@ -224,12 +223,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget is used for drawing a standard document box containing (by default) a single-line text field,
-	/// with an outline and title which may be specified by the user.
-	/// If this widget has no children, it will draw a single-line text field in the remaining area
-	/// after its outline and title have been drawn (the details of this field may be adjusted using the widget parameters).
-	/// </summary>
 	public class Box : SharpWidget {
 
 		public class FieldDetails {
@@ -291,6 +284,12 @@ namespace SharpSheets.Widgets {
 			this.fieldDetails = field ?? new FieldDetails();
 		}
 
+		/// <summary>
+		/// This widget is used for drawing a standard document box containing (by default) a single-line text field,
+		/// with an outline and title which may be specified by the user.
+		/// If this widget has no children, it will draw a single-line text field in the remaining area
+		/// after its outline and title have been drawn (the details of this field may be adjusted using the widget parameters).
+		/// </summary>
 		/// <param name="setup"> Widget setup object. </param>
 		/// <param name="name"> The name for this box, used for titles and field names. </param>
 		/// <param name="outline"> Outline style to place around this widget,
@@ -352,15 +351,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget can be used to draw any LabelledBox shape with a text label in the label area of that shape.
-	/// The label can be positioned within the label area, and it's parameters adjusted. Alternatively, a "content"
-	/// child may be used to replace the text label with some other specified widget content.
-	/// If the widget has no children, then a text field will be placed in the labelled box remaining area.
-	/// If the widget does have children, then these will be drawn in the remaining area instead.
-	/// If the labelled box style supports calculation of the full area from a content size, then this widget
-	/// will support auto-sizing based on any child widgets.
-	/// </summary>
 	public class Labelled : SharpWidget {
 
 		public class LabelParams {
@@ -475,6 +465,15 @@ namespace SharpSheets.Widgets {
 			this.content = content?.Child;
 		}
 
+		/// <summary>
+		/// This widget can be used to draw any LabelledBox shape with a text label in the label area of that shape.
+		/// The label can be positioned within the label area, and it's parameters adjusted. Alternatively, a "content"
+		/// child may be used to replace the text label with some other specified widget content.
+		/// If the widget has no children, then a text field will be placed in the labelled box remaining area.
+		/// If the widget does have children, then these will be drawn in the remaining area instead.
+		/// If the labelled box style supports calculation of the full area from a content size, then this widget
+		/// will support auto-sizing based on any child widgets.
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="outline">LabelledBox style to draw for this widget.
 		/// This shape will be used to calculate the remaining and label areas.
@@ -548,11 +547,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget is used to draw known text to the page, which may be dynamically resized to fit the available
-	/// space. The text can be positioned inside the available area, and formatted using either rich text, or with
-	/// the "format" parameter. The size of this widget can be dynamically inferred from either "fontsize" or "minfontsize".
-	/// </summary>
 	public class Text : SharpWidget {
 
 		public class ParagraphDataArgs {
@@ -647,6 +641,11 @@ namespace SharpSheets.Widgets {
 			this.singleline = singleline;
 		}
 
+		/// <summary>
+		/// This widget is used to draw known text to the page, which may be dynamically resized to fit the available
+		/// space. The text can be positioned inside the available area, and formatted using either rich text, or with
+		/// the "format" parameter. The size of this widget can be dynamically inferred from either "fontsize" or "minfontsize".
+		/// </summary>
 		/// <param name="setup"></param>
 		/// <param name="text">The text to be displayed in this widget, which can be formatted as rich text.
 		/// The provided entries will be treated as separate lines of text.
@@ -765,6 +764,7 @@ namespace SharpSheets.Widgets {
 			this.outline = outline;
 		}
 
+		/// <summary>  </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="outline">EntriedShape style to draw for this widget.
 		/// This shape will be used to calculate the available areas.
@@ -846,20 +846,6 @@ namespace SharpSheets.Widgets {
 
 	}
 
-	/// <summary>
-	/// This widget draws one or more bars in the document, arranged vertically. The spacing
-	/// and size of these bars can be specified, and if an absolute value is given for the bar
-	/// height, the size of the widget can be automatically calculated. It is also possible to
-	/// specify content for the label and entry areas of the bar in the form of named children
-	/// of this widget, however these children are not included in autosizing calculations.
-	/// Additionally, annotations may be placed on the label and entry areas of the bars as
-	/// labels and notes, whose parameters may be specified. By default, if no named children
-	/// are provided, the bar name is written as text in the bar label area, and a field (either
-	/// a text field or check field, depending on whether the check mark parameters have been
-	/// specified) is placed in the bar remaining area. The drawing order of the label and entry
-	/// contents can be controlled using the "order" property (in FORWARD order, the label is
-	/// drawn first).
-	/// </summary>
 	public class Bars : SharpWidget {
 
 		protected readonly IBar[] bars;
@@ -943,6 +929,20 @@ namespace SharpSheets.Widgets {
 			this.entry = entry?.Child;
 		}
 
+		/// <summary>
+		/// This widget draws one or more bars in the document, arranged vertically. The spacing
+		/// and size of these bars can be specified, and if an absolute value is given for the bar
+		/// height, the size of the widget can be automatically calculated. It is also possible to
+		/// specify content for the label and entry areas of the bar in the form of named children
+		/// of this widget, however these children are not included in autosizing calculations.
+		/// Additionally, annotations may be placed on the label and entry areas of the bars as
+		/// labels and notes, whose parameters may be specified. By default, if no named children
+		/// are provided, the bar name is written as text in the bar label area, and a field (either
+		/// a text field or check field, depending on whether the check mark parameters have been
+		/// specified) is placed in the bar remaining area. The drawing order of the label and entry
+		/// contents can be controlled using the "order" property (in FORWARD order, the label is
+		/// drawn first).
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="bar">Bar style to draw for this widget.
 		/// This shape will be used to calculate the label and entry areas.
@@ -1079,17 +1079,6 @@ namespace SharpSheets.Widgets {
 
 	}
 
-	/// <summary>
-	/// This widget draws one or more usage bars in the document, arranged vertically. The spacing
-	/// and size of these bars can be specified, and if an absolute value is given for the bar
-	/// height, the size of the widget can be automatically calculated. It is also possible to
-	/// specify content for the label and entry areas of the usage bar in the form of named children
-	/// of this widget, however these children are not included in autosizing calculations.
-	/// Additionally, annotations may be placed on the label and entry areas of the bars as
-	/// labels and notes, whose parameters may be specified. By default, if no named children
-	/// are provided, the bar name is written as text in the bar label area, and text fields
-	/// are placed in the bar entry areas.
-	/// </summary>
 	public class SlotsBars : SharpWidget {
 
 		protected readonly IUsageBar[] bars;
@@ -1160,6 +1149,17 @@ namespace SharpSheets.Widgets {
 			this.entry2 = entry2?.Child;
 		}
 
+		/// <summary>
+		/// This widget draws one or more usage bars in the document, arranged vertically. The spacing
+		/// and size of these bars can be specified, and if an absolute value is given for the bar
+		/// height, the size of the widget can be automatically calculated. It is also possible to
+		/// specify content for the label and entry areas of the usage bar in the form of named children
+		/// of this widget, however these children are not included in autosizing calculations.
+		/// Additionally, annotations may be placed on the label and entry areas of the bars as
+		/// labels and notes, whose parameters may be specified. By default, if no named children
+		/// are provided, the bar name is written as text in the bar label area, and text fields
+		/// are placed in the bar entry areas.
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="bar">UsageBar style to draw for this widget.
 		/// This shape will be used to calculate the label and entry areas.
@@ -1270,12 +1270,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget can be used to create a checklist, a vertically arranged list of text entries
-	/// with a check field for each entry. The outline, style, and position for the check fields can be adjusted,
-	/// and the format and positioning of the text can be specified. The check marks will be vertically positioned 
-	/// in the centre of each row, and the text can be positioned relative to the row area.
-	/// </summary>
 	public class CheckList : SharpWidget {
 
 		// TODO Would be good if this widget could accomodate multi-line text entries, with an appropriately placed check field
@@ -1352,6 +1346,12 @@ namespace SharpSheets.Widgets {
 			this.checkColor = checkColor;
 		}
 
+		/// <summary>
+		/// This widget can be used to create a checklist, a vertically arranged list of text entries
+		/// with a check field for each entry. The outline, style, and position for the check fields can be adjusted,
+		/// and the format and positioning of the text can be specified. The check marks will be vertically positioned 
+		/// in the centre of each row, and the text can be positioned relative to the row area.
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="list">The list of text entries to be included.
 		/// The number of entries dictates the number of lines, and number of check fields.
@@ -1453,9 +1453,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget creates a text field in document, whose parameters and default value can be specified.
-	/// </summary>
 	public class Field : SharpWidget {
 
 		protected readonly string? name;
@@ -1505,6 +1502,9 @@ namespace SharpSheets.Widgets {
 			this.type = type;
 		}
 
+		/// <summary>
+		/// This widget creates a text field in document, whose parameters and default value can be specified.
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">The name for this text field.</param>
 		/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
@@ -1576,9 +1576,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget creates a check field in the document, whose style and parameters can be specified.
-	/// </summary>
 	public class CheckField : SharpWidget {
 
 		protected readonly string? name;
@@ -1607,6 +1604,9 @@ namespace SharpSheets.Widgets {
 			this.color = color;
 		}
 
+		/// <summary>
+		/// This widget creates a check field in the document, whose style and parameters can be specified.
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">The name for this check field.</param>
 		/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
@@ -1641,9 +1641,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget creates an image field in the document, which may have a default image and aspect ratio specified.
-	/// </summary>
 	public class ImageField : SharpWidget {
 
 		protected readonly string? name;
@@ -1667,6 +1664,9 @@ namespace SharpSheets.Widgets {
 			this.aspect = aspect;
 		}
 
+		/// <summary>
+		/// This widget creates an image field in the document, which may have a default image and aspect ratio specified.
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">The name for this image field.</param>
 		/// <param name="tooltip">Tooltip string to use for the field, which can be used to provide additional
@@ -1698,11 +1698,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget creates an area with an annotated field at the top. If the
-	/// widget has no children, then the remaining area will be filled with a
-	/// text field.
-	/// </summary>
 	public class TopEntry : SharpWidget {
 
 		protected readonly string? name;
@@ -1740,6 +1735,11 @@ namespace SharpSheets.Widgets {
 			this.headerSpacing = spacing ?? (fontSize * 0.5f);
 		}
 
+		/// <summary>
+		/// This widget creates an area with an annotated field at the top. If the
+		/// widget has no children, then the remaining area will be filled with a
+		/// text field.
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">The name for this widget, which will be used as
 		/// the basis of the field names (but will not be drawn).</param>
@@ -1812,14 +1812,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget divides the available area into a series of subdivisions, in a number of rows and columns,
-	/// with an outline around each subdivision. Each column may optionally have a title, the format of which can be specified.
-	/// The relative widths of columns can also be specified. Each subdivision contains a text field, or optionally some defined
-	/// content. The number of columns will be the maximum length of "columns" or "widths", or the maximum content number
-	/// specified, with missing column names being empty, and missing widths being set to 1 relative unit. If an absolute
-	/// row height is specified, then the widget's size can be "auto", as a full height may be calculated.
-	/// </summary>
 	public class Subdivided : SharpWidget {
 
 		// TODO There should also be a "header" grouped argument, which should include color
@@ -1965,6 +1957,14 @@ namespace SharpSheets.Widgets {
 			this.boxStyle = division ?? new NoOutline(-1f, trim: Margins.Zero);
 		}
 
+		/// <summary>
+		/// This widget divides the available area into a series of subdivisions, in a number of rows and columns,
+		/// with an outline around each subdivision. Each column may optionally have a title, the format of which can be specified.
+		/// The relative widths of columns can also be specified. Each subdivision contains a text field, or optionally some defined
+		/// content. The number of columns will be the maximum length of "columns" or "widths", or the maximum content number
+		/// specified, with missing column names being empty, and missing widths being set to 1 relative unit. If an absolute
+		/// row height is specified, then the widget's size can be "auto", as a full height may be calculated.
+		/// </summary>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">A base name to use when naming the subdivision text fields.</param>
 		/// <param name="columns">A list of names for the columns.</param>
@@ -2157,11 +2157,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget draws a specified content multiple times in a grid layout, with a specified number of rows and columns.
-	/// The repeated content will be drawn on a two-dimensional, rectangular grid, with equal-sized elements.
-	/// Gutter details may be drawn in between the repeated elements, if desired.
-	/// </summary>
 	public class Repeat : SharpWidget {
 
 		protected readonly Div? content;
@@ -2200,6 +2195,11 @@ namespace SharpSheets.Widgets {
 			this.gutterLayout = gutterLayout;
 		}
 
+		/// <summary>
+		/// This widget draws a specified content multiple times in a grid layout, with a specified number of rows and columns.
+		/// The repeated content will be drawn on a two-dimensional, rectangular grid, with equal-sized elements.
+		/// Gutter details may be drawn in between the repeated elements, if desired.
+		/// </summary>
 		/// <param name="buildErrors">Build errors list.</param>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="name">A name to be appended to all child form fields, to distinguish between repeated fields.</param>
@@ -2294,12 +2294,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget draws its children in a grid layout, with a specified number of rows and columns.
-	/// The children will be drawn on a two-dimensional, rectangular grid, with equal-sized elements.
-	/// Gutter details may be drawn in between the repeated elements, if desired.
-	/// There may be fewer children than grid spaces, in which case the excess spaces will be left blank.
-	/// </summary>
 	public class Grid : SharpWidget {
 
 		/// <summary>
@@ -2352,6 +2346,12 @@ namespace SharpSheets.Widgets {
 			this.gutterLayout = gutterLayout;
 		}
 
+		/// <summary>
+		/// This widget draws its children in a grid layout, with a specified number of rows and columns.
+		/// The children will be drawn on a two-dimensional, rectangular grid, with equal-sized elements.
+		/// Gutter details may be drawn in between the repeated elements, if desired.
+		/// There may be fewer children than grid spaces, in which case the excess spaces will be left blank.
+		/// </summary>
 		/// <param name="buildErrors">Build errors list.</param>
 		/// <param name="setup">Widget setup data.</param>
 		/// <param name="rows">The number of grid rows for this widget's children.</param>
@@ -2410,10 +2410,6 @@ namespace SharpSheets.Widgets {
 		}
 	}
 
-	/// <summary>
-	/// This widget draws an image, taken from an image file, to the document, within the available area,
-	/// with the option of specifying an aspect ratio for the drawn image.
-	/// </summary>
 	public class Image : SharpWidget {
 
 		protected readonly CanvasImageData filename;
@@ -2430,7 +2426,8 @@ namespace SharpSheets.Widgets {
 		}
 
 		/// <summary>
-		/// 
+		/// This widget draws an image, taken from an image file, to the document, within the available area,
+		/// with the option of specifying an aspect ratio for the drawn image.
 		/// </summary>
 		/// <param name="buildErrors">Build error list.</param>
 		/// <param name="setup">Widget setup data.</param>

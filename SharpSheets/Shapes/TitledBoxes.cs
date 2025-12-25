@@ -28,13 +28,6 @@ namespace SharpSheets.Shapes {
 		WEST
 	}
 
-	/// <summary>
-	/// This box draws a rectangle around the shape area, with a larger block along one edge
-	/// in which to draw the title text. By default, the outline will be drawn using the
-	/// current foreground color, and filled with the current background color (which will
-	/// also be used for the title text color). All of these may be altered, and the title
-	/// positioning, fontsize, and arrangement can be controlled.
-	/// </summary>
 	public class BlockTitledBox : TitledBoxBase {
 
 		protected readonly TitlePosition position;
@@ -88,6 +81,13 @@ namespace SharpSheets.Shapes {
 			this.richParts = this.parts.Select(p => RichString.Create(p, format)).ToArray();
 		}
 
+		/// <summary>
+		/// This box draws a rectangle around the shape area, with a larger block along one edge
+		/// in which to draw the title text. By default, the outline will be drawn using the
+		/// current foreground color, and filled with the current background color (which will
+		/// also be used for the title text color). All of these may be altered, and the title
+		/// positioning, fontsize, and arrangement can be controlled.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio.</param>
 		/// <param name="name">Title text.</param>
 		/// <param name="fontSize">Font size at which to draw the title text.</param>

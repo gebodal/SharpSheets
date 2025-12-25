@@ -29,6 +29,7 @@ namespace SharpSheets.Shapes {
 			this.trim = trim ?? Margins.Zero;
 		}
 
+		/// <summary>  </summary>
 		/// <param name="aspect"></param>
 		/// <param name="sizes"></param>
 		/// <param name="layout"></param>

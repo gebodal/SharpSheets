@@ -7,9 +7,6 @@ using SharpSheets.Parsing;
 
 namespace SharpSheets.Markup.Elements {
 
-	/// <summary>
-	/// This element draws a circle at a specified location with a specific radius.
-	/// </summary>
 	public class Circle : ShapeElement {
 		readonly DrawPointExpression centre;
 		readonly FloatExpression radius;
@@ -20,6 +17,9 @@ namespace SharpSheets.Markup.Elements {
 			this.radius = _r;
 		}
 
+		/// <summary>
+		/// This element draws a circle at a specified location with a specific radius.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="cx">The x coordinate of the circle centre.</param>
@@ -46,9 +46,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// This element draws an ellipse at a specified location with specific x and y radii.
-	/// </summary>
 	public class Ellipse : ShapeElement {
 		readonly DrawPointExpression centre;
 		readonly FloatExpression rx;
@@ -61,6 +58,9 @@ namespace SharpSheets.Markup.Elements {
 			this.ry = _ry;
 		}
 
+		/// <summary>
+		/// This element draws an ellipse at a specified location with specific x and y radii.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="cx">The x coordinate of the ellipse centre.</param>
@@ -98,9 +98,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// This element draws a straight line between two points.
-	/// </summary>
 	public class Line : ShapeElement {
 		protected override bool CanFill { get; } = false;
 
@@ -113,6 +110,9 @@ namespace SharpSheets.Markup.Elements {
 			this.point2 = new DrawPointExpression(_x2, _y2);
 		}
 
+		/// <summary>
+		/// This element draws a straight line between two points.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="x1">The x coordinate of the start point.</param>
@@ -141,10 +141,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// This element draws a closed shape, made of a series of straight line segments.
-	/// The last point will be connected to the first point.
-	/// </summary>
 	public class Polygon : ShapeElement {
 		readonly DrawPointExpression[] points;
 
@@ -152,6 +148,10 @@ namespace SharpSheets.Markup.Elements {
 			this.points = _points;
 		}
 
+		/// <summary>
+		/// This element draws a closed shape, made of a series of straight line segments.
+		/// The last point will be connected to the first point.
+		/// </summary>
 		/// <param name="_id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="points">A series of x,y coordinates for the
@@ -182,9 +182,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// This element draws a series of connected straight lines.
-	/// </summary>
 	public class Polyline : ShapeElement {
 		readonly DrawPointExpression[] points;
 
@@ -192,6 +189,9 @@ namespace SharpSheets.Markup.Elements {
 			this.points = _points;
 		}
 
+		/// <summary>
+		/// This element draws a series of connected straight lines.
+		/// </summary>
 		/// <param name="_id" default="null">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="points" default="null">A series of x,y coordinates for the
@@ -221,10 +221,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// This element draws a rectangle, defined by a position for the lower-left corner,
-	/// a width, and a height. The rectangle may have rounded corners.
-	/// </summary>
 	public class Rect : ShapeElement {
 		readonly DrawPointExpression position;
 		readonly FloatExpression width;
@@ -241,6 +237,10 @@ namespace SharpSheets.Markup.Elements {
 			this.ry = _ry;
 		}
 
+		/// <summary>
+		/// This element draws a rectangle, defined by a position for the lower-left corner,
+		/// a width, and a height. The rectangle may have rounded corners.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="styleSheet">StyleSheet for this element.</param>
 		/// <param name="x">The x-coordinate of the lower-left corner of the rectangle.</param>

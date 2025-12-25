@@ -7,13 +7,7 @@ using SharpSheets.Utilities;
 using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {
-
-	/// <summary>
-	/// A simple usage bar style, using connected rectangular outlines for the
-	/// entry and label areas. The entry areas can be emphasised, and the bar can
-	/// be flipped horizontally. The width of the entry areas is determined by the
-	/// height of the bar and the emphasis, if any.
-	/// </summary>
+	
 	public class SimpleUsageBar : UsageBarBase {
 
 		protected readonly bool flip;
@@ -26,6 +20,12 @@ namespace SharpSheets.Shapes {
 			this.includeEmphasis = includeEmphasis;
 		}
 
+		/// <summary>
+		/// A simple usage bar style, using connected rectangular outlines for the
+		/// entry and label areas. The entry areas can be emphasised, and the bar can
+		/// be flipped horizontally. The width of the entry areas is determined by the
+		/// height of the bar and the emphasis, if any.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this bar.</param>
 		/// <param name="flip">Flag to indicate that the bar should be flipped horizontally.
 		/// By default, the label will be drawn on the right.</param>

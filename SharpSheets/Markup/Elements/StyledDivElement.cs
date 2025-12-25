@@ -276,20 +276,19 @@ namespace SharpSheets.Markup.Elements {
 
 	}
 
-	/// <summary>
-	/// This element draws a box style in its assigned area. The area is assigned
-	/// in the same way as a &lt;div&gt; element, and this element obeys all the same
-	/// rules for positioning and graphics state.
-	/// <para/>
-	/// The remaining area of the box may be painted using a &lt;remaining&gt; child
-	/// element.
-	/// </summary>
 	public class BoxStyledDivElement : StyledDivDrawRectElement<IBox> {
 
 		public BoxStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IBox?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
 			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
 
-
+		/// <summary>
+		/// This element draws a box style in its assigned area. The area is assigned
+		/// in the same way as a &lt;div&gt; element, and this element obeys all the same
+		/// rules for positioning and graphics state.
+		/// <para/>
+		/// The remaining area of the box may be painted using a &lt;remaining&gt; child
+		/// element.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
@@ -315,19 +314,19 @@ namespace SharpSheets.Markup.Elements {
 
 	}
 
-	/// <summary>
-	/// This element draws a labelled box style in its assigned area. The area is assigned
-	/// in the same way as a &lt;div&gt; element, and this element obeys all the same
-	/// rules for positioning and graphics state.
-	/// <para/>
-	/// The remaining area of the box may be painted using a &lt;remaining&gt; child
-	/// element, and the label using a &lt;label&gt; child element.
-	/// </summary>
 	public class LabelledBoxStyledDivElement : StyledDivDrawRectElement<ILabelledBox> {
 
 		public LabelledBoxStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<ILabelledBox?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
 			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
 
+		/// <summary>
+		/// This element draws a labelled box style in its assigned area. The area is assigned
+		/// in the same way as a &lt;div&gt; element, and this element obeys all the same
+		/// rules for positioning and graphics state.
+		/// <para/>
+		/// The remaining area of the box may be painted using a &lt;remaining&gt; child
+		/// element, and the label using a &lt;label&gt; child element.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
@@ -353,19 +352,19 @@ namespace SharpSheets.Markup.Elements {
 		
 	}
 
-	/// <summary>
-	/// This element draws a titled box style in its assigned area. The area is assigned
-	/// in the same way as a &lt;div&gt; element, and this element obeys all the same
-	/// rules for positioning and graphics state.
-	/// <para/>
-	/// The remaining area of the box may be painted using a &lt;remaining&gt; child
-	/// element.
-	/// </summary>
 	public class TitledBoxStyledDivElement : StyledDivDrawRectElement<ITitledBox> {
 
 		public TitledBoxStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<ITitledBox?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
 			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
 
+		/// <summary>
+		/// This element draws a titled box style in its assigned area. The area is assigned
+		/// in the same way as a &lt;div&gt; element, and this element obeys all the same
+		/// rules for positioning and graphics state.
+		/// <para/>
+		/// The remaining area of the box may be painted using a &lt;remaining&gt; child
+		/// element.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
@@ -391,14 +390,12 @@ namespace SharpSheets.Markup.Elements {
 		
 	}
 
-	/// <summary>
-	/// 
-	/// </summary>
 	public class EntriedShapeStyledDivElement : StyledDivDrawRectElement<IEntriedShape> {
 
 		public EntriedShapeStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IEntriedShape?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
 			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
 
+		/// <summary>  </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
@@ -424,19 +421,19 @@ namespace SharpSheets.Markup.Elements {
 
 	}
 
-	/// <summary>
-	/// This element draws a bar style in its assigned area. The area is assigned
-	/// in the same way as a &lt;div&gt; element, and this element obeys all the same
-	/// rules for positioning and graphics state.
-	/// <para/>
-	/// The remaining area of the bar may be painted using a &lt;remaining&gt; child
-	/// element, and the label using a &lt;label&gt; child element.
-	/// </summary>
 	public class BarStyledDivElement : StyledDivDrawRectElement<IBar> {
 
 		public BarStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IBar?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
 			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
 
+		/// <summary>
+		/// This element draws a bar style in its assigned area. The area is assigned
+		/// in the same way as a &lt;div&gt; element, and this element obeys all the same
+		/// rules for positioning and graphics state.
+		/// <para/>
+		/// The remaining area of the bar may be painted using a &lt;remaining&gt; child
+		/// element, and the label using a &lt;label&gt; child element.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
@@ -462,15 +459,6 @@ namespace SharpSheets.Markup.Elements {
 		
 	}
 
-	/// <summary>
-	/// This element draws a usage bar style in its assigned area. The area is assigned
-	/// in the same way as a &lt;div&gt; element, and this element obeys all the same
-	/// rules for positioning and graphics state.
-	/// <para/>
-	/// The label area of the bar may be painted using a &lt;label&gt; child
-	/// element, and the entry areas using &lt;entry1&gt; and &lt;entry2&gt;
-	/// child elements.
-	/// </summary>
 	public class LabelledUsageBarStyledDivElement : StyledDivDrawRectElement<IUsageBar> {
 
 		private readonly StringExpression? label1; // TODO TextExpression? IExpression<string>?
@@ -497,6 +485,15 @@ namespace SharpSheets.Markup.Elements {
 			this.noteDetails = note_;
 		}
 
+		/// <summary>
+		/// This element draws a usage bar style in its assigned area. The area is assigned
+		/// in the same way as a &lt;div&gt; element, and this element obeys all the same
+		/// rules for positioning and graphics state.
+		/// <para/>
+		/// The label area of the bar may be painted using a &lt;label&gt; child
+		/// element, and the entry areas using &lt;entry1&gt; and &lt;entry2&gt;
+		/// child elements.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
@@ -542,13 +539,6 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
-	/// <summary>
-	/// This element draws a detail style in its assigned area. The area is assigned
-	/// in the same way as a &lt;div&gt; element, and this element obeys all the same
-	/// rules for positioning and graphics state.
-	/// <para/>
-	/// This styled element has no named areas where content can be drawn.
-	/// </summary>
 	public class DetailStyledDivElement : StyledDivElement<IDetail> {
 
 		private readonly EnumExpression<LayoutDirection> detailLayout;
@@ -559,6 +549,13 @@ namespace SharpSheets.Markup.Elements {
 			this.detailLayout = detailLayout;
 		}
 
+		/// <summary>
+		/// This element draws a detail style in its assigned area. The area is assigned
+		/// in the same way as a &lt;div&gt; element, and this element obeys all the same
+		/// rules for positioning and graphics state.
+		/// <para/>
+		/// This styled element has no named areas where content can be drawn.
+		/// </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>

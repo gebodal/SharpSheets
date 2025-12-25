@@ -11,9 +11,6 @@ using SharpSheets.Evaluations.Types;
 
 namespace SharpSheets.Markup.Elements {
 
-	/// <summary>
-	/// 
-	/// </summary>
 	public class ChildDivElement : DivElement {
 
 		public readonly IExpression<IWidget?>? href;
@@ -24,6 +21,7 @@ namespace SharpSheets.Markup.Elements {
 			this.href = _href;
 		}
 
+		/// <summary>  </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="href">The widget to use as the content for this element.</param>

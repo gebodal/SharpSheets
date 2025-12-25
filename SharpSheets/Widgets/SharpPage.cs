@@ -77,13 +77,6 @@ namespace SharpSheets.Widgets {
 		COVER
 	}
 
-	/// <summary>
-	/// This widget represents an entire page of a SharpSheets document, and hence should only appear
-	/// at the base level of the configuration file. The current background color will be used
-	/// as the background color for the whole page, or optionally an image can be provided as a background,
-	/// with the option to stretch that image to fit the entire page area. Additionally, page size and page
-	/// margins can be specified, along with an option to convert standard page sizes to landscape.
-	/// </summary>
 	public sealed class Page : SharpWidget {
 
 		public override bool ProvidesRemaining { get; } = true;
@@ -126,6 +119,13 @@ namespace SharpSheets.Widgets {
 			this.Repeat = repeat; // TODO Should really throw an error if zero
 		}
 
+		/// <summary>
+		/// This widget represents an entire page of a SharpSheets document, and hence should only appear
+		/// at the base level of the configuration file. The current background color will be used
+		/// as the background color for the whole page, or optionally an image can be provided as a background,
+		/// with the option to stretch that image to fit the entire page area. Additionally, page size and page
+		/// margins can be specified, along with an option to convert standard page sizes to landscape.
+		/// </summary>
 		/// <param name="setup">Widget setup for SharpPage.</param>
 		/// <param name="paper">Paper size to use for the page. A variety of common paper size options are available,
 		/// such as "A4" or "letter", or alternatively a size may be specified explicitly (as in "20 x 20 cm").</param>

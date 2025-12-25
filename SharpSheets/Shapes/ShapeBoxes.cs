@@ -6,10 +6,6 @@ using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {
 
-	/// <summary>
-	/// A heraldic shield style outline, with a pointed top and cutaway corners.
-	/// An inner outline may also be drawn, and the fill and stroke colors specified.
-	/// </summary>
 	public class EaredShield : ShapeBox {
 
 		protected readonly float? bevel;
@@ -18,6 +14,10 @@ namespace SharpSheets.Shapes {
 			this.bevel = bevel?.Value;
 		}
 
+		/// <summary>
+		/// A heraldic shield style outline, with a pointed top and cutaway corners.
+		/// An inner outline may also be drawn, and the fill and stroke colors specified.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="stroke">The stroke color for the outline. If no value is provided,
 		/// the current foreground color will be used.</param>
@@ -102,10 +102,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A heraldic shield style outline, with a rounder profile and cutaway corners.
-	/// An inner outline may also be drawn, and the fill and stroke colors specified.
-	/// </summary>
 	public class BadgeShield : ShapeBox {
 
 		protected readonly float? bevel;
@@ -114,6 +110,10 @@ namespace SharpSheets.Shapes {
 			this.bevel = bevel;
 		}
 
+		/// <summary>
+		/// A heraldic shield style outline, with a rounder profile and cutaway corners.
+		/// An inner outline may also be drawn, and the fill and stroke colors specified.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="stroke">The stroke color for the outline. If no value is provided,
 		/// the current foreground color will be used.</param>
@@ -198,11 +198,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A heraldic shield style outline, with a pointed bottom, and two cutaway
-	/// curves along the top edge. An inner outline may also be drawn, and the
-	/// fill and stroke colors specified.
-	/// </summary>
 	public class EngrailedShield : ShapeBox {
 
 		protected readonly float? bevel;
@@ -211,6 +206,11 @@ namespace SharpSheets.Shapes {
 			this.bevel = bevel;
 		}
 
+		/// <summary>
+		/// A heraldic shield style outline, with a pointed bottom, and two cutaway
+		/// curves along the top edge. An inner outline may also be drawn, and the
+		/// fill and stroke colors specified.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="stroke">The stroke color for the outline. If no value is provided,
 		/// the current foreground color will be used.</param>
@@ -281,14 +281,14 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A simple geometric heart outline, with two semi-circular curves at the top,
-	/// and a right-angled corner at the bottom.
-	/// </summary>
 	public class Heart : ShapeBox {
 
 		public Heart(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f) : base(aspect, stroke, fill, dashes, dashOffset, Margins.Zero) { }
 
+		/// <summary>
+		/// A simple geometric heart outline, with two semi-circular curves at the top,
+		/// and a right-angled corner at the bottom.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="stroke">The stroke color for the outline. If no value is provided,
 		/// the current foreground color will be used.</param>
@@ -357,14 +357,13 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-
-	/// <summary>
-	/// An eye-shaped outline, with rounded corners at the sides.
-	/// </summary>
 	public class Eye : ShapeBox {
 
 		public Eye(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f) : base(aspect, stroke, fill, dashes, dashOffset, Margins.Zero) { }
 
+		/// <summary>
+		/// An eye-shaped outline, with rounded corners at the sides.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="stroke">The stroke color for the outline. If no value is provided,
 		/// the current foreground color will be used.</param>
@@ -407,10 +406,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// Scroll outline, with folds and curls at both sides. The resulting shape
-	/// is slightly randomized, to avoid uniformity on the page.
-	/// </summary>
 	public class Scroll : BoxBase {
 
 		protected readonly float bevel;
@@ -419,6 +414,10 @@ namespace SharpSheets.Shapes {
 			this.bevel = bevel;
 		}
 
+		/// <summary>
+		/// Scroll outline, with folds and curls at both sides. The resulting shape
+		/// is slightly randomized, to avoid uniformity on the page.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="bevel">A sizing parameter for the details of this outline.</param>
 		[FactoryBuilder(typeof(IBox))]
@@ -622,11 +621,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// Pennant outline, with folds and triangular cutouts at both sides.
-	/// The resulting shape is slightly randomized, to avoid uniformity
-	/// on the page.
-	/// </summary>
 	public class Pennant : BoxBase {
 
 		protected readonly float bevel;
@@ -635,6 +629,11 @@ namespace SharpSheets.Shapes {
 			this.bevel = bevel;
 		}
 
+		/// <summary>
+		/// Pennant outline, with folds and triangular cutouts at both sides.
+		/// The resulting shape is slightly randomized, to avoid uniformity
+		/// on the page.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="bevel">A sizing parameter for the details of this outline.</param>
 		/// <size>100 20</size>

@@ -5,24 +5,19 @@ using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {
 
-	/// <summary>
-	/// A detail that draws nothing to the page. A useful default.
-	/// </summary>
 	public class Blank : DetailBase {
 
 		public Blank() { }
 
+		/// <summary>
+		/// A detail that draws nothing to the page. A useful default.
+		/// </summary>
 		[FactoryBuilder(typeof(IDetail))]
 		public static Blank Build() { return new Blank(); }
 
 		public override void Draw(ISharpCanvas canvas, Rectangle rect, LayoutDirection layout) { }
 	}
 
-	/// <summary>
-	/// A detail that draws a centred line in the detail area, oriented appropriately
-	/// to the detail layout. The width and color of the line can be controlled separately,
-	/// and may be offset from the ends of the detail area.
-	/// </summary>
 	public class LineDetail : DetailBase {
 
 		protected readonly float offset;
@@ -35,6 +30,11 @@ namespace SharpSheets.Shapes {
 			this.color = color;
 		}
 
+		/// <summary>
+		/// A detail that draws a centred line in the detail area, oriented appropriately
+		/// to the detail layout. The width and color of the line can be controlled separately,
+		/// and may be offset from the ends of the detail area.
+		/// </summary>
 		/// <param name="offset">An offset for the start and end of the line from the ends
 		/// of the detail area.</param>
 		/// <param name="width">The linewidth for the detail line. If no value is provided,
@@ -69,9 +69,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A detail that fills the detail area with a block color.
-	/// </summary>
 	public class FilledDetail : DetailBase {
 
 		protected readonly Color? color;
@@ -80,6 +77,9 @@ namespace SharpSheets.Shapes {
 			this.color = color;
 		}
 
+		/// <summary>
+		/// A detail that fills the detail area with a block color.
+		/// </summary>
 		/// <param name="color">The color to fill the detail area with. If no
 		/// value is provided, the current midtone color will be used.</param>
 		[FactoryBuilder(typeof(IDetail))]

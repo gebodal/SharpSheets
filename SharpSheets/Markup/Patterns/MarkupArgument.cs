@@ -33,9 +33,6 @@ namespace SharpSheets.Markup.Patterns {
 		NUMBERED
 	}
 
-	/// <summary>
-	/// This element represents a single Markup argument.
-	/// </summary>
 	public class MarkupSingleArgument : IMarkupArgument, IMarkupElement {
 
 		public virtual EvaluationName ArgumentName { get; }
@@ -79,6 +76,9 @@ namespace SharpSheets.Markup.Patterns {
 			ArgumentFormat = _format;
 		}
 
+		/// <summary>
+		/// This element represents a single Markup argument.
+		/// </summary>
 		/// <param name="name">The name for this argument. This name will be visible to
 		/// the user, and by default will also be the variable name for this argument
 		/// in the Markup, unless the <paramref name="variable"/> attribute is specified.</param>
@@ -124,9 +124,6 @@ namespace SharpSheets.Markup.Patterns {
 		}
 	}
 
-	/// <summary>
-	/// This element represents a group of Markup arguments.
-	/// </summary>
 	public class MarkupGroupArgument : IMarkupArgument, IMarkupElement {
 		public EvaluationName ArgumentName { get; }
 		private readonly EvaluationName? variableName;
@@ -147,6 +144,9 @@ namespace SharpSheets.Markup.Patterns {
 			Type = type; // MakeGroupType(VariableName.ToString(), Args);
 		}
 
+		/// <summary>
+		/// This element represents a group of Markup arguments.
+		/// </summary>
 		/// <param name="name">The name for this argument group. This name will be visible to
 		/// the user, and by default will also be the variable name for this argument group
 		/// in the Markup, unless the <paramref name="variable"/> attribute is specified.</param>
@@ -170,11 +170,6 @@ namespace SharpSheets.Markup.Patterns {
 		}
 	}
 
-	/// <summary>
-	/// This element represents a validation test for a Markup pattern's arguments.
-	/// If the provided test returns false, then an error message will be displayed
-	/// to the user.
-	/// </summary>
 	public class MarkupValidation : IMarkupElement {
 
 		public BoolExpression Test { get; }
@@ -189,6 +184,11 @@ namespace SharpSheets.Markup.Patterns {
 			Message = _message;
 		}
 
+		/// <summary>
+		/// This element represents a validation test for a Markup pattern's arguments.
+		/// If the provided test returns false, then an error message will be displayed
+		/// to the user.
+		/// </summary>
 		/// <param name="test">A test to be run on one or more of the pattern argument values.
 		/// An error message will be displayed if this expression evaluates to false.</param>
 		/// <param name="message">A message to be displayed to the user if the test evaluates to

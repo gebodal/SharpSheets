@@ -6,14 +6,14 @@ using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {
 
-	/// <summary>
-	/// This style will draw no title around the box, and will not affect the remaining
-	/// area of the shape.
-	/// </summary>
 	public class Untitled : TitleStyledBoxBase {
 
 		public Untitled(IContainerShape box, string name) : base(box, name, TextFormat.REGULAR, 0f, default, 0f, null) { }
 
+		/// <summary>
+		/// This style will draw no title around the box, and will not affect the remaining
+		/// area of the shape.
+		/// </summary>
 		/// <param name="box">Base shape.</param>
 		/// <param name="name">Title text.</param>
 		[FactoryBuilder(typeof(ITitleStyledBox))]
@@ -93,17 +93,17 @@ namespace SharpSheets.Shapes {
 
 	}
 
-	/// <summary>
-	/// This style will draw the title text inside the shape outline, adjusting the remaining
-	/// area appropriately. The position of the title text can be set and adjusted, along with the
-	/// title text, font format, and size. The position of the title text is specified relative
-	/// to the whole shape area, not the remaining area, and as such the offset may need to be
-	/// adjusted for individual outline styles.
-	/// </summary>
 	public class Named : AbstractPositionedTitleStyle {
 
 		public Named(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 3f), spacing, color, justification, lineSpacing, heightStrategy) { }
 
+		/// <summary>
+		/// This style will draw the title text inside the shape outline, adjusting the remaining
+		/// area appropriately. The position of the title text can be set and adjusted, along with the
+		/// title text, font format, and size. The position of the title text is specified relative
+		/// to the whole shape area, not the remaining area, and as such the offset may need to be
+		/// adjusted for individual outline styles.
+		/// </summary>
 		/// <param name="box">Base shape.</param>
 		/// <param name="name">Title text.</param>
 		/// <param name="position">The position of the title text around the inside of the shape
@@ -165,18 +165,18 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// This style will draw the title text outside the shape outline, adjusting the available
-	/// outline area within the full shape area appropriately. The position of the title text
-	/// can be set and adjusted, along with the title text, font format, and size. The position of
-	/// the title text is specified relative to the full shape area, and as such the offset may
-	/// need a zero value on at least one axis in order for the title to be drawn at the edge
-	/// of the shape area.
-	/// </summary>
 	public class Titled : AbstractPositionedTitleStyle {
 
 		public Titled(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 0f), spacing, color, justification, lineSpacing, heightStrategy) { }
 
+		/// <summary>
+		/// This style will draw the title text outside the shape outline, adjusting the available
+		/// outline area within the full shape area appropriately. The position of the title text
+		/// can be set and adjusted, along with the title text, font format, and size. The position of
+		/// the title text is specified relative to the full shape area, and as such the offset may
+		/// need a zero value on at least one axis in order for the title to be drawn at the edge
+		/// of the shape area.
+		/// </summary>
 		/// <param name="box">Base shape.</param>
 		/// <param name="name">Title text.</param>
 		/// <param name="position">The position of the title text around the outside of the shape
@@ -246,15 +246,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// This style will draw the title text outside the shape outline, inside its own shape
-	/// outline. The available outline area (i.e. that used for the actual outline style being
-	/// drawn for the main shape) within the full shape area will be adjusted appropriately.
-	/// The position of the title box can set and adjusted, along with the title text font format
-	/// and size, and positioning within the title box. The position of the title box is specified
-	/// relative to the full shape area, and as such the offset may need a zero value on at least
-	/// one axis in order for the title to be drawn at the edge of the shape area.
-	/// </summary>
 	public class BoxedTitle : AbstractPositionedTitleStyle {
 
 		protected readonly IBox outline;
@@ -265,6 +256,15 @@ namespace SharpSheets.Shapes {
 			this.trim = trim;
 		}
 
+		/// <summary>
+		/// This style will draw the title text outside the shape outline, inside its own shape
+		/// outline. The available outline area (i.e. that used for the actual outline style being
+		/// drawn for the main shape) within the full shape area will be adjusted appropriately.
+		/// The position of the title box can set and adjusted, along with the title text font format
+		/// and size, and positioning within the title box. The position of the title box is specified
+		/// relative to the full shape area, and as such the offset may need a zero value on at least
+		/// one axis in order for the title to be drawn at the edge of the shape area.
+		/// </summary>
 		/// <param name="box">Base shape.</param>
 		/// <param name="name">Title text.</param>
 		/// <param name="box_">The box style to draw around the title text. This style must support
@@ -357,15 +357,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// This style will draw the title text outside of the shape outline, inside its own tab
-	/// outline that is drawn connected to the main outline. The tab shape will be draw "behind"
-	/// the main outline, and continued such that the tab appears to "protrude" from behind the
-	/// main shape. The main outline area can either be left as is, or repositioned to allow for
-	/// the size of the tab. The tab position is specified as a cardinal direction relative to
-	/// the main shape area. The position of the tab can be adjusted, and the layout of the title
-	/// text inside the tab specified. 
-	/// </summary>
 	public class TabTitle : TitleStyledBoxBase {
 
 		protected readonly IBox tabBox;
@@ -406,6 +397,15 @@ namespace SharpSheets.Shapes {
 			this.richParts = this.parts.Select(p => RichString.Create(p, format)).ToArray();
 		}
 
+		/// <summary>
+		/// This style will draw the title text outside of the shape outline, inside its own tab
+		/// outline that is drawn connected to the main outline. The tab shape will be draw "behind"
+		/// the main outline, and continued such that the tab appears to "protrude" from behind the
+		/// main shape. The main outline area can either be left as is, or repositioned to allow for
+		/// the size of the tab. The tab position is specified as a cardinal direction relative to
+		/// the main shape area. The position of the tab can be adjusted, and the layout of the title
+		/// text inside the tab specified. 
+		/// </summary>
 		/// <param name="box">Base shape.</param>
 		/// <param name="name">Title text.</param>
 		/// <param name="tabBox">The box style to draw around the title tab.

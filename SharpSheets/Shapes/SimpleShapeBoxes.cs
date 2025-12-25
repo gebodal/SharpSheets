@@ -54,14 +54,14 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A simple rectangular box. The fill and stroke colors may be specified, an internal padding
-	/// specified for the remaining area, and the outline may be drawn using a dashed line.
-	/// </summary>
 	public class Simple : ShapeBox {
 
 		public Simple(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
 
+		/// <summary>
+		/// A simple rectangular box. The fill and stroke colors may be specified, an internal padding
+		/// specified for the remaining area, and the outline may be drawn using a dashed line.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="stroke">The stroke color for the outline. If no value is provided,
 		/// the current foreground color will be used.</param>
@@ -83,10 +83,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A simple bevelled rectangular box. The fill and stroke colors may be specified, an internal
-	/// padding specified for the remaining area, and the outline may be drawn using a dashed line.
-	/// </summary>
 	public class Bevelled : ShapeBox {
 
 		protected readonly float bevel;
@@ -95,6 +91,10 @@ namespace SharpSheets.Shapes {
 			this.bevel = bevel;
 		}
 
+		/// <summary>
+		/// A simple bevelled rectangular box. The fill and stroke colors may be specified, an internal
+		/// padding specified for the remaining area, and the outline may be drawn using a dashed line.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="bevel">The bevel size for the rectangle. If the bevel is larger
 		/// than min(width, height)/2, then the smaller value will be used.</param>
@@ -119,10 +119,6 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A simple rounded rectangular box. The fill and stroke colors may be specified, an internal
-	/// padding specified for the remaining area, and the outline may be drawn using a dashed line.
-	/// </summary>
 	public class Rounded : ShapeBox {
 
 		protected readonly float radius;
@@ -131,6 +127,10 @@ namespace SharpSheets.Shapes {
 			this.radius = radius;
 		}
 
+		/// <summary>
+		/// A simple rounded rectangular box. The fill and stroke colors may be specified, an internal
+		/// padding specified for the remaining area, and the outline may be drawn using a dashed line.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="radius">The corner radius for the rectangle. If the radius is larger
 		/// than min(width, height)/2, then the smaller value will be used.</param>
@@ -155,17 +155,17 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A simple tablet-shaped box, where the sortest sides are semi-circles, connected by straight
-	/// lines to form the longer sides. The fill and stroke colors may be specified, an internal
-	/// padding specified for the remaining area, and the outline may be drawn using a dashed line.
-	/// </summary>
 	public class Tablet : ShapeBox {
 
 		protected readonly float bevel;
 
 		public Tablet(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
 
+		/// <summary>
+		/// A simple tablet-shaped box, where the sortest sides are semi-circles, connected by straight
+		/// lines to form the longer sides. The fill and stroke colors may be specified, an internal
+		/// padding specified for the remaining area, and the outline may be drawn using a dashed line.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="stroke">The stroke color for the outline. If no value is provided,
 		/// the current foreground color will be used.</param>
@@ -187,15 +187,15 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A simple ellipse-shaped box. The fill and stroke colors may be specified, an internal
-	/// padding specified for the remaining area, and the outline may be drawn using a dashed
-	/// line.
-	/// </summary>
 	public class Ellipse : ShapeBox {
 
 		public Ellipse(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
 
+		/// <summary>
+		/// A simple ellipse-shaped box. The fill and stroke colors may be specified, an internal
+		/// padding specified for the remaining area, and the outline may be drawn using a dashed
+		/// line.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="stroke">The stroke color for the outline. If no value is provided,
 		/// the current foreground color will be used.</param>
@@ -217,16 +217,16 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A simple circle-shaped box. Any aspect provided will be applied to the initial shape
-	/// area, and then a circle will be drawn inside that area. The fill and stroke colors may
-	/// be specified, along with an internal padding specified for the remaining area, and the
-	/// outline may be drawn using a dashed line.
-	/// </summary>
 	public class Circle : Ellipse {
 
 		public Circle(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
 
+		/// <summary>
+		/// A simple circle-shaped box. Any aspect provided will be applied to the initial shape
+		/// area, and then a circle will be drawn inside that area. The fill and stroke colors may
+		/// be specified, along with an internal padding specified for the remaining area, and the
+		/// outline may be drawn using a dashed line.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="stroke">The stroke color for the outline. If no value is provided,
 		/// the current foreground color will be used.</param>
@@ -258,15 +258,15 @@ namespace SharpSheets.Shapes {
 		}
 	}
 
-	/// <summary>
-	/// A simple diamond-shaped box, where the midpoint of each side is connected by straight lines
-	/// to the two adjoining side midpoints. The fill and stroke colors may be specified, an internal
-	/// padding specified for the remaining area, and the outline may be drawn using a dashed line.
-	/// </summary>
 	public class Diamond : ShapeBox {
 
 		public Diamond(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
 
+		/// <summary>
+		/// A simple diamond-shaped box, where the midpoint of each side is connected by straight lines
+		/// to the two adjoining side midpoints. The fill and stroke colors may be specified, an internal
+		/// padding specified for the remaining area, and the outline may be drawn using a dashed line.
+		/// </summary>
 		/// <param name="aspect">Aspect ratio for this box.</param>
 		/// <param name="stroke">The stroke color for the outline. If no value is provided,
 		/// the current foreground color will be used.</param>
