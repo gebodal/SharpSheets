@@ -8,15 +8,17 @@ namespace SharpSheets.Shapes {
 	public abstract class ShapeBox : BoxBase {
 		protected readonly Color? stroke;
 		protected readonly Color? fill;
+		protected readonly float? strokeWidth;
 		protected readonly float[]? dashes;
 		protected readonly float dashOffset;
 		protected readonly Margins trim;
 
-		protected bool HasGraphicsChanges { get { return fill.HasValue || stroke.HasValue || (dashes != null && dashes.Length > 0); } }
+		protected bool HasGraphicsChanges { get { return fill.HasValue || stroke.HasValue || strokeWidth.HasValue || (dashes != null && dashes.Length > 0); } }
 
-		public ShapeBox(float aspect, Color? stroke, Color? fill, float[]? dashes, float dashOffset, Margins trim) : base(aspect) {
+		public ShapeBox(float aspect, Color? stroke, Color? fill, float? strokeWidth, float[]? dashes, float dashOffset, Margins trim) : base(aspect) {
 			this.stroke = stroke;
 			this.fill = fill;
+			this.strokeWidth = strokeWidth;
 			this.dashes = dashes;
 			this.dashOffset = dashOffset;
 			this.trim = trim;
@@ -30,6 +32,9 @@ namespace SharpSheets.Shapes {
 				}
 				if (stroke.HasValue) {
 					canvas.SetStrokeColor(stroke.Value);
+				}
+				if(strokeWidth.HasValue) {
+					canvas.SetLineWidth(strokeWidth.Value);
 				}
 				if (dashes != null && dashes.Length > 0) {
 					canvas.SetStrokeDash(new StrokeDash(dashes, dashOffset));
@@ -46,17 +51,17 @@ namespace SharpSheets.Shapes {
 		protected abstract void DrawShape(ISharpCanvas canvas, Rectangle rect);
 
 		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			return rect.Margins(graphicsState.GetLineWidth() / 2, false).Margins(trim, false);
+			return rect.Margins((strokeWidth ?? graphicsState.GetLineWidth()) / 2, false).Margins(trim, false);
 		}
 
 		public override Rectangle FullRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			return rect.Margins(trim, true).Margins(graphicsState.GetLineWidth() / 2, true);
+			return rect.Margins(trim, true).Margins((strokeWidth ?? graphicsState.GetLineWidth()) / 2, true);
 		}
 	}
 
 	public class Simple : ShapeBox {
 
-		public Simple(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
+		public Simple(float aspect, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, strokeWidth, dashes, dashOffset, trim) { }
 
 		/// <summary>
 		/// A simple rectangular box. The fill and stroke colors may be specified, an internal padding
@@ -70,12 +75,14 @@ namespace SharpSheets.Shapes {
 		/// <param name="dashes">An array of dash lengths with which to draw the outline.
 		/// The resulting line will be a series of "on" and "off" lengths, corresponding
 		/// to the dash array. These lengths are measured in points.</param>
+		/// <param name="strokeWidth">The stroke width for the shape. If no value is provided, the
+		/// current linewidth will be used.</param>
 		/// <param name="dashOffset">An offset for the start of the dash pattern. This
 		/// will shift the dash pattern along by a number of points equal to the value.</param>
 		/// <param name="trim">Padding to apply to the remaining area.</param>
 		[FactoryBuilder(typeof(IBox))]
-		public static Simple Build(float aspect = -1f, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) {
-			return new Simple(aspect, stroke, fill, dashes, dashOffset, trim);
+		public static Simple Build(float aspect = -1f, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) {
+			return new Simple(aspect, stroke, fill, strokeWidth, dashes, dashOffset, trim);
 		}
 
 		protected override void DrawShape(ISharpCanvas canvas, Rectangle rect) {
@@ -87,7 +94,7 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float bevel;
 
-		public Bevelled(float aspect, float bevel = 5f, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins? trim = null) : base(aspect, stroke, fill, dashes, dashOffset, trim ?? new Margins(0.35f * bevel)) {
+		public Bevelled(float aspect, float bevel = 5f, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins? trim = null) : base(aspect, stroke, fill, strokeWidth, dashes, dashOffset, trim ?? new Margins(0.35f * bevel)) {
 			this.bevel = bevel;
 		}
 
@@ -102,6 +109,8 @@ namespace SharpSheets.Shapes {
 		/// the current foreground color will be used.</param>
 		/// <param name="fill">The fill color for the shape. If no value is provided, the
 		/// current background color will be used.</param>
+		/// <param name="strokeWidth">The stroke width for the shape. If no value is provided, the
+		/// current linewidth will be used.</param>
 		/// <param name="dashes">An array of dash lengths with which to draw the outline.
 		/// The resulting line will be a series of "on" and "off" lengths, corresponding
 		/// to the dash array. These lengths are measured in points.</param>
@@ -110,8 +119,8 @@ namespace SharpSheets.Shapes {
 		/// <param name="trim">Padding to apply to the remaining area. If no value is provided,
 		/// a padding of 0.35 times the <paramref name="bevel"/> will be used.</param>
 		[FactoryBuilder(typeof(IBox))]
-		public static Bevelled Build(float aspect, float bevel = 5f, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins? trim = null) {
-			return new Bevelled(aspect, bevel, stroke, fill, dashes, dashOffset, trim);
+		public static Bevelled Build(float aspect, float bevel = 5f, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins? trim = null) {
+			return new Bevelled(aspect, bevel, stroke, fill, strokeWidth, dashes, dashOffset, trim);
 		}
 
 		protected override void DrawShape(ISharpCanvas canvas, Rectangle rect) {
@@ -123,7 +132,7 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float radius;
 
-		public Rounded(float aspect, float radius = 5f, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins? trim = null) : base(aspect, stroke, fill, dashes, dashOffset, trim ?? new Margins(0.5f * radius)) {
+		public Rounded(float aspect = -1f, float radius = 5f, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins? trim = null) : base(aspect, stroke, fill, strokeWidth, dashes, dashOffset, trim ?? new Margins(0.5f * radius)) {
 			this.radius = radius;
 		}
 
@@ -138,6 +147,8 @@ namespace SharpSheets.Shapes {
 		/// the current foreground color will be used.</param>
 		/// <param name="fill">The fill color for the shape. If no value is provided, the
 		/// current background color will be used.</param>
+		/// <param name="strokeWidth">The stroke width for the shape. If no value is provided, the
+		/// current linewidth will be used.</param>
 		/// <param name="dashes">An array of dash lengths with which to draw the outline.
 		/// The resulting line will be a series of "on" and "off" lengths, corresponding
 		/// to the dash array. These lengths are measured in points.</param>
@@ -146,8 +157,8 @@ namespace SharpSheets.Shapes {
 		/// <param name="trim">Padding to apply to the remaining area. If no value is provided,
 		/// a padding of 0.5 times the <paramref name="radius"/> will be used.</param>
 		[FactoryBuilder(typeof(IBox))]
-		public static Rounded Build(float aspect, float radius = 5f, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins? trim = null) {
-			return new Rounded(aspect, radius, stroke, fill, dashes, dashOffset, trim);
+		public static Rounded Build(float aspect = -1f, float radius = 5f, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins? trim = null) {
+			return new Rounded(aspect, radius, stroke, fill, strokeWidth, dashes, dashOffset, trim);
 		}
 
 		protected override void DrawShape(ISharpCanvas canvas, Rectangle rect) {
@@ -159,7 +170,7 @@ namespace SharpSheets.Shapes {
 
 		protected readonly float bevel;
 
-		public Tablet(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
+		public Tablet(float aspect, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, strokeWidth, dashes, dashOffset, trim) { }
 
 		/// <summary>
 		/// A simple tablet-shaped box, where the sortest sides are semi-circles, connected by straight
@@ -171,6 +182,8 @@ namespace SharpSheets.Shapes {
 		/// the current foreground color will be used.</param>
 		/// <param name="fill">The fill color for the shape. If no value is provided, the
 		/// current background color will be used.</param>
+		/// <param name="strokeWidth">The stroke width for the shape. If no value is provided, the
+		/// current linewidth will be used.</param>
 		/// <param name="dashes">An array of dash lengths with which to draw the outline.
 		/// The resulting line will be a series of "on" and "off" lengths, corresponding
 		/// to the dash array. These lengths are measured in points.</param>
@@ -178,8 +191,8 @@ namespace SharpSheets.Shapes {
 		/// will shift the dash pattern along by a number of points equal to the value.</param>
 		/// <param name="trim">Padding to apply to the remaining area.</param>
 		[FactoryBuilder(typeof(IBox))]
-		public static Tablet Build(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) {
-			return new Tablet(aspect, stroke, fill, dashes, dashOffset, trim);
+		public static Tablet Build(float aspect, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) {
+			return new Tablet(aspect, stroke, fill, strokeWidth, dashes, dashOffset, trim);
 		}
 
 		protected override void DrawShape(ISharpCanvas canvas, Rectangle rect) {
@@ -189,7 +202,7 @@ namespace SharpSheets.Shapes {
 
 	public class Ellipse : ShapeBox {
 
-		public Ellipse(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
+		public Ellipse(float aspect, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, strokeWidth, dashes, dashOffset, trim) { }
 
 		/// <summary>
 		/// A simple ellipse-shaped box. The fill and stroke colors may be specified, an internal
@@ -201,6 +214,8 @@ namespace SharpSheets.Shapes {
 		/// the current foreground color will be used.</param>
 		/// <param name="fill">The fill color for the shape. If no value is provided, the
 		/// current background color will be used.</param>
+		/// <param name="strokeWidth">The stroke width for the shape. If no value is provided, the
+		/// current linewidth will be used.</param>
 		/// <param name="dashes">An array of dash lengths with which to draw the outline.
 		/// The resulting line will be a series of "on" and "off" lengths, corresponding
 		/// to the dash array. These lengths are measured in points.</param>
@@ -208,8 +223,8 @@ namespace SharpSheets.Shapes {
 		/// will shift the dash pattern along by a number of points equal to the value.</param>
 		/// <param name="trim">Padding to apply to the remaining area.</param>
 		[FactoryBuilder(typeof(IBox))]
-		public static Ellipse BuildEllipse(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) {
-			return new Ellipse(aspect, stroke, fill, dashes, dashOffset, trim);
+		public static Ellipse BuildEllipse(float aspect, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) {
+			return new Ellipse(aspect, stroke, fill, strokeWidth, dashes, dashOffset, trim);
 		}
 
 		protected override void DrawShape(ISharpCanvas canvas, Rectangle rect) {
@@ -219,7 +234,7 @@ namespace SharpSheets.Shapes {
 
 	public class Circle : Ellipse {
 
-		public Circle(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
+		public Circle(float aspect, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, strokeWidth, dashes, dashOffset, trim) { }
 
 		/// <summary>
 		/// A simple circle-shaped box. Any aspect provided will be applied to the initial shape
@@ -232,6 +247,8 @@ namespace SharpSheets.Shapes {
 		/// the current foreground color will be used.</param>
 		/// <param name="fill">The fill color for the shape. If no value is provided, the
 		/// current background color will be used.</param>
+		/// <param name="strokeWidth">The stroke width for the shape. If no value is provided, the
+		/// current linewidth will be used.</param>
 		/// <param name="dashes">An array of dash lengths with which to draw the outline.
 		/// The resulting line will be a series of "on" and "off" lengths, corresponding
 		/// to the dash array. These lengths are measured in points.</param>
@@ -239,8 +256,8 @@ namespace SharpSheets.Shapes {
 		/// will shift the dash pattern along by a number of points equal to the value.</param>
 		/// <param name="trim">Padding to apply to the remaining area.</param>
 		[FactoryBuilder(typeof(IBox))]
-		public static Circle BuildCircle(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) {
-			return new Circle(aspect, stroke, fill, dashes, dashOffset, trim);
+		public static Circle BuildCircle(float aspect, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) {
+			return new Circle(aspect, stroke, fill, strokeWidth, dashes, dashOffset, trim);
 		}
 
 		public override Rectangle AspectRect(ISharpGraphicsState graphicsState, Rectangle rect) {
@@ -260,7 +277,7 @@ namespace SharpSheets.Shapes {
 
 	public class Diamond : ShapeBox {
 
-		public Diamond(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, dashes, dashOffset, trim) { }
+		public Diamond(float aspect, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) : base(aspect, stroke, fill, strokeWidth, dashes, dashOffset, trim) { }
 
 		/// <summary>
 		/// A simple diamond-shaped box, where the midpoint of each side is connected by straight lines
@@ -272,6 +289,8 @@ namespace SharpSheets.Shapes {
 		/// the current foreground color will be used.</param>
 		/// <param name="fill">The fill color for the shape. If no value is provided, the
 		/// current background color will be used.</param>
+		/// <param name="strokeWidth">The stroke width for the shape. If no value is provided, the
+		/// current linewidth will be used.</param>
 		/// <param name="dashes">An array of dash lengths with which to draw the outline.
 		/// The resulting line will be a series of "on" and "off" lengths, corresponding
 		/// to the dash array. These lengths are measured in points.</param>
@@ -279,8 +298,8 @@ namespace SharpSheets.Shapes {
 		/// will shift the dash pattern along by a number of points equal to the value.</param>
 		/// <param name="trim">Padding to apply to the remaining area.</param>
 		[FactoryBuilder(typeof(IBox))]
-		public static Diamond Build(float aspect, Color? stroke = null, Color? fill = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) {
-			return new Diamond(aspect, stroke, fill, dashes, dashOffset, trim);
+		public static Diamond Build(float aspect, Color? stroke = null, Color? fill = null, float? strokeWidth = null, float[]? dashes = null, float dashOffset = 0f, Margins trim = default) {
+			return new Diamond(aspect, stroke, fill, strokeWidth, dashes, dashOffset, trim);
 		}
 
 		protected override void DrawShape(ISharpCanvas canvas, Rectangle rect) {
