@@ -11,11 +11,11 @@ namespace SharpSheets.Shapes {
 
 	[Factory(typeof(IBox), new Type[] { typeof(float) }, new string[] { "aspect" }, new bool[] { false }, typeof(NoOutline))]
 	[Factory(typeof(ILabelledBox), new Type[] { typeof(float) }, new string[] { "aspect" }, new bool[] { false }, typeof(SimpleLabelledBox))]
-	[Factory(typeof(ITitledBox), new Type[] { typeof(float), typeof(string) }, new string[] { "aspect", "name" }, new bool[] { false, true }, typeof(BlockTitledBox))]
-	[Factory(typeof(ITitleStyledBox), new Type[] { typeof(IContainerShape), typeof(string) }, new string[] { "box", "name" }, new bool[] { true, true }, typeof(Named))]
 	[Factory(typeof(IEntriedShape), new Type[] { typeof(float) }, new string[] { "aspect" }, new bool[] { false }, typeof(SimpleEntried))]
 	[Factory(typeof(IBar), new Type[] { typeof(float) }, new string[] { "aspect" }, new bool[] { false }, typeof(SimpleBar))]
 	[Factory(typeof(IUsageBar), new Type[] { typeof(float) }, new string[] { "aspect" }, new bool[] { false }, typeof(SimpleUsageBar))]
+	[Factory(typeof(ITitledBox), new Type[] { typeof(float) }, new string[] { "aspect" }, new bool[] { false }, typeof(BlockTitledBox))]
+	[Factory(typeof(ITitleStyle), new Type[0], new string[0], new bool[0], typeof(Named))]
 	[Factory(typeof(IDetail), new Type[0], new string[0], new bool[0], typeof(Blank))]
 	public sealed partial class ShapeFactory : ITypeDetailsCollection {
 
@@ -85,17 +85,11 @@ namespace SharpSheets.Shapes {
 		private static IShape? BuildExample(Type shapeType, string styleName, DirectoryPath? source, out SharpParsingException[] buildErrors) {
 			source ??= new DirectoryPath(Directory.GetCurrentDirectory());
 
-			if (shapeType == typeof(IContainerShape) || shapeType == typeof(IBox)) {
+			if (shapeType == typeof(IBox)) {
 				return Build_IBox(styleName, Context.Empty, -1f, source, out buildErrors);
 			}
 			else if (shapeType == typeof(ILabelledBox)) {
 				return Build_ILabelledBox(styleName, Context.Empty, -1f, source, out buildErrors);
-			}
-			else if (shapeType == typeof(ITitledBox)) {
-				return Build_ITitledBox(styleName, Context.Empty, -1f, "NAME", source, out buildErrors);
-			}
-			else if (shapeType == typeof(ITitleStyledBox)) {
-				return Build_ITitleStyledBox(styleName, Context.Empty, MakeDefault_IBox(), "NAME", source, StaticOnly, out buildErrors);
 			}
 			else if (shapeType == typeof(IEntriedShape)) {
 				return Build_IEntriedShape(styleName, Context.Empty, -1f, source, out buildErrors);
@@ -105,6 +99,12 @@ namespace SharpSheets.Shapes {
 			}
 			else if (shapeType == typeof(IUsageBar)) {
 				return Build_IUsageBar(styleName, Context.Empty, -1f, source, out buildErrors);
+			}
+			else if (shapeType == typeof(ITitledBox)) {
+				return Build_ITitledBox(styleName, Context.Empty, -1f, source, out buildErrors);
+			}
+			else if (shapeType == typeof(ITitleStyle)) {
+				return Build_ITitleStyle(styleName, Context.Empty, source, StaticOnly, out buildErrors);
 			}
 			else if (shapeType == typeof(IDetail)) {
 				return Build_IDetail(styleName, Context.Empty, source, out buildErrors);
@@ -123,7 +123,7 @@ namespace SharpSheets.Shapes {
 			try {
 				if (AllStaticBuilderDetails.TryGetValue(style, out BuilderDetails? staticBuilderDetails) && staticBuilderDetails.DisplayType.IsAssignableTo(type)) {
 					IContext context = new BuilderContext(staticBuilderDetails, new Dictionary<string, object>() { { "style", staticBuilderDetails.FullName } });
-					shape = MakeShape(type, context, staticBuilderDetails.Name, source, out SharpParsingException[] shapeBuildErrors);
+					shape = MakeShape(type, context, source, out SharpParsingException[] shapeBuildErrors);
 					errors.AddRange(shapeBuildErrors);
 				}
 				else if (GetCustomStylePattern<MarkupShapePattern>(style) is MarkupShapePattern pattern && pattern.MakeExample(dummyWidgetFactory, this, false, out SharpParsingException[] markupBuildErrors) is IShape markupShape) {
@@ -151,7 +151,7 @@ namespace SharpSheets.Shapes {
 				errors.AddRange(e.Errors);
 			}
 
-			return shape ?? MakeShape(type, Context.Empty, "ERROREXAMPLE", source, out _);
+			return shape ?? MakeShape(type, Context.Empty, source, out _);
 		}
 
 		public static Type[]? GetRequiredArguments(Type type) {
@@ -161,12 +161,6 @@ namespace SharpSheets.Shapes {
 			else if(type == typeof(ILabelledBox)) {
 				return new Type[] { typeof(float) };
 			}
-			else if(type == typeof(ITitledBox)) {
-				return new Type[] { typeof(float), typeof(string) };
-			}
-			else if(type == typeof(ITitleStyledBox)) {
-				return new Type[] { typeof(IContainerShape), typeof(string) };
-			}
 			else if(type == typeof(IEntriedShape)) {
 				return new Type[] { typeof(float) };
 			}
@@ -175,6 +169,12 @@ namespace SharpSheets.Shapes {
 			}
 			else if(type == typeof(IUsageBar)) {
 				return new Type[] { typeof(float) };
+			}
+			else if (type == typeof(ITitledBox)) {
+				return new Type[] { typeof(float), typeof(string) };
+			}
+			else if (type == typeof(ITitleStyle)) {
+				return Array.Empty<Type>();
 			}
 			else if(type == typeof(IDetail)) {
 				return Array.Empty<Type>();
@@ -188,28 +188,6 @@ namespace SharpSheets.Shapes {
 
 		public static string? GetStyleNameFromContext(IContext context, out DocumentSpan? location) {
 			return context.GetProperty("style", false, context, null, out location);
-		}
-
-		public IContainerShape MakeContainer(IContext context, float aspect, string? name, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			if (IsTitledBoxPattern(context.GetProperty("style", false, context, ""))) {
-				return this.MakeTitledBox(context, aspect, name ?? "NAME", source, out buildErrors);
-			}
-			else {
-				List<SharpParsingException> containerErrors = new List<SharpParsingException>();
-				IBox? outline = this.MakeBox(context, aspect, source, out SharpParsingException[] boxBuildErrors);
-				containerErrors.AddRange(boxBuildErrors);
-				if (!string.IsNullOrEmpty(name)) {
-					new NamedContext(context, "title").HasProperty("style", false, context, out DocumentSpan? titleStyleLocation);
-					ITitleStyledBox? titleStyledBox = this.MakeTitleStyle(new NamedContext(context, "title", location: titleStyleLocation), ((IBox?)outline) ?? new NoOutline(-1), name ?? "NAME", source, out SharpParsingException[] titleStyleBuildErrors);
-					containerErrors.AddRange(titleStyleBuildErrors);
-					buildErrors = containerErrors.ToArray();
-					return titleStyledBox;
-				}
-				else {
-					buildErrors = containerErrors.ToArray();
-					return outline;
-				}
-			}
 		}
 
 		public IBox MakeBox(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
@@ -257,56 +235,6 @@ namespace SharpSheets.Shapes {
 			}
 
 			ILabelledBox fallback = Build_ILabelledBox_Default(context, aspect, source, out SharpParsingException[] defaultBuildErrors);
-			// If build errors is null, then we didn't attempt an override above, so the fallback is the correct set of errors
-			buildErrors = buildErrors is null ? defaultBuildErrors : buildErrors;
-			return fallback;
-		}
-
-		public ITitledBox MakeTitledBox(IContext context, float aspect, string name, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			buildErrors = null!;
-
-			string? styleName = GetStyleNameFromContext(context, out DocumentSpan? location);
-			if (styleName is not null) {
-				if (CanBuild_ITitledBox(styleName)) {
-					ITitledBox? constructed = Build_ITitledBox(styleName, context, aspect, name, source, out buildErrors);
-					if (constructed is not null) {
-						return constructed;
-					}
-				}
-				else if (GetCustomStylePattern<MarkupShapePattern<ITitledBox>>(styleName) is MarkupShapePattern<ITitledBox> customPattern) {
-					return customPattern.MakeShape(context, new TitledBoxParams(aspect, name), source, this, false, out buildErrors);
-				}
-				else {
-					buildErrors = new SharpParsingException[] { new SharpParsingException(location, $"Unrecognized style \"{styleName}\" for titled box.") };
-				}
-			}
-
-			ITitledBox fallback = Build_ITitledBox_Default(context, aspect, name, source, out SharpParsingException[] defaultBuildErrors);
-			// If build errors is null, then we didn't attempt an override above, so the fallback is the correct set of errors
-			buildErrors = buildErrors is null ? defaultBuildErrors : buildErrors;
-			return fallback;
-		}
-
-		public ITitleStyledBox MakeTitleStyle(IContext context, IContainerShape box, string name, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			buildErrors = null!;
-
-			string? styleName = GetStyleNameFromContext(context, out DocumentSpan? location);
-			if (styleName is not null) {
-				if (CanBuild_ITitleStyledBox(styleName)) {
-					ITitleStyledBox? constructed = Build_ITitleStyledBox(styleName, context, box, name, source, this, out buildErrors);
-					if (constructed is not null) {
-						return constructed;
-					}
-				}
-				else if (GetCustomStylePattern<MarkupShapePattern<ITitleStyledBox>>(styleName) is MarkupShapePattern<ITitleStyledBox> customPattern) {
-					return customPattern.MakeShape(context, new TitleStyleParams(box, name), source, this, false, out buildErrors);
-				}
-				else {
-					buildErrors = new SharpParsingException[] { new SharpParsingException(location, $"Unrecognized style \"{styleName}\" for title style.") };
-				}
-			}
-
-			ITitleStyledBox fallback = Build_ITitleStyledBox_Default(context, box, name, source, this, out SharpParsingException[] defaultBuildErrors);
 			// If build errors is null, then we didn't attempt an override above, so the fallback is the correct set of errors
 			buildErrors = buildErrors is null ? defaultBuildErrors : buildErrors;
 			return fallback;
@@ -398,6 +326,56 @@ namespace SharpSheets.Shapes {
 			return bar;
 		}
 
+		public ITitledBox MakeTitledBox(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
+			buildErrors = null!;
+
+			string? styleName = GetStyleNameFromContext(context, out DocumentSpan? location);
+			if (styleName is not null) {
+				if (CanBuild_ITitledBox(styleName)) {
+					ITitledBox? constructed = Build_ITitledBox(styleName, context, aspect, source, out buildErrors);
+					if (constructed is not null) {
+						return constructed;
+					}
+				}
+				else if (GetCustomStylePattern<MarkupShapePattern<ITitledBox>>(styleName) is MarkupShapePattern<ITitledBox> customPattern) {
+					return customPattern.MakeShape(context, new AreaShapeParams(aspect), source, this, false, out buildErrors);
+				}
+				else {
+					buildErrors = new SharpParsingException[] { new SharpParsingException(location, $"Unrecognized style \"{styleName}\" for titled box.") };
+				}
+			}
+
+			ITitledBox fallback = Build_ITitledBox_Default(context, aspect, source, out SharpParsingException[] defaultBuildErrors);
+			// If build errors is null, then we didn't attempt an override above, so the fallback is the correct set of errors
+			buildErrors = buildErrors is null ? defaultBuildErrors : buildErrors;
+			return fallback;
+		}
+
+		public ITitleStyle MakeTitleStyle(IContext context, DirectoryPath source, out SharpParsingException[] buildErrors) {
+			buildErrors = null!;
+
+			string? styleName = GetStyleNameFromContext(context, out DocumentSpan? location);
+			if (styleName is not null) {
+				if (CanBuild_ITitleStyle(styleName)) {
+					ITitleStyle? constructed = Build_ITitleStyle(styleName, context, source, this, out buildErrors);
+					if (constructed is not null) {
+						return constructed;
+					}
+				}
+				else if (GetCustomStylePattern<MarkupShapePattern<ITitleStyle>>(styleName) is MarkupShapePattern<ITitleStyle> customPattern) {
+					return customPattern.MakeShape(context, new TitleStyleParams(), source, this, false, out buildErrors);
+				}
+				else {
+					buildErrors = new SharpParsingException[] { new SharpParsingException(location, $"Unrecognized style \"{styleName}\" for title style.") };
+				}
+			}
+
+			ITitleStyle fallback = Build_ITitleStyle_Default(context, source, this, out SharpParsingException[] defaultBuildErrors);
+			// If build errors is null, then we didn't attempt an override above, so the fallback is the correct set of errors
+			buildErrors = buildErrors is null ? defaultBuildErrors : buildErrors;
+			return fallback;
+		}
+
 		public IDetail MakeDetail(IContext context, DirectoryPath source, out SharpParsingException[] buildErrors) {
 			buildErrors = null!;
 
@@ -423,45 +401,45 @@ namespace SharpSheets.Shapes {
 			return fallback;
 		}
 
-		public IShape MakeShape(Type shapeType, IContext context, string? name, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			// TODO Feels very strange to be providing the name argument here. Can't we restructure the title styles to work another way?
-
+		public IShape MakeShape(Type shapeType, IContext context, DirectoryPath source, out SharpParsingException[] buildErrors) {
 			if (typeof(IAreaShape).IsAssignableFrom(shapeType)) {
 				float aspect = context.GetProperty("aspect", true, context, -1f, float.Parse);
 				string? styleName = GetStyleNameFromContext(context, out _);
 
-				if (shapeType == typeof(IContainerShape)) {
-					return this.MakeContainer(context, aspect, name, source, out buildErrors);
-				}
-				else if (shapeType == typeof(ITitledBox)) {
-					return this.MakeTitledBox(context, aspect, name ?? "NAME", source, out buildErrors);
-				}
-				else if (shapeType == typeof(IBox)) {
-					return this.MakeBox(context, aspect, source, out buildErrors);
+				if (shapeType == typeof(IBox)) {
+					return MakeBox(context, aspect, source, out buildErrors);
 				}
 				else if (shapeType == typeof(ILabelledBox)) {
-					return this.MakeLabelledBox(context, aspect, source, out buildErrors);
+					return MakeLabelledBox(context, aspect, source, out buildErrors);
 				}
 				else if (shapeType == typeof(IEntriedShape)) {
-					return this.MakeEntried(context, aspect, source, out buildErrors);
+					return MakeEntried(context, aspect, source, out buildErrors);
 				}
 				else if (shapeType == typeof(IBar)) {
-					return this.MakeBar(context, aspect, source, out buildErrors);
+					return MakeBar(context, aspect, source, out buildErrors);
 				}
 				else if (shapeType == typeof(IUsageBar)) {
-					return this.MakeUsageBar(context, aspect, source, out buildErrors);
+					return MakeUsageBar(context, aspect, source, out buildErrors);
+				}
+				else if (shapeType == typeof(ITitledBox)) {
+					return MakeTitledBox(context, aspect, source, out buildErrors);
 				}
 			}
+			else if (shapeType == typeof(ITitleStyle)) {
+				return MakeTitleStyle(context, source, out buildErrors);
+			}
 			else if (shapeType == typeof(IDetail)) {
-				return this.MakeDetail(context, source, out buildErrors);
+				return MakeDetail(context, source, out buildErrors);
 			}
 
 			throw new ArgumentException($"Provided type {shapeType.Name} is not a valid subtype of {nameof(IShape)}.");
 		}
 
+		/*
 		private bool IsTitledBoxPattern(string style) {
 			return CanBuild_ITitledBox(style) || IsCustomStylePattern<ITitledBox>(style);
 		}
+		*/
 
 		private bool IsBarPattern(string style) {
 			return CanBuild_IBar(style) || IsCustomStylePattern<IBar>(style);
@@ -577,20 +555,9 @@ namespace SharpSheets.Shapes {
 			}
 		}
 
-		public class TitledBoxParams(float aspect, string name) : AreaShapeParams(aspect) {
-			public string Name => name;
-
+		public class TitleStyleParams : ShapeParams {
 			public override object[] ToArray() {
-				return [.. base.ToArray(), name];
-			}
-		}
-
-		public class TitleStyleParams(IContainerShape box, string name) : ShapeParams {
-			public IContainerShape Box => box;
-			public string Name => name;
-
-			public override object[] ToArray() {
-				return new object[] { box, name };
+				return Array.Empty<object>();
 			}
 		}
 

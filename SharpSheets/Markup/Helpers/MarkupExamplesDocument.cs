@@ -106,6 +106,10 @@ namespace SharpSheets.Markup.Helpers {
 					if (markupObject is IDrawRectShape markupShape) {
 						markupShape.Draw(canvas, exampleDrawRect);
 					}
+					else if (markupObject is ITitleStyle markupTitleStyle) {
+						TitleStyledBox finalBox = new TitleStyledBox(markupTitleStyle, new Simple(-1f, strokeWidth: 0f, stroke: Color.None, fill: Color.White), pattern.Name);
+						finalBox.Draw(canvas, exampleDrawRect);
+					}
 					else if (markupObject is IDetail markupDetail) {
 						markupDetail.Draw(canvas, exampleDrawRect, LayoutDirection.ROWS);
 					}
@@ -141,39 +145,45 @@ namespace SharpSheets.Markup.Helpers {
 				Rectangle? fullRect = null;
 
 				try {
-					if (markupObject is IFramedArea framedArea) {
-						if (framedArea.RemainingRect(canvas, exampleDrawRect) is Rectangle remainingRect) {
-							remainingRects.Add(remainingRect);
+					if (markupObject is IShape markupShape) {
+						if (markupShape is ITitleStyle titleStyle) {
+							markupShape = new TitleStyledBox(titleStyle, new NoOutline(-1f), pattern.Name);
+						}
 
-							if (framedArea is IFramedContainerArea framedContainerArea) {
-								try {
-									Size fullSize = framedContainerArea.FullSize(canvas, (Size)remainingRect);
-									fullRect = Rectangle.RectangleAt(exampleDrawRect.CentreX, exampleDrawRect.CentreY, fullSize);
-								}
-								catch (InvalidRectangleException) {
-									fullRect = null;
+						if (markupShape is IFramedArea framedArea) {
+							if (framedArea.RemainingRect(canvas, exampleDrawRect) is Rectangle remainingRect) {
+								remainingRects.Add(remainingRect);
+
+								if (framedArea is IFramedContainerArea framedContainerArea) {
+									try {
+										Size fullSize = framedContainerArea.FullSize(canvas, (Size)remainingRect);
+										fullRect = Rectangle.RectangleAt(exampleDrawRect.CentreX, exampleDrawRect.CentreY, fullSize);
+									}
+									catch (InvalidRectangleException) {
+										fullRect = null;
+									}
 								}
 							}
+							else {
+								canvas.LogError(pattern, "Framed areas must have a valid \"remaining\" area.");
+							}
 						}
-						else {
-							canvas.LogError(pattern, "Framed areas must have a valid \"remaining\" area.");
+						if (markupShape is ILabelledArea labelledArea) {
+							if (labelledArea.LabelRect(canvas, exampleDrawRect) is Rectangle labelRect) {
+								remainingRects.Add(labelRect);
+							}
+							else {
+								canvas.LogError(pattern, "Labelled areas must have a valid \"label\" area.");
+							}
 						}
-					}
-					if (markupObject is ILabelledArea labelledArea) {
-						if (labelledArea.LabelRect(canvas, exampleDrawRect) is Rectangle labelRect) {
-							remainingRects.Add(labelRect);
-						}
-						else {
-							canvas.LogError(pattern, "Labelled areas must have a valid \"label\" area.");
-						}
-					}
-					if (markupObject is IEntriedArea entriedArea) {
-						Rectangle[] entryRects = entriedArea.EntryRects(canvas, exampleDrawRect).Where(r => r != null).ToArray();
-						if (entryRects.Length > 0) {
-							remainingRects.AddRange(entryRects);
-						}
-						else {
-							canvas.LogError(pattern, "Entried areas must have at least one valid \"entry\" area element.");
+						if (markupShape is IEntriedArea entriedArea) {
+							Rectangle[] entryRects = entriedArea.EntryRects(canvas, exampleDrawRect).Where(r => r != null).ToArray();
+							if (entryRects.Length > 0) {
+								remainingRects.AddRange(entryRects);
+							}
+							else {
+								canvas.LogError(pattern, "Entried areas must have at least one valid \"entry\" area element.");
+							}
 						}
 					}
 					if (markupObject is IWidget widgetArea) {

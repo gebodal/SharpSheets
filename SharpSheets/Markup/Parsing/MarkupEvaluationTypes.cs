@@ -154,13 +154,14 @@ namespace SharpSheets.Markup.Parsing {
 			TypeField GetAspectField<TShape>(EvaluationContext ctx) where TShape : IAreaShape {
 				return new TypeField("aspect", "The aspect ratio of this shape.", ctx.GetType<FloatEvaluationType>(), v => ctx.GetType<FloatEvaluationType>().MakeValue(((TShape)v.Value!).Aspect));
 			}
-			// TODO There are missing types here
-			builder.SetSystemType<IContainerShape, EvaluationType>(ctx => new CustomEvaluationType<IContainerShape?>(ctx, "TitledBox", [GetAspectField<IContainerShape>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
+			// TODO Are there are missing types here?
 			builder.SetSystemType<IBox, EvaluationType>(ctx => new CustomEvaluationType<IBox?>(ctx, "Box", [GetAspectField<IBox>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
 			builder.SetSystemType<ILabelledBox, EvaluationType>(ctx => new CustomEvaluationType<ILabelledBox?>(ctx, "LabelledBox", [GetAspectField<ILabelledBox>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
 			builder.SetSystemType<IEntriedShape, EvaluationType>(ctx => new CustomEvaluationType<IEntriedShape?>(ctx, "Entried", [GetAspectField<IEntriedShape>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
 			builder.SetSystemType<IBar, EvaluationType>(ctx => new CustomEvaluationType<IBar?>(ctx, "Bar", [GetAspectField<IBar>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
 			builder.SetSystemType<IUsageBar, EvaluationType>(ctx => new CustomEvaluationType<IUsageBar?>(ctx, "UsageBar", [GetAspectField<IUsageBar>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
+			builder.SetSystemType<ITitledBox, EvaluationType>(ctx => new CustomEvaluationType<ITitledBox?>(ctx, "TitledBox", [GetAspectField<ITitledBox>(ctx)], Enumerable.Empty<TypeField>(), null, null, null));
+			builder.SetSystemType<ITitleStyle, EvaluationType>(ctx => new CustomEvaluationType<ITitleStyle?>(ctx, "TitleStyle", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), null, null, null));
 			builder.SetSystemType<IDetail, EvaluationType>(ctx => new CustomEvaluationType<IDetail?>(ctx, "Detail", Enumerable.Empty<TypeField>(), Enumerable.Empty<TypeField>(), null, null, null));
 			
 			return builder;

@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using SharpSheets.Exceptions;
 using SharpSheets.Evaluations.Nodes;
 using SharpSheets.Evaluations.Types;
+using System.Diagnostics.CodeAnalysis;
 
 namespace SharpSheets.Markup.Elements {
 
@@ -72,34 +73,13 @@ namespace SharpSheets.Markup.Elements {
 
 	}
 
-	public abstract class StyledDivElement<T> : KeyedChildrenDivElement where T : IShape {
+	public abstract class StyledDivElement : KeyedChildrenDivElement {
 
-		public readonly ContextExpression? shapeContext;
-		public readonly IExpression<T?>? href;
-		public readonly IExpression<string>? titleText; // Title to draw on any titled box styles
+		public StyledDivElement(string? id, DivSetup setup, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables) : base(id, setup, outerContext, markupContext, variables) { }
 
-		/// <summary>
-		/// Constructor for StyledDivElement.
-		/// </summary>
-		/// <param name="_id" default="null">A unique name for this element.</param>
-		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="_shapeContext">The shape context for this element.</param>
-		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
-		/// <param name="_name" default="null">The name to use for this shape, if a name is accepted by the shape type.</param>
-		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
-		/// <param name="markupContext"></param>
-		/// <param name="variables">The variables declared with this Div.</param>
-		public StyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<T?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
-			: base(_id, setup, outerContext, markupContext, variables) {
-
-			this.shapeContext = _shapeContext;
-			this.href = _href;
-			this.titleText = _name;
-		}
-
-		protected virtual T GetShape(IEnvironment environment, ShapeFactory shapeFactory, DirectoryPath source, out SharpParsingException[] buildErrors) {
+		protected static S GetShape<S>(IEnvironment environment, ContextExpression? shapeContext, IExpression<S?>? href, ShapeFactory shapeFactory, DirectoryPath source, out SharpParsingException[] buildErrors) where S : IShape {
 			if (href is not null) {
-				T evaluated = href.Evaluate(environment) ?? throw new EvaluationCalculationException("Could not evaluate shape.");
+				S evaluated = href.Evaluate(environment) ?? throw new EvaluationCalculationException($"Could not evaluate {typeof(S)}.");
 				buildErrors = Array.Empty<SharpParsingException>();
 				return evaluated;
 			}
@@ -108,18 +88,12 @@ namespace SharpSheets.Markup.Elements {
 					throw new ArgumentNullException(nameof(shapeFactory));
 				}
 
-				IContext context = this.shapeContext?.Evaluate(environment) ?? Context.Empty;
-				string? name = this.titleText?.Evaluate(environment);
-				return (T)shapeFactory.MakeShape(typeof(T), context, name, source, out buildErrors)!;
+				IContext context = shapeContext?.Evaluate(environment) ?? Context.Empty;
+				return (S)shapeFactory.MakeShape(typeof(S), context, source, out buildErrors)!;
 			}
 		}
 
-		protected abstract DrawableStyledDivElement<T> MakeStyledDrawable(IEnvironment evaluationEnvironment, T shape, IEnvironment finalDivEnvironment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines);
-
-		protected sealed override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
-			T shape = GetShape(evaluationEnvironment, shapeFactory, source, out _); // TODO Should we pass these errors up the chain somehow?
-			DrawableStyledDivElement<T> drawable = MakeStyledDrawable(evaluationEnvironment, shape, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, diagnostic);
-
+		protected IEnumerable<(string name, DrawableDivElement namedChild)> GetNamedChildDrawables(IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory shapeFactory, bool diagnostic) {
 			foreach (KeyValuePair<string, DivElement> namedChild in namedChildren) {
 				string name = namedChild.Key;
 				DivElement child = namedChild.Value;
@@ -127,15 +101,29 @@ namespace SharpSheets.Markup.Elements {
 				DrawableDivElement? drawableChild = child.GetDrawable(graphicsData, finalDivEnvironment, shapeFactory, diagnostic);
 
 				if (drawableChild != null) {
-					drawable.AddNamedChild(name, drawableChild);
+					yield return (name, drawableChild);
 				}
+			}
+		}
+
+		protected abstract DrawableStyledDivElement GetStyledDrawableBase(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic);
+
+		protected sealed override DrawableDivElement CreateDrawable(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
+			DrawableStyledDivElement drawable = GetStyledDrawableBase(evaluationEnvironment, finalDivEnvironment, graphicsData, shapeFactory, source, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, provideRemaining, diagnostic);
+
+			foreach ((string name, DrawableDivElement drawableChild) in GetNamedChildDrawables(finalDivEnvironment, graphicsData, shapeFactory, diagnostic)) {
+				drawable.AddNamedChild(name, drawableChild);
 			}
 
 			return drawable;
 		}
+
 	}
 
-	public abstract class StyledDivDrawRectElement<T> : StyledDivElement<T> where T : IDrawRectShape {
+	public abstract class StyledDivElement<T> : StyledDivElement where T : IShape {
+
+		public readonly ContextExpression? shapeContext;
+		public readonly IExpression<T?>? href;
 
 		/// <summary>
 		/// Constructor for StyledDivElement.
@@ -144,32 +132,43 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="_shapeContext">The shape context for this element.</param>
 		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
-		/// <param name="_name" default="null">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
 		/// <param name="markupContext"></param>
 		/// <param name="variables">The variables declared with this Div.</param>
-		public StyledDivDrawRectElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<T?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
-			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
+		public StyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<T?>? _href, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
+			: base(_id, setup, outerContext, markupContext, variables) {
 
-		protected override DrawableStyledDivElement<T> MakeStyledDrawable(IEnvironment evaluationEnvironment, T shape, IEnvironment finalDivEnvironment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines) {
-			return new DrawableStyledDivDrawRectElement<T>(this, shape, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, drawConstructionLines);
+			this.shapeContext = _shapeContext;
+			this.href = _href;
 		}
+
+		protected virtual T GetShape(IEnvironment environment, ShapeFactory shapeFactory, DirectoryPath source, out SharpParsingException[] buildErrors) {
+			return GetShape<T>(environment, shapeContext, href, shapeFactory, source, out buildErrors);
+		}
+
+		protected abstract DrawableStyledDivElement<T> MakeStyledDrawable(IEnvironment evaluationEnvironment, T shape, IEnvironment finalDivEnvironment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines);
+
+		protected sealed override DrawableStyledDivElement GetStyledDrawableBase(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
+			T shape = GetShape(evaluationEnvironment, shapeFactory, source, out _); // TODO Should we pass these errors up the chain somehow?
+			DrawableStyledDivElement<T> drawable = MakeStyledDrawable(evaluationEnvironment, shape, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, diagnostic);
+			return drawable;
+		}
+
 	}
 
-	public abstract class DrawableStyledDivElement<T> : DrawableDivElement where T : IShape {
-
-		protected readonly T shape;
+	public abstract class DrawableStyledDivElement : DrawableDivElement {
 
 		private readonly List<string> childrenProvidedOrder;
 		private readonly Dictionary<string, DrawableDivElement> namedChildren;
 
+		protected IEnumerable<KeyValuePair<string, DrawableDivElement>> NamedChildren => childrenProvidedOrder.Select(c => new KeyValuePair<string, DrawableDivElement>(c, namedChildren[c]));
+		protected bool TryGetNamedChild(string name, [MaybeNullWhen(false)] out DrawableDivElement namedChild) => namedChildren.TryGetValue(name, out namedChild);
+
 		//public override IList<IGridElement> Children => childrenProvidedOrder.Select(n => namedChildren[n]).ToList<IGridElement>();
 		public override bool ProvidesRemaining { get { return divProvideRemaining || namedChildren.Values.Any(c => c.ProvidesRemaining); } }
 
-		public DrawableStyledDivElement(StyledDivElement<T> pattern, T shape, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines)
+		public DrawableStyledDivElement(StyledDivElement pattern, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines)
 			: base(pattern, environment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, false, drawConstructionLines) {
-
-			this.shape = shape;
 
 			this.childrenProvidedOrder = new List<string>();
 			this.namedChildren = new Dictionary<string, DrawableDivElement>();
@@ -188,16 +187,8 @@ namespace SharpSheets.Markup.Elements {
 		}
 
 		public override Size MinimumContentSize(ISharpGraphicsState graphicsState, Size availableSpace) {
-
-			if (shape is IFramedContainerArea framedContainer && namedChildren.TryGetValue("remaining", out DrawableDivElement? remainingDiv)) {
-				Rectangle remainingRect = framedContainer.RemainingRect(graphicsState, (Rectangle)availableSpace);
-				Size minimumContent = remainingDiv.MinimumContentSize(graphicsState, (Size)remainingRect) ?? new Size(0f, 0f);
-				return framedContainer.FullSize(graphicsState, minimumContent);
-			}
-			else {
-				Size[] mins = namedChildren.Values.Select(c => c.MinimumContentSize(graphicsState, availableSpace)).WhereNotNull().ToArray();
-				return mins.Length > 0 ? new Size(mins.Max(r => r.Width), mins.Max(r => r.Height)) : new Size(0f, 0f);
-			}
+			Size[] mins = namedChildren.Values.Select(c => c.MinimumContentSize(graphicsState, availableSpace)).WhereNotNull().ToArray();
+			return mins.Length > 0 ? new Size(mins.Max(r => r.Width), mins.Max(r => r.Height)) : new Size(0f, 0f);
 		}
 
 		public override bool AreaExists(string name) {
@@ -208,9 +199,32 @@ namespace SharpSheets.Markup.Elements {
 			return namedChildren.Values.SelectMany(c => c.GetAreas()).Distinct();
 		}
 
+	}
+
+	public abstract class DrawableStyledDivElement<T> : DrawableStyledDivElement where T : IShape {
+
+		protected readonly T shape;
+
+		public DrawableStyledDivElement(StyledDivElement pattern, T shape, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines)
+			: base(pattern, environment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, drawConstructionLines) {
+
+			this.shape = shape;
+		}
+
+		public override Size MinimumContentSize(ISharpGraphicsState graphicsState, Size availableSpace) {
+			if (shape is IFramedContainerArea framedContainer && TryGetNamedChild("remaining", out DrawableDivElement? remainingDiv)) {
+				Rectangle remainingRect = framedContainer.RemainingRect(graphicsState, (Rectangle)availableSpace);
+				Size minimumContent = remainingDiv.MinimumContentSize(graphicsState, (Size)remainingRect) ?? new Size(0f, 0f);
+				return framedContainer.FullSize(graphicsState, minimumContent);
+			}
+			else {
+				return base.MinimumContentSize(graphicsState, availableSpace);
+			}
+		}
+
 		public override Rectangle? GetNamedArea(string name, ISharpGraphicsState graphicsState, Rectangle fullRect) {
 			Rectangle rect = ApplyAspect(fullRect).Margins(Margins, false);
-			foreach ((string childName, DrawableDivElement childDiv) in namedChildren) {
+			foreach ((string childName, DrawableDivElement childDiv) in NamedChildren) {
 				if (childDiv.AreaExists(name)) {
 					Rectangle childRect = StyledDivUtils.GetChildRect(shape, childName, graphicsState, rect);
 					return childDiv.GetNamedArea(name, graphicsState, childRect);
@@ -222,7 +236,7 @@ namespace SharpSheets.Markup.Elements {
 
 		public override Rectangle? GetFullFromNamedArea(string name, ISharpGraphicsState graphicsState, Rectangle rect) {
 			if (string.Equals(name, "remaining") && shape is IFramedContainerArea framedContainer) {
-				foreach (DrawableDivElement child in namedChildren.Values) {
+				foreach (DrawableDivElement child in NamedChildren.GetValues()) {
 					if (child.AreaExists(name) && child.GetFullFromNamedArea(name, graphicsState, rect) is Rectangle childArea) {
 						Rectangle containerFull = framedContainer.FullRect(graphicsState, childArea);
 						return InvertApplyAspect(containerFull.Margins(Margins, true));
@@ -245,11 +259,9 @@ namespace SharpSheets.Markup.Elements {
 
 			DrawShape(canvas, rect);
 
-			foreach (string name in childrenProvidedOrder) {
-				if (namedChildren.TryGetValue(name, out DrawableDivElement? child)) {
-					Rectangle childRect = StyledDivUtils.GetChildRect(shape, name, canvas, rect);
-					child.Draw(canvas, childRect, cancellationToken);
-				}
+			foreach ((string name, DrawableDivElement child) in NamedChildren) {
+				Rectangle childRect = StyledDivUtils.GetChildRect(shape, name, canvas, rect);
+				child.Draw(canvas, childRect, cancellationToken);
 			}
 
 		}
@@ -265,9 +277,29 @@ namespace SharpSheets.Markup.Elements {
 
 	}
 
+	public abstract class StyledDivDrawRectElement<T> : StyledDivElement<T> where T : IDrawRectShape {
+
+		/// <summary>
+		/// Constructor for StyledDivElement.
+		/// </summary>
+		/// <param name="_id" default="null">A unique name for this element.</param>
+		/// <param name="setup">The DivSetup values for this element.</param>
+		/// <param name="_shapeContext">The shape context for this element.</param>
+		/// <param name="_href" default="null">The shape to use as the style for this element.</param>
+		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
+		/// <param name="markupContext"></param>
+		/// <param name="variables">The variables declared with this Div.</param>
+		public StyledDivDrawRectElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<T?>? _href, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
+			: base(_id, setup, _shapeContext, _href, outerContext, markupContext, variables) { }
+
+		protected override DrawableStyledDivElement<T> MakeStyledDrawable(IEnvironment evaluationEnvironment, T shape, IEnvironment finalDivEnvironment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines) {
+			return new DrawableStyledDivDrawRectElement<T>(this, shape, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, drawConstructionLines);
+		}
+	}
+
 	public class DrawableStyledDivDrawRectElement<T> : DrawableStyledDivElement<T> where T : IDrawRectShape {
 
-		public DrawableStyledDivDrawRectElement(StyledDivElement<T> pattern, T shape, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines)
+		public DrawableStyledDivDrawRectElement(StyledDivElement pattern, T shape, IEnvironment environment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines)
 			: base(pattern, shape, environment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, drawConstructionLines) { }
 
 		protected override void DrawShape(ISharpCanvas canvas, Rectangle rect) {
@@ -278,8 +310,8 @@ namespace SharpSheets.Markup.Elements {
 
 	public class BoxStyledDivElement : StyledDivDrawRectElement<IBox> {
 
-		public BoxStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IBox?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
-			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
+		public BoxStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IBox?>? _href, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
+			: base(_id, setup, _shapeContext, _href, outerContext, markupContext, variables) { }
 
 		/// <summary>
 		/// This element draws a box style in its assigned area. The area is assigned
@@ -293,7 +325,6 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
-		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
 		/// <param name="markupContext"></param>
 		/// <param name="variables">The variables declared with this Div.</param>
@@ -303,21 +334,20 @@ namespace SharpSheets.Markup.Elements {
 				DivSetup setup,
 				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<IBox?>? href,
-				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[Property(Exclude = true)] IVariableBox outerContext,
 				[Property(Exclude = true)] MarkupEvaluationContext markupContext,
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new BoxStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
+			return new BoxStyledDivElement(id, setup, outline, href, outerContext, markupContext, variables);
 		}
 
 	}
 
 	public class LabelledBoxStyledDivElement : StyledDivDrawRectElement<ILabelledBox> {
 
-		public LabelledBoxStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<ILabelledBox?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
-			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
+		public LabelledBoxStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<ILabelledBox?>? _href, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
+			: base(_id, setup, _shapeContext, _href, outerContext, markupContext, variables) { }
 
 		/// <summary>
 		/// This element draws a labelled box style in its assigned area. The area is assigned
@@ -331,7 +361,6 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
-		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
 		/// <param name="markupContext"></param>
 		/// <param name="variables">The variables declared with this Div.</param>
@@ -341,66 +370,26 @@ namespace SharpSheets.Markup.Elements {
 				DivSetup setup,
 				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<ILabelledBox?>? href,
-				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[Property(Exclude = true)] IVariableBox outerContext,
 				[Property(Exclude = true)] MarkupEvaluationContext markupContext,
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new LabelledBoxStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
-		}
-		
-	}
-
-	public class TitledBoxStyledDivElement : StyledDivDrawRectElement<ITitledBox> {
-
-		public TitledBoxStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<ITitledBox?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
-			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
-
-		/// <summary>
-		/// This element draws a titled box style in its assigned area. The area is assigned
-		/// in the same way as a &lt;div&gt; element, and this element obeys all the same
-		/// rules for positioning and graphics state.
-		/// <para/>
-		/// The remaining area of the box may be painted using a &lt;remaining&gt; child
-		/// element.
-		/// </summary>
-		/// <param name="id">A unique name for this element.</param>
-		/// <param name="setup">The DivSetup values for this element.</param>
-		/// <param name="outline">The shape context for this element.</param>
-		/// <param name="href">The shape to use as the style for this element.</param>
-		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
-		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
-		/// <param name="markupContext"></param>
-		/// <param name="variables">The variables declared with this Div.</param>
-		[FactoryBuilder(typeof(TitledBoxStyledDivElement), Name = "titledBox")]
-		public static TitledBoxStyledDivElement Build(
-				[LocalProperty(Default = "null")] string? id,
-				DivSetup setup,
-				[LocalProperty(Exclude = true)] ContextExpression? outline,
-				[LocalProperty(Default = "null")] IExpression<ITitledBox?>? href,
-				[LocalProperty(Default = "null")] IExpression<string>? name,
-				[Property(Exclude = true)] IVariableBox outerContext,
-				[Property(Exclude = true)] MarkupEvaluationContext markupContext,
-				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
-			) {
-
-			return new TitledBoxStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
+			return new LabelledBoxStyledDivElement(id, setup, outline, href, outerContext, markupContext, variables);
 		}
 		
 	}
 
 	public class EntriedShapeStyledDivElement : StyledDivDrawRectElement<IEntriedShape> {
 
-		public EntriedShapeStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IEntriedShape?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
-			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
+		public EntriedShapeStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IEntriedShape?>? _href, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
+			: base(_id, setup, _shapeContext, _href, outerContext, markupContext, variables) { }
 
 		/// <summary>  </summary>
 		/// <param name="id">A unique name for this element.</param>
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
-		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
 		/// <param name="markupContext"></param>
 		/// <param name="variables">The variables declared with this Div.</param>
@@ -410,21 +399,20 @@ namespace SharpSheets.Markup.Elements {
 				DivSetup setup,
 				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<IEntriedShape?>? href,
-				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[Property(Exclude = true)] IVariableBox outerContext,
 				[Property(Exclude = true)] MarkupEvaluationContext markupContext,
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new EntriedShapeStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
+			return new EntriedShapeStyledDivElement(id, setup, outline, href, outerContext, markupContext, variables);
 		}
 
 	}
 
 	public class BarStyledDivElement : StyledDivDrawRectElement<IBar> {
 
-		public BarStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IBar?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
-			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) { }
+		public BarStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IBar?>? _href, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
+			: base(_id, setup, _shapeContext, _href, outerContext, markupContext, variables) { }
 
 		/// <summary>
 		/// This element draws a bar style in its assigned area. The area is assigned
@@ -438,7 +426,6 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
-		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
 		/// <param name="markupContext"></param>
 		/// <param name="variables">The variables declared with this Div.</param>
@@ -448,13 +435,12 @@ namespace SharpSheets.Markup.Elements {
 				DivSetup setup,
 				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<IBar?>? href,
-				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[Property(Exclude = true)] IVariableBox outerContext,
 				[Property(Exclude = true)] MarkupEvaluationContext markupContext,
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new BarStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
+			return new BarStyledDivElement(id, setup, outline, href, outerContext, markupContext, variables);
 		}
 		
 	}
@@ -469,14 +455,13 @@ namespace SharpSheets.Markup.Elements {
 
 		public LabelledUsageBarStyledDivElement(string? _id, DivSetup setup,
 			ContextExpression? _shapeContext, IExpression<IUsageBar?>? _href,
-			IExpression<string>? _name,
 			StringExpression? _label1,
 			StringExpression? _label2,
 			LabelDetailsExpression? labels_,
 			TextExpression? _note,
 			LabelDetailsExpression? note_,
 			IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
-		: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) {
+		: base(_id, setup, _shapeContext, _href, outerContext, markupContext, variables) {
 
 			this.label1 = _label1;
 			this.label2 = _label2;
@@ -498,7 +483,6 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
-		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="label1">A label to be drawn by the first entry area.</param>
 		/// <param name="label2">A label to be drawn by the second entry area.</param>
 		/// <param name="labels_">Label layout details for this usage bar.</param>
@@ -512,7 +496,6 @@ namespace SharpSheets.Markup.Elements {
 				[LocalProperty(Default = "null")] string? id, DivSetup setup,
 				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<IUsageBar?>? href,
-				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[LocalProperty(Default = "null")] StringExpression? label1,
 				[LocalProperty(Default = "null")] StringExpression? label2,
 				LabelDetailsExpression? labels_,
@@ -523,7 +506,7 @@ namespace SharpSheets.Markup.Elements {
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new LabelledUsageBarStyledDivElement(id, setup, outline, href, name, label1, label2, labels_, note, note_, outerContext, markupContext, variables);
+			return new LabelledUsageBarStyledDivElement(id, setup, outline, href, label1, label2, labels_, note, note_, outerContext, markupContext, variables);
 		}
 
 		protected override IUsageBar GetShape(IEnvironment environment, ShapeFactory shapeFactory, DirectoryPath source, out SharpParsingException[] buildErrors) {
@@ -539,12 +522,70 @@ namespace SharpSheets.Markup.Elements {
 		}
 	}
 
+
+	public class TitledBoxStyledDivElement : StyledDivElement {
+
+		private readonly ContextExpression? shapeContext;
+		private readonly IExpression<ITitledBox?>? href;
+
+		public readonly IExpression<string>? titleText;
+
+		public TitledBoxStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<ITitledBox?>? _href, IExpression<string>? _name, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
+			: base(_id, setup, outerContext, markupContext, variables) {
+
+			this.shapeContext = _shapeContext;
+			this.href = _href;
+			this.titleText = _name;
+		}
+
+		protected override DrawableStyledDivElement GetStyledDrawableBase(IEnvironment evaluationEnvironment, IEnvironment finalDivEnvironment, MarkupCanvasGraphicsData graphicsData, ShapeFactory shapeFactory, DirectoryPath source, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool provideRemaining, bool diagnostic) {
+			ITitledBox titledBox = GetShape<ITitledBox>(evaluationEnvironment, shapeContext, href, shapeFactory, source, out _); // TODO We should pass these errors up the chain somehow
+			string title = titleText?.Evaluate(evaluationEnvironment) ?? "NAME";
+			IBox finalBox = TitledBoxes.ResolveBox(titledBox, null, title);
+
+			DrawableStyledDivElement<IBox> drawable = new DrawableStyledDivDrawRectElement<IBox>(this, finalBox, finalDivEnvironment, size, position, margins, layout, arrangement, order, gutter, aspectRatio, slicingValues, minSize, diagnostic);
+			return drawable;
+		}
+
+		/// <summary>
+		/// This element draws a titled box style in its assigned area. The area is assigned
+		/// in the same way as a &lt;div&gt; element, and this element obeys all the same
+		/// rules for positioning and graphics state.
+		/// <para/>
+		/// The remaining area of the box may be painted using a &lt;remaining&gt; child
+		/// element.
+		/// </summary>
+		/// <param name="id">A unique name for this element.</param>
+		/// <param name="setup">The DivSetup values for this element.</param>
+		/// <param name="outline">The shape context for this element.</param>
+		/// <param name="href">The shape to use as the style for this element.</param>
+		/// <param name="name">The name to use for this box.</param>
+		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
+		/// <param name="markupContext"></param>
+		/// <param name="variables">The variables declared with this Div.</param>
+		[FactoryBuilder(typeof(TitledBoxStyledDivElement), Name = "titledBox")]
+		public static TitledBoxStyledDivElement Build(
+				[LocalProperty(Default = "null")] string? id,
+				DivSetup setup,
+				[LocalProperty(Exclude = true)] ContextExpression? outline,
+				[LocalProperty(Default = "null")] IExpression<ITitledBox?>? href,
+				[LocalProperty(Default = "null")] IExpression<string>? name,
+				[Property(Exclude = true)] IVariableBox outerContext,
+				[Property(Exclude = true)] MarkupEvaluationContext markupContext,
+				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
+			) {
+
+			return new TitledBoxStyledDivElement(id, setup, outline, href, name, outerContext, markupContext, variables);
+		}
+
+	}
+
 	public class DetailStyledDivElement : StyledDivElement<IDetail> {
 
 		private readonly EnumExpression<LayoutDirection> detailLayout;
 
-		public DetailStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IDetail?>? _href, IExpression<string>? _name, EnumExpression<LayoutDirection> detailLayout, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
-			: base(_id, setup, _shapeContext, _href, _name, outerContext, markupContext, variables) {
+		public DetailStyledDivElement(string? _id, DivSetup setup, ContextExpression? _shapeContext, IExpression<IDetail?>? _href, EnumExpression<LayoutDirection> detailLayout, IVariableBox outerContext, MarkupEvaluationContext markupContext, IEnumerable<MarkupVariable> variables)
+			: base(_id, setup, _shapeContext, _href, outerContext, markupContext, variables) {
 
 			this.detailLayout = detailLayout;
 		}
@@ -560,7 +601,6 @@ namespace SharpSheets.Markup.Elements {
 		/// <param name="setup">The DivSetup values for this element.</param>
 		/// <param name="outline">The shape context for this element.</param>
 		/// <param name="href">The shape to use as the style for this element.</param>
-		/// <param name="name">The name to use for this shape, if a name is accepted by the shape type.</param>
 		/// <param name="direction">The layout to use when drawing this detail, which determines it's orientation.</param>
 		/// <param name="outerContext">The variables inherited from this Divs parents (not including canvas variables).</param>
 		/// <param name="markupContext"></param>
@@ -571,14 +611,13 @@ namespace SharpSheets.Markup.Elements {
 				DivSetup setup,
 				[LocalProperty(Exclude = true)] ContextExpression? outline,
 				[LocalProperty(Default = "null")] IExpression<IDetail?>? href,
-				[LocalProperty(Default = "null")] IExpression<string>? name,
 				[LocalProperty(Default = "ROWS")] EnumExpression<LayoutDirection> direction,
 				[Property(Exclude = true)] IVariableBox outerContext,
 				[Property(Exclude = true)] MarkupEvaluationContext markupContext,
 				[Property(Exclude = true)] IEnumerable<MarkupVariable> variables
 			) {
 
-			return new DetailStyledDivElement(id, setup, outline, href, name, direction, outerContext, markupContext, variables);
+			return new DetailStyledDivElement(id, setup, outline, href, direction, outerContext, markupContext, variables);
 		}
 
 		protected override DrawableStyledDivElement<IDetail> MakeStyledDrawable(IEnvironment evaluationEnvironment, IDetail shape, IEnvironment finalDivEnvironment, Dimension? size, Position? position, Margins margins, LayoutDirection layout, Arrangement arrangement, LayoutOrder order, float gutter, float aspectRatio, NSliceValuesExpression? slicingValues, (float? width, float? height) minSize, bool drawConstructionLines) {

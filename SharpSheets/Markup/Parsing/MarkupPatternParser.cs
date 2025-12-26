@@ -290,7 +290,7 @@ namespace SharpSheets.Markup.Parsing {
 					return PatternData.GetPatternVariables<MarkupLabelledBoxPattern>(context);
 				}
 				else if (typeAttr.Value == MarkupPatternType.TITLESTYLE) {
-					return PatternData.GetPatternVariables<MarkupTitleStyledBoxPattern>(context);
+					return PatternData.GetPatternVariables<MarkupTitleStylePattern>(context);
 				}
 				else if (typeAttr.Value == MarkupPatternType.TITLEDBOX) {
 					return PatternData.GetPatternVariables<MarkupTitledBoxPattern>(context);
@@ -364,7 +364,7 @@ namespace SharpSheets.Markup.Parsing {
 						result = new MarkupLabelledBoxPattern(libraryName, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, origin);
 					}
 					else if (type == MarkupPatternType.TITLESTYLE) {
-						result = new MarkupTitleStyledBoxPattern(libraryName, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, origin);
+						result = new MarkupTitleStylePattern(libraryName, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, origin);
 					}
 					else if (type == MarkupPatternType.TITLEDBOX) {
 						result = new MarkupTitledBoxPattern(libraryName, name, description, arguments, validations, exampleSize, exampleCanvas, rootElement, origin);
@@ -701,7 +701,6 @@ namespace SharpSheets.Markup.Parsing {
 				EvaluationNode? href = GetAttribute(divElem, "href", false, s => Evaluation.Parse(s, variables), null);
 
 				ContextExpression? shapeContext = MakeContextExpression(divElem, variables, "outline");
-				TextExpression? titleText = GetAttribute(divElem, "name", false, s => Interpolation.Parse(s, variables, false), null);
 
 				KeyedChildrenDivElement divElement;
 
@@ -709,25 +708,19 @@ namespace SharpSheets.Markup.Parsing {
 				if (divElem.Name == "box") {
 					ShapeReferenceExpression<IBox>? hrefExpr = href is not null ? new ShapeReferenceExpression<IBox>(href) : null;
 
-					BoxStyledDivElement boxDivElement = new BoxStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, markupContext, divVariables);
+					BoxStyledDivElement boxDivElement = new BoxStyledDivElement(id, setup, shapeContext, hrefExpr, variables, markupContext, divVariables);
 					divElement = boxDivElement;
 				}
 				else if (divElem.Name == "labelledBox") {
 					ShapeReferenceExpression<ILabelledBox>? hrefExpr = href is not null ? new ShapeReferenceExpression<ILabelledBox>(href) : null;
 
-					LabelledBoxStyledDivElement labelledBoxDivElement = new LabelledBoxStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, markupContext, divVariables);
+					LabelledBoxStyledDivElement labelledBoxDivElement = new LabelledBoxStyledDivElement(id, setup, shapeContext, hrefExpr, variables, markupContext, divVariables);
 					divElement = labelledBoxDivElement;
-				}
-				else if (divElem.Name == "titledBox") {
-					ShapeReferenceExpression<ITitledBox>? hrefExpr = href is not null ? new ShapeReferenceExpression<ITitledBox>(href) : null;
-
-					TitledBoxStyledDivElement titledBoxDivElement = new TitledBoxStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, markupContext, divVariables);
-					divElement = titledBoxDivElement;
 				}
 				else if (divElem.Name == "bar") {
 					ShapeReferenceExpression<IBar>? hrefExpr = href is not null ? new ShapeReferenceExpression<IBar>(href) : null;
 
-					BarStyledDivElement barDivElement = new BarStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, markupContext, divVariables);
+					BarStyledDivElement barDivElement = new BarStyledDivElement(id, setup, shapeContext, hrefExpr, variables, markupContext, divVariables);
 					divElement = barDivElement;
 				}
 				else if (divElem.Name == "usageBar") {
@@ -742,16 +735,23 @@ namespace SharpSheets.Markup.Parsing {
 					LabelDetailsExpression noteDetails = GetLabelDetails(divElem, variables, "note");
 
 					LabelledUsageBarStyledDivElement usageBarDivElement = new LabelledUsageBarStyledDivElement(
-						id, setup, shapeContext, hrefExpr, titleText,
+						id, setup, shapeContext, hrefExpr,
 						label1, label2, labelDetails, note, noteDetails,
 						variables, markupContext, divVariables);
 					divElement = usageBarDivElement;
+				}
+				else if (divElem.Name == "titledBox") {
+					ShapeReferenceExpression<ITitledBox>? hrefExpr = href is not null ? new ShapeReferenceExpression<ITitledBox>(href) : null;
+					TextExpression? titleText = GetAttribute(divElem, "name", false, s => Interpolation.Parse(s, variables, false), null);
+
+					TitledBoxStyledDivElement titledBoxDivElement = new TitledBoxStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, variables, markupContext, divVariables);
+					divElement = titledBoxDivElement;
 				}
 				else if (divElem.Name == "detail") {
 					ShapeReferenceExpression<IDetail>? hrefExpr = href is not null ? new ShapeReferenceExpression<IDetail>(href) : null;
 					EnumExpression<LayoutDirection> direction = GetAttribute(divElem, "direction", false, s => MarkupValueParsing.ParseEnum<LayoutDirection>(s, variables), new EnumExpression<LayoutDirection>(LayoutDirection.ROWS, variables.Context));
 
-					DetailStyledDivElement detailDivElement = new DetailStyledDivElement(id, setup, shapeContext, hrefExpr, titleText, direction, variables, markupContext, divVariables);
+					DetailStyledDivElement detailDivElement = new DetailStyledDivElement(id, setup, shapeContext, hrefExpr, direction, variables, markupContext, divVariables);
 					divElement = detailDivElement;
 				}
 				else {

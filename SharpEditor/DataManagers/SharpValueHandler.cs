@@ -60,9 +60,6 @@ namespace SharpEditor.DataManagers {
 			else if (IsNamedChild(type)) {
 				return "(child) Div".Replace(' ', NO_BREAK_SPACE); // TODO Need better name
 			}
-			else if (type.IsSimple<IContainerShape>()) {
-				return "Container";
-			}
 			else if (type.IsSimple<IBox>()) {
 				return "Box";
 			}
@@ -72,7 +69,7 @@ namespace SharpEditor.DataManagers {
 			else if (type.IsSimple<ITitledBox>()) {
 				return "TitledBox";
 			}
-			else if (type.IsSimple<ITitleStyledBox>()) {
+			else if (type.IsSimple<ITitleStyle>()) {
 				return "TitleStyle";
 			}
 			else if (type.IsSimple<IEntriedShape>()) {

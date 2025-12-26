@@ -37,7 +37,7 @@ namespace SharpSheets.Shapes {
 		protected readonly Margins trim;
 		protected readonly (float x, float y) offset;
 		protected readonly float? headerSize;
-		protected readonly RichString[] richParts;
+		//protected readonly RichString[] richParts;
 
 		protected readonly ParagraphSpecification paragraphSpec;
 		protected readonly Justification justification;
@@ -47,7 +47,7 @@ namespace SharpSheets.Shapes {
 		protected readonly Colors.Color? backgroundColor;
 		protected readonly Colors.Color? titleColor;
 
-		public BlockTitledBox(float aspect, string name = "NAME",
+		public BlockTitledBox(float aspect,
 				float fontSize = 8f, TextFormat format = TextFormat.REGULAR,
 				TitlePosition position = TitlePosition.TOP,
 				LayoutDirection layout = LayoutDirection.ROWS,
@@ -61,7 +61,7 @@ namespace SharpSheets.Shapes {
 				float lineSpacing = 1f,
 				TextHeightStrategy heightStrategy = TextHeightStrategy.AscentDescent,
 				Direction orientation = Direction.NORTH
-			) : base(aspect, name, format, fontSize) {
+			) : base(aspect, format, fontSize) {
 
 			this.padding = padding ?? new Margins(2f);
 			this.trim = trim;
@@ -78,7 +78,7 @@ namespace SharpSheets.Shapes {
 			this.justification = justification;
 			this.heightStrategy = heightStrategy;
 			this.paragraphSpec = new ParagraphSpecification(lineSpacing, 0f, 0f, 0f);
-			this.richParts = this.parts.Select(p => RichString.Create(p, format)).ToArray();
+			//this.richParts = this.parts.Select(p => RichString.Create(p, format)).ToArray();
 		}
 
 		/// <summary>
@@ -89,7 +89,6 @@ namespace SharpSheets.Shapes {
 		/// positioning, fontsize, and arrangement can be controlled.
 		/// </summary>
 		/// <param name="aspect">Aspect ratio.</param>
-		/// <param name="name">Title text.</param>
 		/// <param name="fontSize">Font size at which to draw the title text.</param>
 		/// <param name="format">Font format to use for the title text. This will use
 		/// the appropriate font format from the current font selection.</param>
@@ -130,7 +129,7 @@ namespace SharpSheets.Shapes {
 		/// <param name="orientation">The orientation of the title text. This does not
 		/// change the position of the title text, only its arrangement at that position.</param>
 		[FactoryBuilder(typeof(ITitledBox))]
-		public static BlockTitledBox Build(float aspect = -1f, string name = "NAME",
+		public static BlockTitledBox Build(float aspect = -1f,
 				float fontSize = 8f, TextFormat format = TextFormat.REGULAR,
 				TitlePosition position = TitlePosition.TOP,
 				LayoutDirection layout = LayoutDirection.ROWS,
@@ -146,10 +145,14 @@ namespace SharpSheets.Shapes {
 				Direction orientation = Direction.NORTH
 			) {
 
-			return new BlockTitledBox(aspect, name, fontSize, format, position, layout, headerSize, stroke, fill, text, padding, offset, trim, justification, lineSpacing, heightStrategy, orientation);
+			return new BlockTitledBox(aspect, fontSize, format, position, layout, headerSize, stroke, fill, text, padding, offset, trim, justification, lineSpacing, heightStrategy, orientation);
 		}
 
-		protected Size GetNameSpace(ISharpGraphicsState graphicsState) {
+		protected RichString[] GetRichParts(string title) {
+			return GetParts(title).Select(p => RichString.Create(p, format)).ToArray();
+		}
+
+		protected Size GetNameSpace(ISharpGraphicsState graphicsState, RichString[] richParts) {
 			Size nameSpace = TitleUtils.GetNameSpace(graphicsState, richParts, fontSize, paragraphSpec, heightStrategy, orientation, padding);
 			return TitleUtils.GetTitleLayout(position, layout) switch {
 				LayoutDirection.ROWS => new Size(nameSpace.Width, headerSize ?? nameSpace.Height),
@@ -158,13 +161,14 @@ namespace SharpSheets.Shapes {
 			};
 		}
 
-		protected Margins GetNameMargins(ISharpGraphicsState graphicsState) {
-			Size nameSpace = GetNameSpace(graphicsState);
+		protected Margins GetNameMargins(ISharpGraphicsState graphicsState, RichString[] richParts) {
+			Size nameSpace = GetNameSpace(graphicsState, richParts);
 			return TitleUtils.GetNameMargins(nameSpace, position, layout, offset, 0f);
 		}
 
-		protected override void DrawFrame(ISharpCanvas canvas, Rectangle rect) {
-			Size nameSpace = GetNameSpace(canvas);
+		protected override void DrawFrame(ISharpCanvas canvas, string title, Rectangle rect) {
+			RichString[] richParts = GetRichParts(title);
+			Size nameSpace = GetNameSpace(canvas, richParts);
 			(Transform transform, Rectangle pageRect, Rectangle textArea) = TitleUtils.GetNameArea(rect, nameSpace, position, offset, orientation);
 
 			Rectangle blockRect = TitleUtils.GetTitleDirection(position, layout) switch {
@@ -216,17 +220,19 @@ namespace SharpSheets.Shapes {
 			canvas.RestoreState();
 		}
 
-		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			Margins margins = GetNameMargins(graphicsState);
+		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, string title, Rectangle rect) {
+			RichString[] richParts = GetRichParts(title);
+			Margins margins = GetNameMargins(graphicsState, richParts);
 			Rectangle afterName = rect.Margins(margins, false);
 
 			return afterName.Margins(trim, false);
 		}
 
-		public override Rectangle FullRect(ISharpGraphicsState graphicsState, Rectangle rect) {
+		public override Rectangle FullRect(ISharpGraphicsState graphicsState, string title, Rectangle rect) {
 			Rectangle contentRect = rect.Margins(trim, true);
 
-			Margins margins = GetNameMargins(graphicsState);
+			RichString[] richParts = GetRichParts(title);
+			Margins margins = GetNameMargins(graphicsState, richParts);
 			Rectangle beforeName = contentRect.Margins(margins, true);
 
 			return beforeName;

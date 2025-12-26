@@ -6,35 +6,37 @@ using SharpSheets.Parsing;
 
 namespace SharpSheets.Shapes {
 
-	public class Untitled : TitleStyledBoxBase {
+	public class Untitled : TitleStyleBase {
 
-		public Untitled(IContainerShape box, string name) : base(box, name, TextFormat.REGULAR, 0f, default, 0f, null) { }
+		public Untitled() : base(TextFormat.REGULAR, 0f, default, 0f, null) { }
 
 		/// <summary>
 		/// This style will draw no title around the box, and will not affect the remaining
 		/// area of the shape.
 		/// </summary>
-		/// <param name="box">Base shape.</param>
-		/// <param name="name">Title text.</param>
-		[FactoryBuilder(typeof(ITitleStyledBox))]
-		public static Untitled Build(IContainerShape box, string name) {
-			return new Untitled(box, name);
+		[FactoryBuilder(typeof(ITitleStyle))]
+		public static Untitled Build() {
+			return new Untitled();
 		}
 
-		protected override void DrawFrame(ISharpCanvas canvas, Rectangle aspectRect) {
-			box.Draw(canvas, aspectRect);
+		public override Rectangle AspectRect(ISharpGraphicsState graphicsState, IBox shape, string name, Rectangle rect) {
+			return shape.AspectRect(graphicsState, rect);
 		}
 
-		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, Rectangle aspectRect) {
-			return box.RemainingRect(graphicsState, aspectRect);
+		protected override void DrawFrame(ISharpCanvas canvas, IBox shape, string name, Rectangle aspectRect) {
+			shape.Draw(canvas, aspectRect);
 		}
 
-		public override Rectangle FullRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			return box.FullRect(graphicsState, rect);
+		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, IBox shape, string name, Rectangle aspectRect) {
+			return shape.RemainingRect(graphicsState, aspectRect);
+		}
+
+		public override Rectangle FullRect(ISharpGraphicsState graphicsState, IBox shape, string name, Rectangle rect) {
+			return shape.FullRect(graphicsState, rect);
 		}
 	}
 
-	public abstract class AbstractPositionedTitleStyle : TitleStyledBoxBase {
+	public abstract class AbstractPositionedTitleStyle : TitleStyleBase {
 
 		protected readonly TitlePosition position;
 		protected readonly Justification justification;
@@ -44,9 +46,9 @@ namespace SharpSheets.Shapes {
 		protected readonly TextHeightStrategy heightStrategy;
 
 		protected readonly ParagraphSpecification paragraphSpec;
-		protected readonly RichString[] richParts;
+		//protected readonly RichString[] richParts;
 
-		public AbstractPositionedTitleStyle(IContainerShape box, string name, TitlePosition position, LayoutDirection layout, Direction orientation, Margins padding, TextFormat format, float fontSize, Vector offset, float spacing, Colors.Color? color, Justification justification, float lineSpacing, TextHeightStrategy heightStrategy) : base(box, name, format, fontSize, offset, spacing, color) {
+		public AbstractPositionedTitleStyle(TitlePosition position, LayoutDirection layout, Direction orientation, Margins padding, TextFormat format, float fontSize, Vector offset, float spacing, Colors.Color? color, Justification justification, float lineSpacing, TextHeightStrategy heightStrategy) : base(format, fontSize, offset, spacing, color) {
 			this.position = position;
 			this.layout = layout;
 			this.orientation = orientation;
@@ -55,38 +57,38 @@ namespace SharpSheets.Shapes {
 			this.heightStrategy = heightStrategy;
 
 			this.paragraphSpec = new ParagraphSpecification(lineSpacing, 0f, 0f, 0f);
-			this.richParts = this.parts.Select(p => RichString.Create(p, format)).ToArray();
+			//this.richParts = this.parts.Select(p => RichString.Create(p, format)).ToArray();
 		}
 
-		protected virtual Size GetNameSpace(ISharpGraphicsState graphicsState) => TitleUtils.GetNameSpace(graphicsState, richParts, fontSize, paragraphSpec, heightStrategy, orientation, padding);
+		protected virtual Size GetNameSpace(ISharpGraphicsState graphicsState, RichString[] richParts) => TitleUtils.GetNameSpace(graphicsState, richParts, fontSize, paragraphSpec, heightStrategy, orientation, padding);
 
-		protected (Transform t, Rectangle pageRect, Rectangle transformedRect) GetNameArea(ISharpGraphicsState graphicsState, Rectangle rect) {
-			Size nameSpace = GetNameSpace(graphicsState);
+		protected (Transform t, Rectangle pageRect, Rectangle transformedRect) GetNameArea(ISharpGraphicsState graphicsState, RichString[] richParts, Rectangle rect) {
+			Size nameSpace = GetNameSpace(graphicsState, richParts);
 			return TitleUtils.GetNameArea(rect, nameSpace, position, offset, orientation);
 		}
 
 		protected (Transform t, Rectangle r) TransformRect(Rectangle pageRect) => TitleUtils.TransformRect(pageRect, orientation);
 
-		protected Margins GetNameMargins(ISharpGraphicsState graphicsState) {
-			Size nameSpace = GetNameSpace(graphicsState);
+		protected Margins GetNameMargins(ISharpGraphicsState graphicsState, RichString[] richParts) {
+			Size nameSpace = GetNameSpace(graphicsState, richParts);
 			return TitleUtils.GetNameMargins(nameSpace, position, layout, offset, spacing);
 		}
 
-		protected void DrawTitleText(ISharpCanvas canvas, Rectangle textRect) {
+		protected void DrawTitleText(ISharpCanvas canvas, RichString[] richParts, Rectangle textRect) {
 			canvas.DrawRichText(textRect, richParts, fontSize, paragraphSpec, justification, Alignment.CENTRE, heightStrategy, false);
 		}
 
-		protected void DrawTitle(ISharpCanvas canvas, Rectangle rect) {
+		protected void DrawTitle(ISharpCanvas canvas, RichString[] richParts, Rectangle rect) {
 			canvas.SaveState();
 
-			(Transform transform, _, Rectangle textArea) = GetNameArea(canvas, rect);
+			(Transform transform, _, Rectangle textArea) = GetNameArea(canvas, richParts, rect);
 			canvas.ApplyTransform(transform);
 
 			if(textColor.HasValue) {
 				canvas.SetTextColor(textColor.Value);
 			}
 
-			DrawTitleText(canvas, textArea);
+			DrawTitleText(canvas, richParts, textArea);
 
 			canvas.RestoreState();
 		}
@@ -95,7 +97,7 @@ namespace SharpSheets.Shapes {
 
 	public class Named : AbstractPositionedTitleStyle {
 
-		public Named(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 3f), spacing, color, justification, lineSpacing, heightStrategy) { }
+		public Named(TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 3f), spacing, color, justification, lineSpacing, heightStrategy) { }
 
 		/// <summary>
 		/// This style will draw the title text inside the shape outline, adjusting the remaining
@@ -104,8 +106,6 @@ namespace SharpSheets.Shapes {
 		/// to the whole shape area, not the remaining area, and as such the offset may need to be
 		/// adjusted for individual outline styles.
 		/// </summary>
-		/// <param name="box">Base shape.</param>
-		/// <param name="name">Title text.</param>
 		/// <param name="position">The position of the title text around the inside of the shape
 		/// area. This will control the starting location of the text, which may then be adjusted
 		/// using <paramref name="offset"/>.</param>
@@ -136,29 +136,36 @@ namespace SharpSheets.Shapes {
 		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
-		[FactoryBuilder(typeof(ITitleStyledBox))]
-		public static Named Build(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, [Property(Default = "(0,3)")] Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) {
-			return new Named(box, name, position, layout, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
+		[FactoryBuilder(typeof(ITitleStyle))]
+		public static Named Build(TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, [Property(Default = "(0,3)")] Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) {
+			return new Named(position, layout, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
 		}
 
-		protected override void DrawFrame(ISharpCanvas canvas, Rectangle rect) {
-			box.Draw(canvas, rect);
-			DrawTitle(canvas, rect);
+		public override Rectangle AspectRect(ISharpGraphicsState graphicsState, IBox shape, string name, Rectangle rect) {
+			return shape.AspectRect(graphicsState, rect);
 		}
 
-		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			Rectangle boxRect = box.RemainingRect(graphicsState, rect);
+		protected override void DrawFrame(ISharpCanvas canvas, IBox shape, string title, Rectangle rect) {
+			shape.Draw(canvas, rect);
+			RichString[] richParts = GetRichParts(title);
+			DrawTitle(canvas, richParts, rect);
+		}
 
-			Margins margins = GetNameMargins(graphicsState);
+		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, IBox shape, string title, Rectangle rect) {
+			Rectangle boxRect = shape.RemainingRect(graphicsState, rect);
+
+			RichString[] richParts = GetRichParts(title);
+			Margins margins = GetNameMargins(graphicsState, richParts);
 			Rectangle afterName = rect.Margins(margins, false);
 
 			return Rectangle.Intersection(boxRect, afterName);
 		}
 
-		public override Rectangle FullRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			Rectangle boxRect = box.FullRect(graphicsState, rect);
+		public override Rectangle FullRect(ISharpGraphicsState graphicsState, IBox shape, string title, Rectangle rect) {
+			Rectangle boxRect = shape.FullRect(graphicsState, rect);
 
-			Margins margins = GetNameMargins(graphicsState);
+			RichString[] richParts = GetRichParts(title);
+			Margins margins = GetNameMargins(graphicsState, richParts);
 			Rectangle beforeName = rect.Margins(margins, true);
 
 			return Rectangle.Union(boxRect, beforeName);
@@ -167,7 +174,7 @@ namespace SharpSheets.Shapes {
 
 	public class Titled : AbstractPositionedTitleStyle {
 
-		public Titled(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 0f), spacing, color, justification, lineSpacing, heightStrategy) { }
+		public Titled(TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) : base(position, layout, orientation, Margins.Zero, format, fontSize, offset ?? new Vector(0f, 0f), spacing, color, justification, lineSpacing, heightStrategy) { }
 
 		/// <summary>
 		/// This style will draw the title text outside the shape outline, adjusting the available
@@ -177,8 +184,6 @@ namespace SharpSheets.Shapes {
 		/// need a zero value on at least one axis in order for the title to be drawn at the edge
 		/// of the shape area.
 		/// </summary>
-		/// <param name="box">Base shape.</param>
-		/// <param name="name">Title text.</param>
 		/// <param name="position">The position of the title text around the outside of the shape
 		/// area. This will control the starting location of the text, which may then be adjusted
 		/// using <paramref name="offset"/>.</param>
@@ -208,38 +213,42 @@ namespace SharpSheets.Shapes {
 		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
-		[FactoryBuilder(typeof(ITitleStyledBox))]
-		public static Titled Build(IContainerShape box, string name, TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, [Property(Default = "(0,0)")] Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) {
-			return new Titled(box, name, position, layout, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
+		[FactoryBuilder(typeof(ITitleStyle))]
+		public static Titled Build(TitlePosition position = TitlePosition.BOTTOM, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f, [Property(Default = "(0,0)")] Vector? offset = null, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.FontsizeBaseline) {
+			return new Titled(position, layout, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
 		}
 
-		protected Rectangle BoxRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			return box.AspectRect(graphicsState, rect.Margins(GetNameMargins(graphicsState), false));
+		protected Rectangle BoxRect(ISharpGraphicsState graphicsState, IBox shape, RichString[] richParts, Rectangle rect) {
+			return shape.AspectRect(graphicsState, rect.Margins(GetNameMargins(graphicsState, richParts), false));
 		}
 
-		public override Rectangle AspectRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			return BoxRect(graphicsState, rect).Margins(GetNameMargins(graphicsState), true);
+		public override Rectangle AspectRect(ISharpGraphicsState graphicsState, IBox shape, string title, Rectangle rect) {
+			RichString[] richParts = GetRichParts(title);
+			return BoxRect(graphicsState, shape, richParts, rect).Margins(GetNameMargins(graphicsState, richParts), true);
 		}
 
-		protected override void DrawFrame(ISharpCanvas canvas, Rectangle rect) {
-			DrawTitle(canvas, rect);
+		protected override void DrawFrame(ISharpCanvas canvas, IBox shape, string title, Rectangle rect) {
+			RichString[] richParts = GetRichParts(title);
+			DrawTitle(canvas, richParts, rect);
 
-			Margins nameMargins = GetNameMargins(canvas);
+			Margins nameMargins = GetNameMargins(canvas, richParts);
 			Rectangle boxArea = rect.Margins(nameMargins, false);
-			box.Draw(canvas, boxArea);
+			shape.Draw(canvas, boxArea);
 		}
 
-		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			Margins margins = GetNameMargins(graphicsState);
+		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, IBox shape, string title, Rectangle rect) {
+			RichString[] richParts = GetRichParts(title);
+			Margins margins = GetNameMargins(graphicsState, richParts);
 			Rectangle afterName = rect.Margins(margins, false);
 
-			return box.RemainingRect(graphicsState, afterName);
+			return shape.RemainingRect(graphicsState, afterName);
 		}
 
-		public override Rectangle FullRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			Rectangle boxRect = box.FullRect(graphicsState, rect);
+		public override Rectangle FullRect(ISharpGraphicsState graphicsState, IBox shape, string title, Rectangle rect) {
+			Rectangle boxRect = shape.FullRect(graphicsState, rect);
 
-			Margins margins = GetNameMargins(graphicsState);
+			RichString[] richParts = GetRichParts(title);
+			Margins margins = GetNameMargins(graphicsState, richParts);
 			Rectangle beforeName = boxRect.Margins(margins, true);
 
 			return beforeName;
@@ -251,8 +260,8 @@ namespace SharpSheets.Shapes {
 		protected readonly IBox outline;
 		protected readonly Margins trim;
 
-		public BoxedTitle(IContainerShape box, string name, IBox box_, Margins trim = default, TitlePosition position = TitlePosition.TOP, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 11f, Vector offset = default, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline) : base(box, name, position, layout, orientation, Margins.Zero, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy) {
-			this.outline = box_ ?? new NoOutline(-1f);
+		public BoxedTitle(IBox box, Margins trim = default, TitlePosition position = TitlePosition.TOP, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 11f, Vector offset = default, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline) : base(position, layout, orientation, Margins.Zero, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy) {
+			this.outline = box ?? new NoOutline(-1f);
 			this.trim = trim;
 		}
 
@@ -265,9 +274,7 @@ namespace SharpSheets.Shapes {
 		/// relative to the full shape area, and as such the offset may need a zero value on at least
 		/// one axis in order for the title to be drawn at the edge of the shape area.
 		/// </summary>
-		/// <param name="box">Base shape.</param>
-		/// <param name="name">Title text.</param>
-		/// <param name="box_">The box style to draw around the title text. This style must support
+		/// <param name="box">The box style to draw around the title text. This style must support
 		/// inferring the full area from a content area.</param>
 		/// <param name="trim">Spacing to use around the title text inside the title box.</param>
 		/// <param name="position">The position of the title box around the outside of the shape
@@ -300,32 +307,34 @@ namespace SharpSheets.Shapes {
 		/// <param name="lineSpacing">The line spacing to use when drawing multi-line titles. This is
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
-		[FactoryBuilder(typeof(ITitleStyledBox))]
-		public static BoxedTitle Build(IContainerShape box, string name, IBox box_, Margins trim = default, TitlePosition position = TitlePosition.TOP, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 11f, Vector offset = default, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline) {
-			return new BoxedTitle(box, name, box_, trim, position, layout, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
+		[FactoryBuilder(typeof(ITitleStyle))]
+		public static BoxedTitle Build([Property(Example = "Rounded")] IBox box, [Property(Example = "1")] Margins trim = default, TitlePosition position = TitlePosition.TOP, LayoutDirection layout = LayoutDirection.ROWS, Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 11f, Vector offset = default, float spacing = 3f, Colors.Color? color = null, Justification justification = Justification.CENTRE, float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentBaseline) {
+			return new BoxedTitle(box, trim, position, layout, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
 		}
 
-		protected Rectangle BoxRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			return box.AspectRect(graphicsState, rect.Margins(GetNameMargins(graphicsState), false));
+		protected Rectangle BoxRect(ISharpGraphicsState graphicsState, IBox shape, RichString[] richParts, Rectangle rect) {
+			return shape.AspectRect(graphicsState, rect.Margins(GetNameMargins(graphicsState, richParts), false));
 		}
 
-		public override Rectangle AspectRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			return BoxRect(graphicsState, rect).Margins(GetNameMargins(graphicsState), true);
+		public override Rectangle AspectRect(ISharpGraphicsState graphicsState, IBox shape, string title, Rectangle rect) {
+			RichString[] richParts = GetRichParts(title);
+			return BoxRect(graphicsState, shape, richParts, rect).Margins(GetNameMargins(graphicsState, richParts), true);
 		}
 
-		protected override Size GetNameSpace(ISharpGraphicsState graphicsState) {
-			Size nameSize = base.GetNameSpace(graphicsState);
+		protected override Size GetNameSpace(ISharpGraphicsState graphicsState, RichString[] richParts) {
+			Size nameSize = base.GetNameSpace(graphicsState, richParts);
 			return outline.FullSize(graphicsState, nameSize.Margins(trim, true));
 		}
 
-		protected override void DrawFrame(ISharpCanvas canvas, Rectangle rect) {
-			Margins nameMargins = GetNameMargins(canvas);
+		protected override void DrawFrame(ISharpCanvas canvas, IBox shape, string title, Rectangle rect) {
+			RichString[] richParts = GetRichParts(title);
+			Margins nameMargins = GetNameMargins(canvas, richParts);
 			Rectangle boxArea = rect.Margins(nameMargins, false);
-			box.Draw(canvas, boxArea);
+			shape.Draw(canvas, boxArea);
 
 			canvas.SaveState();
 
-			(_, Rectangle pageTitleRect, _) = GetNameArea(canvas, rect);
+			(_, Rectangle pageTitleRect, _) = GetNameArea(canvas, richParts, rect);
 			outline.Draw(canvas, pageTitleRect, out Rectangle titleBoxRemainingPage);
 
 			(Transform transform, Rectangle titleTextRect) = TransformRect(titleBoxRemainingPage.Margins(trim, false));
@@ -335,29 +344,31 @@ namespace SharpSheets.Shapes {
 				canvas.SetTextColor(textColor.Value);
 			}
 
-			DrawTitleText(canvas, titleTextRect);
+			DrawTitleText(canvas, richParts, titleTextRect);
 
 			canvas.RestoreState();
 		}
 
-		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			Margins margins = GetNameMargins(graphicsState);
+		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, IBox shape, string title, Rectangle rect) {
+			RichString[] richParts = GetRichParts(title);
+			Margins margins = GetNameMargins(graphicsState, richParts);
 			Rectangle afterName = rect.Margins(margins, false);
 
-			return box.RemainingRect(graphicsState, afterName);
+			return shape.RemainingRect(graphicsState, afterName);
 		}
 
-		public override Rectangle FullRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			Rectangle boxRect = box.FullRect(graphicsState, rect);
+		public override Rectangle FullRect(ISharpGraphicsState graphicsState, IBox shape, string title, Rectangle rect) {
+			Rectangle boxRect = shape.FullRect(graphicsState, rect);
 
-			Margins margins = GetNameMargins(graphicsState);
+			RichString[] richParts = GetRichParts(title);
+			Margins margins = GetNameMargins(graphicsState, richParts);
 			Rectangle beforeName = boxRect.Margins(margins, true);
 
 			return beforeName;
 		}
 	}
 
-	public class TabTitle : TitleStyledBoxBase {
+	public class TabTitle : TitleStyleBase {
 
 		protected readonly IBox tabBox;
 		protected readonly Dimension? protrusionLength;
@@ -370,10 +381,9 @@ namespace SharpSheets.Shapes {
 		protected readonly TextHeightStrategy heightStrategy;
 
 		protected readonly ParagraphSpecification paragraphSpec;
-		protected readonly RichString[] richParts;
+		//protected readonly RichString[] richParts;
 
-		public TabTitle(IContainerShape box, string name,
-				IBox tabBox, Margins trim = default,
+		public TabTitle(IBox tabBox, Margins trim = default,
 				Direction position = Direction.WEST,
 				Dimension? protrusion = null, Dimension? tabBreadth = null, bool includeProtrusion = true,
 				Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f,
@@ -381,7 +391,7 @@ namespace SharpSheets.Shapes {
 				Colors.Color? color = null,
 				Justification justification = Justification.CENTRE,
 				float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentDescent
-			) : base(box, name, format, fontSize, offset, spacing, color) {
+			) : base(format, fontSize, offset, spacing, color) {
 			
 			this.tabBox = tabBox ?? new NoOutline(-1);
 			this.protrusionLength = protrusion;
@@ -394,7 +404,7 @@ namespace SharpSheets.Shapes {
 			this.trim = trim;
 
 			this.paragraphSpec = new ParagraphSpecification(lineSpacing, 0f, 0f, 0f);
-			this.richParts = this.parts.Select(p => RichString.Create(p, format)).ToArray();
+			//this.richParts = this.parts.Select(p => RichString.Create(p, format)).ToArray();
 		}
 
 		/// <summary>
@@ -404,10 +414,8 @@ namespace SharpSheets.Shapes {
 		/// main shape. The main outline area can either be left as is, or repositioned to allow for
 		/// the size of the tab. The tab position is specified as a cardinal direction relative to
 		/// the main shape area. The position of the tab can be adjusted, and the layout of the title
-		/// text inside the tab specified. 
+		/// text inside the tab specified.
 		/// </summary>
-		/// <param name="box">Base shape.</param>
-		/// <param name="name">Title text.</param>
 		/// <param name="tabBox">The box style to draw around the title tab.
 		/// This style must support inferring the full area from a content area.</param>
 		/// <param name="trim">Spacing to use around the title text inside the title
@@ -454,9 +462,9 @@ namespace SharpSheets.Shapes {
 		/// expressed as a multiple of <paramref name="fontSize"/>.</param>
 		/// <param name="heightStrategy">The height strategy to use when determining title text height.</param>
 		/// <canvas>120 60</canvas>
-		[FactoryBuilder(typeof(ITitleStyledBox))]
-		public static TabTitle Build([Property(Example = "Simple")] IContainerShape box, string name,
-				[Property(Example = "Simple")] IBox tabBox, [Property(Example = "2")] Margins trim = default,
+		[FactoryBuilder(typeof(ITitleStyle))]
+		public static TabTitle Build(
+				[Property(Example = "Rounded")] IBox tabBox, [Property(Example = "1")] Margins trim = default,
 				Direction position = Direction.WEST,
 				Dimension? protrusion = null, Dimension? tabBreadth = null, [Property(Example = "true")] bool includeProtrusion = true,
 				Direction orientation = Direction.NORTH, TextFormat format = TextFormat.BOLD, float fontSize = 6f,
@@ -466,10 +474,15 @@ namespace SharpSheets.Shapes {
 				float lineSpacing = 1f, TextHeightStrategy heightStrategy = TextHeightStrategy.AscentDescent
 			) {
 
-			return new TabTitle(box, name, tabBox, trim, position, protrusion, tabBreadth, includeProtrusion, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
+			return new TabTitle(tabBox, trim, position, protrusion, tabBreadth, includeProtrusion, orientation, format, fontSize, offset, spacing, color, justification, lineSpacing, heightStrategy);
 		}
 
-		protected Size GetTitleSize(ISharpGraphicsState graphicsState) {
+		public override Rectangle AspectRect(ISharpGraphicsState graphicsState, IBox shape, string name, Rectangle rect) {
+			// TODO This is not right. Should account for "includeProtrusion".
+			return shape.AspectRect(graphicsState, rect);
+		}
+
+		protected Size GetTitleSize(ISharpGraphicsState graphicsState, RichString[] richParts) {
 			return TitleUtils.GetNameSpace(graphicsState, richParts, fontSize, paragraphSpec, heightStrategy, orientation, Margins.Zero);
 		}
 
@@ -539,9 +552,9 @@ namespace SharpSheets.Shapes {
 			return new Size(tabWidth, tabHeight);
 		}
 
-		protected override void DrawFrame(ISharpCanvas canvas, Rectangle rect) {
-
-			Size nameSize = GetTitleSize(canvas);
+		protected override void DrawFrame(ISharpCanvas canvas, IBox shape, string title, Rectangle rect) {
+			RichString[] richParts = GetRichParts(title);
+			Size nameSize = GetTitleSize(canvas, richParts);
 			Size tabSize = GetTabSize(canvas, rect, nameSize);
 
 			Rectangle boxRect;
@@ -618,11 +631,12 @@ namespace SharpSheets.Shapes {
 			canvas.RestoreState();
 			
 			// Draw main box outline
-			box.Draw(canvas, boxRect);
+			shape.Draw(canvas, boxRect);
 		}
 
-		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			Size nameSize = GetTitleSize(graphicsState);
+		protected override Rectangle GetRemainingRect(ISharpGraphicsState graphicsState, IBox shape, string title, Rectangle rect) {
+			RichString[] richParts = GetRichParts(title);
+			Size nameSize = GetTitleSize(graphicsState, richParts);
 			Size tabSize = GetTabSize(graphicsState, rect, nameSize);
 
 			Rectangle boxRect;
@@ -655,13 +669,14 @@ namespace SharpSheets.Shapes {
 				}
 			}
 
-			return box.RemainingRect(graphicsState, boxRect);
+			return shape.RemainingRect(graphicsState, boxRect);
 		}
 
-		public override Rectangle FullRect(ISharpGraphicsState graphicsState, Rectangle rect) {
-			Rectangle boxRect = box.FullRect(graphicsState, rect);
+		public override Rectangle FullRect(ISharpGraphicsState graphicsState, IBox shape, string title, Rectangle rect) {
+			Rectangle boxRect = shape.FullRect(graphicsState, rect);
 
-			Size nameSize = GetTitleSize(graphicsState);
+			RichString[] richParts = GetRichParts(title);
+			Size nameSize = GetTitleSize(graphicsState, richParts);
 			Size tabSize = GetTabSize(graphicsState, null, nameSize);
 
 			Rectangle fullRect;

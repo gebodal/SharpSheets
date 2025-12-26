@@ -166,17 +166,12 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					string exampleName = builder.Name; // "NAME";
 
 					IShape shape;
-					if (builder.DeclaringType.IsSimple<BoxedTitle>()) {
-						shape = new BoxedTitle(new Simple(-1), exampleName, new Rounded(-1), trim: new Margins(1f));
-					}
-					else if (builder.DeclaringType.IsSimple<TabTitle>()) {
-						shape = new TabTitle(new Simple(-1), exampleName, new Rounded(-1), trim: new Margins(1f), includeProtrusion: true);
-					}
-					else if (builder.DeclaringType.IsAssignableTo(typeof(ITitleStyledBox))) {
-						shape = SharpEditorRegistries.ShapeFactoryInstance.MakeTitleStyle(shapeContext, new Simple(-1, dashes: new float[] { 3f, 3f }, stroke: SharpSheets.Colors.Color.Black), exampleName, source, out _);
-					}
-					else if (builder.DisplayType.GetSingle() is Type builderSystemType) {
+					if (builder.DisplayType.GetSingle() is Type builderSystemType) {
 						shape = SharpEditorRegistries.ShapeFactoryInstance.MakeExample(builderSystemType, builder.FullName, source, out _); // .MakeShape(constructor.DisplayType, shapeContext, exampleName, source);
+
+						if (shape is ITitleStyle titleStyle) {
+							shape = new TitleStyledBox(titleStyle, new Simple(-1f, trim: new Margins(4f), strokeWidth: 0.5f, stroke: SharpSheets.Colors.Color.Black, fill: SharpSheets.Colors.Color.White), exampleName);
+						}
 					}
 					else {
 						shape = ShapeFactory.MakeDefault_IBox();

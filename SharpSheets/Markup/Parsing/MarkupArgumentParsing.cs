@@ -176,7 +176,6 @@ namespace SharpSheets.Markup.Parsing {
 
 				new NamedContext(context, arg.ArgumentName.ToString(), forceLocal: arg.UseLocal).HasProperty("style", arg.UseLocal, context, out DocumentSpan? styleLocation);
 				IContext shapeContext = new NamedContext(context, arg.ArgumentName.ToString(), location: styleLocation, forceLocal: arg.UseLocal);
-				string? contextName = context.GetProperty("name", true, context, null);
 				Type? defaultStyle = ShapeFactory.GetDefaultStyle(arg.Type.DataType);
 				if (defaultStyle is null) {
 					errors.Add(new SharpParsingException(context.Location, $"Could not identify default style for {arg.Type.DataType}."));
@@ -185,8 +184,7 @@ namespace SharpSheets.Markup.Parsing {
 					return false;
 				}
 				
-				// TODO Should be catching exceptions from shapeFactory call
-				IShape shape = shapeFactory.MakeShape(arg.Type.DataType, shapeContext, contextName, /*defaultStyle,*/ source, out SharpParsingException[] shapeBuildErrors);
+				IShape shape = shapeFactory.MakeShape(arg.Type.DataType, shapeContext, /*contextName,*/ /*defaultStyle,*/ source, out SharpParsingException[] shapeBuildErrors);
 				
 				errors.AddRange(shapeBuildErrors);
 				value = new EvaluationValue(shape, arg.Type);

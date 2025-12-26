@@ -19,10 +19,10 @@ namespace SharpSheets.Widgets {
 	public class Div : DivisionWidget {
 		public Div(WidgetSetup setup) : base(setup) { }
 
-	/// <summary>
-	/// The basic division widget, which simply arranges and draws its children, with no additional styling or graphics.
-	/// This widget will draw any gutter style specified, and obeys auto-sizing conventions normally.
-	/// </summary>
+		/// <summary>
+		/// The basic division widget, which simply arranges and draws its children, with no additional styling or graphics.
+		/// This widget will draw any gutter style specified, and obeys auto-sizing conventions normally.
+		/// </summary>
 		/// <param name="setup"> Widget setup object. </param>
 		[FactoryBuilder(typeof(IWidget))]
 		public static Div Build(WidgetSetup setup) {
@@ -33,10 +33,10 @@ namespace SharpSheets.Widgets {
 	public class Row : DivisionWidget {
 		public Row(WidgetSetup setup) : base(setup) { }
 
-	/// <summary>
-	/// This widget functions identically to the <see cref="Div"/> widget, and is simply included to allow more
-	/// clarity in configuration files (to display the intent for a widget in the arrangement).
-	/// </summary>
+		/// <summary>
+		/// This widget functions identically to the <see cref="Div"/> widget, and is simply included to allow more
+		/// clarity in configuration files (to display the intent for a widget in the arrangement).
+		/// </summary>
 		/// <param name="setup"> Widget setup object. </param>
 		[FactoryBuilder(typeof(IWidget))]
 		public static Row Build(WidgetSetup setup) {
@@ -47,10 +47,10 @@ namespace SharpSheets.Widgets {
 	public class Column : DivisionWidget {
 		public Column(WidgetSetup setup) : base(setup) { }
 
-	/// <summary>
-	/// This widget functions identically to the <see cref="Div"/> widget, and is simply included to allow more
-	/// clarity in configuration files (to display the intent for a widget in the arrangement).
-	/// </summary>
+		/// <summary>
+		/// This widget functions identically to the <see cref="Div"/> widget, and is simply included to allow more
+		/// clarity in configuration files (to display the intent for a widget in the arrangement).
+		/// </summary>
 		/// <param name="setup"> Widget setup object. </param>
 		[FactoryBuilder(typeof(IWidget))]
 		public static Column Build(WidgetSetup setup) {
@@ -61,12 +61,12 @@ namespace SharpSheets.Widgets {
 	public sealed class Empty : SharpWidget {
 		public Empty(WidgetSetup setup) : base(setup) { }
 
-	/// <summary>
-	/// This widget draws nothing to the page, and also does not draw any children (indeed,
-	/// this widget should not have any children).
-	/// It is included as a placeholder and null-widget, and to be used where at least
-	/// one child is required, but no drawing is desireable.
-	/// </summary>
+		/// <summary>
+		/// This widget draws nothing to the page, and also does not draw any children (indeed,
+		/// this widget should not have any children).
+		/// It is included as a placeholder and null-widget, and to be used where at least
+		/// one child is required, but no drawing is desireable.
+		/// </summary>
 		/// <param name="setup"> Widget setup object. </param>
 		[FactoryBuilder(typeof(IWidget))]
 		public static Empty Build(WidgetSetup setup) {
@@ -124,7 +124,7 @@ namespace SharpSheets.Widgets {
 
 		}
 
-		protected readonly IContainerShape outline;
+		protected readonly IBox outline;
 		protected readonly Margins frame;
 
 		protected readonly string? fieldName;
@@ -136,7 +136,7 @@ namespace SharpSheets.Widgets {
 		public Section(
 				WidgetSetup setup,
 				string? name = null,
-				IContainerShape? outline = null,
+				IBox? outline = null,
 				Margins _frame = default,
 				FieldDetails? field = null
 			) : base(setup) {
@@ -156,8 +156,10 @@ namespace SharpSheets.Widgets {
 		/// </summary>
 		/// <param name="setup"> Widget setup object. </param>
 		/// <param name="name"> The name for this section, used for titles and field names. </param>
+		/// <param name="name_"> The name for this section, used for titles. </param>
 		/// <param name="outline"> Outline style to place around this widget,
 		/// which will be drawn before any child widgets are drawn. </param>
+		/// <param name="title">Title style to draw with the outline box.</param>
 		/// <param name="frame"> Margins to apply to the remaining area after the outline is drawn.
 		/// This can be used to separate the children from the outline, if desired. This extra spacing will
 		/// be factored into any autosizing calculations.</param>
@@ -165,13 +167,17 @@ namespace SharpSheets.Widgets {
 		[FactoryBuilder(typeof(IWidget))]
 		public static Section Build(
 				WidgetSetup setup,
-				string? name = null,
-				[Property(Example = "Simple")] IContainerShape? outline = null,
+				[Property(Example = "NAME")] string? name = null,
+				[LocalProperty(Example = "NAME")] string? name_ = null,
+				[Property(Example = "Simple")] IBox? outline = null,
+				[Property(Example = "Titled")] ITitleStyle? title = null,
 				[LocalProperty] Margins frame = default,
 				FieldDetails? field = null
 			) {
 
-			return new Section(setup, name, outline, frame, field);
+			IBox? finalBox = name_ is not null ? TitledBoxes.ResolveBox(outline, title, name_) : outline;
+
+			return new Section(setup, name, finalBox, frame, field);
 		}
 
 		protected override void DrawWidget(ISharpCanvas canvas, Rectangle rect, CancellationToken cancellationToken) {
@@ -262,7 +268,7 @@ namespace SharpSheets.Widgets {
 		}
 
 		protected readonly string? name;
-		protected readonly IContainerShape outline;
+		protected readonly IBox outline;
 		protected readonly Margins frame;
 
 		protected readonly FieldDetails fieldDetails;
@@ -272,7 +278,7 @@ namespace SharpSheets.Widgets {
 		public Box(
 				WidgetSetup setup,
 				string? name = null,
-				IContainerShape? outline = null,
+				IBox? outline = null,
 				Margins _frame = default,
 				FieldDetails? field = null
 			) : base(setup) {
@@ -292,8 +298,10 @@ namespace SharpSheets.Widgets {
 		/// </summary>
 		/// <param name="setup"> Widget setup object. </param>
 		/// <param name="name"> The name for this box, used for titles and field names. </param>
+		/// <param name="name_"> The name for this box, used for titles. </param>
 		/// <param name="outline"> Outline style to place around this widget,
 		/// which will be drawn before any child widgets are drawn. </param>
+		/// /// <param name="title">Title style to draw with the outline box.</param>
 		/// <param name="frame"> Margins to apply to the remaining area after the outline is drawn.
 		/// This can be used to separate the children from the outline, if desired. This extra spacing will
 		/// be factored into any autosizing calculations.</param>
@@ -301,13 +309,17 @@ namespace SharpSheets.Widgets {
 		[FactoryBuilder(typeof(IWidget))]
 		public static Box Build(
 				WidgetSetup setup,
-				string? name = null,
-				[Property(Example = "Simple")] IContainerShape? outline = null,
+				[Property(Example = "NAME")] string? name = null,
+				[LocalProperty(Example = "NAME")] string? name_ = null,
+				[Property(Example = "Simple")] IBox? outline = null,
+				[Property(Example = "Titled")] ITitleStyle? title = null,
 				[LocalProperty] Margins frame = default,
 				FieldDetails? field = null
 			) {
 
-			return new Box(setup, name, outline, frame, field);
+			IBox? finalBox = name_ is not null ? TitledBoxes.ResolveBox(outline, title, name_) : outline;
+
+			return new Box(setup, name, finalBox, frame, field);
 		}
 
 		/// <summary></summary>

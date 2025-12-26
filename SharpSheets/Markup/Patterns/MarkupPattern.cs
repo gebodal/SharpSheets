@@ -91,22 +91,8 @@ namespace SharpSheets.Markup.Patterns {
 					ArgumentType singleArgType = GetArgDocumentationType(singleArg);
 					object? exampleValue = GetArgExampleValue(singleArg, singleArgType.DataType, singleArgType);
 
-					if (typeof(IAreaShape).IsAssignableFrom(singleArgType.DataType)) {
-						bool nameGiven = arguments.Any(a => a.ArgumentName.Equals(new EvaluationName("name")));
-						foreach (ArgumentDetails shapeArg in DocumentationGenerator.GetAreaShapeArguments(argName, "", singleArgType.DataType, singleArg.Description, singleArg.IsOptional, singleArg.UseLocal, !nameGiven)) {
-							yield return new ArgumentDetails(
-								shapeArg.Name,
-								shapeArg.Description,
-								shapeArg.Type,
-								shapeArg.IsOptional,
-								shapeArg.UseLocal,
-								shapeArg.DefaultValue,
-								exampleValue, // Need to replace example value in default arg
-								shapeArg.Implied);
-						}
-					}
-					else if (typeof(IDetail).IsAssignableFrom(singleArgType.DataType)) {
-						foreach (ArgumentDetails detailArg in DocumentationGenerator.GetDetailArguments(argName, "", singleArgType.DataType, singleArg.Description, singleArg.IsOptional, singleArg.UseLocal)) {
+					if (typeof(IShape).IsAssignableFrom(singleArgType.DataType)) {
+						foreach (ArgumentDetails detailArg in DocumentationGenerator.GetShapeArguments(argName, "", singleArgType.DataType, singleArg.Description, singleArg.IsOptional, singleArg.UseLocal)) {
 							yield return new ArgumentDetails(
 								detailArg.Name,
 								detailArg.Description,
@@ -118,16 +104,17 @@ namespace SharpSheets.Markup.Patterns {
 								detailArg.Implied);
 						}
 					}
-
-					yield return new ArgumentDetails(
-						argName,
-						singleArg.Description is not null ? new DocumentationString(singleArg.Description) : null,
-						singleArgType,
-						singleArg.IsOptional,
-						singleArg.UseLocal,
-						singleArg.DefaultValue,
-						exampleValue,
-						null);
+					else {
+						yield return new ArgumentDetails(
+							argName,
+							singleArg.Description is not null ? new DocumentationString(singleArg.Description) : null,
+							singleArgType,
+							singleArg.IsOptional,
+							singleArg.UseLocal,
+							singleArg.DefaultValue,
+							exampleValue,
+							null);
+					}
 				}
 				else if(arg is MarkupGroupArgument groupArg) {
 					foreach(ArgumentDetails childArg in GetArgumentDetails(groupArg.Args)) {

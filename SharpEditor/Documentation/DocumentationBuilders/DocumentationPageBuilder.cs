@@ -148,7 +148,7 @@ namespace SharpEditor.Documentation.DocumentationBuilders {
 					DocumentationSectionContents.Boxes => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<IBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
 					DocumentationSectionContents.LabelledBoxes => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<ILabelledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
 					DocumentationSectionContents.TitledBoxes => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<ITitledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
-					DocumentationSectionContents.TitleStyles => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<ITitleStyledBox>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
+					DocumentationSectionContents.TitleStyles => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<ITitleStyle>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
 					DocumentationSectionContents.EntriedShapes => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<IEntriedShape>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
 					DocumentationSectionContents.Bars => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<IBar>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),
 					DocumentationSectionContents.UsageBars => GetBuilderLinks(SharpEditorRegistries.ShapeFactoryInstance.FindBuilders<IUsageBar>(), SharpEditorRegistries.ShapeFactoryInstance.Get, window),

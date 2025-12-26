@@ -1059,15 +1059,14 @@ namespace {factory.Spec.Namespace} {{
 		}
 		// Bit unfortunate these are hard-coded
 		private static readonly Dictionary<string, (string, ShapeMakerArgs)> shapeMakerLookup = new Dictionary<string, (string, ShapeMakerArgs)>() {
-			{ "SharpSheets.Shapes.IContainerShape", ("MakeContainer", ShapeMakerArgs.ASPECT_NAME) },
-			{ "SharpSheets.Shapes.IBox", ("MakeBox", ShapeMakerArgs.ASPECT) },
-			{ "SharpSheets.Shapes.ILabelledBox", ("MakeLabelledBox", ShapeMakerArgs.ASPECT) },
-			{ "SharpSheets.Shapes.ITitledBox", ("MakeTitledBox", ShapeMakerArgs.ASPECT_NAME) },
-			//{ "SharpSheets.Shapes.ITitleStyledBox", ("MakeTitleStyle", ShapeMakerArgs.BOX_NAME) },
-			{ "SharpSheets.Shapes.IEntriedShape", ("MakeEntried", ShapeMakerArgs.ASPECT) },
-			{ "SharpSheets.Shapes.IBar", ("MakeBar", ShapeMakerArgs.ASPECT) },
-			{ "SharpSheets.Shapes.IUsageBar", ("MakeUsageBar", ShapeMakerArgs.ASPECT) },
-			{ "SharpSheets.Shapes.IDetail", ("MakeDetail", ShapeMakerArgs.NONE) }
+			{ IBox, ("MakeBox", ShapeMakerArgs.ASPECT) },
+			{ ILabelledBox, ("MakeLabelledBox", ShapeMakerArgs.ASPECT) },
+			{ ITitledBox, ("MakeTitledBox", ShapeMakerArgs.ASPECT_NAME) },
+			{ ITitleStyle, ("MakeTitleStyle", ShapeMakerArgs.NONE) },
+			{ IEntriedShape, ("MakeEntried", ShapeMakerArgs.ASPECT) },
+			{ IBar, ("MakeBar", ShapeMakerArgs.ASPECT) },
+			{ IUsageBar, ("MakeUsageBar", ShapeMakerArgs.ASPECT) },
+			{ IDetail, ("MakeDetail", ShapeMakerArgs.NONE) }
 		};
 
 		public static bool NeedsShapeFactory(AvailableBuilder builder) {

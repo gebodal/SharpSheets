@@ -303,7 +303,7 @@ namespace SharpSheets.Generators {
 				}
 			}
 
-			ITypeSymbol factoryType = SymbolEqualityComparer.Default.Equals(type, resolverData.ContainerShapeInterface) ? resolverData.BoxInterface : type;
+			ITypeSymbol factoryType = type;
 			if (factoryType is INamedTypeSymbol namedType && resolverData.FactoryLookup.TryGetValue(namedType, out FactoryToGenerate factory)) {
 				AvailableBuilder? builderToUse = (constant is not null && resolverData.BuilderLookup.Values.FirstOrDefault(b => b.BuilderType == factory.Spec.FactoryType && b.ConcreteBuilderType.Minimal.EndsWith(constant)) is AvailableBuilder requestedBuilder) ? requestedBuilder : factory.DefaultBuilder;
 				
@@ -512,14 +512,13 @@ namespace SharpSheets.Generators {
 
 		public readonly INamedTypeSymbol ShapeInterface;
 		public readonly INamedTypeSymbol AreaShapeInterface;
-		public readonly INamedTypeSymbol ContainerShapeInterface;
 		public readonly INamedTypeSymbol BoxInterface;
-		public readonly INamedTypeSymbol TitleStyledBoxInterface;
+		public readonly INamedTypeSymbol TitleStyleInterface;
 		public readonly INamedTypeSymbol DetailInterface;
 		public readonly INamedTypeSymbol WidgetInterface;
 		public readonly INamedTypeSymbol WidgetSetupType;
 
-		private SharpSheetsParameterResolverData(Compilation compilation, Dictionary<string, AvailableBuilder> builderLookup, Dictionary<string, ParameterParser> parserLookup, Dictionary<INamedTypeSymbol, FactoryToGenerate> factoryLookup, INamedTypeSymbol shapeInterface, INamedTypeSymbol areaShapeInterface, INamedTypeSymbol containerShapeInterface, INamedTypeSymbol boxInterface, INamedTypeSymbol titleStyledBoxInterface, INamedTypeSymbol detailInterface, INamedTypeSymbol widgetInterface, INamedTypeSymbol widgetSetupType) {
+		private SharpSheetsParameterResolverData(Compilation compilation, Dictionary<string, AvailableBuilder> builderLookup, Dictionary<string, ParameterParser> parserLookup, Dictionary<INamedTypeSymbol, FactoryToGenerate> factoryLookup, INamedTypeSymbol shapeInterface, INamedTypeSymbol areaShapeInterface, INamedTypeSymbol boxInterface, INamedTypeSymbol titleStyleInterface, INamedTypeSymbol detailInterface, INamedTypeSymbol widgetInterface, INamedTypeSymbol widgetSetupType) {
 			Compilation = compilation;
 
 			BuilderLookup = builderLookup;
@@ -530,9 +529,8 @@ namespace SharpSheets.Generators {
 
 			ShapeInterface = shapeInterface;
 			AreaShapeInterface = areaShapeInterface;
-			ContainerShapeInterface = containerShapeInterface;
 			BoxInterface = boxInterface;
-			TitleStyledBoxInterface = titleStyledBoxInterface;
+			TitleStyleInterface = titleStyleInterface;
 			DetailInterface = detailInterface;
 			WidgetInterface = widgetInterface;
 			WidgetSetupType = widgetSetupType;
@@ -566,17 +564,17 @@ namespace SharpSheets.Generators {
 			Dictionary<string, ParameterParser> parserLookup = availableParsers.ToDictionary(b => b.ParserType.FullName);
 			Dictionary<INamedTypeSymbol, FactoryToGenerate> factoryLookup = factories.ToDictionary<FactoryToGenerate, INamedTypeSymbol>(f => f.Spec.FactoryType.GetSymbol(compilation) as INamedTypeSymbol ?? throw new InvalidOperationException($"Cannot resolve {f.Spec.FactoryType.FullName} symbol."), SymbolEqualityComparer.Default);
 
-			INamedTypeSymbol shapeInterface = compilation.GetTypeByMetadataName("SharpSheets.Shapes.IShape") ?? throw new InvalidOperationException("No IShape type.");
-			INamedTypeSymbol areaShapeInterface = compilation.GetTypeByMetadataName("SharpSheets.Shapes.IAreaShape") ?? throw new InvalidOperationException("No IAreaShape type.");
-			INamedTypeSymbol containerShapeInterface = compilation.GetTypeByMetadataName("SharpSheets.Shapes.IContainerShape") ?? throw new InvalidOperationException("No IAreaShape type.");
-			INamedTypeSymbol boxInterface = compilation.GetTypeByMetadataName("SharpSheets.Shapes.IBox") ?? throw new InvalidOperationException("No IBox type.");
-			INamedTypeSymbol titleStyledBoxInterface = compilation.GetTypeByMetadataName("SharpSheets.Shapes.ITitleStyledBox") ?? throw new InvalidOperationException("No IContainerShape type.");
-			INamedTypeSymbol detailInterface = compilation.GetTypeByMetadataName("SharpSheets.Shapes.IDetail") ?? throw new InvalidOperationException("No IDetail type.");
+			INamedTypeSymbol shapeInterface = compilation.GetTypeByMetadataName(IShape) ?? throw new InvalidOperationException("No IShape type.");
+			INamedTypeSymbol areaShapeInterface = compilation.GetTypeByMetadataName(IAreaShape) ?? throw new InvalidOperationException("No IAreaShape type.");
+			//INamedTypeSymbol containerShapeInterface = compilation.GetTypeByMetadataName(IContainerShape) ?? throw new InvalidOperationException("No IContainerShape type.");
+			INamedTypeSymbol boxInterface = compilation.GetTypeByMetadataName(IBox) ?? throw new InvalidOperationException("No IBox type.");
+			INamedTypeSymbol titleStyleInterface = compilation.GetTypeByMetadataName(ITitleStyle) ?? throw new InvalidOperationException("No ITitleStyledBox type.");
+			INamedTypeSymbol detailInterface = compilation.GetTypeByMetadataName(IDetail) ?? throw new InvalidOperationException("No IDetail type.");
 			
-			INamedTypeSymbol widgetInterface = compilation.GetTypeByMetadataName("SharpSheets.Widgets.IWidget") ?? throw new InvalidOperationException("No WidgetSetup type.");
-			INamedTypeSymbol widgetSetupType = compilation.GetTypeByMetadataName("SharpSheets.Widgets.WidgetSetup") ?? throw new InvalidOperationException("No WidgetSetup type.");
+			INamedTypeSymbol widgetInterface = compilation.GetTypeByMetadataName(IWidget) ?? throw new InvalidOperationException("No WidgetSetup type.");
+			INamedTypeSymbol widgetSetupType = compilation.GetTypeByMetadataName(WidgetSetup) ?? throw new InvalidOperationException("No WidgetSetup type.");
 
-			return new SharpSheetsParameterResolverData(compilation, builderLookup, parserLookup, factoryLookup, shapeInterface, areaShapeInterface, containerShapeInterface, boxInterface, titleStyledBoxInterface, detailInterface, widgetInterface, widgetSetupType);
+			return new SharpSheetsParameterResolverData(compilation, builderLookup, parserLookup, factoryLookup, shapeInterface, areaShapeInterface, boxInterface, titleStyleInterface, detailInterface, widgetInterface, widgetSetupType);
 		}
 	}
 
@@ -662,15 +660,9 @@ namespace SharpSheets.Generators {
 				string parameterName = NormaliseParameterName(paramSymbol.Name);
 				bool useLocal = builderParam.IsLocal;
 
-				if (compilation.HasImplicitConversion(paramSymbol.Type, resolverData.AreaShapeInterface)) {
-					bool nameGiven = builder.Parameters.Any(p => StringComparer.OrdinalIgnoreCase.Equals(p.Name, "name"));
-					foreach (SharpSheetsParameterData shapeArg in GetAreaShapeArguments(parameterName, prefix, builderParam.Type.Minimal, paramDoc, builderParam.IsOptional, useLocal, !nameGiven, resolverData)) {
+				if (compilation.HasImplicitConversion(paramSymbol.Type, resolverData.ShapeInterface)) {
+					foreach (SharpSheetsParameterData shapeArg in GetShapeArguments(parameterName, prefix, builderParam.Type.Minimal, paramDoc, builderParam.IsOptional, useLocal, resolverData)) {
 						yield return shapeArg;
-					}
-				}
-				else if (compilation.HasImplicitConversion(paramSymbol.Type, resolverData.DetailInterface)) {
-					foreach (SharpSheetsParameterData detailArg in GetDetailArguments(parameterName, prefix, builderParam.Type.Minimal, paramDoc, builderParam.IsOptional, useLocal, resolverData)) {
-						yield return detailArg;
 					}
 				}
 				else if (resolverData.BuilderLookup.TryGetValue(builderParam.Type.Minimal, out AvailableBuilder nestedBuilder)) { // (typeof(ISharpArgsGrouping).IsAssignableFrom(param.ParameterType) || SharpFactory.IsParsableStruct(param.ParameterType)) {
@@ -721,37 +713,10 @@ namespace SharpSheets.Generators {
 			return new SharpSheetsParameterData(name, descriptionContent, GetArgumentType(param.Type.CompilerFullName), param.IsOptional, useLocal, defaultValue, exampleValue, null);
 		}
 
-		public static IEnumerable<SharpSheetsParameterData> GetAreaShapeArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal, bool includeNameArg, SharpSheetsParameterResolverData resolverData) {
+		public static IEnumerable<SharpSheetsParameterData> GetShapeArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal, SharpSheetsParameterResolverData resolverData) {
 			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 
-			yield return new SharpSheetsParameterData(name, argDoc?.Description, ArgumentTypeSimple(argumentType), isOptional, useLocal, argDoc?.DefaultValue, argDoc?.ExampleValue, "style");
-
-			if (argumentType == "SharpSheets.Shapes.IContainerShape") {
-				if (includeNameArg) {
-					yield return new SharpSheetsParameterData("name", DocCommentReader.MakeDocumentationStringFromText("Text to use for shape titles."), ArgumentTypeSimple("string"), true, true, "NAME".ToRepr(), "NAME".ToRepr(), null);
-				}
-
-				AvailableBuilder? defaultTitleStyleBuilder = resolverData.FactoryNameLookup["SharpSheets.Shapes.ITitleStyledBox"].DefaultBuilder;
-				string titleStyleDefaultValue = defaultTitleStyleBuilder?.Name.ToRepr() ?? "ERROR";
-				//string exampleTitleStyle = defaultTitleStyleBuilder is not null ? $"{defaultTitleStyleBuilder.FullTypeName}.{defaultTitleStyleBuilder.MethodName}()" : "ERROR";
-				// Very much not a fan, but this should really be fixed by re-working the title style approach
-				string exampleTitleStyle = "(SharpSheets.Shapes.ITitleStyledBox)SharpSheets.Shapes.ShapeFactory.GetDefaultShape(typeof(SharpSheets.Shapes.ITitleStyledBox))!";
-
-				yield return new SharpSheetsParameterData("title", DocCommentReader.MakeDocumentationStringFromText($"Title style to be used with {name} if a name is provided."), ArgumentTypeSimple("SharpSheets.Shapes.ITitleStyledBox"), true, false, titleStyleDefaultValue, exampleTitleStyle, "style").Prefixed(name, null);
-			}
-		}
-
-		public static IEnumerable<SharpSheetsParameterData> GetDetailArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal, SharpSheetsParameterResolverData resolverData) {
-			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
-
-			//AvailableBuilder? defaultDetailBuilder = resolverData.FactoryNameLookup["SharpSheets.Shapes.IDetail"].DefaultBuilder;
-			//string styleDefaultValue = defaultDetailBuilder?.Name.ToRepr() ?? "ERROR";
-			//string exampleDetail = defaultDetailBuilder is not null ? $"{defaultDetailBuilder.FullTypeName}.{defaultDetailBuilder.MethodName}()" : "ERROR";
-
-			string? styleDefaultValue = argDoc?.DefaultValue;
-			string? exampleDetail = argDoc?.ExampleValue;
-
-			yield return new SharpSheetsParameterData(name, argDoc?.Description, ArgumentTypeSimple(argumentType), isOptional, useLocal, styleDefaultValue, exampleDetail, "style");
+			yield return new SharpSheetsParameterData(name, argDoc?.Description, ArgumentType_Simple(argumentType), isOptional, useLocal, argDoc?.DefaultValue, argDoc?.ExampleValue, "style");
 		}
 
 		private static readonly Regex listRegex = new Regex(@"^System\.Collections\.Generic\.List<(?<elemType>.+)>$");
@@ -759,31 +724,15 @@ namespace SharpSheets.Generators {
 		private static string GetArgumentType(string typeName) {
 			if (listRegex.Match(typeName) is Match listMatch && listMatch.Success) {
 				string elemType = listMatch.Groups[1].Value;
-				return ArgumentTypeStructured(typeName, elemType, "Entried");
+				return ArgumentType_Structured(typeName, elemType, "Entried");
 			}
 			else if (numberedRegex.Match(typeName) is Match numberedMatch && numberedMatch.Success) {
 				string elemType = numberedMatch.Groups[1].Value;
-				return ArgumentTypeStructured(typeName, elemType, "Numbered");
+				return ArgumentType_Structured(typeName, elemType, "Numbered");
 			}
 			else {
-				return ArgumentTypeSimple(typeName);
+				return ArgumentType_Simple(typeName);
 			}
-		}
-
-		public static string ArgumentTypeSimple(string typeName) {
-			return $"SharpSheets.Documentation.ArgumentType.Simple<{typeName}>()";
-		}
-
-		public static string ArgumentTypeStructured(string typeName, string elemType, string structure) {
-			return $"new SharpSheets.Documentation.ArgumentType(SharpSheets.Documentation.DisplayType.FromSystem<{elemType}>(SharpSheets.Documentation.DisplayTypeStructure.{structure}), typeof({typeName}))";
-		}
-
-		public static string DisplayTypeSimple(string typeName) {
-			return $"SharpSheets.Documentation.DisplayType.FromSystem<{typeName}>()";
-		}
-
-		public static string DisplayTypeStructured(string elemType, string structure) {
-			return $"SharpSheets.Documentation.DisplayType.FromSystem<{elemType}>(SharpSheets.Documentation.DisplayTypeStructure.{structure})";
 		}
 
 	}
