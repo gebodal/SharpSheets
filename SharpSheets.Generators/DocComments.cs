@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis;
 using SharpSheets.Generators.Utilities;
 using SharpSheets.Generators.Utilities.DataStructures;
 using static SharpSheets.Generators.FactoryGenerator;
+using static SharpSheets.Generators.SharpSheetsConstants;
 
 namespace SharpSheets.Generators {
 
@@ -233,13 +234,13 @@ namespace SharpSheets.Generators {
 							return constant.ToRepr();
 						}
 					}
-					else if (parser.ParserType.FullName == "SharpSheets.Utilities.UFloat") {
+					else if (parser.ParserType.FullName == UFloat) {
 						try {
 							return $"new SharpSheets.Utilities.UFloat({float.Parse(constant, CultureInfo.InvariantCulture)}f)";
 						}
 						catch (FormatException) { }
 					}
-					else if (parser.ParserType.FullName == "SharpSheets.Layouts.Margins") {
+					else if (parser.ParserType.FullName == Margins) {
 						string[] content = constant.Trim().TrimStart('(').TrimEnd(')').Split(',').Select(i => i.Trim()).ToArray();
 
 						float[] values = content.Select(i => {
@@ -257,9 +258,9 @@ namespace SharpSheets.Generators {
 							}
 						}
 					}
-					else if (parser.ParserType.FullName == "SharpSheets.Layouts.Dimension") {
+					else if (parser.ParserType.FullName == Dimension) {
 						if (string.Equals(constant, "auto", StringComparison.InvariantCultureIgnoreCase)) {
-							return "SharpSheets.Layouts.Dimension.Automatic";
+							return Dimension_Automatic;
 						}
 
 						Regex dimensionRegex = new Regex(@"^(?<number>[\+\-]?[0-9]+\.[0-9]+|\.[0-9]+|[\+\-]?[0-9]+\.?)\s*(?<unit>pt|in|cm|mm|pc|\%)?$", RegexOptions.IgnoreCase);
@@ -269,22 +270,22 @@ namespace SharpSheets.Generators {
 							float number = float.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
 							string unit = match.Groups[2].Value.ToLowerInvariant();
 							if (unit == "pc" || unit == "%") {
-								return $"SharpSheets.Layouts.Dimension.FromPercent({number}f)";
+								return Dimension_FromPercent(number);
 							}
 							else if (unit == "pt") {
-								return $"SharpSheets.Layouts.Dimension.FromPoints({number}f)";
+								return Dimension_FromPoints(number);
 							}
 							else if (unit == "in") {
-								return $"SharpSheets.Layouts.Dimension.FromInches({number}f)";
+								return Dimension_FromInches(number);
 							}
 							else if (unit == "cm") {
-								return $"SharpSheets.Layouts.Dimension.FromCentimetres({number}f)";
+								return Dimension_FromCentimetres(number);
 							}
 							else if (unit == "mm") {
-								return $"SharpSheets.Layouts.Dimension.FromMillimetres({number}f)";
+								return Dimension_FromMillimetres(number);
 							}
 							else {
-								return $"SharpSheets.Layouts.Dimension.FromRelative({number}f)";
+								return Dimension_FromRelative(number);
 							}
 						}
 					}
@@ -323,7 +324,7 @@ namespace SharpSheets.Generators {
 		private static string? GetDocumentationValue(IParameterSymbol? symbol, string valueName, SharpSheetsParameterResolverData resolverData) {
 			if (symbol is null) { return null; }
 
-			AttributeData? propertyAttr = symbol.GetAttributes("SharpSheets.Parsing.PropertyAttribute", "SharpSheets.Parsing.LocalPropertyAttribute").FirstOrDefault();
+			AttributeData? propertyAttr = symbol.GetAttributes(PropertyAttribute, LocalPropertyAttribute).FirstOrDefault();
 
 			//if (propertyAttr is null) { return null; }
 
@@ -343,7 +344,7 @@ namespace SharpSheets.Generators {
 		private static bool GetExclude(IParameterSymbol? symbol) {
 			if (symbol is null) { return false; }
 
-			AttributeData? propertyAttr = symbol.GetAttributes("SharpSheets.Parsing.PropertyAttribute", "SharpSheets.Parsing.LocalPropertyAttribute").FirstOrDefault();
+			AttributeData? propertyAttr = symbol.GetAttributes(PropertyAttribute, LocalPropertyAttribute).FirstOrDefault();
 
 			if (propertyAttr is null) { return false; }
 
