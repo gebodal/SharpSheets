@@ -1,4 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
+using SharpSheets.Generators.Utilities;
+using SharpSheets.Generators.Utilities.DataStructures;
 using System;
 using System.Collections.Generic;
 using System.Text;

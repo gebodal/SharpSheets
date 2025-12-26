@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
+using SharpSheets.Generators.Utilities;
+using SharpSheets.Generators.Utilities.DataStructures;
 using static SharpSheets.Generators.FactoryGenerator;
 
 namespace SharpSheets.Generators {

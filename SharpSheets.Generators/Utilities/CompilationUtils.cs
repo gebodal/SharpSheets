@@ -5,7 +5,8 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 
-namespace SharpSheets.Generators {
+namespace SharpSheets.Generators.Utilities {
+
 	public static class CompilationUtils {
 
 		// Remove tuple names and nullable wrappers

@@ -1,6 +1,8 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using SharpSheets.Generators.Utilities;
+using SharpSheets.Generators.Utilities.DataStructures;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;

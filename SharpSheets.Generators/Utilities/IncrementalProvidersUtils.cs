@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Linq;
 
-namespace SharpSheets.Generators {
+namespace SharpSheets.Generators.Utilities {
 	public static class IncrementalProvidersUtils {
 
 		public static IncrementalValuesProvider<(T1, T2, T3)> Flatten<T1, T2, T3>(this IncrementalValuesProvider<((T1, T2), T3)> source) {

@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SharpSheets.Generators {
+namespace SharpSheets.Generators.Utilities.DataStructures {
 
 	/// <summary>
 	/// An immutable, equatable array. This is equivalent to <see cref="Array"/> but with value equality support.
@@ -61,7 +61,7 @@ namespace SharpSheets.Generators {
 
 		/// <inheritdoc/>
 		public override bool Equals(object? obj) {
-			return obj is EquatableArray<T> array && this.Equals(array);
+			return obj is EquatableArray<T> array && Equals(array);
 		}
 
 		/// <inheritdoc/>

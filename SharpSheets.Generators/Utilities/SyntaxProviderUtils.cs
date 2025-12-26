@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 using System.Text;
 using System.Threading;
 
-namespace SharpSheets.Generators {
+namespace SharpSheets.Generators.Utilities {
 
 	public static class SyntaxProviderUtils {
 

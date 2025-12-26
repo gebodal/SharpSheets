@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SharpSheets.Generators {
+namespace SharpSheets.Generators.Utilities {
 
-	public static class Helpers {
+	public static class EnumerableUtils {
 
 		public static void Enqueue<T>(this Queue<T> queue, IEnumerable<T> values) {
 			foreach (T val in values) {

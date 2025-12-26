@@ -3,7 +3,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace SharpSheets.Generators {
+namespace SharpSheets.Generators.Utilities {
 
 	public static class NodeUtils {
 

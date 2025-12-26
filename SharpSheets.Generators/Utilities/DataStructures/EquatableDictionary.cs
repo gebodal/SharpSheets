@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 
-namespace SharpSheets.Generators {
+namespace SharpSheets.Generators.Utilities.DataStructures {
 
 	public readonly struct EquatableDictionary<K, V> : IEquatable<EquatableDictionary<K, V>>, IImmutableDictionary<K, V> where K : IEquatable<K> where V : IEquatable<V> {
 
@@ -42,7 +42,7 @@ namespace SharpSheets.Generators {
 		}
 
 		public override bool Equals(object? obj) {
-			return obj is EquatableDictionary<K, V> dict && this.Equals(dict);
+			return obj is EquatableDictionary<K, V> dict && Equals(dict);
 		}
 
 		public override int GetHashCode() {
