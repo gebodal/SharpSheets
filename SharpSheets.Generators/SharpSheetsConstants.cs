@@ -22,6 +22,7 @@ namespace SharpSheets.Generators {
 		public static readonly string ParameterParsers = "SharpSheets.Parsing.ParameterParsers";
 
 		public static readonly string UFloat = "SharpSheets.Utilities.UFloat";
+		public static readonly string UnitInterval = "SharpSheets.Utilities.UnitInterval";
 		public static readonly string Margins = "SharpSheets.Layouts.Margins";
 		public static readonly string DirectoryPath = "SharpSheets.Utilities.DirectoryPath";
 		public static readonly string ChildHolder = "SharpSheets.Parsing.ChildHolder";

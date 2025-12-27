@@ -302,6 +302,12 @@ namespace SharpSheets.Generators {
 						}
 						catch (FormatException) { }
 					}
+					else if (parser.ParserType.FullName == UnitInterval) {
+						try {
+							return new ParamValue($"new SharpSheets.Utilities.UnitInterval({float.Parse(constant, CultureInfo.InvariantCulture)}f)", true);
+						}
+						catch (FormatException) { }
+					}
 					else if (parser.ParserType.FullName == Margins) {
 						string[] content = constant.Trim().TrimStart('(').TrimEnd(')').Split(',').Select(i => i.Trim()).ToArray();
 
@@ -370,7 +376,7 @@ namespace SharpSheets.Generators {
 				bool hasConstructorMatch = constructorMatch?.Success ?? false;
 				string? constructorName = hasConstructorMatch ? constructorMatch!.Groups["type"].Value : constant;
 				string constructorArgs = hasConstructorMatch ? (constructorMatch!.Groups["args"].Value ?? "").Trim() : "";
-				
+
 				AvailableBuilder? builderToUse = (constructorName is not null && resolverData.BuilderLookup.Values.FirstOrDefault(b => b.BuilderType == factory.Spec.FactoryType && b.ConcreteBuilderType.Minimal.EndsWith(constructorName)) is AvailableBuilder requestedBuilder) ? requestedBuilder : factory.DefaultBuilder;
 
 				if (builderToUse is not null && (!string.IsNullOrWhiteSpace(constructorArgs) || builderToUse.Parameters.All(p => p.IsOptional))) {
