@@ -241,6 +241,9 @@ csharp_prefer_static_anonymous_function = true:suggestion
 # CA1510: Use ArgumentNullException throw helper
 dotnet_diagnostic.CA1510.severity = none
 
+# IDE0051: Remove unused private members
+dotnet_diagnostic.IDE0051.severity = warning
+
 [*.{cs,vb}]
 dotnet_style_operator_placement_when_wrapping = beginning_of_line
 tab_width = 4
