@@ -92,13 +92,13 @@ namespace SharpSheets.Shapes {
 				return Build_ILabelledBox(styleName, Context.Empty, -1f, source, out buildErrors);
 			}
 			else if (shapeType == typeof(IEntriedShape)) {
-				return Build_IEntriedShape(styleName, Context.Empty, -1f, source, out buildErrors);
+				return Build_IEntriedShape(styleName, Context.Empty, -1f, source, StaticOnly, out buildErrors);
 			}
 			else if (shapeType == typeof(IBar)) {
 				return Build_IBar(styleName, Context.Empty, -1f, source, StaticOnly, out buildErrors);
 			}
 			else if (shapeType == typeof(IUsageBar)) {
-				return Build_IUsageBar(styleName, Context.Empty, -1f, source, out buildErrors);
+				return Build_IUsageBar(styleName, Context.Empty, -1f, source, StaticOnly, out buildErrors);
 			}
 			else if (shapeType == typeof(ITitledBox)) {
 				return Build_ITitledBox(styleName, Context.Empty, -1f, source, out buildErrors);
@@ -126,10 +126,10 @@ namespace SharpSheets.Shapes {
 						shape = (IShape)staticBuilderDetails.Example.Value;
 					}
 					else {
-					IContext context = new BuilderContext(staticBuilderDetails, new Dictionary<string, object>() { { "style", staticBuilderDetails.FullName } });
-					shape = MakeShape(type, context, source, out SharpParsingException[] shapeBuildErrors);
-					errors.AddRange(shapeBuildErrors);
-				}
+						IContext context = new BuilderContext(staticBuilderDetails, new Dictionary<string, object>() { { "style", staticBuilderDetails.FullName } });
+						shape = MakeShape(type, context, source, out SharpParsingException[] shapeBuildErrors);
+						errors.AddRange(shapeBuildErrors);
+					}
 				}
 				else if (GetCustomStylePattern<MarkupShapePattern>(style) is MarkupShapePattern pattern && pattern.MakeExample(dummyWidgetFactory, this, false, out SharpParsingException[] markupBuildErrors) is IShape markupShape) {
 					shape = markupShape;
@@ -251,7 +251,7 @@ namespace SharpSheets.Shapes {
 			string? styleName = GetStyleNameFromContext(context, out DocumentSpan? location);
 			if (styleName is not null) {
 				if (CanBuild_IEntriedShape(styleName)) {
-					IEntriedShape? constructed = Build_IEntriedShape(styleName, context, aspect, source, out buildErrors);
+					IEntriedShape? constructed = Build_IEntriedShape(styleName, context, aspect, source, this, out buildErrors);
 					if (constructed is not null) {
 						return constructed;
 					}
@@ -264,7 +264,7 @@ namespace SharpSheets.Shapes {
 				}
 			}
 
-			IEntriedShape fallback = Build_IEntriedShape_Default(context, aspect, source, out SharpParsingException[] defaultBuildErrors);
+			IEntriedShape fallback = Build_IEntriedShape_Default(context, aspect, source, this, out SharpParsingException[] defaultBuildErrors);
 			// If build errors is null, then we didn't attempt an override above, so the fallback is the correct set of errors
 			buildErrors = buildErrors is null ? defaultBuildErrors : buildErrors;
 			return fallback;
@@ -295,13 +295,13 @@ namespace SharpSheets.Shapes {
 			return fallback;
 		}
 
-		private IUsageBar BuildConcreteUsageBar(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
+		public IUsageBar MakeUsageBar(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
 			buildErrors = null!;
 
 			string? styleName = GetStyleNameFromContext(context, out DocumentSpan? location);
 			if (styleName is not null) {
 				if (CanBuild_IUsageBar(styleName)) {
-					IUsageBar? constructed = Build_IUsageBar(styleName, context, aspect, source, out buildErrors);
+					IUsageBar? constructed = Build_IUsageBar(styleName, context, aspect, source, this, out buildErrors);
 					if (constructed is not null) {
 						return constructed;
 					}
@@ -314,21 +314,10 @@ namespace SharpSheets.Shapes {
 				}
 			}
 
-			IUsageBar fallback = Build_IUsageBar_Default(context, aspect, source, out SharpParsingException[] defaultBuildErrors);
+			IUsageBar fallback = Build_IUsageBar_Default(context, aspect, source, this, out SharpParsingException[] defaultBuildErrors);
 			// If build errors is null, then we didn't attempt an override above, so the fallback is the correct set of errors
 			buildErrors = buildErrors is null ? defaultBuildErrors : buildErrors;
 			return fallback;
-		}
-
-		public IUsageBar MakeUsageBar(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
-			IUsageBar? bar;
-			if (this.IsBarPattern(context.GetProperty("style", false, context, ""))) {
-				bar = new SlashedUsageBar(this.MakeBar(context, -1, source, out buildErrors) ?? new SimpleBar(-1), aspect);
-			}
-			else {
-				bar = this.BuildConcreteUsageBar(context, aspect, source, out buildErrors);
-			}
-			return bar;
 		}
 
 		public ITitledBox MakeTitledBox(IContext context, float aspect, DirectoryPath source, out SharpParsingException[] buildErrors) {
@@ -440,16 +429,6 @@ namespace SharpSheets.Shapes {
 			throw new ArgumentException($"Provided type {shapeType.Name} is not a valid subtype of {nameof(IShape)}.");
 		}
 
-		/*
-		private bool IsTitledBoxPattern(string style) {
-			return CanBuild_ITitledBox(style) || IsCustomStylePattern<ITitledBox>(style);
-		}
-		*/
-
-		private bool IsBarPattern(string style) {
-			return CanBuild_IBar(style) || IsCustomStylePattern<IBar>(style);
-		}
-
 		#region Custom Style Patterns
 
 		private IEnumerable<string> GetAllCustomStyleNames() {
@@ -477,6 +456,7 @@ namespace SharpSheets.Shapes {
 			return customStyles.IsPattern<MarkupShapePattern>(PatternName.Parse(name));
 		}
 
+		/*
 		private bool IsCustomStylePattern<T>(string name) where T : IShape {
 			if (customStyles == null || name == null) {
 				return false;
@@ -484,6 +464,7 @@ namespace SharpSheets.Shapes {
 			MarkupShapePattern? pattern = customStyles.GetPattern<MarkupShapePattern>(PatternName.Parse(name));
 			return pattern != null && pattern is MarkupShapePattern<T>;
 		}
+		*/
 
 		private BuilderDetails? GetCustomStyleBuilder(string name) {
 			if (customStyles == null || name == null) {
