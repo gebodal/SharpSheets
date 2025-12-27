@@ -420,27 +420,6 @@ namespace SharpSheets.Generators {
 				Exclude = exclude;
 			}
 
-			private static string? GetValueString(object? value, ITypeSymbol type) {
-				if (value is bool boolean) {
-					return boolean.ToCodeString();
-				}
-				else if (value is string text) {
-					return text.ToRepr();
-				}
-				else if (value is float number) {
-					return number.ToCodeString();
-				}
-				else if (type is INamedTypeSymbol namedType && namedType.IsEnum()) {
-					return $"({namedType.ToFullDisplayString()}){value?.ToString()}";
-				}
-				else if (type.SpecialType == SpecialType.System_UInt32) {
-					return $"{value?.ToString()}U";
-				}
-				else {
-					return value?.ToString();
-				}
-			}
-
 			private static string GetDefaultForType(ITypeSymbol type) {
 				return $"default({type.ToFullDisplayString()})";
 			}
@@ -454,7 +433,7 @@ namespace SharpSheets.Generators {
 				bool isLocal = propAttr?.AttributeClass?.Name == LocalPropertyAttribute_Name;
 				bool exclude = (bool?)propAttr?.GetNamedArgument("Exclude")?.Value ?? false;
 
-				string? defaultValue = (paramType == BuilderParameterType.Normal && param.HasExplicitDefaultValue) ? (GetValueString(param.ExplicitDefaultValue, param.Type) ?? ((param.Type.IsValueType && param.Type.NullableAnnotation != NullableAnnotation.Annotated) ? GetDefaultForType(param.Type) : "null")) : null;
+				string? defaultValue = (paramType == BuilderParameterType.Normal && param.HasExplicitDefaultValue) ? (param.GetExplicitDefaultalueString() ?? ((param.Type.IsValueType && param.Type.NullableAnnotation != NullableAnnotation.Annotated) ? GetDefaultForType(param.Type) : "null")) : null;
 
 				return new BuilderParameter(
 					param.Name,
@@ -1976,6 +1955,7 @@ namespace SharpSheets.Documentation {{
 					description: {methodComment?.Summary ?? "null"},
 					size: {methodComment?.Size ?? "null"},
 					canvas: {methodComment?.Canvas ?? "null"},
+					example: {(methodComment?.Example is not null ? $"new System.Lazy<object>(() => {methodComment.Example})" : "null")},
 					arguments: [");
 
 				foreach (SharpSheetsParameterData param in SharpSheetsParameterResolver.GetArguments(builder, method, methodComment, resolverData)) {

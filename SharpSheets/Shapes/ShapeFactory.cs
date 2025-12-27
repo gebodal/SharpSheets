@@ -122,9 +122,14 @@ namespace SharpSheets.Shapes {
 
 			try {
 				if (AllStaticBuilderDetails.TryGetValue(style, out BuilderDetails? staticBuilderDetails) && staticBuilderDetails.DisplayType.IsAssignableTo(type)) {
+					if (staticBuilderDetails.Example != null) {
+						shape = (IShape)staticBuilderDetails.Example.Value;
+					}
+					else {
 					IContext context = new BuilderContext(staticBuilderDetails, new Dictionary<string, object>() { { "style", staticBuilderDetails.FullName } });
 					shape = MakeShape(type, context, source, out SharpParsingException[] shapeBuildErrors);
 					errors.AddRange(shapeBuildErrors);
+				}
 				}
 				else if (GetCustomStylePattern<MarkupShapePattern>(style) is MarkupShapePattern pattern && pattern.MakeExample(dummyWidgetFactory, this, false, out SharpParsingException[] markupBuildErrors) is IShape markupShape) {
 					shape = markupShape;

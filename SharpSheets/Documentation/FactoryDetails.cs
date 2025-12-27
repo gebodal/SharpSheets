@@ -94,7 +94,10 @@ namespace SharpSheets.Documentation {
 		public DocumentationString? Description { get; }
 		public Rectangle? Rect { get; } // TODO Rename back to Size?
 		public Size? Canvas { get; }
-		public BuilderDetails(DisplayType displayType, DisplayType declaringType, string name, string fullName, ArgumentDetails[] arguments, DocumentationString? description, Rectangle? size, Size? canvas) {
+
+		public Lazy<object>? Example { get; }
+
+		public BuilderDetails(DisplayType displayType, DisplayType declaringType, string name, string fullName, ArgumentDetails[] arguments, DocumentationString? description, Rectangle? size, Size? canvas, Lazy<object>? example) {
 			this.DisplayType = displayType;
 			this.DeclaringType = declaringType;
 			this.Name = name;
@@ -103,6 +106,7 @@ namespace SharpSheets.Documentation {
 			this.Description = description;
 			this.Rect = size;
 			this.Canvas = canvas;
+			this.Example = example;
 		}
 
 		public IEnumerable<BuilderArgumentDetails> BuilderArguments {
@@ -118,7 +122,7 @@ namespace SharpSheets.Documentation {
 		}
 
 		protected virtual BuilderDetails WithArguments(ArgumentDetails[] arguments) {
-			return new BuilderDetails(DisplayType, DeclaringType, Name, FullName, arguments, Description, Rect, Canvas);
+			return new BuilderDetails(DisplayType, DeclaringType, Name, FullName, arguments, Description, Rect, Canvas, Example);
 		}
 
 		public BuilderDetails WithAdditionalArguments(IEnumerable<ArgumentDetails> extraArgs) {

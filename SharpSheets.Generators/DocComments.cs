@@ -6,12 +6,25 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using SharpSheets.Generators.Utilities;
 using SharpSheets.Generators.Utilities.DataStructures;
 using static SharpSheets.Generators.FactoryGenerator;
 using static SharpSheets.Generators.SharpSheetsConstants;
 
 namespace SharpSheets.Generators {
+
+	public record class ParamValue {
+		/// <summary> Construction code for example value. </summary>
+		public string Value { get; }
+		/// <summary> Indicates that this value can definitely be constructed as the correct type. </summary>
+		public bool IsValid { get; }
+
+		public ParamValue(string value, bool isValid) {
+			Value = value;
+			IsValid = isValid;
+		}
+	}
 
 	public record class ParamComment {
 		public readonly string Name;
@@ -20,14 +33,14 @@ namespace SharpSheets.Generators {
 		/// <summary>
 		/// Construction code for default value.
 		/// </summary>
-		public readonly string? DefaultValue;
+		public readonly ParamValue? DefaultValue;
 		/// <summary>
 		/// Construction code for example value.
 		/// </summary>
-		public readonly string? ExampleValue;
+		public readonly ParamValue? ExampleValue;
 		public readonly bool Exclude;
 
-		public ParamComment(string name, string? description, string? defaultValue, string? exampleValue, bool exclude) {
+		public ParamComment(string name, string? description, ParamValue? defaultValue, ParamValue? exampleValue, bool exclude) {
 			Name = name;
 			Description = description;
 			DefaultValue = defaultValue;
@@ -50,13 +63,17 @@ namespace SharpSheets.Generators {
 		/// <summary> SharpSheets.Layouts.Size constructor code. </summary>
 		public string? Canvas { get; }
 
+		/// <summary> Construction code for example value. </summary>
+		public string? Example { get; }
+
 		public BuilderComment(
 				string? summary,
 				IEnumerable<ParamComment> @params,
 				string? returns,
 				string? remarks,
 				string? size,
-				string? canvas
+				string? canvas,
+				string? example
 			) {
 
 			Summary = summary;
@@ -65,6 +82,7 @@ namespace SharpSheets.Generators {
 			Remarks = remarks;
 			Size = size;
 			Canvas = canvas;
+			Example = example;
 		}
 	}
 
@@ -124,7 +142,9 @@ namespace SharpSheets.Generators {
 					}
 				}
 
-				return new BuilderComment(summary, paramDocs, returns, remarks, size, canvas);
+				string? example = GetBuilderExample(symbol, paramDocs);
+
+				return new BuilderComment(summary, paramDocs, returns, remarks, size, canvas, example);
 			}
 			catch (System.Xml.XmlException) {
 				// Malformed XML
@@ -201,42 +221,84 @@ namespace SharpSheets.Generators {
 			return content.Length == 0 ? null : MakeDocumentationString(string.Join(", ", content));
 		}
 
-		private static string? GetDocumentationValue(ITypeSymbol type, string? constant, SharpSheetsParameterResolverData resolverData) {
+		private static string? GetBuilderExample(IMethodSymbol symbol, List<ParamComment> paramDocs) {
+			Dictionary<string, ParamComment> paramComments = paramDocs.ToDictionary(c => c.Name);
+
+			List<string> args = new List<string>();
+
+			static string EscapeParamName(IParameterSymbol paramSymbol) {
+				string name = paramSymbol.Name;
+				bool needsEscape = SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None || SyntaxFacts.GetContextualKeywordKind(name) != SyntaxKind.None;
+				return needsEscape ? $"@{name}" : name;
+			}
+
+			static string? GetParamExampleValue(IParameterSymbol paramSymbol, ParamComment comment) {
+				if (comment.ExampleValue is not null && comment.ExampleValue.IsValid) { return comment.ExampleValue.Value; }
+				else if (comment.DefaultValue is not null && comment.DefaultValue.IsValid) { return comment.DefaultValue.Value; }
+				else { return null; }
+			}
+
+			foreach(IParameterSymbol param in symbol.Parameters) {
+				if (paramComments.TryGetValue(param.Name, out ParamComment? comment) && GetParamExampleValue(param, comment) is string exampleValue) {
+					args.Add($"{EscapeParamName(param)}: {exampleValue}");
+				}
+				else if (!param.IsOptional) {
+					return null;
+				}
+			}
+
+			return $"{symbol.ContainingType.ToFullDisplayString()}.{symbol.ToFullDisplayString()}({string.Join(", ", args)})";
+		}
+
+		private static readonly Regex documentationValueConstructorRegex = new Regex(@"
+				^
+				(?<type>[a-z_][a-z0-9_]*)
+				\s*
+				(
+					\(
+						(?<args>.*)
+					\)
+					\s*
+				)?
+				$
+			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+
+		private static ParamValue? GetDocumentationValue(ITypeSymbol type, string? constant, SharpSheetsParameterResolverData resolverData) {
 			if (resolverData.ParserLookup.TryGetValue(type.ToFullDisplayString(), out ParameterParser parser)) {
 				if (constant is not null) {
 
 					if (parser.ParserType.SpecialType != SpecialType.None) {
 						if (parser.ParserType.SpecialType == SpecialType.System_Single) {
 							try {
-								return $"{float.Parse(constant, CultureInfo.InvariantCulture)}f";
+								return new ParamValue($"{float.Parse(constant, CultureInfo.InvariantCulture)}f", true);
 							}
 							catch (FormatException) { }
 						}
 						else if (parser.ParserType.SpecialType == SpecialType.System_Int32) {
 							try {
-								return $"{int.Parse(constant, CultureInfo.InvariantCulture)}";
+								return new ParamValue($"{int.Parse(constant, CultureInfo.InvariantCulture)}", true);
 							}
 							catch (FormatException) { }
 						}
 						else if (parser.ParserType.SpecialType == SpecialType.System_UInt32) {
 							try {
-								return $"{uint.Parse(constant, CultureInfo.InvariantCulture)}U";
+								return new ParamValue($"{uint.Parse(constant, CultureInfo.InvariantCulture)}U", true);
 							}
 							catch (SystemException) { }
 						}
 						else if (parser.ParserType.SpecialType == SpecialType.System_Boolean) {
 							try {
-								return bool.Parse(constant) ? "true" : "false";
+								return new ParamValue(bool.Parse(constant) ? "true" : "false", true);
 							}
 							catch (SystemException) { }
 						}
 						else if (parser.ParserType.SpecialType == SpecialType.System_String) {
-							return constant.ToRepr();
+							return new ParamValue(constant.ToRepr(), true);
 						}
 					}
 					else if (parser.ParserType.FullName == UFloat) {
 						try {
-							return $"new SharpSheets.Utilities.UFloat({float.Parse(constant, CultureInfo.InvariantCulture)}f)";
+							return new ParamValue($"new SharpSheets.Utilities.UFloat({float.Parse(constant, CultureInfo.InvariantCulture)}f)", true);
 						}
 						catch (FormatException) { }
 					}
@@ -254,13 +316,13 @@ namespace SharpSheets.Generators {
 
 						if (values.All(i => !float.IsNaN(i))) {
 							if (values.Length == 1 || values.Length == 2 || values.Length == 4) {
-								return $"new SharpSheets.Layouts.Margins({string.Join(", ", values.Select(v => $"{v}f"))})";
+								return new ParamValue($"new SharpSheets.Layouts.Margins({string.Join(", ", values.Select(v => $"{v}f"))})", true);
 							}
 						}
 					}
 					else if (parser.ParserType.FullName == Dimension) {
 						if (string.Equals(constant, "auto", StringComparison.InvariantCultureIgnoreCase)) {
-							return Dimension_Automatic;
+							return new ParamValue(Dimension_Automatic, true);
 						}
 
 						Regex dimensionRegex = new Regex(@"^(?<number>[\+\-]?[0-9]+\.[0-9]+|\.[0-9]+|[\+\-]?[0-9]+\.?)\s*(?<unit>pt|in|cm|mm|pc|\%)?$", RegexOptions.IgnoreCase);
@@ -270,27 +332,27 @@ namespace SharpSheets.Generators {
 							float number = float.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
 							string unit = match.Groups[2].Value.ToLowerInvariant();
 							if (unit == "pc" || unit == "%") {
-								return Dimension_FromPercent(number);
+								return new ParamValue(Dimension_FromPercent(number), true);
 							}
 							else if (unit == "pt") {
-								return Dimension_FromPoints(number);
+								return new ParamValue(Dimension_FromPoints(number), true);
 							}
 							else if (unit == "in") {
-								return Dimension_FromInches(number);
+								return new ParamValue(Dimension_FromInches(number), true);
 							}
 							else if (unit == "cm") {
-								return Dimension_FromCentimetres(number);
+								return new ParamValue(Dimension_FromCentimetres(number), true);
 							}
 							else if (unit == "mm") {
-								return Dimension_FromMillimetres(number);
+								return new ParamValue(Dimension_FromMillimetres(number), true);
 							}
 							else {
-								return Dimension_FromRelative(number);
+								return new ParamValue(Dimension_FromRelative(number), true);
 							}
 						}
 					}
 
-					return $"{parser.CallingName}({constant.ToRepr()}{(parser.NeedsSourceDirectory ? $", {FactoryGenerator.DocumentationSourceName}" : "")})";
+					return new ParamValue($"{parser.CallingName}({constant.ToRepr()}{(parser.NeedsSourceDirectory ? $", {FactoryGenerator.DocumentationSourceName}" : "")})", true);
 				}
 				else {
 					return null;
@@ -299,16 +361,20 @@ namespace SharpSheets.Generators {
 			else if (constant is not null && type is INamedTypeSymbol namedTypeSymbol && namedTypeSymbol.IsGenericList(out ITypeSymbol? listElemType)) {
 				int rank = listElemType.GetArrayOrTupleRank() + 1;
 				if (rank <= FactoryGenerator.arrayDelimiters.Length && resolverData.ParserLookup.TryGetValue(resolverData.Compilation.ReduceParameterType(listElemType).ToFullDisplayString(), out ParameterParser listElemParser)) {
-					return $"SharpSheets.Parsing.StringParsing.SplitOnUnescaped({constant.ToRepr()}, '{arrayDelimiters[rank - 1]}').Select(s => s.Trim()).Select(p => {listElemParser.FullTypeName}.{listElemParser.MethodName}(p{(listElemParser.NeedsSourceDirectory ? $", {FactoryGenerator.DocumentationSourceName}" : "")})).ToList()";
+					return new ParamValue($"SharpSheets.Parsing.StringParsing.SplitOnUnescaped({constant.ToRepr()}, '{arrayDelimiters[rank - 1]}').Select(s => s.Trim()).Select(p => {listElemParser.FullTypeName}.{listElemParser.MethodName}(p{(listElemParser.NeedsSourceDirectory ? $", {FactoryGenerator.DocumentationSourceName}" : "")})).ToList()", true);
 				}
 			}
 
-			ITypeSymbol factoryType = type;
-			if (factoryType is INamedTypeSymbol namedType && resolverData.FactoryLookup.TryGetValue(namedType, out FactoryToGenerate factory)) {
-				AvailableBuilder? builderToUse = (constant is not null && resolverData.BuilderLookup.Values.FirstOrDefault(b => b.BuilderType == factory.Spec.FactoryType && b.ConcreteBuilderType.Minimal.EndsWith(constant)) is AvailableBuilder requestedBuilder) ? requestedBuilder : factory.DefaultBuilder;
+			if (type is INamedTypeSymbol namedType && resolverData.FactoryLookup.TryGetValue(namedType, out FactoryToGenerate factory)) {
+				Match? constructorMatch = constant is not null ? documentationValueConstructorRegex.Match(constant) : null;
+				bool hasConstructorMatch = constructorMatch?.Success ?? false;
+				string? constructorName = hasConstructorMatch ? constructorMatch!.Groups["type"].Value : constant;
+				string constructorArgs = hasConstructorMatch ? (constructorMatch!.Groups["args"].Value ?? "").Trim() : "";
 				
-				if (builderToUse is not null) {
-					return $"{builderToUse.FullTypeName}.{builderToUse.MethodName}()";
+				AvailableBuilder? builderToUse = (constructorName is not null && resolverData.BuilderLookup.Values.FirstOrDefault(b => b.BuilderType == factory.Spec.FactoryType && b.ConcreteBuilderType.Minimal.EndsWith(constructorName)) is AvailableBuilder requestedBuilder) ? requestedBuilder : factory.DefaultBuilder;
+
+				if (builderToUse is not null && (!string.IsNullOrWhiteSpace(constructorArgs) || builderToUse.Parameters.All(p => p.IsOptional))) {
+					return new ParamValue($"{builderToUse.FullTypeName}.{builderToUse.MethodName}({constructorArgs})", true);
 				}
 			}
 
@@ -316,12 +382,10 @@ namespace SharpSheets.Generators {
 				return null;
 			}
 
-			return constant.ToRepr();
-			//return $"ERROR|{type.ToFullDisplayString()}|";
-			//return constant.ToRepr(); // "null"; // TODO Implement
+			return new ParamValue(constant.ToRepr(), false);
 		}
 
-		private static string? GetDocumentationValue(IParameterSymbol? symbol, string valueName, SharpSheetsParameterResolverData resolverData) {
+		private static ParamValue? GetDocumentationValue(IParameterSymbol? symbol, string valueName, SharpSheetsParameterResolverData resolverData) {
 			if (symbol is null) { return null; }
 
 			AttributeData? propertyAttr = symbol.GetAttributes(PropertyAttribute, LocalPropertyAttribute).FirstOrDefault();
@@ -333,11 +397,11 @@ namespace SharpSheets.Generators {
 			return GetDocumentationValue(resolverData.Compilation.ReduceParameterType(symbol.Type), argVal, resolverData);
 		}
 
-		private static string? GetDefaultValue(IParameterSymbol? symbol, SharpSheetsParameterResolverData resolverData) {
+		private static ParamValue? GetDefaultValue(IParameterSymbol? symbol, SharpSheetsParameterResolverData resolverData) {
 			return GetDocumentationValue(symbol, "Default", resolverData);
 		}
 
-		private static string? GetExampleValue(IParameterSymbol? symbol, SharpSheetsParameterResolverData resolverData) {
+		private static ParamValue? GetExampleValue(IParameterSymbol? symbol, SharpSheetsParameterResolverData resolverData) {
 			return GetDocumentationValue(symbol, "Example", resolverData);
 		}
 
@@ -708,15 +772,15 @@ namespace SharpSheets.Generators {
 
 		private static SharpSheetsParameterData GetSingleArg(BuilderParameter param, string parameterName, string? prefix, bool useLocal, string? descriptionContent, ParamComment? argDoc) {
 			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
-			string? defaultValue = argDoc?.DefaultValue ?? param.DefaultValue;
-			string? exampleValue = argDoc?.ExampleValue;
+			string? defaultValue = argDoc?.DefaultValue?.Value ?? param.DefaultValue;
+			string? exampleValue = argDoc?.ExampleValue?.Value;
 			return new SharpSheetsParameterData(name, descriptionContent, GetArgumentType(param.Type.CompilerFullName), param.IsOptional, useLocal, defaultValue, exampleValue, null);
 		}
 
 		public static IEnumerable<SharpSheetsParameterData> GetShapeArguments(string parameterName, string? prefix, string argumentType, ParamComment? argDoc, bool isOptional, bool useLocal, SharpSheetsParameterResolverData resolverData) {
 			string name = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 
-			yield return new SharpSheetsParameterData(name, argDoc?.Description, ArgumentType_Simple(argumentType), isOptional, useLocal, argDoc?.DefaultValue, argDoc?.ExampleValue, "style");
+			yield return new SharpSheetsParameterData(name, argDoc?.Description, ArgumentType_Simple(argumentType), isOptional, useLocal, argDoc?.DefaultValue?.Value, argDoc?.ExampleValue?.Value, "style");
 		}
 
 		private static readonly Regex listRegex = new Regex(@"^System\.Collections\.Generic\.List<(?<elemType>.+)>$");

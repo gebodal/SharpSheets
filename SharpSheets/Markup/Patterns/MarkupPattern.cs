@@ -205,7 +205,7 @@ namespace SharpSheets.Markup.Patterns {
 
 		public MarkupPattern Pattern { get; }
 
-		public MarkupBuilderDetails(MarkupPattern pattern, DisplayType displayType, DisplayType declaringType, ArgumentDetails[] arguments, DocumentationString? description) : base(displayType, declaringType, pattern.Name, pattern.FullName, arguments, description, pattern.exampleRect, pattern.exampleCanvas) {
+		public MarkupBuilderDetails(MarkupPattern pattern, DisplayType displayType, DisplayType declaringType, ArgumentDetails[] arguments, DocumentationString? description) : base(displayType, declaringType, pattern.Name, pattern.FullName, arguments, description, pattern.exampleRect, pattern.exampleCanvas, null) {
 			this.Pattern = pattern;
 		}
 

@@ -92,6 +92,31 @@ namespace SharpSheets.Generators.Utilities {
 			return symbol.ToDisplayString(fullFormat) + (symbol is ITypeSymbol type && !type.IsValueType && type.NullableAnnotation == NullableAnnotation.Annotated ? "?" : "");
 		}
 
+		public static string? GetValueString(object? value, ITypeSymbol type) {
+			if (value is bool boolean) {
+				return boolean.ToCodeString();
+			}
+			else if (value is string text) {
+				return text.ToRepr();
+			}
+			else if (value is float number) {
+				return number.ToCodeString();
+			}
+			else if (type is INamedTypeSymbol namedType && namedType.IsEnum()) {
+				return $"({namedType.ToFullDisplayString()}){value?.ToString()}";
+			}
+			else if (type.SpecialType == SpecialType.System_UInt32) {
+				return $"{value?.ToString()}U";
+			}
+			else {
+				return value?.ToString();
+			}
+		}
+
+		public static string? GetExplicitDefaultalueString(this IParameterSymbol symbol) {
+			return GetValueString(symbol.ExplicitDefaultValue, symbol.Type);
+		}
+
 	}
 
 }

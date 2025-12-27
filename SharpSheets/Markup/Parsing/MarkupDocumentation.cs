@@ -36,7 +36,8 @@ namespace SharpSheets.Markup.Parsing {
 					new TypeSpan("patternLibrary", typeof(IMarkupElement)) ,new TextSpan(" element. This element also acts as the first "),
 					new TypeSpan("div", typeof(DivElement)), new TextSpan(" element for the pattern, and so " +
 					"accepts all the arguments that a "), new TypeSpan("div", typeof(DivElement)), new TextSpan(" accepts.")),
-				null, null
+				null, null,
+				null
 				);
 
 			BuilderDetails libraryBuilder = new BuilderDetails(
@@ -49,7 +50,8 @@ namespace SharpSheets.Markup.Parsing {
 				"as the root of a Markup document, and should only have other "), new TypeSpan("patternLibrary", typeof(IMarkupElement)),
 				new TextSpan(" and "), new TypeSpan("pattern", typeof(IMarkupElement)), new TextSpan(" elements as its children. It can " +
 				"be provided with a name, which will be used to group patterns, and distinguish patterns with the same name.")),
-				null, null
+				null, null,
+				null
 				);
 
 			BuilderDetails useBuilder = new BuilderDetails(
@@ -66,7 +68,8 @@ namespace SharpSheets.Markup.Parsing {
 				"If the duplicated element is a "), new TypeSpan("symbol", typeof(Symbol)), new TextSpan(" element, then a new " +
 				"width and height may be specified for it. The effect of this element is essentially the same as if the referenced " +
 				"element was cloned into the location of this element in the Markup document.")),
-				null, null
+				null, null,
+				null
 				); // "width" and "height" ignored unless "href" is a <symbol>
 
 			BuilderDetails optionBuilder = new BuilderDetails(
@@ -78,7 +81,8 @@ namespace SharpSheets.Markup.Parsing {
 				},
 				new DocumentationString(new TextSpan("This element represents an option for a custom enumeration Markup argument. " +
 				"This element should only be a child of "), new TypeSpan("arg", typeof(MarkupSingleArgument)), new TextSpan(" elements.")), 
-				null, null
+				null, null,
+				null
 				);
 
 			BuilderDetails argsBuilder = new BuilderDetails(
@@ -93,7 +97,8 @@ namespace SharpSheets.Markup.Parsing {
 					new TextSpan(" or "),
 					new TypeSpan("div", typeof(DivElement)),
 					new TextSpan(" elements.")),
-				null, null
+				null, null,
+				null
 				);
 
 			BuilderDetails defsBuilder = new BuilderDetails(
@@ -102,7 +107,8 @@ namespace SharpSheets.Markup.Parsing {
 				Array.Empty<ArgumentDetails>(),
 				new DocumentationString("This element is a holder for other graphical elements which " +
 					"you do not wish to draw, but may reference elsewhere in the pattern."),
-				null, null
+				null, null,
+				null
 				);
 
 			BuilderDetails descBuilder = new BuilderDetails(
@@ -113,7 +119,8 @@ namespace SharpSheets.Markup.Parsing {
 					"It is only allowed as a direct child of a "), new TypeSpan("pattern", typeof(MarkupPattern)),
 					new TextSpan(" element. The text contents of this element will be used as the pattern description " +
 					"in documentation and other user-facing displays (such as tooltips).")),
-				null, null
+				null, null,
+				null
 				);
 
 			BuilderDetails stopBuilder = new BuilderDetails(
@@ -124,7 +131,8 @@ namespace SharpSheets.Markup.Parsing {
 					new ArgumentDetails("stop-color", new DocumentationString(new TextSpan("The color for this gradient stop, indicating the color value at the specified "), new ParameterSpan("offset"), new TextSpan(" in the gradient.")), ArgumentType.Simple<ColorExpression>(), true, true, new ColorExpression(Colors.Color.Black, markupContext.TypeSystem), null, null)
 				},
 				new DocumentationString("This element defines a color and its position in a gradient."),
-				null, null
+				null, null,
+				null
 				);
 
 			List<BuilderDetails> markupBuilders = new List<BuilderDetails>() {
