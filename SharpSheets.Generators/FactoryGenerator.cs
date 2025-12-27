@@ -1075,7 +1075,7 @@ namespace {factory.Spec.Namespace} {{
 		}
 
 		public static string NormaliseParameterName(string name) {
-			return name.Trim('_').Replace("_", "-").ToLowerInvariant();
+			return name.TrimStart('@').Trim('_').Replace("_", "-").ToLowerInvariant();
 		}
 
 		private static void GenerateBuilderCode(StringBuilder sb, BuilderToGenerate builder, Dictionary<string, ParameterParser> parserLookup, Dictionary<string, BuilderToGenerate> builderLookup, bool includeGeneratedAttributes, Compilation compilation, CancellationToken ct) {
