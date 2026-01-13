@@ -1160,7 +1160,13 @@ namespace {factory.Spec.Namespace} {{
 
 				if (paramResolvedType is not null && paramResolvedType.SpecialType == SpecialType.System_Boolean) {
 					sb.Append(@$"
-			bool {valueVariable} = context.HasFlag(""{normParamName}"", {param.IsLocal.ToCodeString()}, context) ? context.GetFlag(""{normParamName}"", {param.IsLocal.ToCodeString()}, context) : {param.DefaultValue ?? "false"};");
+			bool {valueVariable};
+			if (context.HasFlag(""{normParamName}"", {param.IsLocal.ToCodeString()}, context)) {{
+				{valueVariable} = context.GetFlag(""{normParamName}"", {param.IsLocal.ToCodeString()}, context);
+			}}
+			else {{
+				{valueVariable} = {param.DefaultValue ?? "false"};
+			}}");
 				}
 				else if (paramResolvedType is INamedTypeSymbol namedListType && namedListType.IsGenericList(out ITypeSymbol listElemType) && compilation.ReduceParameterType(listElemType) is ITypeSymbol reducedListElemType && parserLookup.TryGetValue(reducedListElemType.ToFullDisplayString(), out ParameterParser listElemParser)) {
 					string reducedListTypeName = compilation.ReduceParameterType(namedListType).ToFullDisplayString();
