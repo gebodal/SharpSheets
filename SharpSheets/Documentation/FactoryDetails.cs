@@ -65,6 +65,11 @@ namespace SharpSheets.Documentation {
 			return new PrefixedArgumentDetails(this, prefix, separator: separator);
 		}
 
+		public ArgumentDetails WithLocal(bool forceLocal) {
+			if (!forceLocal) { return this; }
+			else { return new LocalArgumentDetails(this, forceLocal); }
+		}
+
 	}
 
 	[DebuggerDisplay("{Name} ({Basis.Type.Name})")]
@@ -80,6 +85,15 @@ namespace SharpSheets.Documentation {
 			this.Basis = basis;
 			this.prefix = prefix;
 			this.separator = separator;
+		}
+	}
+
+	[DebuggerDisplay("{Name} ({UseLocal}) ({Basis.Type.Name})")]
+	public class LocalArgumentDetails : ArgumentDetails {
+		public ArgumentDetails Basis { get; }
+
+		public LocalArgumentDetails(ArgumentDetails basis, bool forceLocal) : base(basis.Name, basis.Description, basis.Type, basis.IsOptional, basis.UseLocal || forceLocal, basis.DefaultValue, basis.ExampleValue, basis.Implied) {
+			this.Basis = basis;
 		}
 	}
 

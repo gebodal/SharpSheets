@@ -333,7 +333,7 @@ namespace SharpSheets.Generators {
 			public readonly TypeData ConcreteBuilderType; // The actual return type of the builder method
 
 			public readonly string? ProvidedName; // An override name of the builder
-			public string Name => ProvidedName ?? TypeName; // Final name to be used for builder
+			public string Name => ProvidedName ?? ConcreteBuilderType.Name; // Final name to be used for builder
 
 			public readonly EquatableArray<BuilderParameter> Parameters;
 			public bool CanCallWithEmptyArgs => Parameters.All(p => p.HasDefault);
@@ -433,11 +433,13 @@ namespace SharpSheets.Generators {
 				bool isLocal = propAttr?.AttributeClass?.Name == LocalPropertyAttribute_Name;
 				bool exclude = (bool?)propAttr?.GetNamedArgument("Exclude")?.Value ?? false;
 
-				string? defaultValue = (paramType == BuilderParameterType.Normal && param.HasExplicitDefaultValue) ? (param.GetExplicitDefaultalueString() ?? ((param.Type.IsValueType && param.Type.NullableAnnotation != NullableAnnotation.Annotated) ? GetDefaultForType(param.Type) : "null")) : null;
+				TypeData typeData = TypeData.Create(param.Type);
+
+				string? defaultValue = (paramType == BuilderParameterType.Normal && param.HasExplicitDefaultValue) ? (param.GetExplicitDefaultalueString() ?? ((typeData.IsValueType && !typeData.IsNullable) ? GetDefaultForType(param.Type) : "null")) : null;
 
 				return new BuilderParameter(
 					param.Name,
-					TypeData.Create(param.Type),
+					typeData,
 					defaultValue,
 					isLocal,
 					param.IsOptional,
@@ -1086,7 +1088,7 @@ namespace {factory.Spec.Namespace} {{
 
 			bool returnNeedsNullableAnnotation = builder.Builder.ConcreteBuilderType.IsNullable || !builder.Builder.Parameters.Skip(builder.RequiredParameters.Count).All(p => p.IsOptional);
 
-			string builderReturnTypeFull = $"{builder.Builder.FullTypeName}{(returnNeedsNullableAnnotation ? "?" : "")}";
+			string builderReturnTypeFull = $"{builder.Builder.ConcreteBuilderType.Type}{(returnNeedsNullableAnnotation ? "?" : "")}";
 			string errorListVariableName = "@buildErrorsList";
 			string builderErrorsParamVariable = "@buildErrorsParamList";
 			bool needsBuilderErrorsParam = false;
@@ -1402,7 +1404,7 @@ namespace {factory.Spec.Namespace} {{
 			{errorListVariableName}.AddRange({paramBuildErrorsVariable});");
 					}
 					else if (paramBuilder.Builder.Structure == BuilderStructure.SUPPLEMENTED) {
-						BuilderParameter firstArg = paramBuilder.Builder.Parameters[0];
+						BuilderParameter firstArg = paramBuilder.Builder.Parameters.First(p => p.ParameterType == BuilderParameterType.Normal);
 						string firstArgVariable = valueVariable + "_first";
 						string firstArgTextVariable = firstArgVariable + "_str";
 						string firstArgLocVariable = firstArgVariable + "_loc";
@@ -1429,7 +1431,7 @@ namespace {factory.Spec.Namespace} {{
 				}}
 			}}
 			else {{
-				{firstArgVariable} = {param.DefaultValue ?? "NULL"};
+				{firstArgVariable} = {firstArg.DefaultValue ?? "NULL"};
 			}}
 			SharpSheets.Parsing.IContext {paramContextVariable} = new SharpSheets.Parsing.NamedContext(context, ""{normParamName}"", forceLocal: {param.IsLocal.ToCodeString()});
 			{param.Type.FullName} {valueVariable} = {paramBuilder.FullTypeName}.{paramBuilder.MethodName}({paramContextVariable}, {firstArgVariable}, {sourceDirArgName}, out SharpSheets.Exceptions.SharpParsingException[] {paramBuildErrorsVariable});
@@ -1642,7 +1644,7 @@ namespace {factory.Spec.Namespace} {{
 					continue;
 				}
 
-				string clarifiedBuilderName = builder.TypeName;
+				string clarifiedBuilderName = builder.TypeName + "_" + builder.MethodName;
 
 				INamedTypeSymbol? containingType = builderContainingType.ContainingType;
 				while (containingType != null) {
@@ -1919,23 +1921,13 @@ namespace SharpSheets.Documentation {{
 			foreach (AvailableBuilder builder in availableBuilders) {
 				ct.ThrowIfCancellationRequested();
 
-				ITypeSymbol? builderType = builder.ConcreteBuilderType.GetSymbol(compilation); // compilation.ResolveTypeKey(builder.ConcreteBuilderType);
-
-				if(builderType is null) {
-					continue;
-				}
-
-				IMethodSymbol? method = compilation.ResolveMethodSymbol(builderType, builder.MethodName).FirstOrDefault(m => m.Parameters.Length == builder.Parameters.Count);
+				IMethodSymbol? method = compilation.ResolveMethodSymbol(builder.FullTypeName, builder.MethodName).FirstOrDefault(m => m.Parameters.Length == builder.Parameters.Count);
 
 				if (method is null) {
 					continue;
 				}
 
-				string? typeXml = builderType.GetDocumentationCommentXml(preferredCulture: null, expandIncludes: true)?.Replace("\r\n", "\n");
-				string? methodXml = method.GetDocumentationCommentXml(preferredCulture: null, expandIncludes: true)?.Replace("\r\n", "\n");
-
-				//SummaryComment? typeComment = DocCommentReader.FromSymbol(builderType, resolverData.Compilation);
-				BuilderComment? methodComment = DocCommentReader.FromSymbol(method, resolverData.BuilderLookup, resolverData.ParserLookup, resolverData);
+				BuilderComment methodComment = DocCommentReader.FromSymbol(method, resolverData.BuilderLookup, resolverData.ParserLookup, resolverData);
 
 				string concreteBuilderTypeMinimal = builder.ConcreteBuilderType.Type;
 				string concreteBuilderTypeNameMinimal = builder.ConcreteBuilderType.Name;
@@ -1976,7 +1968,21 @@ namespace SharpSheets.Documentation {{
 					}
 					else {
 						sb.Append(@$"
-							.. {typeToDocsVariable[param.DeferArgsTo]}.Arguments{(param.SkipDeferredArgs > 0 ? $"[{param.SkipDeferredArgs}..]" : "")}{(param.Prefixes.Length > 0 ? $".Select(a => a{string.Join("", param.Prefixes.Select(p => $".Prefixed({p.prefix.ToRepr()}{(p.separator is not null ? $", {p.separator.ToRepr()}" : "")})"))})" : "")},");
+							.. {typeToDocsVariable[param.DeferArgsTo]}.Arguments");
+						if (param.SkipDeferredArgs > 0) {
+							sb.Append($"[{param.SkipDeferredArgs}..]");
+						}
+						if (param.Prefixes.Length > 0 || param.UseLocal) {
+							sb.Append(".Select(a => a");
+							if (param.Prefixes.Length > 0) {
+								sb.Append(string.Join("", param.Prefixes.Select(p => $".Prefixed({p.prefix.ToRepr()}{(p.separator is not null ? $", {p.separator.ToRepr()}" : "")})")));
+							}
+							if (param.UseLocal) {
+								sb.Append($".WithLocal(forceLocal: {param.UseLocal.ToCodeString()})");
+							}
+							sb.Append(")");
+						}
+						sb.Append(",");
 					}
 				}
 				

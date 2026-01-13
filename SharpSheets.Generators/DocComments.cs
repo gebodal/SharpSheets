@@ -111,66 +111,63 @@ namespace SharpSheets.Generators {
 
 	public static class DocCommentReader {
 
-		public static BuilderComment? FromSymbol(IMethodSymbol symbol, Dictionary<string, AvailableBuilder> builderLookup, Dictionary<string, ParameterParser> parserLookup, SharpSheetsParameterResolverData resolverData, CancellationToken ct = default) {
+		public static BuilderComment FromSymbol(IMethodSymbol symbol, Dictionary<string, AvailableBuilder> builderLookup, Dictionary<string, ParameterParser> parserLookup, SharpSheetsParameterResolverData resolverData, CancellationToken ct = default) {
 
 			string? xml = symbol.GetDocumentationCommentXml(preferredCulture: null, expandIncludes: true, cancellationToken: ct);
 
-			if (string.IsNullOrWhiteSpace(xml)) {
-				return null;
-			}
-
+			XDocument? doc;
 			try {
-				XDocument doc = XDocument.Parse(xml);
-
-				string? summary = GetDocumentationString(doc.Root.Element("summary"), resolverData.Compilation);
-				string? returns = GetDocumentationString(doc.Root.Element("returns"), resolverData.Compilation);
-				string? remarks = GetDocumentationString(doc.Root.Element("remarks"), resolverData.Compilation);
-				string? size = GetRectangle(doc.Root.Element("size"));
-				string? canvas = GetSize(doc.Root.Element("canvas"));
-
-				Dictionary<string, IParameterSymbol> paramLookup = symbol.Parameters.ToDictionary(p => p.Name);
-
-				List<ParamComment> paramDocs = new List<ParamComment>();
-				IEnumerable<XElement> paramEls = doc.Root.Elements("param");
-				foreach (XElement el in paramEls) {
-					XAttribute nameAttr = el.Attribute("name");
-					if (nameAttr != null) {
-						string name = nameAttr.Value;
-						string? text = GetDocumentationString(el, resolverData.Compilation);
-						IParameterSymbol? paramSymbol = paramLookup.TryGetValue(name, out IParameterSymbol val) ? val : null;
-						paramDocs.Add(new ParamComment(name, text, GetDefaultValue(paramSymbol, resolverData), GetExampleValue(paramSymbol, resolverData), GetExclude(paramSymbol)));
-					}
-				}
-
-				string? example = GetBuilderExample(symbol, paramDocs);
-
-				return new BuilderComment(summary, paramDocs, returns, remarks, size, canvas, example);
+				doc = !string.IsNullOrWhiteSpace(xml) ? XDocument.Parse(xml) : null;
 			}
 			catch (System.Xml.XmlException) {
 				// Malformed XML
-				return null;
+				doc = null;
 			}
+
+			string? summary = GetDocumentationString(doc?.Root.Element("summary"), resolverData.Compilation);
+			string? returns = GetDocumentationString(doc?.Root.Element("returns"), resolverData.Compilation);
+			string? remarks = GetDocumentationString(doc?.Root.Element("remarks"), resolverData.Compilation);
+			string? size = GetRectangle(doc?.Root.Element("size"));
+			string? canvas = GetSize(doc?.Root.Element("canvas"));
+
+			Dictionary<string, XElement> paramElemLookup = new Dictionary<string, XElement>();
+			foreach (XElement paramElem in (doc?.Root.Elements("param") ?? Enumerable.Empty<XElement>())) {
+				XAttribute nameAttr = paramElem.Attribute("name");
+				if (nameAttr != null) {
+					string name = nameAttr.Value;
+					paramElemLookup.Add(name, paramElem);
+				}
+			}
+
+			List<ParamComment> paramDocs = new List<ParamComment>();
+			for (int i = 0; i < symbol.Parameters.Length; i++) {
+				IParameterSymbol paramSymbol = symbol.Parameters[i];
+				XElement? paramElem = paramElemLookup.TryGetValue(paramSymbol.Name, out XElement val) ? val : null;
+				string? text = GetDocumentationString(paramElem, resolverData.Compilation);
+				paramDocs.Add(new ParamComment(paramSymbol.Name, text, GetDefaultValue(paramSymbol, resolverData), GetExampleValue(paramSymbol, resolverData), GetExclude(paramSymbol)));
+			}
+
+			string? example = GetBuilderExample(symbol, paramDocs);
+
+			return new BuilderComment(summary, paramDocs, returns, remarks, size, canvas, example);
 		}
 
-		public static SummaryComment? FromSymbol(ISymbol symbol, Compilation compilation, CancellationToken ct = default) {
+		public static SummaryComment FromSymbol(ISymbol symbol, Compilation compilation, CancellationToken ct = default) {
 
 			string? xml = symbol.GetDocumentationCommentXml(preferredCulture: null, expandIncludes: true, cancellationToken: ct);
 
-			if (string.IsNullOrWhiteSpace(xml)) {
-				return null;
-			}
-
+			XDocument? doc;
 			try {
-				XDocument doc = XDocument.Parse(xml);
-
-				string? summary = GetDocumentationString(doc.Root.Element("summary"), compilation);
-
-				return new SummaryComment(summary);
+				doc = !string.IsNullOrWhiteSpace(xml) ? XDocument.Parse(xml) : null;
 			}
 			catch (System.Xml.XmlException) {
 				// Malformed XML
-				return null;
+				doc = null;
 			}
+
+			string? summary = GetDocumentationString(doc?.Root.Element("summary"), compilation);
+
+			return new SummaryComment(summary);
 		}
 
 		public static EnumComment? FromEnumSymbol(INamedTypeSymbol symbol, Compilation compilation, CancellationToken ct = default) {
@@ -190,9 +187,9 @@ namespace SharpSheets.Generators {
 			List<(string name, string? descriptions)> values = new List<(string, string?)>();
 
 			foreach (IFieldSymbol enumField in symbol.GetDeclaredEnumMembers()) {
-				SummaryComment? enumValComment = DocCommentReader.FromSymbol(enumField, compilation);
+				SummaryComment enumValComment = FromSymbol(enumField, compilation);
 
-				values.Add((enumField.Name, enumValComment?.Summary));
+				values.Add((enumField.Name, enumValComment.Summary));
 			}
 
 			if (summary is not null || values.Count > 0) {
@@ -737,11 +734,7 @@ namespace SharpSheets.Generators {
 				}
 				else if (resolverData.BuilderLookup.TryGetValue(builderParam.Type.Minimal, out AvailableBuilder nestedBuilder)) { // (typeof(ISharpArgsGrouping).IsAssignableFrom(param.ParameterType) || SharpFactory.IsParsableStruct(param.ParameterType)) {
 
-					ITypeSymbol? nestedBuilderType = nestedBuilder.ConcreteBuilderType.GetSymbol(compilation); // compilation.ResolveTypeKey(nestedBuilder.ConcreteBuilderType);
-					if (nestedBuilderType is null) {
-						continue;
-					}
-					IMethodSymbol? nestedBuilderMethod = compilation.ResolveMethodSymbol(nestedBuilderType, nestedBuilder.MethodName).FirstOrDefault(m => m.Parameters.Length == nestedBuilder.Parameters.Count);
+					IMethodSymbol? nestedBuilderMethod = compilation.ResolveMethodSymbol(nestedBuilder.FullTypeName, nestedBuilder.MethodName).FirstOrDefault(m => m.Parameters.Length == nestedBuilder.Parameters.Count);
 					if (nestedBuilderMethod is null) {
 						continue;
 					}
@@ -755,8 +748,9 @@ namespace SharpSheets.Generators {
 						yield return SharpSheetsParameterData.MakeDeferredArgs(nestedBuilder.ConcreteBuilderType, 0, useLocal, (nestedPrefix, null));
 					}
 					else if (nestedBuilder.Structure == BuilderStructure.SUPPLEMENTED) {
-						ParamComment? firstArgDoc = (nestedBuilderDoc?.Params.TryGetValue(nestedBuilder.Parameters[0].Name, out ParamComment dpc) ?? false) ? dpc : null;
-						yield return GetSingleArg(nestedBuilder.Parameters[0], parameterName, prefix, useLocal, paramDoc?.Description, firstArgDoc);
+						BuilderParameter firstNormal = nestedBuilder.Parameters.First(p => p.ParameterType == BuilderParameterType.Normal);
+						ParamComment? firstArgDoc = (nestedBuilderDoc?.Params.TryGetValue(firstNormal.Name, out ParamComment dpc) ?? false) ? dpc : null;
+						yield return GetSingleArg(firstNormal, parameterName, prefix, useLocal, paramDoc?.Description, firstArgDoc);
 						yield return SharpSheetsParameterData.MakeDeferredArgs(nestedBuilder.ConcreteBuilderType, 1, useLocal, (nestedPrefix, null));
 					}
 					else if (nestedBuilder.Structure == BuilderStructure.EXPANDED) {
