@@ -34,6 +34,10 @@ namespace SharpSheets.Generators.Utilities {
 			return source.Select((i, _) => (i.Item1.Item1.Item1.Item1, i.Item1.Item1.Item1.Item2, i.Item1.Item1.Item2, i.Item1.Item2, i.Item2));
 		}
 
+		public static IncrementalValueProvider<(T1, T2, T3, T4, T5)> Flatten<T1, T2, T3, T4, T5>(this IncrementalValueProvider<(((T1, T2, T3), T4), T5)> source) {
+			return source.Select((i, _) => (i.Item1.Item1.Item1, i.Item1.Item1.Item2, i.Item1.Item1.Item3, i.Item1.Item2, i.Item2));
+		}
+
 		public static (IncrementalValueProvider<T1>, IncrementalValueProvider<T2>) Split<T1, T2>(this IncrementalValueProvider<(T1 a, T2 b)> source) {
 			return (
 					source.Select((i, _) => i.a),

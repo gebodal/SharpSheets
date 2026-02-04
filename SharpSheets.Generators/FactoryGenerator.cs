@@ -70,7 +70,7 @@ namespace SharpSheets.Generators {
 			IncrementalValuesProvider<EquatableArray<FactoryToGenerate>> factoryTypes = factoriesToGenerate.Collect()
 				.SelectMany(static (fs, _) => GroupFactoryObjects(fs));
 
-			IncrementalValueProvider<(EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders)> needed = factoriesToGenerate
+			IncrementalValueProvider<(EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders, EquatableArray<TypeData> cannotGenerateParserTypes)> neededAndErrors = factoriesToGenerate
 				.Collect()
 				.Combine(availableBuilders.Collect())
 				.Combine(availableParsers.Collect())
@@ -79,6 +79,10 @@ namespace SharpSheets.Generators {
 				.Flatten()
 				.Select(static (i, ct) => FilterParamParsers(i.Item1, i.Item2, i.Item3, i.Item4, i.Item5, ct));
 
+			(IncrementalValueProvider<EquatableArray<ParameterParser>> neededParamParsers, IncrementalValueProvider<EquatableArray<BuilderToGenerate>> neededMiscBuilders, IncrementalValueProvider<EquatableArray<TypeData>> cannotGenerateParserTypes) = neededAndErrors.Split();
+
+			IncrementalValueProvider<(EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders)> needed = neededParamParsers.Combine(neededMiscBuilders);
+
 			IncrementalValueProvider<(EquatableArray<BuilderToGenerate> builders, EquatableArray<ParameterParser> parsers)> allBuildersParsers = needed
 				.Combine(availableBuilders.Collect())
 				.Combine(availableParsers.Collect())
@@ -86,32 +90,40 @@ namespace SharpSheets.Generators {
 				.Select(static (i, ct) => CollectAllBuildersParsers(i.Item1, i.Item2, i.Item3, i.Item4, ct));
 
 			// Generate source code for each factory
-			context.RegisterSourceOutput(factoriesToGenerate.Combine(allBuildersParsers).Combine(context.CompilationProvider).Flatten(),
-				static (spc, source) => ExecuteFactory(source.Item1, source.Item2.builders, source.Item2.parsers, spc, source.Item3));
+			context.ExecuteGenerator(factoriesToGenerate.Combine(allBuildersParsers).Flatten(),
+				static (source, cmp, ct) => GenerateFactoryCode(source.Item1, source.Item2, source.Item3, cmp, ct),
+				static source => $"Factories.{source.Item1.Spec.Name}.{source.Item1.Spec.FactoryType.Name}.g.cs");
 
 			// Generate type-level data for each factory type (default dictionary)
-			context.RegisterSourceOutput(factoryTypes,
-				static (spc, source) => ExecuteFactoryTypeLevel(source, spc));
+			context.ExecuteGenerator(factoryTypes,
+				static (factories, ct) => GenerateFactoryTypeLevel(factories, ct),
+				static factories => $"Factories.Data.{factories[0].Spec.Name}.g.cs");
 
 			// Generate source code for additional parsers
-			context.RegisterSourceOutput(needed.Combine(availableParsers.Collect()).Combine(context.CompilationProvider).Flatten(),
-				static (spc, source) => ExecuteParamParser(source.Item1, source.Item3, spc, source.Item4));
+			context.ExecuteGenerator(needed.Combine(availableParsers.Collect()).Flatten(),
+				static (source, cmp, ct) => GenerateParamParsersCode(source.Item1, source.Item3, cmp, ct),
+				"Factories.ParamParser.g.cs");
 
 			// Generate source code for misc builders
-			context.RegisterSourceOutput(needed.Combine(availableParsers.Collect()).Combine(context.CompilationProvider).Flatten(),
-				static (spc, source) => ExecuteMiscBuilders(source.Item2, source.Item1.Concat(source.Item3).ToArray(), spc, source.Item4));
+			context.ExecuteGenerator(needed.Combine(availableParsers.Collect()).Flatten(),
+				static (source, cmp, ct) => GenerateMiscBuildersCode(source.Item2, source.Item1.Concat(source.Item3).ToArray(), cmp, ct),
+				"Factories.ParamBuilders.g.cs");
 
 			// Generate documentation code for builders
-			context.RegisterSourceOutput(availableBuilders.Collect().Combine(availableParsers.Collect()).Combine(needed).Combine(factoriesToGenerate.Collect()).Combine(context.CompilationProvider).Flatten(),
-				static (spc, source) => ExecuteBuilderDocumentation(source.Item4, source.Item1, source.Item2, source.Item3.neededMiscBuilders, source.Item3.neededParamParsers, spc, source.Item5));
+			context.ExecuteGenerator(availableBuilders.Collect().Combine(availableParsers.Collect()).Combine(needed).Combine(factoriesToGenerate.Collect()).Flatten(),
+				static (source, cmp, ct) => GenerateBuilderDocumentationCode(source.Item4, source.Item1, source.Item2, source.Item3.neededMiscBuilders, source.Item3.neededParamParsers, cmp, ct),
+				"Documentation.Builders.g.cs");
 
 			// Generate documentation code for enums
-			context.RegisterSourceOutput(declaredEnums.Collect(),
-				static (spc, source) => ExecuteEnumDocumentation(source, spc));
+			context.ExecuteGenerator(declaredEnums.Collect(),
+				static (declaredEnums, ct) => GenerateEnumDocumentationCode(declaredEnums, ct),
+				"Documentation.Enums.g.cs");
 
 			// Generate documentation linkup code for each factory
-			context.RegisterSourceOutput(factoriesToGenerate,
-				static (spc, source) => ExecuteFactoryDocumentation(source, spc));
+			context.ExecuteGenerator(factoriesToGenerate,
+				static (factory, ct) => GenerateFactoryDocumentation(factory, ct),
+				static factory => $"Factories.{factory.Spec.Name}.{factory.Spec.FactoryType.Name}.Documentation.g.cs");
+
 		}
 
 		private static EquatableArray<FactorySpecification> GetFactorySpecs(GeneratorAttributeSyntaxContext ctx, CancellationToken ct) {
@@ -144,92 +156,6 @@ namespace SharpSheets.Generators {
 			}
 
 			return new EquatableArray<FactorySpecification>(result.ToArray());
-		}
-
-		public record class FactorySpecification {
-			public readonly string Namespace;
-			public readonly string Name;
-			public readonly bool IsStatic;
-			public readonly bool IsPartial;
-			public readonly TypeData FactoryType;
-
-			public readonly EquatableArray<RequiredParameter> RequiredParameters;
-
-			public readonly TypeData? DefaultType;
-
-			public readonly bool IncludeDocs;
-
-			public string FullName => $"{Namespace}.{Name}";
-
-			public FactorySpecification(string @namespace, string name, bool isStatic, bool isPartial, TypeData factoryType, IList<RequiredParameter> requiredParams, TypeData? defaultType, bool includeDocs) {
-				Namespace = @namespace;
-				Name = name;
-				IsStatic = isStatic;
-				IsPartial = isPartial;
-				FactoryType = factoryType;
-
-				RequiredParameters = new EquatableArray<RequiredParameter>(requiredParams.ToArray());
-
-				DefaultType = defaultType;
-
-				IncludeDocs = includeDocs;
-			}
-
-			public static FactorySpecification Build(INamedTypeSymbol classSymbol, ClassDeclarationSyntax declarationNode, ITypeSymbol factoryTypeSymbol, ITypeSymbol[] requiredParams, string[] requiredParamNames, bool[] excludeRequiredParams, ITypeSymbol? defaultType, bool includeDocs) {
-				return new FactorySpecification(
-					classSymbol.ContainingNamespace.ToFullDisplayString(),
-					classSymbol.Name,
-					classSymbol.IsStatic,
-					declarationNode.IsPartial(),
-					TypeData.Create(factoryTypeSymbol),
-					requiredParams.Zip(requiredParamNames, excludeRequiredParams, (t, n, e) => RequiredParameter.Build(t, n, e)).ToArray(),
-					defaultType is not null ? TypeData.Create(defaultType) : null,
-					includeDocs
-				);
-			}
-		}
-
-		public class RequiredParameter : IEquatable<RequiredParameter> {
-			public readonly string Name;
-			public readonly TypeData Type;
-			public readonly bool Exclude;
-
-			public RequiredParameter(string name, TypeData type, bool exclude) {
-				Name = name;
-				Type = type;
-				Exclude = exclude;
-			}
-
-			public static explicit operator RequiredParameter(BuilderParameter p) {
-				return new RequiredParameter(p.Name, p.Type, false);
-			}
-
-			public bool Equals(RequiredParameter other) {
-				return Type == other.Type;
-			}
-
-			public override bool Equals(object obj) {
-				return obj is RequiredParameter other && Equals(other);
-			}
-
-			public override int GetHashCode() {
-				return Type.GetHashCode();
-			}
-
-			public static bool operator ==(RequiredParameter a, RequiredParameter b) {
-				return a.Equals(b);
-			}
-			public static bool operator !=(RequiredParameter a, RequiredParameter b) {
-				return !a.Equals(b);
-			}
-
-			public static RequiredParameter Build(ITypeSymbol paramType, string paramName, bool exclude) {
-				return new RequiredParameter(
-					paramName,
-					TypeData.Create(paramType),
-					exclude
-				);
-			}
 		}
 
 		private static IEnumerable<EquatableArray<FactoryToGenerate>> GroupFactoryObjects(IEnumerable<FactoryToGenerate> factories) {
@@ -270,20 +196,6 @@ namespace SharpSheets.Generators {
 			return new FactoryToGenerate(spec, defaultBuilder, new EquatableArray<BuilderToGenerate>(factoryBuildersToGenerate), isSingleton);
 		}
 
-		public record class FactoryToGenerate {
-			public readonly FactorySpecification Spec;
-			public readonly AvailableBuilder? DefaultBuilder;
-			public readonly EquatableArray<BuilderToGenerate> Builders;
-			public readonly bool IsSingleton;
-
-			public FactoryToGenerate(FactorySpecification spec, AvailableBuilder? defaultBuilder, EquatableArray<BuilderToGenerate> builders, bool isSingleton) {
-				Spec = spec;
-				DefaultBuilder = defaultBuilder;
-				Builders = builders;
-				IsSingleton = isSingleton;
-			}
-		}
-
 		private static (EquatableArray<BuilderToGenerate>, EquatableArray<ParameterParser>) CollectAllBuildersParsers(EquatableArray<ParameterParser> neededParsers, EquatableArray<BuilderToGenerate> neededBuilders, ImmutableArray<AvailableBuilder> providedBuilders, ImmutableArray<ParameterParser> providedParsers, CancellationToken ct) {
 			ct.ThrowIfCancellationRequested(); // Maybe not worth it...
 			return (
@@ -320,134 +232,6 @@ namespace SharpSheets.Generators {
 			return AvailableBuilder.Build(methodSymbol, builderTypeSymbol, builderName);
 		}
 
-		public enum BuilderStructure { NONE, GROUPED, SUPPLEMENTED, EXPANDED, EXPANDED_DEFERRED }
-
-		public record class AvailableBuilder {
-			public readonly string Namespace; // Of builder method containing type
-			public readonly string FullTypeName; // Of the builder method containing type
-			public readonly string TypeName; // Of the builder method containing type
-			public readonly string MethodName; // Of the builder method
-
-			public readonly TypeData BuilderType; // The stated type in the builder attribute
-
-			public readonly TypeData ConcreteBuilderType; // The actual return type of the builder method
-
-			public readonly string? ProvidedName; // An override name of the builder
-			public string Name => ProvidedName ?? ConcreteBuilderType.Name; // Final name to be used for builder
-
-			public readonly EquatableArray<BuilderParameter> Parameters;
-			public bool CanCallWithEmptyArgs => Parameters.All(p => p.HasDefault);
-
-			public readonly BuilderStructure Structure;
-			public readonly string? PrefixSep;
-
-			public AvailableBuilder(string @namespace, string fullTypeName, string typeName, string methodName, TypeData buildType, TypeData concreteBuilderType, string? providedName, IList<BuilderParameter> parameters, BuilderStructure builderStructure, string? prefixSep) {
-				Namespace = @namespace;
-				FullTypeName = fullTypeName;
-				TypeName = typeName;
-				MethodName = methodName;
-
-				BuilderType = buildType;
-
-				ConcreteBuilderType = concreteBuilderType;
-
-				ProvidedName = providedName;
-
-				Parameters = new EquatableArray<BuilderParameter>(parameters.ToArray());
-
-				Structure = builderStructure;
-				PrefixSep = prefixSep;
-			}
-
-			private static (BuilderStructure structure, string? prefixSep) GetBuilderStructure(IMethodSymbol methodSymbol) {
-				if (methodSymbol.GetAttributes(GroupedArgumentBuilderAttribute).Any()) {
-					return (BuilderStructure.GROUPED, null);
-				}
-				else if (methodSymbol.GetAttributes(SupplementedArgumentBuilderAttribute).Any()) {
-					return (BuilderStructure.SUPPLEMENTED, null);
-				}
-				else if (methodSymbol.GetAttributes(ExpandedArgumentBuilderAttribute).FirstOrDefault() is AttributeData expandAttr) {
-					string? prefixSep = (string?)expandAttr.GetNamedArgument("PrefixSep")?.Value;
-					if (((bool?)expandAttr.GetNamedArgument("Defer")?.Value) ?? false) {
-						return (BuilderStructure.EXPANDED_DEFERRED, prefixSep);
-					}
-					else {
-						return (BuilderStructure.EXPANDED, prefixSep);
-					}
-				}
-
-				return (BuilderStructure.NONE, null);
-			}
-
-			public static AvailableBuilder Build(IMethodSymbol methodSymbol, ITypeSymbol builderTypeSymbol, string? builderName) {
-				(BuilderStructure structure, string? prefixSep) = GetBuilderStructure(methodSymbol);
-				return new AvailableBuilder(
-					methodSymbol.ContainingType.ContainingNamespace.ToFullDisplayString(),
-					methodSymbol.ContainingType.ToFullDisplayString(),
-					methodSymbol.ContainingType.Name,
-					methodSymbol.Name,
-					TypeData.Create(builderTypeSymbol),
-					TypeData.Create(methodSymbol.ReturnType),
-					builderName,
-					methodSymbol.Parameters.Select(p => BuilderParameter.Create(p)).ToArray(),
-					structure, prefixSep
-				);
-			}
-		}
-
-		public enum BuilderParameterType { Normal, BuildErrors, SourceDir }
-
-		public record class BuilderParameter {
-			public readonly string Name;
-			public readonly TypeData Type;
-			public readonly string? DefaultValue;
-			public bool HasDefault => DefaultValue is not null;
-			public readonly bool IsLocal;
-			public readonly bool IsOptional;
-			public readonly BuilderParameterType ParameterType;
-			public readonly bool Exclude;
-
-			public bool IsBuildErrors => ParameterType == BuilderParameterType.BuildErrors;
-			public bool IsSourceDir => ParameterType == BuilderParameterType.SourceDir;
-
-			public BuilderParameter(string name, TypeData type, string? defaultValue, bool isLocal, bool isOptional, BuilderParameterType parameterType, bool exclude) {
-				Name = name;
-				Type = type;
-				DefaultValue = defaultValue;
-				IsLocal = isLocal;
-				IsOptional = isOptional;
-				ParameterType = parameterType;
-				Exclude = exclude;
-			}
-
-			private static string GetDefaultForType(ITypeSymbol type) {
-				return $"default({type.ToFullDisplayString()})";
-			}
-
-			public static BuilderParameter Create(IParameterSymbol param) {
-				AttributeData? buildErrorsAttr = param.GetAttributes(BuildErrorsAttribute).FirstOrDefault();
-				AttributeData? sourceDirAttr = param.GetAttributes(SourceDirectoryAttribute).FirstOrDefault();
-				AttributeData? propAttr = param.GetAttributes(PropertyAttribute, LocalPropertyAttribute).FirstOrDefault();
-
-				BuilderParameterType paramType = buildErrorsAttr is not null ? BuilderParameterType.BuildErrors : (sourceDirAttr is not null ? BuilderParameterType.SourceDir : BuilderParameterType.Normal);
-				bool isLocal = propAttr?.AttributeClass?.Name == LocalPropertyAttribute_Name;
-				bool exclude = (bool?)propAttr?.GetNamedArgument("Exclude")?.Value ?? false;
-
-				TypeData typeData = TypeData.Create(param.Type);
-
-				string? defaultValue = (paramType == BuilderParameterType.Normal && param.HasExplicitDefaultValue) ? (param.GetExplicitDefaultalueString() ?? ((typeData.IsValueType && !typeData.IsNullable) ? GetDefaultForType(param.Type) : "null")) : null;
-
-				return new BuilderParameter(
-					param.Name,
-					typeData,
-					defaultValue,
-					isLocal,
-					param.IsOptional,
-					paramType,
-					exclude);
-			}
-		}
-
 		private static ParameterParser? GetParameterParser(GeneratorAttributeSyntaxContext ctx, CancellationToken ct) {
 			ct.ThrowIfCancellationRequested();
 
@@ -479,65 +263,6 @@ namespace SharpSheets.Generators {
 			ct.ThrowIfCancellationRequested();
 
 			return ParameterParser.Build(methodSymbol, parserType, needsSourceDirectory);
-		}
-
-		public record class ParameterParser {
-			public readonly string FullTypeName;
-			public readonly string MethodName;
-
-			public readonly TypeData ParserType;
-
-			public readonly bool NeedsSourceDirectory;
-
-			public string CallingName => $"{FullTypeName}.{MethodName}";
-
-			public ParameterParser(string fullTypeName, string methodName, TypeData parserType, bool needsSourceDirectory) {
-				FullTypeName = fullTypeName;
-				MethodName = methodName;
-
-				ParserType = parserType;
-
-				NeedsSourceDirectory = needsSourceDirectory;
-			}
-
-			private static ParameterParser Build(string fullTypeName, string methodName, ITypeSymbol parserType, bool needsSourceDirectory) {
-				return new ParameterParser(
-					fullTypeName,
-					methodName,
-					TypeData.Create(parserType),
-					needsSourceDirectory
-				);
-			}
-
-			public static ParameterParser Build(IMethodSymbol methodSymbol, ITypeSymbol parserType, bool needsSourceDirectory) {
-				return Build(
-					methodSymbol.ContainingType.ToFullDisplayString(),
-					methodSymbol.Name,
-					parserType,
-					needsSourceDirectory
-				);
-			}
-
-			public static string GetParserTypeName(ITypeSymbol symbol, bool needsExplicitRank = true) {
-				if (symbol is IArrayTypeSymbol arrayTypeSymbol) {
-					return GetParserTypeName(arrayTypeSymbol.ElementType, false) + (needsExplicitRank ? symbol.GetArrayRank().ToString() : "");
-				}
-				else if (symbol is INamedTypeSymbol namedTypeSymbol && namedTypeSymbol.IsTupleType) {
-					return "_" + string.Join("_", namedTypeSymbol.TupleElements.Select(f => GetParserTypeName(f.Type, true))) + "_"; 
-				}
-				else {
-					return symbol.Name;
-				}
-			}
-
-			public static ParameterParser GetGeneratedParser(ITypeSymbol parserType, bool needsSourceDirectory = false) {
-				return Build(
-					ParameterParsers,
-					$"Parser_{GetParserTypeName(parserType)}",
-					parserType,
-					needsSourceDirectory
-				);
-			}
 		}
 
 		private static bool RequiredParametersSatisfied(EquatableArray<RequiredParameter> required, EquatableArray<BuilderParameter> parameters) {
@@ -579,15 +304,6 @@ namespace SharpSheets.Generators {
 				}
 
 				yield return builder;
-			}
-		}
-
-		static void ExecuteFactory(FactoryToGenerate factory, EquatableArray<BuilderToGenerate> allBuilders, EquatableArray<ParameterParser> allParsers, SourceProductionContext context, Compilation compilation) {
-			// generate the source code and add it to the output
-			string? result = GenerateFactoryCode(factory, allBuilders, allParsers, compilation, context.CancellationToken);
-			// Create a separate partial class file
-			if (!string.IsNullOrEmpty(result)) {
-				context.AddSource($"Factories.{factory.Spec.Name}.{factory.Spec.FactoryType.Name}.g.cs", SourceText.From(result!, Encoding.UTF8));
 			}
 		}
 
@@ -751,15 +467,6 @@ namespace {factory.Spec.Namespace} {{
 			return sb.ToString();
 		}
 
-		private static void ExecuteFactoryTypeLevel(EquatableArray<FactoryToGenerate> factories, SourceProductionContext context) {
-			// generate the source code and add it to the output
-			string? result = GenerateFactoryTypeLevel(factories, context.CancellationToken);
-			// Create a separate partial class file
-			if (!string.IsNullOrEmpty(result)) {
-				context.AddSource($"Factories.Data.{factories[0].Spec.Name}.g.cs", SourceText.From(result!, Encoding.UTF8));
-			}
-		}
-
 		static string? GenerateFactoryTypeLevel(EquatableArray<FactoryToGenerate> factories, CancellationToken ct) {
 			ct.ThrowIfCancellationRequested();
 			
@@ -843,15 +550,6 @@ namespace {factorySpec.Namespace} {{
 #pragma warning restore");
 
 			return sb.ToString();
-		}
-
-		static void ExecuteFactoryDocumentation(FactoryToGenerate factory, SourceProductionContext context) {
-			// generate the source code and add it to the output
-			string? result = GenerateFactoryDocumentation(factory, context.CancellationToken);
-			// Create a separate partial class file
-			if (!string.IsNullOrEmpty(result)) {
-				context.AddSource($"Factories.{factory.Spec.Name}.{factory.Spec.FactoryType.Name}.Documentation.g.cs", SourceText.From(result!, Encoding.UTF8));
-			}
 		}
 
 		private static string GetBuilderNamesMethodName(FactorySpecification spec) {
@@ -981,55 +679,6 @@ namespace {factory.Spec.Namespace} {{
 		}
 
 		[Flags]
-		public enum BuilderParamKind { None = 0b0000, Required = 0b0001, BuildErrors = 0b0010, Source = 0b0100 }
-
-		public record class BuilderToGenerate {
-			public readonly AvailableBuilder Builder;
-			public readonly EquatableArray<RequiredParameter> RequiredParameters;
-
-			public readonly string Namespace;
-			public readonly string TypeName;
-
-			public string FullTypeName => $"{Namespace}.{TypeName}";
-
-			public readonly string MethodName;
-
-			public BuilderToGenerate(AvailableBuilder builder, EquatableArray<RequiredParameter> requiredParameters, string @namespace, string typeName, string methodName) {
-				Builder = builder;
-				RequiredParameters = requiredParameters;
-				Namespace = @namespace;
-				TypeName = typeName;
-				MethodName = methodName;
-			}
-
-			public IEnumerable<(BuilderParameter param, BuilderParamKind kind)> GetParams() {
-				int count = 0;
-				foreach ((int pIdx, BuilderParameter param) in Builder.Parameters.Enumerate()) {
-					if (param.IsBuildErrors) {
-						yield return (param, BuilderParamKind.BuildErrors);
-						continue;
-					}
-
-					if (count < RequiredParameters.Count) {
-						yield return (param, param.IsSourceDir ? (BuilderParamKind.Required | BuilderParamKind.Source) : BuilderParamKind.Required);
-						count++;
-						continue;
-					}
-					else {
-						count++;
-					}
-
-					if (param.IsSourceDir) {
-						yield return (param, BuilderParamKind.Source);
-						continue;
-					}
-
-					yield return (param, BuilderParamKind.None);
-				}
-			}
-		}
-
-		[Flags]
 		public enum ShapeMakerArgs {
 			NONE = 0b000,
 			ASPECT = 0b001,
@@ -1144,7 +793,11 @@ namespace {factory.Spec.Namespace} {{
 					parser = null;
 				}
 
-				BuilderToGenerate? paramBuilder = builderLookup.TryGetValue(param.Type.Minimal, out BuilderToGenerate found) ? found : null;
+				//BuilderToGenerate? paramBuilder = builderLookup.TryGetValue(param.Type.Minimal, out BuilderToGenerate found) ? found : null;
+				BuilderToGenerate? paramBuilder;
+				if (!(builderLookup.TryGetValue(param.Type.FullName, out paramBuilder) || builderLookup.TryGetValue(param.Type.Minimal, out paramBuilder))) {
+					paramBuilder = null;
+				}
 
 				/*
 				sb.Append(@$"
@@ -1154,7 +807,7 @@ namespace {factory.Spec.Namespace} {{
 				// {param.MinimalType} => {(parser is not null ? ($"{parser.FullTypeName}.{parser.MethodName}") : "NO PARSER")}
 				// {param.MinimalType} => {(paramBuilder is not null ? ($"{paramBuilder.Namespace}.{paramBuilder.TypeName}.{paramBuilder.MethodName}") : "NO BUILDER")}");
 				*/
-				
+
 				string normParamName = NormaliseParameterName(param.Name);
 				string valueVariable = $"{param.Name}_value";
 
@@ -1268,19 +921,19 @@ namespace {factory.Spec.Namespace} {{
 						string entryTextVariable = entryValueVariable + "_str";
 						string entryLocVariable = entryValueVariable + "_loc";
 						sb.Append(@$"
-			string? {entryTextVariable} = context.GetProperty(numberedName, {param.IsLocal.ToCodeString()}, context, null, out DocumentSpan? {entryLocVariable});
-			if ({entryTextVariable} != null) {{
-				try {{
-					{numberedElemFullTypeName} {entryValueVariable} = {numberedElemParser.FullTypeName}.{numberedElemParser.MethodName}({entryTextVariable}{(numberedElemParser.NeedsSourceDirectory ? $", {sourceDirArgName}" : "")});
-					{valueVariable}.Add(index, {entryValueVariable});
+				string? {entryTextVariable} = context.GetProperty(numberedName, {param.IsLocal.ToCodeString()}, context, null, out DocumentSpan? {entryLocVariable});
+				if ({entryTextVariable} != null) {{
+					try {{
+						{numberedElemFullTypeName} {entryValueVariable} = {numberedElemParser.FullTypeName}.{numberedElemParser.MethodName}({entryTextVariable}{(numberedElemParser.NeedsSourceDirectory ? $", {sourceDirArgName}" : "")});
+						{valueVariable}.Add(index, {entryValueVariable});
+					}}
+					catch (System.FormatException e) {{
+						{errorListVariableName}.Add(new SharpSheets.Exceptions.SharpParsingException(@entry.Location, e.Message, e));
+					}}
 				}}
-				catch (System.FormatException e) {{
-					{errorListVariableName}.Add(new SharpSheets.Exceptions.SharpParsingException(@entry.Location, e.Message, e));
-				}}
-			}}
-			else {{
-				{errorListVariableName}.Add(new SharpSheets.Exceptions.SharpParsingException(context.Location, $""Unexpected error, could not find numbered entry: {{numberedName}}""));
-			}}");
+				else {{
+					{errorListVariableName}.Add(new SharpSheets.Exceptions.SharpParsingException(context.Location, $""Unexpected error, could not find numbered entry: {{numberedName}}""));
+				}}");
 					}
 
 					sb.Append(@$"
@@ -1532,7 +1185,7 @@ namespace {factory.Spec.Namespace} {{
 			}
 		}
 
-		private static (EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders) FilterParamParsers(ImmutableArray<FactoryToGenerate> factories, ImmutableArray<AvailableBuilder> builders, ImmutableArray<ParameterParser> parsers, ImmutableArray<TypeData> requestedParsers, Compilation compilation, CancellationToken ct) {
+		private static (EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders, EquatableArray<TypeData> cannotGenerateParserTypes) FilterParamParsers(ImmutableArray<FactoryToGenerate> factories, ImmutableArray<AvailableBuilder> builders, ImmutableArray<ParameterParser> parsers, ImmutableArray<TypeData> requestedParsers, Compilation compilation, CancellationToken ct) {
 			ct.ThrowIfCancellationRequested();
 
 			Dictionary<string, AvailableBuilder> builderLookup = builders.ToDictionary(b => b.ConcreteBuilderType.FullName);
@@ -1558,7 +1211,7 @@ namespace {factory.Spec.Namespace} {{
 				// For all parameters in the builders we found we'd need
 				foreach (AvailableBuilder addBuilder in toAdd) {
 					foreach (BuilderParameter param in addBuilder.Parameters) {
-						if (builderLookup.TryGetValue(param.Type.Minimal, out AvailableBuilder foundBuilder)) {
+						if (builderLookup.TryGetValue(param.Type.FullName, out AvailableBuilder foundBuilder) || builderLookup.TryGetValue(param.Type.Minimal, out foundBuilder)) {
 							// Find all parameters which require a builder
 							if (!explicitFactoryBuilders.Contains(foundBuilder) && !additionalNonFactoryBuilders.Contains(foundBuilder) && !toAdd.Contains(foundBuilder)) {
 								// If we didn't know we needed this one, add it to our list for the next pass
@@ -1577,6 +1230,8 @@ namespace {factory.Spec.Namespace} {{
 
 			// Parser types that have been explicitly requested
 			TypeData[] requestedParserTypes = requestedParsers.ToArray();
+
+			List<TypeData> cannotGenerateParserTypes = new List<TypeData>();
 
 			// Find the parsers we need to generate (i.e. that do not require builders, and are not explicitly defined for us, or have been explicitly requested)
 			HashSet<string> parserTypesToImplement = new HashSet<string>();
@@ -1619,17 +1274,15 @@ namespace {factory.Spec.Namespace} {{
 				string minimalType = typeData.Minimal;
 				string fullType = typeData.FullName;
 
-				if (builderLookup.ContainsKey(minimalType) || parserLookup.ContainsKey(minimalType) || parserLookup.ContainsKey(fullType) || factoryTypes.Contains(minimalType) || shapeMakerLookup.ContainsKey(minimalType) || minimalType == ChildHolder) {
+				if (builderLookup.ContainsKey(fullType) || builderLookup.ContainsKey(minimalType) || parserLookup.ContainsKey(minimalType) || parserLookup.ContainsKey(fullType) || factoryTypes.Contains(minimalType) || shapeMakerLookup.ContainsKey(minimalType) || minimalType == ChildHolder) {
 					// Either this type requires a whole builder, or the parser is already defined for us
 					continue;
 				}
 
-				if (!parserTypesToImplement.Add(minimalType)) {
+				if (parserTypesToImplement.Contains(minimalType)) {
 					// We've already logged this parser
 					continue;
 				}
-
-				parsersToImplement.Add(ParameterParser.GetGeneratedParser(reducedType, NeedsSource(reducedType, parserLookup)));
 
 				if (reducedType is IArrayTypeSymbol arrayType) {
 					typeQueue.Enqueue(TypeData.Create(arrayType));
@@ -1637,6 +1290,16 @@ namespace {factory.Spec.Namespace} {{
 				else if (reducedType.IsTupleType && reducedType is INamedTypeSymbol tupleType) {
 					typeQueue.Enqueue(tupleType.TupleElements.Select(f => TypeData.Create(f.Type)));
 				}
+				else if (!(reducedType is INamedTypeSymbol namedReducedType && namedReducedType.IsEnum())) {
+					// We can only generate parsers for arrays, tuples, and enums
+					// So here we've encountered a problem and need to stop
+					cannotGenerateParserTypes.Add(typeData);
+					continue;
+					// TODO Can we report a diagnostic here?
+				}
+
+				parsersToImplement.Add(ParameterParser.GetGeneratedParser(reducedType, NeedsSource(reducedType, parserLookup)));
+				parserTypesToImplement.Add(minimalType);
 			}
 
 			List<BuilderToGenerate> miscBuildersToGenerate = new List<BuilderToGenerate>();
@@ -1679,17 +1342,9 @@ namespace {factory.Spec.Namespace} {{
 
 			return (
 				new EquatableArray<ParameterParser>(parsersToImplement.OrderBy(p => p.ParserType.Name).ToArray()),
-				new EquatableArray<BuilderToGenerate>(miscBuildersToGenerate.OrderBy(b => b.Builder.Name).ToArray())
+				new EquatableArray<BuilderToGenerate>(miscBuildersToGenerate.OrderBy(b => b.Builder.Name).ToArray()),
+				new EquatableArray<TypeData>(cannotGenerateParserTypes.ToArray())
 				);
-		}
-
-		static void ExecuteParamParser(EquatableArray<ParameterParser> neededParsers, ImmutableArray<ParameterParser> parsers, SourceProductionContext context, Compilation compilation) {
-			// generate the source code and add it to the output
-			string? result = GenerateParamParsersCode(neededParsers, parsers, compilation, context.CancellationToken);
-			// Create a separate partial class file
-			if (!string.IsNullOrEmpty(result)) {
-				context.AddSource($"Factories.ParamParser.g.cs", SourceText.From(result!, Encoding.UTF8));
-			}
 		}
 
 		public static readonly char[] arrayDelimiters = { ',', ';', '|' };
@@ -1786,6 +1441,7 @@ namespace SharpSheets.Parsing {{
 				else {
 					sb.Append(@$"
 		public static {typeSymbol.ToFullDisplayString()} {parser.MethodName}(string value) {{
+			#error No provided parser for required type {typeSymbol.ToFullDisplayString()}
 			return default;
 		}}
 ");
@@ -1839,16 +1495,6 @@ namespace SharpSheets.Parsing {{
 			return sb.ToString();
 		}
 
-
-		static void ExecuteMiscBuilders(EquatableArray<BuilderToGenerate> neededMiscBuilders, IList<ParameterParser> availableParsers, SourceProductionContext context, Compilation compilation) {
-			// generate the source code and add it to the output
-			string? result = GenerateMiscBuildersCode(neededMiscBuilders, availableParsers, compilation, context.CancellationToken);
-			// Create a separate partial class file
-			if (!string.IsNullOrEmpty(result)) {
-				context.AddSource($"Factories.ParamBuilders.g.cs", SourceText.From(result!, Encoding.UTF8));
-			}
-		}
-
 		private static string? GenerateMiscBuildersCode(EquatableArray<BuilderToGenerate> neededMiscBuilders, IList<ParameterParser> availableParsers, Compilation compilation, CancellationToken ct) {
 			ct.ThrowIfCancellationRequested();
 
@@ -1883,15 +1529,6 @@ namespace SharpSheets.Parsing {{
 #pragma warning restore");
 
 			return sb.ToString();
-		}
-
-		static void ExecuteBuilderDocumentation(ImmutableArray<FactoryToGenerate> factories, ImmutableArray<AvailableBuilder> availableBuilders, ImmutableArray<ParameterParser> availableParsers, EquatableArray<BuilderToGenerate> generatedBuilders, EquatableArray<ParameterParser> generatedParsers, SourceProductionContext context, Compilation compilation) {
-			// generate the source code and add it to the output
-			string? result = GenerateBuilderDocumentationCode(factories, availableBuilders, availableParsers, generatedBuilders, generatedParsers, compilation, context.CancellationToken);
-			// Create a separate partial class file
-			if (!string.IsNullOrEmpty(result)) {
-				context.AddSource($"Documentation.Builders.g.cs", SourceText.From(result!, Encoding.UTF8));
-			}
 		}
 
 		public static readonly string DocumentationSourceName = "DocumentationSource";
@@ -2009,15 +1646,6 @@ namespace SharpSheets.Documentation {{
 			return sb.ToString();
 		}
 
-		static void ExecuteEnumDocumentation(ImmutableArray<EnumComment> declaredEnums, SourceProductionContext context) {
-			// generate the source code and add it to the output
-			string? result = GenerateEnumDocumentationCode(declaredEnums, context.CancellationToken);
-			// Create a separate partial class file
-			if (!string.IsNullOrEmpty(result)) {
-				context.AddSource($"Documentation.Enums.g.cs", SourceText.From(result!, Encoding.UTF8));
-			}
-		}
-
 		private static string? GenerateEnumDocumentationCode(ImmutableArray<EnumComment> declaredEnums, CancellationToken ct) {
 			ct.ThrowIfCancellationRequested();
 
@@ -2124,43 +1752,6 @@ namespace SharpSheets.Documentation {{
 			GeneratedCodeAttr = $"[System.CodeDom.Compiler.GeneratedCode(\"{assemblyName}\", \"{assemblyVersion}\")]";
 			CompilerGeneratedAttr = "[System.Runtime.CompilerServices.CompilerGenerated]";
 			NeverEditorBrowsableAttr = "[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]";
-		}
-
-	}
-
-	public class IndentedStringBuilder {
-
-		private readonly StringBuilder sb;
-		private readonly int level;
-		private bool newline = true;
-
-		public IndentedStringBuilder(StringBuilder builder, int level) {
-			this.sb = builder;
-			this.level = level;
-		}
-
-		public IndentedStringBuilder Append(string str) {
-			for(int i=0; i<str.Length; i++) {
-				this.Append(str[i]);
-			}
-			return this;
-		}
-
-		public IndentedStringBuilder Append(char c) {
-			if(c == '\n') {
-				sb.Append(c);
-				newline = true;
-			}
-			else if (newline) {
-				sb.Append('\t', level);
-				sb.Append(c);
-				newline = false;
-			}
-			else {
-				sb.Append(c);
-			}
-
-			return this;
 		}
 
 	}

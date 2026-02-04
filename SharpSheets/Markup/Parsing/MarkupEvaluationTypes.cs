@@ -583,7 +583,8 @@ namespace SharpSheets.Markup.Parsing {
 		}
 
 		protected override Margins ParseValueDataSingle(string text, DirectoryPath source) {
-			return ValueParsers.ParseMargins(text);
+			//return ValueParsers.ParseMargins(text);
+			return Margins.Parse(text, CultureInfo.InvariantCulture);
 		}
 
 		protected override string GetEvaluationSingleString(Margins value) {

@@ -11,6 +11,73 @@ using System.Text.RegularExpressions;
 
 namespace SharpSheets.Parsing {
 
+	public static class ValueBuilders {
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="buildErrors"></param>
+		/// <param name="values"></param>
+		/// <param name="top"></param>
+		/// <param name="right"></param>
+		/// <param name="bottom"></param>
+		/// <param name="left"></param>
+		/// <returns></returns>
+		[FactoryBuilder(typeof(Margins))]
+		[SupplementedArgumentBuilder]
+		public static Margins BuildMargins([BuildErrors] IList<Exception> buildErrors, float[]? values = null, float? top = null, float? right = null, float? bottom = null, float? left = null) {
+			float top_final, right_final, bottom_final, left_final;
+			if(values is not null) {
+				switch(values.Length) {
+					case 1:
+						top_final = right_final = bottom_final = left_final = values[0];
+						break;
+					case 2:
+						top_final = bottom_final = values[0];
+						right_final = left_final = values[1];
+						break;
+					case 4:
+						top_final = values[0];
+						right_final = values[1];
+						bottom_final = values[2];
+						left_final = values[3];
+						break;
+					default:
+						top_final = right_final = bottom_final = left_final = 0f;
+						buildErrors.Add(new ArgumentException($"Invalid number of values ({values.Length}), must be 1, 2, or 4.", nameof(values)));
+						break;
+				}
+			}
+			else {
+				top_final = right_final = bottom_final = left_final = 0f;
+			}
+
+			return new Margins(top ?? top_final, right ?? right_final, bottom ?? bottom_final, left ?? left_final);
+		}
+
+		// This is a grouped argument, but if no parameters are present it shouldn't be built
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="anchor"></param>
+		/// <param name="x"></param>
+		/// <param name="y"></param>
+		/// <param name="width"></param>
+		/// <param name="height"></param>
+		/// <returns></returns>
+		[FactoryBuilder(typeof(Position?))]
+		[GroupedArgumentBuilder]
+		public static Position? BuildPosition(Anchor? anchor = null, Dimension? x = null, Dimension? y = null, Dimension? width = null, Dimension? height = null) {
+			if (anchor.HasValue || x.HasValue || y.HasValue || width.HasValue || height.HasValue) {
+				return new Position(anchor ?? Anchor.BOTTOMLEFT, x ?? Dimension.Zero, y ?? Dimension.Zero, width ?? Dimension.FromPercent(100), height ?? Dimension.FromPercent(100));
+			}
+			else {
+				return null;
+			}
+		}
+
+	}
+
 	public static class ValueParsers {
 
 		private static readonly char[] arrayDelimiters = { ',', ';', '|' };
@@ -96,15 +163,19 @@ namespace SharpSheets.Parsing {
 			return Vector.Parse(value, CultureInfo.InvariantCulture);
 		}
 
+		/*
 		[ParameterParser]
 		public static Position ParsePosition(string value) {
 			return Position.Parse(value, CultureInfo.InvariantCulture);
 		}
+		*/
 
+		/*
 		[ParameterParser]
 		public static Margins ParseMargins(string value) {
 			return Margins.Parse(value, CultureInfo.InvariantCulture);
 		}
+		*/
 
 		[ParameterParser]
 		public static Color ParseColor(string value) {
