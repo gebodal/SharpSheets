@@ -213,6 +213,119 @@ namespace SharpSheets.Parsing {
 		}
 	}
 
+	public static class ContextValueUtils {
+
+		public static ContextValue<string> Substring(this ContextValue<string> value, int startIndex, int length) {
+			string str = value.Value.Substring(startIndex, length);
+			return new ContextValue<string>(new DocumentSpan(value.Location.Offset + startIndex, value.Location.Line, value.Location.Column + startIndex, str.Length), str);
+		}
+
+		public static ContextValue<string> Substring(this ContextValue<string> value, int startIndex) {
+			string str = value.Value[startIndex..];
+			return new ContextValue<string>(new DocumentSpan(value.Location.Offset + startIndex, value.Location.Line, value.Location.Column + startIndex, str.Length), str);
+		}
+
+		public static ContextValue<string> Trim(this ContextValue<string> value) {
+			DocumentSpan loc = value.Location;
+			string str = value.Value;
+			int length = str.Length;
+
+			str = str.TrimStart();
+			int offset = length - str.Length;
+
+			str = str.TrimEnd();
+
+			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, str.Length), str);
+		}
+
+		public static ContextValue<string> Trim(this ContextValue<string> value, char trimChar) {
+			DocumentSpan loc = value.Location;
+			string str = value.Value;
+			int length = str.Length;
+
+			str = str.TrimStart(trimChar);
+			int offset = length - str.Length;
+
+			str = str.TrimEnd(trimChar);
+
+			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, str.Length), str);
+		}
+
+		public static ContextValue<string> Trim(this ContextValue<string> value, char[] trimChars) {
+			DocumentSpan loc = value.Location;
+			string str = value.Value;
+			int length = str.Length;
+
+			str = str.TrimStart(trimChars);
+			int offset = length - str.Length;
+
+			str = str.TrimEnd(trimChars);
+
+			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, str.Length), str);
+		}
+
+		public static ContextValue<string> TrimStart(this ContextValue<string> value) {
+			DocumentSpan loc = value.Location;
+			string str = value.Value;
+			int length = str.Length;
+
+			str = str.TrimStart();
+			int offset = length - str.Length;
+
+			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, str.Length), str);
+		}
+
+		public static ContextValue<string> TrimStart(this ContextValue<string> value, char trimChar) {
+			DocumentSpan loc = value.Location;
+			string str = value.Value;
+			int length = str.Length;
+
+			str = str.TrimStart(trimChar);
+			int offset = length - str.Length;
+
+			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, str.Length), str);
+		}
+
+		public static ContextValue<string> TrimStart(this ContextValue<string> value, char[] trimChars) {
+			DocumentSpan loc = value.Location;
+			string str = value.Value;
+			int length = str.Length;
+
+			str = str.TrimStart(trimChars);
+			int offset = length - str.Length;
+
+			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, str.Length), str);
+		}
+
+		public static ContextValue<string> TrimEnd(this ContextValue<string> value) {
+			DocumentSpan loc = value.Location;
+			string str = value.Value;
+			
+			str = str.TrimEnd();
+
+			return new ContextValue<string>(new DocumentSpan(loc.Offset, loc.Line, loc.Column, str.Length), str);
+		}
+
+		public static ContextValue<string> TrimEnd(this ContextValue<string> value, char trimChar) {
+			DocumentSpan loc = value.Location;
+			string str = value.Value;
+
+			str = str.TrimEnd(trimChar);
+
+			return new ContextValue<string>(new DocumentSpan(loc.Offset, loc.Line, loc.Column, str.Length), str);
+		}
+
+		public static ContextValue<string> TrimEnd(this ContextValue<string> value, char[] trimChars) {
+			DocumentSpan loc = value.Location;
+			string str = value.Value;
+
+			str = str.TrimEnd(trimChars);
+
+			return new ContextValue<string>(new DocumentSpan(loc.Offset, loc.Line, loc.Column, str.Length), str);
+		}
+
+	}
+
 	[System.Diagnostics.DebuggerDisplay("({Location.Offset}, {Location.Line}, {Location.Column}, {Location.Length}): {Name}, ({ValueLocation.Offset}, {ValueLocation.Line}, {ValueLocation.Column}, {ValueLocation.Length}): {Value}")]
 	public readonly struct ContextProperty<T> {
 		public DocumentSpan Location { get; }
