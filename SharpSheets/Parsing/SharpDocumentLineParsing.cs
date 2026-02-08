@@ -86,7 +86,7 @@ namespace SharpSheets.Parsing {
 			return text != null ? EscapedHashRegex().Replace(text, "#") : null; // TODO Should this account for other numbers of "\"s?
 		}
 
-		[GeneratedRegex(@"^(?<name>\@?[a-z][a-z0-9]+(\.[a-z][a-z0-9]+)*)\s*:\s*(?<value>.+)$", RegexOptions.IgnoreCase)]
+		[GeneratedRegex(@"^(?<name>\@?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*)\s*:\s*(?<value>.+)$", RegexOptions.IgnoreCase)]
 		private static partial Regex PropertyRegex();
 		private static void SplitProperty(string property, DocumentSpan location, out string nameStr, out DocumentSpan nameLocation, out string valueStr, out DocumentSpan valueLocation, out bool localOnly) {
 			Match match = PropertyRegex().Match(property);
