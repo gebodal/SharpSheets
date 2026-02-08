@@ -22,10 +22,12 @@ namespace SharpSheets.Parsing {
 		/// <param name="right"></param>
 		/// <param name="bottom"></param>
 		/// <param name="left"></param>
+		/// <param name="horizontal"></param>
+		/// <param name="vertical"></param>
 		/// <returns></returns>
 		[FactoryBuilder(typeof(Margins))]
 		[SupplementedArgumentBuilder]
-		public static Margins BuildMargins([BuildErrors] IList<Exception> buildErrors, float[]? values = null, float? top = null, float? right = null, float? bottom = null, float? left = null) {
+		public static Margins BuildMargins([BuildErrors] IList<Exception> buildErrors, float[]? values = null, float? top = null, float? right = null, float? bottom = null, float? left = null, float? horizontal = null, float? vertical = null) {
 			float top_final, right_final, bottom_final, left_final;
 			if(values is not null) {
 				switch(values.Length) {
@@ -52,7 +54,7 @@ namespace SharpSheets.Parsing {
 				top_final = right_final = bottom_final = left_final = 0f;
 			}
 
-			return new Margins(top ?? top_final, right ?? right_final, bottom ?? bottom_final, left ?? left_final);
+			return new Margins(top ?? vertical ?? top_final, right ?? horizontal ?? right_final, bottom ?? vertical ?? bottom_final, left ?? horizontal ?? left_final);
 		}
 
 		// This is a grouped argument, but if no parameters are present it shouldn't be built
