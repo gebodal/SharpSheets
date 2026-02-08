@@ -512,7 +512,7 @@ namespace SharpSheets.Parsing {
 		public DocumentSpan Location { get { return location ?? originalContext.Location; } }
 		public int Depth { get { return originalContext.Depth; } } // TODO Is this correct?
 
-		public IContext? Parent { get { return originalContext.Parent is not null ? new NamedContext(originalContext.Parent, name, location: null) : null; } }
+		public IContext? Parent { get { return (originalContext.Parent is not null && !forceLocal) ? new NamedContext(originalContext.Parent, name, location: null) : null; } }
 		// TODO Is this right? No children for named context?
 		public IEnumerable<IContext> Children { get { return Enumerable.Empty<IContext>(); } }
 		public IEnumerable<KeyValuePair<string, IContext>> NamedChildren { get { return Enumerable.Empty<KeyValuePair<string, IContext>>(); } }
