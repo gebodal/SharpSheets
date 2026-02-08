@@ -324,8 +324,8 @@ namespace SharpSheets.Generators {
 				return null;
 			}
 
-			Dictionary<string, ParameterParser> parserLookup = allParsers.ToDictionary(p => p.ParserType.FullName);
-			Dictionary<string, BuilderToGenerate> builderLookup = allBuilders.ToDictionary(b => b.Builder.BuilderType.FullName);
+			TypeLookup<ParameterParser> parserLookup = new TypeLookup<ParameterParser>(allParsers.Select(p => (p.ParserType, p))); // .ToDictionary(p => p.ParserType.FullName);
+			TypeLookup<BuilderToGenerate> builderLookup = new TypeLookup<BuilderToGenerate>(allBuilders.Select(b => (b.Builder.BuilderType, b))); //.ToDictionary(b => b.Builder.BuilderType.FullName);
 
 			string stringComparerName = "System.StringComparer.OrdinalIgnoreCase";
 
@@ -729,7 +729,7 @@ namespace {factory.Spec.Namespace} {{
 			return name.TrimStart('@').Trim('_').Replace("_", "-").ToLowerInvariant();
 		}
 
-		private static void GenerateBuilderCode(StringBuilder sb, BuilderToGenerate builder, Dictionary<string, ParameterParser> parserLookup, Dictionary<string, BuilderToGenerate> builderLookup, bool includeGeneratedAttributes, Compilation compilation, CancellationToken ct) {
+		private static void GenerateBuilderCode(StringBuilder sb, BuilderToGenerate builder, TypeLookup<ParameterParser> parserLookup, TypeLookup<BuilderToGenerate> builderLookup, bool includeGeneratedAttributes, Compilation compilation, CancellationToken ct) {
 			ct.ThrowIfCancellationRequested();
 
 			bool builderNeedsShapeFactory = NeedsShapeFactory(builder.Builder);
@@ -788,16 +788,8 @@ namespace {factory.Spec.Namespace} {{
 				ITypeSymbol? paramResolvedType = param.Type.GetSymbol(compilation); // compilation.ResolveTypeKey(param.Type.FullName);
 				ITypeSymbol? paramReducedType = paramResolvedType is not null ? compilation.ReduceParameterType(paramResolvedType) : null;
 
-				ParameterParser? parser;
-				if (!(parserLookup.TryGetValue(param.Type.FullName, out parser) || parserLookup.TryGetValue(param.Type.Minimal, out parser))) {
-					parser = null;
-				}
-
-				//BuilderToGenerate? paramBuilder = builderLookup.TryGetValue(param.Type.Minimal, out BuilderToGenerate found) ? found : null;
-				BuilderToGenerate? paramBuilder;
-				if (!(builderLookup.TryGetValue(param.Type.FullName, out paramBuilder) || builderLookup.TryGetValue(param.Type.Minimal, out paramBuilder))) {
-					paramBuilder = null;
-				}
+				ParameterParser? parser = parserLookup.TryGetValue(param.Type, out ParameterParser foundParser) ? foundParser : null;
+				BuilderToGenerate? paramBuilder = builderLookup.TryGetValue(param.Type, out BuilderToGenerate foundBuilder) ? foundBuilder : null;
 
 				/*
 				sb.Append(@$"
@@ -821,7 +813,7 @@ namespace {factory.Spec.Namespace} {{
 				{valueVariable} = {param.DefaultValue ?? "false"};
 			}}");
 				}
-				else if (paramResolvedType is INamedTypeSymbol namedListType && namedListType.IsGenericList(out ITypeSymbol listElemType) && compilation.ReduceParameterType(listElemType) is ITypeSymbol reducedListElemType && parserLookup.TryGetValue(reducedListElemType.ToFullDisplayString(), out ParameterParser listElemParser)) {
+				else if (paramResolvedType is INamedTypeSymbol namedListType && namedListType.IsGenericList(out ITypeSymbol listElemType) && compilation.ReduceParameterType(listElemType) is ITypeSymbol reducedListElemType && parserLookup.TryGetValue(TypeData.Create(reducedListElemType), out ParameterParser listElemParser)) {
 					string reducedListTypeName = compilation.ReduceParameterType(namedListType).ToFullDisplayString();
 					sb.Append(@$"
 			{reducedListTypeName} {valueVariable} = new {reducedListTypeName}();
@@ -840,7 +832,7 @@ namespace {factory.Spec.Namespace} {{
 					string reducedNumberedElemTypeName = reducedNumberedElemType.ToFullDisplayString();
 					string numberedElemFullTypeName = numberedElemType.ToFullDisplayString();
 
-					if (!parserLookup.TryGetValue(reducedNumberedElemTypeName, out ParameterParser? numberedElemParser)) {
+					if (!parserLookup.TryGetValue(TypeData.Create(reducedNumberedElemType), out ParameterParser? numberedElemParser)) {
 						numberedElemParser = null;
 					}
 
@@ -955,7 +947,7 @@ namespace {factory.Spec.Namespace} {{
 						string paramAspectVariable = valueVariable + "_aspect";
 						string paramAspectStrVariable = paramAspectVariable + "_str";
 						string paramAspectLocVariable = paramAspectVariable + "_loc";
-						ParameterParser floatParser = parserLookup["float"];
+						ParameterParser floatParser = parserLookup[SpecialType.System_Single];
 
 						sb.Append(@$"
 			string? {paramAspectStrVariable} = {paramContextVariable}.GetProperty(""aspect"", true, {paramContextVariable}, null, out DocumentSpan? {paramAspectLocVariable}); 
@@ -984,7 +976,7 @@ namespace {factory.Spec.Namespace} {{
 					if (shapeMaker.args.HasFlag(ShapeMakerArgs.NAME)) {
 						string paramNameVariable = valueVariable + "_name";
 						string paramNameLocVariable = paramNameVariable + "_loc";
-						ParameterParser stringParser = parserLookup["string"];
+						ParameterParser stringParser = parserLookup[SpecialType.System_String];
 
 						sb.Append(@$"
 			string? {paramNameVariable} = context.GetProperty(""name"", true, context, null, {stringParser.FullTypeName}.{stringParser.MethodName}, out DocumentSpan? {paramNameLocVariable});");
@@ -1069,7 +1061,7 @@ namespace {factory.Spec.Namespace} {{
 						string firstArgLocVariable = firstArgVariable + "_loc";
 						string paramContextVariable = valueVariable + "_context";
 
-						if (!parserLookup.TryGetValue(firstArg.Type.Minimal, out ParameterParser? firstArgParser)) {
+						if (!parserLookup.TryGetValue(firstArg.Type, out ParameterParser? firstArgParser)) {
 							sb.Append("\nERROR;\n");
 							continue;
 						}
@@ -1160,8 +1152,8 @@ namespace {factory.Spec.Namespace} {{
 			// Finished generating builder code
 		}
 
-		private static bool NeedsSource(ITypeSymbol symbol, Dictionary<string, ParameterParser> parserLookup) {
-			if (parserLookup.TryGetValue(symbol.ToFullDisplayString(), out ParameterParser parser)) {
+		private static bool NeedsSource(ITypeSymbol symbol, TypeLookup<ParameterParser> parserLookup) {
+			if (parserLookup.TryGetValue(TypeData.Create(symbol), out ParameterParser parser)) {
 				return parser.NeedsSourceDirectory;
 			}
 			else if (symbol is IArrayTypeSymbol arraySymbol) {
@@ -1175,8 +1167,8 @@ namespace {factory.Spec.Namespace} {{
 			}
 		}
 
-		private static ParameterParser GetParser(ITypeSymbol symbol, Dictionary<string, ParameterParser> parserLookup) {
-			if (parserLookup.TryGetValue(symbol.ToFullDisplayString(), out ParameterParser parser)) {
+		private static ParameterParser GetParser(ITypeSymbol symbol, TypeLookup<ParameterParser> parserLookup) {
+			if (parserLookup.TryGetValue(TypeData.Create(symbol), out ParameterParser parser)) {
 				return parser;
 			}
 			else {
@@ -1188,8 +1180,8 @@ namespace {factory.Spec.Namespace} {{
 		private static (EquatableArray<ParameterParser> neededParamParsers, EquatableArray<BuilderToGenerate> neededMiscBuilders, EquatableArray<TypeData> cannotGenerateParserTypes) FilterParamParsers(ImmutableArray<FactoryToGenerate> factories, ImmutableArray<AvailableBuilder> builders, ImmutableArray<ParameterParser> parsers, ImmutableArray<TypeData> requestedParsers, Compilation compilation, CancellationToken ct) {
 			ct.ThrowIfCancellationRequested();
 
-			Dictionary<string, AvailableBuilder> builderLookup = builders.ToDictionary(b => b.ConcreteBuilderType.FullName);
-			Dictionary<string, ParameterParser> parserLookup = parsers.ToDictionary(p => p.ParserType.FullName);
+			TypeLookup<AvailableBuilder> builderLookup = new TypeLookup<AvailableBuilder>(builders.Select(b => (b.ConcreteBuilderType, b))); //.ToDictionary(b => b.ConcreteBuilderType.FullName);
+			TypeLookup<ParameterParser> parserLookup = new TypeLookup<ParameterParser>(parsers.Select(p => (p.ParserType, p))); //.ToDictionary(p => p.ParserType.FullName);
 			HashSet<string> factoryTypes = new HashSet<string>(factories.Select(f => f.Spec.FactoryType.FullName));
 
 			HashSet<AvailableBuilder> explicitFactoryBuilders = new HashSet<AvailableBuilder>();
@@ -1211,7 +1203,7 @@ namespace {factory.Spec.Namespace} {{
 				// For all parameters in the builders we found we'd need
 				foreach (AvailableBuilder addBuilder in toAdd) {
 					foreach (BuilderParameter param in addBuilder.Parameters) {
-						if (builderLookup.TryGetValue(param.Type.FullName, out AvailableBuilder foundBuilder) || builderLookup.TryGetValue(param.Type.Minimal, out foundBuilder)) {
+						if (builderLookup.TryGetValue(param.Type, out AvailableBuilder foundBuilder)) {
 							// Find all parameters which require a builder
 							if (!explicitFactoryBuilders.Contains(foundBuilder) && !additionalNonFactoryBuilders.Contains(foundBuilder) && !toAdd.Contains(foundBuilder)) {
 								// If we didn't know we needed this one, add it to our list for the next pass
@@ -1274,7 +1266,7 @@ namespace {factory.Spec.Namespace} {{
 				string minimalType = typeData.Minimal;
 				string fullType = typeData.FullName;
 
-				if (builderLookup.ContainsKey(fullType) || builderLookup.ContainsKey(minimalType) || parserLookup.ContainsKey(minimalType) || parserLookup.ContainsKey(fullType) || factoryTypes.Contains(minimalType) || shapeMakerLookup.ContainsKey(minimalType) || minimalType == ChildHolder) {
+				if (builderLookup.ContainsKey(typeData) || parserLookup.ContainsKey(typeData) || factoryTypes.Contains(minimalType) || shapeMakerLookup.ContainsKey(minimalType) || minimalType == ChildHolder) {
 					// Either this type requires a whole builder, or the parser is already defined for us
 					continue;
 				}
@@ -1352,7 +1344,7 @@ namespace {factory.Spec.Namespace} {{
 		private static string? GenerateParamParsersCode(EquatableArray<ParameterParser> neededParsers, ImmutableArray<ParameterParser> existingParsers, Compilation compilation, CancellationToken ct) {
 			ct.ThrowIfCancellationRequested();
 
-			Dictionary<string, ParameterParser> parserLookup = existingParsers.Concat(neededParsers).ToDictionary(p => p.ParserType.FullName);
+			TypeLookup<ParameterParser> parserLookup = new TypeLookup<ParameterParser>(existingParsers.Concat(neededParsers).Select(p => (p.ParserType, p))); //.ToDictionary(p => p.ParserType.FullName);
 
 			List<(ParameterParser parser, INamedTypeSymbol type)> enumTypes = new List<(ParameterParser, INamedTypeSymbol)>();
 			List<(ParameterParser parser, ITypeSymbol type)> otherTypes = new List<(ParameterParser, ITypeSymbol)>();
@@ -1498,8 +1490,8 @@ namespace SharpSheets.Parsing {{
 		private static string? GenerateMiscBuildersCode(EquatableArray<BuilderToGenerate> neededMiscBuilders, IList<ParameterParser> availableParsers, Compilation compilation, CancellationToken ct) {
 			ct.ThrowIfCancellationRequested();
 
-			Dictionary<string, ParameterParser> parserLookup = availableParsers.ToDictionary(p => p.ParserType.FullName);
-			Dictionary<string, BuilderToGenerate> builderLookup = neededMiscBuilders.ToDictionary(p => p.Builder.BuilderType.FullName);
+			TypeLookup<ParameterParser> parserLookup = new TypeLookup<ParameterParser>(availableParsers.Select(p => (p.ParserType, p))); //.ToDictionary(p => p.ParserType.FullName);
+			TypeLookup<BuilderToGenerate> builderLookup = new TypeLookup<BuilderToGenerate>(neededMiscBuilders.Select(b => (b.Builder.BuilderType, b))); //.ToDictionary(p => p.Builder.BuilderType.FullName);
 
 			ct.ThrowIfCancellationRequested();
 
@@ -1570,7 +1562,7 @@ namespace SharpSheets.Documentation {{
 					continue;
 				}
 
-				BuilderComment methodComment = DocCommentReader.FromSymbol(method, resolverData.BuilderLookup, resolverData.ParserLookup, resolverData);
+				BuilderComment methodComment = DocCommentReader.FromSymbol(method, resolverData);
 
 				string concreteBuilderTypeMinimal = builder.ConcreteBuilderType.Type;
 				string concreteBuilderTypeNameMinimal = builder.ConcreteBuilderType.Name;

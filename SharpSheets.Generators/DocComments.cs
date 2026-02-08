@@ -111,7 +111,7 @@ namespace SharpSheets.Generators {
 
 	public static class DocCommentReader {
 
-		public static BuilderComment FromSymbol(IMethodSymbol symbol, Dictionary<string, AvailableBuilder> builderLookup, Dictionary<string, ParameterParser> parserLookup, SharpSheetsParameterResolverData resolverData, CancellationToken ct = default) {
+		public static BuilderComment FromSymbol(IMethodSymbol symbol, SharpSheetsParameterResolverData resolverData, CancellationToken ct = default) {
 
 			string? xml = symbol.GetDocumentationCommentXml(preferredCulture: null, expandIncludes: true, cancellationToken: ct);
 
@@ -261,7 +261,7 @@ namespace SharpSheets.Generators {
 			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
 
 		private static ParamValue? GetDocumentationValue(ITypeSymbol type, string? constant, SharpSheetsParameterResolverData resolverData) {
-			if (resolverData.ParserLookup.TryGetValue(type.ToFullDisplayString(), out ParameterParser parser)) {
+			if (resolverData.ParserLookup.TryGetValue(TypeData.Create(type), out ParameterParser parser)) {
 				if (constant is not null) {
 
 					if (parser.ParserType.SpecialType != SpecialType.None) {
@@ -363,7 +363,7 @@ namespace SharpSheets.Generators {
 			}
 			else if (constant is not null && type is INamedTypeSymbol namedTypeSymbol && namedTypeSymbol.IsGenericList(out ITypeSymbol? listElemType)) {
 				int rank = listElemType.GetArrayOrTupleRank() + 1;
-				if (rank <= FactoryGenerator.arrayDelimiters.Length && resolverData.ParserLookup.TryGetValue(resolverData.Compilation.ReduceParameterType(listElemType).ToFullDisplayString(), out ParameterParser listElemParser)) {
+				if (rank <= FactoryGenerator.arrayDelimiters.Length && resolverData.ParserLookup.TryGetValue(TypeData.Create(resolverData.Compilation.ReduceParameterType(listElemType)), out ParameterParser listElemParser)) {
 					return new ParamValue($"SharpSheets.Parsing.StringParsing.SplitOnUnescaped({constant.ToRepr()}, '{arrayDelimiters[rank - 1]}').Select(s => s.Trim()).Select(p => {listElemParser.FullTypeName}.{listElemParser.MethodName}(p{(listElemParser.NeedsSourceDirectory ? $", {FactoryGenerator.DocumentationSourceName}" : "")})).ToList()", true);
 				}
 			}
@@ -572,8 +572,8 @@ namespace SharpSheets.Generators {
 
 		public readonly Compilation Compilation;
 
-		public readonly Dictionary<string, AvailableBuilder> BuilderLookup;
-		public readonly Dictionary<string, ParameterParser> ParserLookup;
+		public readonly TypeLookup<AvailableBuilder> BuilderLookup;
+		public readonly TypeLookup<ParameterParser> ParserLookup;
 		public readonly Dictionary<INamedTypeSymbol, FactoryToGenerate> FactoryLookup;
 		public readonly Dictionary<string, FactoryToGenerate> FactoryNameLookup;
 
@@ -585,7 +585,7 @@ namespace SharpSheets.Generators {
 		public readonly INamedTypeSymbol WidgetInterface;
 		public readonly INamedTypeSymbol WidgetSetupType;
 
-		private SharpSheetsParameterResolverData(Compilation compilation, Dictionary<string, AvailableBuilder> builderLookup, Dictionary<string, ParameterParser> parserLookup, Dictionary<INamedTypeSymbol, FactoryToGenerate> factoryLookup, INamedTypeSymbol shapeInterface, INamedTypeSymbol areaShapeInterface, INamedTypeSymbol boxInterface, INamedTypeSymbol titleStyleInterface, INamedTypeSymbol detailInterface, INamedTypeSymbol widgetInterface, INamedTypeSymbol widgetSetupType) {
+		private SharpSheetsParameterResolverData(Compilation compilation, TypeLookup<AvailableBuilder> builderLookup, TypeLookup<ParameterParser> parserLookup, Dictionary<INamedTypeSymbol, FactoryToGenerate> factoryLookup, INamedTypeSymbol shapeInterface, INamedTypeSymbol areaShapeInterface, INamedTypeSymbol boxInterface, INamedTypeSymbol titleStyleInterface, INamedTypeSymbol detailInterface, INamedTypeSymbol widgetInterface, INamedTypeSymbol widgetSetupType) {
 			Compilation = compilation;
 
 			BuilderLookup = builderLookup;
@@ -627,8 +627,8 @@ namespace SharpSheets.Generators {
 		}
 
 		public static SharpSheetsParameterResolverData Create(Compilation compilation, IEnumerable<AvailableBuilder> availableBuilders, IEnumerable<ParameterParser> availableParsers, IEnumerable<FactoryToGenerate> factories) {
-			Dictionary<string, AvailableBuilder> builderLookup = availableBuilders.ToDictionary(b => b.ConcreteBuilderType.FullName);
-			Dictionary<string, ParameterParser> parserLookup = availableParsers.ToDictionary(b => b.ParserType.FullName);
+			TypeLookup<AvailableBuilder> builderLookup = new TypeLookup<AvailableBuilder>(availableBuilders.Select(b => (b.ConcreteBuilderType, b))); //.ToDictionary(b => b.ConcreteBuilderType.FullName);
+			TypeLookup<ParameterParser> parserLookup = new TypeLookup<ParameterParser>(availableParsers.Select(p => (p.ParserType, p))); //.ToDictionary(b => b.ParserType.FullName);
 			Dictionary<INamedTypeSymbol, FactoryToGenerate> factoryLookup = factories.ToDictionary<FactoryToGenerate, INamedTypeSymbol>(f => f.Spec.FactoryType.GetSymbol(compilation) as INamedTypeSymbol ?? throw new InvalidOperationException($"Cannot resolve {f.Spec.FactoryType.FullName} symbol."), SymbolEqualityComparer.Default);
 
 			INamedTypeSymbol shapeInterface = compilation.GetTypeByMetadataName(IShape) ?? throw new InvalidOperationException("No IShape type.");
@@ -732,14 +732,14 @@ namespace SharpSheets.Generators {
 						yield return shapeArg;
 					}
 				}
-				else if (resolverData.BuilderLookup.TryGetValue(builderParam.Type.Minimal, out AvailableBuilder nestedBuilder)) { // (typeof(ISharpArgsGrouping).IsAssignableFrom(param.ParameterType) || SharpFactory.IsParsableStruct(param.ParameterType)) {
+				else if (resolverData.BuilderLookup.TryGetValue(builderParam.Type, out AvailableBuilder nestedBuilder)) { // (typeof(ISharpArgsGrouping).IsAssignableFrom(param.ParameterType) || SharpFactory.IsParsableStruct(param.ParameterType)) {
 
 					IMethodSymbol? nestedBuilderMethod = compilation.ResolveMethodSymbol(nestedBuilder.FullTypeName, nestedBuilder.MethodName).FirstOrDefault(m => m.Parameters.Length == nestedBuilder.Parameters.Count);
 					if (nestedBuilderMethod is null) {
 						continue;
 					}
 
-					BuilderComment? nestedBuilderDoc = DocCommentReader.FromSymbol(nestedBuilderMethod, resolverData.BuilderLookup, resolverData.ParserLookup, resolverData);
+					BuilderComment? nestedBuilderDoc = DocCommentReader.FromSymbol(nestedBuilderMethod, resolverData);
 
 					string nestedPrefix = (!string.IsNullOrEmpty(prefix) ? prefix + "." : "") + parameterName;
 					(string, string?)? expandedPrefix = nestedBuilder.PrefixSep is not null ? (nestedPrefix, nestedBuilder.PrefixSep) : (prefix is not null ? (prefix, null) : null);
