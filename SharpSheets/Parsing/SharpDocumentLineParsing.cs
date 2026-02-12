@@ -54,7 +54,23 @@ namespace SharpSheets.Parsing {
 	public static partial class SharpDocumentLineParsing {
 
 		private static readonly string[] types = new string[] { "div", "namedchild", "definition", "property", "entry", "flag" };
-		[GeneratedRegex(@"^(?:(?<definition>(?:def|fun)\s+.+)|(?<property>\@?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*\s*:.+)|(?<namedchild>\@?\&[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*)\:?|(?<div>[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*):|-\s*(?<entry>.+)|(?<flag>\@?\!?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*))$", RegexOptions.IgnoreCase)]
+		[GeneratedRegex(@"
+			^ # Start of line
+			(?: # Main group (non-capturing)
+				(?<definition>(?:def|fun)\s+.+)
+			|
+				(?<property>\@?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*\s*:.+)
+			|
+				(?<namedchild>\@?\&[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*)\:?
+			|
+				(?<div>[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*):
+			|
+				-\s*(?<entry>.+)
+			|
+				(?<flag>\@?\!?[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*)
+			) # End of main group
+			$ # End of line
+			", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace)]
 		private static partial Regex LineRegex();
 
 		private static readonly bool removeComments = true;
