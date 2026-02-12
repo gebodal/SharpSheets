@@ -143,7 +143,7 @@ namespace SharpSheets.Evaluations.Nodes {
 					return a.Value != null;
 				}
 			}
-			catch (UndefinedVariableException) {
+			catch (EvaluationException) {
 				return false;
 			}
 		}
