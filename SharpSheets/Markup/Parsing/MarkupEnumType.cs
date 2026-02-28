@@ -158,6 +158,25 @@ namespace SharpSheets.Markup.Parsing {
 		}
 
 		#endregion
+
+		#region IComparable overrides
+
+		public override int GetHashCode() {
+			HashCode hc = new HashCode();
+			hc.Add(base.GetHashCode());
+			hc.Add(Name);
+			foreach (string name in enumNames.Order()) {
+				hc.Add(name);
+			}
+			return hc.ToHashCode();
+		}
+
+		public override bool Equals(Type? o) {
+			return o is MarkupEnumType mt && Name == mt.Name && new HashSet<string>(enumNamesSet.Keys).SetEquals(mt.enumNamesSet.Keys)
+				&& base.Equals(o);
+		}
+
+		#endregion
 	}
 
 	public class CustomArrayType : Type {
