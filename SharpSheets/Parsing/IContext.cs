@@ -217,12 +217,14 @@ namespace SharpSheets.Parsing {
 
 		public static ContextValue<string> Substring(this ContextValue<string> value, int startIndex, int length) {
 			string str = value.Value.Substring(startIndex, length);
-			return new ContextValue<string>(new DocumentSpan(value.Location.Offset + startIndex, value.Location.Line, value.Location.Column + startIndex, str.Length), str);
+			int lengthChange = value.Value.Length - str.Length;
+			return new ContextValue<string>(new DocumentSpan(value.Location.Offset + startIndex, value.Location.Line, value.Location.Column + startIndex, value.Location.Length - lengthChange), str);
 		}
 
 		public static ContextValue<string> Substring(this ContextValue<string> value, int startIndex) {
 			string str = value.Value[startIndex..];
-			return new ContextValue<string>(new DocumentSpan(value.Location.Offset + startIndex, value.Location.Line, value.Location.Column + startIndex, str.Length), str);
+			int lengthChange = value.Value.Length - str.Length;
+			return new ContextValue<string>(new DocumentSpan(value.Location.Offset + startIndex, value.Location.Line, value.Location.Column + startIndex, value.Location.Length - lengthChange), str);
 		}
 
 		public static ContextValue<string> Trim(this ContextValue<string> value) {
@@ -235,7 +237,9 @@ namespace SharpSheets.Parsing {
 
 			str = str.TrimEnd();
 
-			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, str.Length), str);
+			int lengthChange = length - str.Length;
+
+			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, loc.Length - lengthChange), str);
 		}
 
 		public static ContextValue<string> Trim(this ContextValue<string> value, char trimChar) {
@@ -248,7 +252,9 @@ namespace SharpSheets.Parsing {
 
 			str = str.TrimEnd(trimChar);
 
-			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, str.Length), str);
+			int lengthChange = length - str.Length;
+
+			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, loc.Length - lengthChange), str);
 		}
 
 		public static ContextValue<string> Trim(this ContextValue<string> value, char[] trimChars) {
@@ -261,7 +267,9 @@ namespace SharpSheets.Parsing {
 
 			str = str.TrimEnd(trimChars);
 
-			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, str.Length), str);
+			int lengthChange = length - str.Length;
+
+			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, loc.Length - lengthChange), str);
 		}
 
 		public static ContextValue<string> TrimStart(this ContextValue<string> value) {
@@ -271,8 +279,9 @@ namespace SharpSheets.Parsing {
 
 			str = str.TrimStart();
 			int offset = length - str.Length;
+			int lengthChange = value.Value.Length - str.Length;
 
-			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, str.Length), str);
+			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, loc.Length - lengthChange), str);
 		}
 
 		public static ContextValue<string> TrimStart(this ContextValue<string> value, char trimChar) {
@@ -282,8 +291,9 @@ namespace SharpSheets.Parsing {
 
 			str = str.TrimStart(trimChar);
 			int offset = length - str.Length;
+			int lengthChange = length - str.Length;
 
-			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, str.Length), str);
+			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, loc.Length - lengthChange), str);
 		}
 
 		public static ContextValue<string> TrimStart(this ContextValue<string> value, char[] trimChars) {
@@ -293,8 +303,9 @@ namespace SharpSheets.Parsing {
 
 			str = str.TrimStart(trimChars);
 			int offset = length - str.Length;
+			int lengthChange = length - str.Length;
 
-			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, str.Length), str);
+			return new ContextValue<string>(new DocumentSpan(loc.Offset + offset, loc.Line, loc.Column + offset, loc.Length - lengthChange), str);
 		}
 
 		public static ContextValue<string> TrimEnd(this ContextValue<string> value) {
@@ -302,8 +313,9 @@ namespace SharpSheets.Parsing {
 			string str = value.Value;
 			
 			str = str.TrimEnd();
+			int lengthChange = value.Value.Length - str.Length;
 
-			return new ContextValue<string>(new DocumentSpan(loc.Offset, loc.Line, loc.Column, str.Length), str);
+			return new ContextValue<string>(new DocumentSpan(loc.Offset, loc.Line, loc.Column, loc.Length - lengthChange), str);
 		}
 
 		public static ContextValue<string> TrimEnd(this ContextValue<string> value, char trimChar) {
@@ -311,8 +323,9 @@ namespace SharpSheets.Parsing {
 			string str = value.Value;
 
 			str = str.TrimEnd(trimChar);
+			int lengthChange = value.Value.Length - str.Length;
 
-			return new ContextValue<string>(new DocumentSpan(loc.Offset, loc.Line, loc.Column, str.Length), str);
+			return new ContextValue<string>(new DocumentSpan(loc.Offset, loc.Line, loc.Column, loc.Length - lengthChange), str);
 		}
 
 		public static ContextValue<string> TrimEnd(this ContextValue<string> value, char[] trimChars) {
@@ -320,8 +333,9 @@ namespace SharpSheets.Parsing {
 			string str = value.Value;
 
 			str = str.TrimEnd(trimChars);
+			int lengthChange = value.Value.Length - str.Length;
 
-			return new ContextValue<string>(new DocumentSpan(loc.Offset, loc.Line, loc.Column, str.Length), str);
+			return new ContextValue<string>(new DocumentSpan(loc.Offset, loc.Line, loc.Column, loc.Length - lengthChange), str);
 		}
 
 	}
