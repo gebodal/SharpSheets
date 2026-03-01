@@ -244,6 +244,7 @@ namespace SharpSheets.Markup.Elements {
 		private readonly FloatExpression? maxFontSize;
 		private readonly EnumExpression<Justification> justification;
 		private readonly EnumExpression<SharpSheets.Canvas.Text.Alignment> alignment;
+		private readonly EnumExpression<Direction> orientation;
 		private readonly EnumExpression<TextHeightStrategy> heightStrategy;
 		private readonly FloatExpression lineSpacing;
 		private readonly FloatExpression paragraphSpacing;
@@ -258,6 +259,7 @@ namespace SharpSheets.Markup.Elements {
 			YLengthExpression _height,
 			BoolExpression _fit_text, FloatExpression? min_font_size, FloatExpression? max_font_size,
 			EnumExpression<Justification> justification, EnumExpression<SharpSheets.Canvas.Text.Alignment> alignment,
+			EnumExpression<Direction> orientation,
 			EnumExpression<TextHeightStrategy> height_strategy,
 			FloatExpression line_spacing, FloatExpression paragraph_spacing,
 			BoolExpression _single_line,
@@ -272,6 +274,7 @@ namespace SharpSheets.Markup.Elements {
 			this.maxFontSize = max_font_size;
 			this.justification = justification;
 			this.alignment = alignment;
+			this.orientation = orientation;
 			this.heightStrategy = height_strategy;
 			this.lineSpacing = line_spacing;
 			this.paragraphSpacing = paragraph_spacing;
@@ -302,6 +305,9 @@ namespace SharpSheets.Markup.Elements {
 		/// text within the text area rectangle.</param>
 		/// <param name="alignment">The vertical alignment for the
 		/// text within the text area rectangle.</param>
+		/// <param name="orientation">The orientation for the text content inside this
+		/// rectangle area, relative to the current transform. This affects what direction
+		/// is "up" for the text content.</param>
 		/// <param name="height_strategy">The height calculation
 		/// strategy to use when arranging the text within the text area.</param>
 		/// <param name="line_spacing">The line spacing, which is the distance
@@ -320,13 +326,14 @@ namespace SharpSheets.Markup.Elements {
 				[Property(Default = "null")] FloatExpression? min_font_size, [Property(Default = "null")] FloatExpression? max_font_size,
 				[Property(Default = "LEFT")] EnumExpression<Justification> justification,
 				[Property(Default = "BOTTOM")] EnumExpression<SharpSheets.Canvas.Text.Alignment> alignment,
+				[Property(Default = "NORTH")] EnumExpression<Direction> orientation,
 				[Property(Default = "LineHeightBaseline")] EnumExpression<TextHeightStrategy> height_strategy,
 				[Property(Default = "1.0")] FloatExpression line_spacing, [Property(Default = "0.0")] FloatExpression paragraph_spacing,
 				[LocalProperty(Default = "false")] BoolExpression single_line,
 				[Property(Exclude = true)] IEnumerable<TSpan> textContent
 			) {
 
-			return new TextRect(id, styleSheet, x, y, width, height, fit_text, min_font_size, max_font_size, justification, alignment, height_strategy, line_spacing, paragraph_spacing, single_line, textContent);
+			return new TextRect(id, styleSheet, x, y, width, height, fit_text, min_font_size, max_font_size, justification, alignment, orientation, height_strategy, line_spacing, paragraph_spacing, single_line, textContent);
 		}
 
 		public void Draw(MarkupCanvas canvas) {
@@ -389,18 +396,18 @@ namespace SharpSheets.Markup.Elements {
 
 			if (fitText) {
 				if (singleLine) {
-					canvas.FitRichTextLine(area, new RichStringExpression(formattedText, canvas.Context), maxFontSize, lineSpacing, justification, alignment, heightStrategy);
+					canvas.FitRichTextLine(area, new RichStringExpression(formattedText, canvas.Context), maxFontSize, lineSpacing, justification, alignment, orientation, heightStrategy);
 				}
 				else {
-					canvas.FitRichText(area, new RichStringExpression(formattedText, canvas.Context), minFontSize, maxFontSize, lineSpacing, paragraphSpacing, justification, alignment, heightStrategy);
+					canvas.FitRichText(area, new RichStringExpression(formattedText, canvas.Context), minFontSize, maxFontSize, lineSpacing, paragraphSpacing, justification, alignment, orientation, heightStrategy);
 				}
 			}
 			else {
 				if (singleLine) {
-					canvas.DrawRichText(area, new RichStringExpression(formattedText, canvas.Context), justification, alignment, heightStrategy);
+					canvas.DrawRichText(area, new RichStringExpression(formattedText, canvas.Context), justification, alignment, orientation, heightStrategy);
 				}
 				else {
-					canvas.DrawRichText(area, new RichStringExpression(formattedText, canvas.Context), lineSpacing, paragraphSpacing, justification, alignment, heightStrategy);
+					canvas.DrawRichText(area, new RichStringExpression(formattedText, canvas.Context), lineSpacing, paragraphSpacing, justification, alignment, orientation, heightStrategy);
 				}
 			}
 

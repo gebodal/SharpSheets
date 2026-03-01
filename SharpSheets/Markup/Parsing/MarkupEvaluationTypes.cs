@@ -144,6 +144,7 @@ namespace SharpSheets.Markup.Parsing {
 			builder.SetSystemType<Justification, EnumEvaluationType>(ctx => EnumEvaluationType.FromSystemType<Justification>(ctx));
 			builder.SetSystemType<Alignment, EnumEvaluationType>(ctx => EnumEvaluationType.FromSystemType<Alignment>(ctx));
 			builder.SetSystemType<LayoutDirection, EnumEvaluationType>(ctx => EnumEvaluationType.FromSystemType<LayoutDirection>(ctx));
+			builder.SetSystemType<Direction, EnumEvaluationType>(ctx => EnumEvaluationType.FromSystemType<Direction>(ctx));
 			builder.SetSystemType<CheckType, EnumEvaluationType>(ctx => EnumEvaluationType.FromSystemType<CheckType>(ctx));
 
 			// Widget types

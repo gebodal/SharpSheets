@@ -982,6 +982,7 @@ namespace SharpSheets.Markup.Parsing {
 						GetAttribute(elem, "max-font-size", true, s => FloatExpression.Parse(s, variables), null),
 						GetAttribute(elem, "justification", true, s => MarkupValueParsing.ParseEnum<Justification>(s, variables), new EnumExpression<Justification>(Justification.LEFT, variables.Context)),
 						GetAttribute(elem, "alignment", true, s => MarkupValueParsing.ParseEnum<SharpSheets.Canvas.Text.Alignment>(s, variables), new EnumExpression<SharpSheets.Canvas.Text.Alignment>(SharpSheets.Canvas.Text.Alignment.BOTTOM, variables.Context)),
+						GetAttribute(elem, "orientation", true, s => MarkupValueParsing.ParseEnum<Direction>(s, variables), new EnumExpression<Direction>(Direction.NORTH, variables.Context)),
 						GetAttribute(elem, "height-strategy", true, s => MarkupValueParsing.ParseEnum<TextHeightStrategy>(s, variables), new EnumExpression<TextHeightStrategy>(TextHeightStrategy.LineHeightBaseline, variables.Context)),
 						GetAttribute(elem, "line-spacing", true, s => FloatExpression.Parse(s, variables), new FloatExpression(1.0f, variables.Context)),
 						GetAttribute(elem, "paragraph-spacing", true, s => FloatExpression.Parse(s, variables), new FloatExpression(0.0f, variables.Context)),

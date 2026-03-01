@@ -1215,18 +1215,52 @@ namespace SharpSheets.Markup.Canvas {
 			return this;
 		}
 
+		private void ApplyRectOrientationTransform(Rectangle rect, Direction orientation, out Rectangle transformedArea) {
+			if (Canvas is null) { throw new MarkupCanvasStateException(); }
+
+			if (orientation == Direction.NORTH) {
+				transformedArea = rect;
+				return;
+			}
+
+			Transform transform = Transform.Translate(rect.CentreX, rect.CentreY);
+			transform *= orientation switch {
+				Direction.SOUTH => Transform.Rotate180 * Transform.Translate(-rect.Width / 2, -rect.Height / 2),
+				Direction.EAST => Transform.Rotate90CounterClockwise * Transform.Translate(-rect.Height / 2, -rect.Width / 2),
+				Direction.WEST => Transform.Rotate90Clockwise * Transform.Translate(-rect.Height / 2, -rect.Width / 2),
+				_ => Transform.Identity
+			};
+
+			Canvas.ApplyTransform(transform);
+
+			if (orientation == Direction.SOUTH) {
+				transformedArea = new Rectangle(0, 0, rect.Width, rect.Height);
+			}
+			else {
+				transformedArea = new Rectangle(0, 0, rect.Height, rect.Width);
+			}
+		}
+
 		/// <summary>Draws a single line of <see cref="RichString"/> to the canvas inside <paramref name="rect"/> at the current font size.</summary>
 		/// <returns> This MarkupCanvas instance. </returns>
 		/// <exception cref="MarkupCanvasStateException"> If the canvas has an unclosed child canvas. </exception>
 		/// <exception cref="EvaluationCalculationException"></exception>
-		public MarkupCanvas DrawRichText(RectangleExpression rect, IExpression<RichString> text, EnumExpression<Justification> justification, EnumExpression<SharpSheets.Canvas.Text.Alignment> alignment, EnumExpression<TextHeightStrategy> heightStrategy) {
+		public MarkupCanvas DrawRichText(RectangleExpression rect, IExpression<RichString> text, EnumExpression<Justification> justification, EnumExpression<SharpSheets.Canvas.Text.Alignment> alignment, EnumExpression<Direction> orientation, EnumExpression<TextHeightStrategy> heightStrategy) {
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
 			Layouts.Rectangle absRect = TransformRectangle(rect);
 			RichString str = Evaluate(text);
 			Justification justif = Evaluate(justification);
 			SharpSheets.Canvas.Text.Alignment align = Evaluate(alignment);
+			Direction orient = Evaluate(orientation);
 			TextHeightStrategy heightStrat = Evaluate(heightStrategy);
+			if (orient != Direction.NORTH) {
+				Canvas.SaveState();
+				ApplyRectOrientationTransform(absRect, orient, out absRect);
+			}
 			Canvas.DrawRichText(absRect, str, justif, align, heightStrat);
+			if (orient != Direction.NORTH) {
+				Canvas.RestoreState();
+			}
 			return this;
 		}
 
@@ -1234,7 +1268,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// <returns> This MarkupCanvas instance. </returns>
 		/// <exception cref="MarkupCanvasStateException"> If the canvas has an unclosed child canvas. </exception>
 		/// <exception cref="EvaluationCalculationException"></exception>
-		public MarkupCanvas DrawRichText(RectangleExpression rect, IExpression<RichString> text, FloatExpression lineSpacing, FloatExpression paragraphSpacing, EnumExpression<Justification> justification, EnumExpression<SharpSheets.Canvas.Text.Alignment> alignment, EnumExpression<TextHeightStrategy> heightStrategy) {
+		public MarkupCanvas DrawRichText(RectangleExpression rect, IExpression<RichString> text, FloatExpression lineSpacing, FloatExpression paragraphSpacing, EnumExpression<Justification> justification, EnumExpression<SharpSheets.Canvas.Text.Alignment> alignment, EnumExpression<Direction> orientation, EnumExpression<TextHeightStrategy> heightStrategy) {
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
 			Layouts.Rectangle absRect = TransformRectangle(rect);
 			RichString str = Evaluate(text);
@@ -1242,9 +1276,17 @@ namespace SharpSheets.Markup.Canvas {
 			float absParagraphSpacing = Evaluate(paragraphSpacing, 0f);
 			Justification justif = Evaluate(justification);
 			SharpSheets.Canvas.Text.Alignment align = Evaluate(alignment);
+			Direction orient = Evaluate(orientation);
 			TextHeightStrategy heightStrat = Evaluate(heightStrategy);
 			// TODO Should we be able to adjust paragraph indenting here?
+			if (orient != Direction.NORTH) {
+				Canvas.SaveState();
+				ApplyRectOrientationTransform(absRect, orient, out absRect);
+			}
 			Canvas.DrawRichText(absRect, str, Canvas.GetTextSize(), new ParagraphSpecification(absLineSpacing, absParagraphSpacing, 0f, 0f), justif, align, heightStrat, false);
+			if (orient != Direction.NORTH) {
+				Canvas.RestoreState();
+			}
 			return this;
 		}
 
@@ -1252,7 +1294,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// <returns> This MarkupCanvas instance. </returns>
 		/// <exception cref="MarkupCanvasStateException"> If the canvas has an unclosed child canvas. </exception>
 		/// <exception cref="EvaluationCalculationException"></exception>
-		public MarkupCanvas FitRichTextLine(RectangleExpression rect, IExpression<RichString> text, FloatExpression? maxFontSize, FloatExpression lineSpacing, EnumExpression<Justification> justification, EnumExpression<SharpSheets.Canvas.Text.Alignment> alignment, EnumExpression<TextHeightStrategy> heightStrategy) {
+		public MarkupCanvas FitRichTextLine(RectangleExpression rect, IExpression<RichString> text, FloatExpression? maxFontSize, FloatExpression lineSpacing, EnumExpression<Justification> justification, EnumExpression<SharpSheets.Canvas.Text.Alignment> alignment, EnumExpression<Direction> orientation, EnumExpression<TextHeightStrategy> heightStrategy) {
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
 			Layouts.Rectangle absRect = TransformRectangle(rect);
 			RichString str = Evaluate(text);
@@ -1260,10 +1302,18 @@ namespace SharpSheets.Markup.Canvas {
 			float absLineSpacing = Evaluate(lineSpacing, 1.0f);
 			Justification justif = Evaluate(justification);
 			SharpSheets.Canvas.Text.Alignment align = Evaluate(alignment);
+			Direction orient = Evaluate(orientation);
 			TextHeightStrategy heightStrat = Evaluate(heightStrategy);
 			ParagraphSpecification paraSpec = new ParagraphSpecification(absLineSpacing, 0f, default);
 			FontSizeSearchParams searchParams = new FontSizeSearchParams(0.05f, maxSize, 0.1f); // TODO Should be able to adjust epsilon
+			if (orient != Direction.NORTH) {
+				Canvas.SaveState();
+				ApplyRectOrientationTransform(absRect, orient, out absRect);
+			}
 			Canvas.FitRichTextLine(absRect, str, paraSpec, searchParams, justif, align, heightStrat);
+			if (orient != Direction.NORTH) {
+				Canvas.RestoreState();
+			}
 			return this;
 		}
 
@@ -1271,7 +1321,7 @@ namespace SharpSheets.Markup.Canvas {
 		/// <returns> This MarkupCanvas instance. </returns>
 		/// <exception cref="MarkupCanvasStateException"> If the canvas has an unclosed child canvas. </exception>
 		/// <exception cref="EvaluationCalculationException"></exception>
-		public MarkupCanvas FitRichText(RectangleExpression rect, IExpression<RichString> text, FloatExpression? minFontSize, FloatExpression? maxFontSize, FloatExpression lineSpacing, FloatExpression paragraphSpacing, EnumExpression<Justification> justification, EnumExpression<SharpSheets.Canvas.Text.Alignment> alignment, EnumExpression<TextHeightStrategy> heightStrategy) {
+		public MarkupCanvas FitRichText(RectangleExpression rect, IExpression<RichString> text, FloatExpression? minFontSize, FloatExpression? maxFontSize, FloatExpression lineSpacing, FloatExpression paragraphSpacing, EnumExpression<Justification> justification, EnumExpression<SharpSheets.Canvas.Text.Alignment> alignment, EnumExpression<Direction> orientation, EnumExpression<TextHeightStrategy> heightStrategy) {
 			if (Canvas is null) { throw new MarkupCanvasStateException(); }
 			Layouts.Rectangle absRect = TransformRectangle(rect);
 			RichString str = Evaluate(text);
@@ -1281,9 +1331,17 @@ namespace SharpSheets.Markup.Canvas {
 			float absParagraphSpacing = Evaluate(paragraphSpacing, 0f);
 			Justification justif = Evaluate(justification);
 			SharpSheets.Canvas.Text.Alignment align = Evaluate(alignment);
+			Direction orient = Evaluate(orientation);
 			TextHeightStrategy heightStrat = Evaluate(heightStrategy);
 			// TODO Should we be able to adjust paragraph indenting here?
+			if (orient != Direction.NORTH) {
+				Canvas.SaveState();
+				ApplyRectOrientationTransform(absRect, orient, out absRect);
+			}
 			Canvas.FitRichText(absRect, str, new ParagraphSpecification(absLineSpacing, absParagraphSpacing, 0f, 0f), new FontSizeSearchParams(minSize, maxSize, 0.1f), justif, align, heightStrat, true);
+			if (orient != Direction.NORTH) {
+				Canvas.RestoreState();
+			}
 			return this;
 		}
 
